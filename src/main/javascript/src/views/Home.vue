@@ -49,6 +49,7 @@
           >
             New Experiment
           </v-btn>
+          <help />
         </v-col>
       </v-row>
       <v-row
@@ -64,19 +65,25 @@
             @input="handleDataExportRequestAlertDismiss(dataExportRequestAlert.experimentId)"
             :aria-label="`data export request alert for experiment ${dataExportRequestAlert.experimentId}`"
             :type="dataExportRequestAlert.type"
+            :color="dataExportRequestAlert.color"
             elevation="0"
+            role="alert"
             dismissible
+            outlined
+            text
           >
             {{ dataExportRequestAlert.text }}
             <a
               v-if="dataExportRequestAlert.showDownloadLink"
               @click="handleAlertDataExportDownloadRequest(dataExportRequestAlert.experimentId)"
+              aria-label="download export file for experiment"
             >
               <b><i>Click here to download</i></b>.
             </a>
             <a
               v-if="dataExportRequestAlert.showRecreateLink"
               @click="handleDataExportRequest(dataExportRequestAlert.experimentId)"
+              aria-label="request new data export for experiment"
             >
               <b><i>Click here to download a new data export</i></b>.
             </a>
@@ -98,7 +105,10 @@
             @input="handleImportRequestAlertDismiss(importRequestAlert.id)"
             :type="importRequestAlert.type"
             elevation="0"
+            role="alert"
             dismissible
+            outlined
+            text
           >
             {{ importRequestAlert.text }}
             <ul
@@ -116,6 +126,8 @@
       </v-row>
       <v-row>
         <v-col
+          id="terracotta-main"
+          tabindex="-1"
           cols="12"
         >
           <h1
@@ -275,6 +287,8 @@
 
 <script>
 import {mapActions, mapGetters} from "vuex";
+import { getColor, deleteAttributesFromElement, addAttributesToElement, getAttributeFromElement } from "@/helpers/ui-utils.js";
+import Help from "@/components/Help.vue";
 import moment from "moment";
 import PageLoading from "@/components/PageLoading";
 import ZeroState from "@/views/ZeroState.vue";
@@ -282,6 +296,7 @@ import ZeroState from "@/views/ZeroState.vue";
 export default {
   name: "Home",
   components: {
+    Help,
     PageLoading,
     ZeroState
   },
@@ -375,6 +390,18 @@ export default {
         }
       },
       immediate: false
+    },
+    experiments: {
+      handler() {
+        // ensure aria-controls is added to the correct footer select element after loading
+        const ariaOwnsId = getAttributeFromElement(".v-data-footer__select .v-select .v-input__slot:first-of-type", "aria-owns");
+        deleteAttributesFromElement(".v-data-footer__select .v-select .v-input__slot", ["role"]);
+        addAttributesToElement(".v-data-footer__select .v-select .v-input__slot", [
+          { name: "role", value: "combobox" },
+          { name: "aria-controls", value: ariaOwnsId }
+        ]);
+      },
+      immediate: true
     }
   },
   computed: {
@@ -425,7 +452,8 @@ export default {
                 showDownloadLink: true,
                 showRecreateLink: false,
                 text: `Your data export for experiment "${dataExportRequest.experimentTitle}" is ready.`,
-                type: "success"
+                type: "success",
+                color: getColor("--green-base")
               }
             );
             continue;
@@ -438,7 +466,8 @@ export default {
                 showDownloadLink: false,
                 showRecreateLink: false,
                 text: `The data export for experiment "${dataExportRequest.experimentTitle}" is being processed. Please do not navigate away from this page.`,
-                type: "info"
+                type: "info",
+                color: getColor("--blue-primary")
               }
             );
             continue;
@@ -464,7 +493,8 @@ export default {
                 showDownloadLink: false,
                 showRecreateLink: false,
                 text: `There was an error processing the requested data export for experiment "${dataExportRequest.experimentTitle}". Please try again or contact support.`,
-                type: "error"
+                type: "error",
+                color: getColor("--red-base")
               }
             );
             continue;
@@ -603,6 +633,7 @@ export default {
           showCancelButton: true,
           confirmButtonText: "Yes, delete it",
           cancelButtonText: "No, cancel",
+          cancelButtonColor: getColor("--swal-cancel"),
         });
         // if confirmed, delete experiment
         if (reallyDelete.isConfirmed) {
@@ -961,6 +992,8 @@ export default {
 </script>
 
 <style lang="scss">
+@import "~@/styles/variables";
+
 .v-data-table {
   * {
     color: black !important;
@@ -969,7 +1002,7 @@ export default {
     font-size: 16px !important;
   }
   &__wrapper {
-    border: 1px solid #E0E0E0;
+    border: 1px solid map-get($grey, "lighter") !important;
     border-radius: 10px;
   }
   &__link {
@@ -988,7 +1021,7 @@ div.v-tooltip__content {
   opacity: 1.0 !important;
   background-color: rgba(55,61,63, 1.0) !important;
   a {
-    color: #afdcff;
+    color: map-get($blue, "light");
   }
 }
 .alert-request {
@@ -997,7 +1030,7 @@ div.v-tooltip__content {
   > .v-alert {
     margin: 0 auto;
     & a {
-      color: white;
+      color: inherit !important;
     }
   }
 }

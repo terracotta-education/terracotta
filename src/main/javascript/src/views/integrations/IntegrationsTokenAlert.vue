@@ -1,72 +1,72 @@
 <template>
-  <div
-    class="px-3"
+<div
+  class="px-3"
+>
+  <v-alert
+    v-if="alertType === alertData.types.initial"
+    v-model="alertDisplay"
+    type="error"
+    icon="mdi-alert-circle-outline"
+    class="alert initial my-0"
+    elevation="0"
+    dismissible
+    outlined
+    dense
   >
-    <v-alert
-      v-if="alertType === alertData.types.initial"
-      v-model="alertDisplay"
-      type="error"
-      icon="mdi-alert-circle-outline"
-      class="alert initial my-0"
-      elevation="0"
-      dismissible
-      outlined
-      dense
-    >
-      <p>
-        <b>This attempt will expire on {{ alertData.date }}.</b>
-      </p>
-      <p>
-        If you can't complete your assignment now and still have time before it's due,
-        <b>begin a new timed session by closing and reopening this assignment</b>.
-        Any unfinished work will be lost if you exit, or if the allotted time expires, before you submit.
-      </p>
-    </v-alert>
-    <v-alert
-      v-if="alertType === alertData.types.warning"
-      v-model="alertDisplay"
-      type="warning"
-      icon="mdi-clock-outline"
-      class="alert warning my-0"
-      elevation="0"
-      outlined
-      dense
-    >
-      <template v-slot:close="{ }">
-        <v-icon
-          @click="handleWarningMinimize()"
-        >
-          {{  warningMinimized ? "mdi-chevron-down" : "mdi-chevron-up" }}
-        </v-icon>
-      </template>
-      <p>
-        <b>This attempt will expire in <span class="warn-expiration-time">{{ alertData.date }}</span>.</b>
-      </p>
-      <p
-        v-if="!warningMinimized"
+    <p>
+      <b>This attempt will expire on {{ alertData.date }}.</b>
+    </p>
+    <p>
+      If you can't complete your assignment now and still have time before it's due,
+      <b>begin a new timed session by closing and reopening this assignment</b>.
+      Any unfinished work will be lost if you exit, or if the allotted time expires, before you submit.
+    </p>
+  </v-alert>
+  <v-alert
+    v-if="alertType === alertData.types.warning"
+    v-model="alertDisplay"
+    type="warning"
+    icon="mdi-clock-outline"
+    class="alert warning my-0"
+    elevation="0"
+    outlined
+    dense
+  >
+    <template v-slot:close="{ }">
+      <v-icon
+        @click="handleWarningMinimize()"
       >
-        If you can't complete your assignment now and still have time before it's due,
-        <b>begin a new timed session by closing and reopening this assignment</b>.
-        Any unfinished work will be lost if you exit, or if the allotted time expires, before you submit.
-      </p>
-    </v-alert>
-    <v-alert
-      v-if="alertType === alertData.types.expired"
-      v-model="alertDisplay"
-      type="error"
-      icon="mdi-close-circle-outline"
-      class="alert expired my-0"
-      elevation="0"
-      outlined
-      dense
+        {{  warningMinimized ? "mdi-chevron-down" : "mdi-chevron-up" }}
+      </v-icon>
+    </template>
+    <p>
+      <b>This attempt will expire in <span class="warn-expiration-time">{{ alertData.date }}</span>.</b>
+    </p>
+    <p
+      v-if="!warningMinimized"
     >
-      <p>
-        <b><span class="warn-expiration-time">This attempt has expired.</span></b>
-        Your session ended on {{ alertData.date }}.
-        If you attempt to submit now, your work will be lost. Copy any completed work into a document, click the Assignment tab in the menu on the left to open a new, blank assignment.
-      </p>
-    </v-alert>
-  </div>
+      If you can't complete your assignment now and still have time before it's due,
+      <b>begin a new timed session by closing and reopening this assignment</b>.
+      Any unfinished work will be lost if you exit, or if the allotted time expires, before you submit.
+    </p>
+  </v-alert>
+  <v-alert
+    v-if="alertType === alertData.types.expired"
+    v-model="alertDisplay"
+    type="error"
+    icon="mdi-close-circle-outline"
+    class="alert expired my-0"
+    elevation="0"
+    outlined
+    dense
+  >
+    <p>
+      <b><span class="warn-expiration-time">This attempt has expired.</span></b>
+      Your session ended on {{ alertData.date }}.
+      If you attempt to submit now, your work will be lost. Copy any completed work into a document, click the Assignment tab in the menu on the left to open a new, blank assignment.
+    </p>
+  </v-alert>
+</div>
 </template>
 
 <script>

@@ -1,479 +1,450 @@
 <template>
-  <div>
-    <v-container
-      v-if="experiment"
+<div>
+  <v-container
+    v-if="experiment"
+  >
+    <v-row
+      class="sticky my-1"
+      justify="space-between"
     >
-      <v-row
-        class="sticky my-1"
-        justify="space-between"
+      <v-col
+        class="col-experiment-title"
+        cols="8"
       >
-        <v-col
-          class="col-experiment-title"
-          cols="8"
+        <p class="header ma-0 pa-0">
+          <v-img
+            src="../../public/terracotta_logo_mark.svg"
+            class="mr-6"
+            alt="Terracotta Logo"
+            height="30"
+            max-width="26"
+          />
+          <span>{{ experiment.title }}</span>
+        </p>
+      </v-col>
+      <div
+        class="header ma-0 pa-0"
+      >
+        <v-btn
+          @click="handleDataExportRequest()"
+          :disabled="experimentDataExportRequest.polling.active"
+          color="primary"
+          elevation="0"
+          class="mx-1"
         >
-          <p class="header ma-0 pa-0">
-            <v-img
-              src="../../public/terracotta_logo_mark.svg"
-              class="mr-6"
-              alt="Terracotta Logo"
-              height="30"
-              max-width="26"
-            />
-            <span>{{ experiment.title }}</span>
-          </p>
-        </v-col>
-        <div
-          class="header ma-0 pa-0"
+          Export Data
+        </v-btn>
+        <v-btn
+          v-if="experimentExportEnabled"
+          @click="handleExperimentExport()"
+          color="primary"
+          elevation="0"
+          class="mx-1"
         >
-          <v-btn
+          Export Experiment
+        </v-btn>
+        <help />
+        <v-btn
+          @click="saveExit()"
+          color="primary"
+          elevation="0"
+          class="saveButton ml-4"
+        >
+          SAVE & EXIT
+        </v-btn>
+      </div>
+    </v-row>
+    <v-row>
+      <div
+        v-if="experimentDataExportRequest.showAlert"
+        class="alert-data-export-request pb-2 px-3"
+      >
+        <v-alert
+          v-model="experimentDataExportRequest.showAlert"
+          :type="dataExportRequestAlert.type"
+          @input="handleDataExportRequestAlertDismiss"
+          elevation="0"
+          dismissible
+          outlined
+          text
+        >
+          {{ dataExportRequestAlert.text }}
+          <a
+            v-if="dataExportRequestAlert.showDownloadLink"
+            @click="handleAlertDataExportDownloadRequest()"
+          >
+            <b><i>Click here to download</i></b>.
+          </a>
+          <a
+            v-if="dataExportRequestAlert.showRecreateLink"
             @click="handleDataExportRequest()"
-            :disabled="experimentDataExportRequest.polling.active"
-            color="primary"
-            elevation="0"
-            class="mx-1"
           >
-            Export Data
-          </v-btn>
-          <v-btn
-            v-if="experimentExportEnabled"
-            @click="handleExperimentExport()"
-            color="primary"
-            elevation="0"
-            class="mx-1"
-          >
-            Export Experiment
-          </v-btn>
-          <v-btn
-            @click="saveExit()"
-            color="primary"
-            elevation="0"
-            class="saveButton ml-4"
-          >
-            SAVE & EXIT
-          </v-btn
-          >
-        </div>
-      </v-row>
-      <v-row>
-        <div
-          v-if="experimentDataExportRequest.showAlert"
-          class="alert-data-export-request pb-2 px-3"
+            <b><i>Click here to download a new data export</i></b>.
+          </a>
+        </v-alert>
+      </div>
+    </v-row>
+    <v-row>
+      <v-col
+        cols="12"
+      >
+        <v-divider></v-divider>
+        <v-tabs
+          v-model="tab"
+          elevation="0"
         >
-          <v-alert
-            v-model="experimentDataExportRequest.showAlert"
-            @input="handleDataExportRequestAlertDismiss"
-            :type="dataExportRequestAlert.type"
-            elevation="0"
-            dismissible
+          <v-tab
+            v-for="item in setupTabs"
+            :key="item.tab"
           >
-            {{ dataExportRequestAlert.text }}
-            <a
-              v-if="dataExportRequestAlert.showDownloadLink"
-              @click="handleAlertDataExportDownloadRequest()"
-            >
-              <b><i>Click here to download</i></b>.
-            </a>
-            <a
-              v-if="dataExportRequestAlert.showRecreateLink"
-              @click="handleDataExportRequest()"
-            >
-              <b><i>Click here to download a new data export</i></b>.
-            </a>
-          </v-alert>
-        </div>
-      </v-row>
-      <v-row>
-        <v-col
-          cols="12"
+            {{ item.tab }}
+          </v-tab>
+        </v-tabs>
+        <v-divider></v-divider>
+        <v-tabs-items
+          v-model="tab"
         >
-          <v-divider></v-divider>
-          <v-tabs
-            v-model="tab"
-            elevation="0"
+          <v-tab-item
+            v-for="item in setupTabs"
+            :key="item.tab"
+            :class="item.tab"
+            :transition="false"
+            class="tab-section pt-6"
           >
-            <v-tab
-              v-for="item in setupTabs"
-              :key="item.tab"
+            <div
+              class="tab-heading"
             >
-              {{ item.tab }}
-            </v-tab>
-          </v-tabs>
-          <v-divider></v-divider>
-          <v-tabs-items
-            v-model="tab"
-          >
-            <v-tab-item
-              v-for="item in setupTabs"
-              :key="item.tab"
-              :class="item.tab"
-              :transition="false"
-              class="tab-section pt-6"
-            >
-              <div
-                class="tab-heading"
+              <v-card
+                v-if="hasPublishedAssignment && item.tab !== 'results'"
+                :key="item.title"
+                class="pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
+                outlined
               >
-                <v-card
-                  v-if="hasPublishedAssignment && item.tab !== 'results'"
-                  :key="item.title"
-                  class="pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-                  outlined
+                <p
+                  class="pb-0"
                 >
-                  <p
-                    class="pb-0"
-                  >
-                    <strong>Note:</strong> You are currently collecting component submissions. Some setup functionality may not be available to avoid disrupting the experiment.
-                  </p>
-                </v-card>
+                  <strong>Note:</strong> You are currently collecting component submissions. Some setup functionality may not be available to avoid disrupting the experiment.
+                </p>
+              </v-card>
+              <div
+                v-if="item.tab !== 'results'"
+                class="container-section-summary px-5"
+              >
                 <div
-                  v-if="item.tab !== 'results'"
-                  class="container-section-summary px-5"
+                  class="panel-overview py-6"
                 >
                   <div
-                    class="panel-overview py-6"
+                    class="panelInformation d-flex flex-column justify-center"
                   >
-                    <div
-                      class="panelInformation d-flex flex-column justify-center"
-                    >
-                      <div>
-                        <v-img
-                          v-if="item.image"
-                          :src="item.image"
-                          :alt="item.title"
-                          class="icon-section-summary mr-6"
-                          style="margin-top: 2px !important; margin-right: 8px !important;"
-                        />
-                        <h2
-                          class="header-section-summary mb-0"
-                        >
-                          {{ item.title }}
-                        </h2>
-                      </div>
-                      <span
-                        v-if="item.description"
+                    <div>
+                      <v-img
+                        v-if="item.image"
+                        :src="item.image"
+                        :alt="item.title"
+                        class="icon-section-summary mr-6"
+                        style="margin-top: 2px !important; margin-right: 8px !important;"
+                      />
+                      <h2
+                        class="header-section-summary mb-0"
                       >
-                        {{ item.description }}
-                      </span>
+                        {{ item.title }}
+                      </h2>
                     </div>
+                    <span
+                      v-if="item.description"
+                    >
+                      {{ item.description }}
+                    </span>
                   </div>
                 </div>
-                <template
-                  v-if="item.tab === 'status'"
-                >
-                  <experiment-summary-status
-                    :experiment="experiment"
-                  />
-                </template>
-                <template
-                  v-if="item.tab === 'components'"
-                >
-                  <div
-                    class="section-exposure-sets px-5"
-                  >
-                    <div
-                      v-if="!singleConditionExperiment"
-                      class="panelInformation d-flex flex-column justify-center"
-                    >
-                      <h3
-                        class="mb-0"
-                      >
-                        Exposure Sets
-                      </h3>
-                      <p
-                        v-if="exposures"
-                        class="pb-0"
-                      >
-                        Because you have <strong>{{ conditionCount }}</strong> (<a @click="handleEdit('ExperimentDesignConditions', item.tab)" >edit</a>)
-                        and would like your students to be <strong>{{ exposureText[experiment.exposureType] }}</strong>
-                        ({{ exposureType[experiment.exposureType] }}) (<a @click="handleEdit('ExperimentDesignConditions', item.tab)">edit</a>),
-                        we set you up with <strong>{{ exposures.length }} exposure sets</strong>.
-                        <v-tooltip
-                          top
-                        >
-                          <template
-                            v-slot:activator="{ on, attrs }"
-                          >
-                            <a
-                              v-bind="attrs"
-                              v-on="on"
-                            >
-                              What is an exposure set?
-                            </a>
-                          </template>
-                          <span>
-                            <strong
-                              class="d-block"
-                            >
-                              What is an exposure set?
-                            </strong>
-                            An "exposure set" exposes a student to a specific condition during a specific time period. Students will change conditions between exposure sets, and the order
-                            of conditions across exposure sets will be randomly assigned to different students.
-                            An exposure set contains one or more components, and there must be an equal number of components in each exposure set in order to balance the experiment.
-                          </span>
-                        </v-tooltip>
-                      </p>
-                      <span
-                        v-show="showBalanced"
-                      >
-                        Your exposure sets are currently:
-                        <v-chip
-                          class="mr-2"
-                          label
-                          outlined
-                        >
-                          <span
-                            v-if="!balanced"
-                            class="label-unbalanced"
-                          >
-                            <v-icon>mdi-scale-unbalanced</v-icon>
-                            Unbalanced
-                          </span>
-                          <span
-                            v-if="balanced"
-                          >
-                            <v-icon>mdi-scale-balance</v-icon>
-                            Balanced
-                          </span>
-                        </v-chip>
-                        <v-tooltip
-                          top
-                        >
-                          <template
-                            v-slot:activator="{ on, attrs }"
-                          >
-                            <a
-                              v-bind="attrs"
-                              v-on="on"
-                            >
-                              What does this mean?
-                            </a>
-                          </template>
-                          <span
-                            v-if="balanced"
-                          >
-                            <strong
-                              class="d-block"
-                            >
-                              Balanced Exposure Sets
-                            </strong>
-                            Your exposure sets contain all the same number components, and components contain the same number of treatments. Great work!
-                            Single version {{ isMessagingEnabled ? 'messages and' : '' }} assignments do not count toward balance.
-                          </span>
-                          <span
-                            v-if="!balanced"
-                          >
-                            <strong
-                              class="d-block"
-                            >
-                              Unbalanced Exposure Sets
-                            </strong>
-                            A balanced experiment needs to have the same number of {{ isMessagingEnabled ? 'assignments, integrations, and/or messages' : 'assignments and integrations' }} within each exposure set, and a treatment for each condition.
-                            This will expose your students to every condition, but in different orders, so you can compare how the different conditions affected each student.
-                            Single version {{ isMessagingEnabled ? 'messages and' : '' }} assignments do not count toward balance.
-                          </span>
-                        </v-tooltip>
-                      </span>
-                    </div>
-                    <experiment-assignments
-                      v-if="loaded"
-                      :experiment="experiment"
-                      :balanced="balanced"
-                      :activeExposureSet="exposureSet"
-                    />
-                  </div>
-                </template>
-                <template
-                  v-if="item.tab !== 'status' && item.tab !== 'components'"
-                >
-                  <table>
-                    <tr
-                      v-for="section in sectionValuesMap[item.title]"
-                      :key="section.title"
-                      class="tableRow"
-                    >
-                      <td
-                        class="leftData col-4"
-                      >
-                        <template>
-                          <div
-                            class="detail"
-                          >
-                            <span
-                              class="heading"
-                            >
-                              {{ section.title }}
-                            </span>
-                            <a
-                              @click="handleEdit(section.editSection, item.tab)"
-                            >
-                              EDIT
-                            </a>
-                          </div>
-                        </template>
-                      </td>
-                      <td
-                        class="col-7 rightData"
-                      >
-                        <!-- String Data -->
-                        <!-- For Experiment Title and Description -->
-                        <template
-                          v-if="section.type === 'string'"
-                        >
-                          {{ section.description }}
-                        </template>
-                        <!-- Array data -->
-                        <!-- For Experiment Condition Details -->
-                        <template
-                          v-if="section.type === 'array'"
-                          class="arrayData"
-                        >
-                          <label
-                            v-for="(condition, index) in section.description"
-                            :key="condition.conditionId"
-                            :for="`condition-${condition.conditionId}`"
-                            class="text-left conditionLabel"
-                          >
-                            <span
-                              class="conditionName"
-                            >
-                              Condition {{ index + 1 }}
-                            </span>
-                            <br />
-                            <v-chip
-                              :color="conditionColorMapping[condition.name]"
-                              label
-                            >
-                              {{ condition.name }}
-                            </v-chip>
-                            <v-chip
-                              v-show="condition.defaultCondition"
-                              class="px-3 py-1  ml-3 defaultPill"
-                              color="primary"
-                            >
-                              <v-icon>mdi-check</v-icon>
-                              <span>Default</span>
-                            </v-chip>
-                          </label>
-                        </template>
-                        <!-- Constant values -->
-                        <!-- For Experiment Type -->
-                        <template
-                          v-if="section.type === 'constant'"
-                        >
-                          <template
-                            v-if="section.description === 'WITHIN'"
-                          >
-                            <img
-                              src="@/assets/all_conditions.svg"
-                              alt="all conditions"
-                              class="constantImage mb-2"
-                            />
-                            <span
-                              class="conditionType mb-2"
-                            >
-                              All conditions
-                            </span>
-                            <p
-                              class="conditionDetail"
-                            >
-                              All students are exposed to every condition, in different orders. This way you can compare how the different conditions affected each individual
-                              student. This is called a within-subject design.
-                            </p>
-                          </template>
-                          <template
-                            v-if="section.description === 'BETWEEN'"
-                          >
-                            <img
-                              src="@/assets/one_condition.svg"
-                              alt="one conditions"
-                              class="constantImage mb-2"
-                            />
-                            <span
-                              class="conditionType mb-2"
-                            >
-                              Only one condition
-                            </span>
-                            <p
-                              class="conditionDetail"
-                            >
-                              Each student is only exposed to one condition, so that you can compare how the different conditions affected different students. This is called a
-                              between-subjects design.
-                            </p>
-                          </template>
-                        </template>
-                        <!-- Participation data -->
-                        <template
-                          v-if="section.type === 'participation'"
-                        >
-                          <!-- Consent Participation -->
-                          <template
-                            v-if="section.description === 'CONSENT'"
-                          >
-                            Informed Consent
-                            <button
-                              v-if="!pdfLoading"
-                              @click="openPDF"
-                              class="pdfButton"
-                            >
-                              {{ experiment.consent.title }}
-                            </button>
-                            <Spinner
-                              v-if="pdfLoading"
-                            />
-                          </template>
-                          <!-- Manual Participation -->
-                          <template
-                            v-else-if="section.description === 'MANUAL'"
-                          >
-                            Manual
-                            <br />
-                            <span>
-                              {{ experiment.acceptedParticipants }} students selected to participate out of {{ experiment.potentialParticipants }} students enrolled
-                            </span>
-                          </template>
-                          <!-- All Participation -->
-                          <template
-                            v-else
-                          >
-                            Include All Students
-                            <br />
-                            <span>
-                              {{ experiment.potentialParticipants }} students selected to participate out of {{ experiment.potentialParticipants }} students enrolled
-                            </span>
-                          </template>
-                        </template>
-                      </td>
-                    </tr>
-                  </table>
-                </template>
               </div>
               <template
-                v-if="item.tab === 'results'"
+                v-if="item.tab === 'status'"
               >
-                <ResultsDashboard />
+                <experiment-summary-status
+                  :experiment="experiment"
+                />
               </template>
-            </v-tab-item>
-          </v-tabs-items>
-        </v-col>
-      </v-row>
-      <vue-pdf-embed
-        v-if="displayConsentFile"
-        :source="'data:application/pdf;base64,' + pdfFile"
-      />
-    </v-container>
-    <v-container v-else>
-      no experiment
-    </v-container>
-  </div>
+              <template
+                v-if="item.tab === 'components'"
+              >
+                <div
+                  class="section-exposure-sets px-5"
+                >
+                  <div
+                    v-if="!singleConditionExperiment"
+                    class="panelInformation d-flex flex-column justify-center"
+                  >
+                    <h3
+                      class="mb-0"
+                    >
+                      Exposure Sets
+                    </h3>
+                    <p
+                      v-if="exposures"
+                      class="exposure-set-explanation pb-0"
+                    >
+                      Because you have <strong>{{ conditionCount }}</strong> (<a @click="handleEdit('ExperimentDesignConditions', item.tab)" tabindex="0">edit</a>)
+                      and would like your students to be <strong>{{ exposureText[experiment.exposureType] }}</strong>
+                      ({{ exposureType[experiment.exposureType] }}) (<a @click="handleEdit('ExperimentDesignConditions', item.tab)" tabindex="0">edit</a>),
+                      we set you up with <strong>{{ exposures.length }} exposure sets</strong>.
+                      <tool-tip
+                        header="What is an exposure set?"
+                        content="An 'exposure set' exposes a student to a specific condition during a specific time period.
+                          Students will change conditions between exposure sets, and the order of conditions across exposure sets will be randomly assigned to different students.
+                          An exposure set contains one or more components, and there must be an equal number of components in each exposure set in order to balance the experiment."
+                        aria-label="Exposure set explanation tooltip"
+                        alignment="top"
+                        activatorType="link"
+                        activatorContent="What is an exposure set?"
+                        attach=".exposure-set-explanation"
+                        ref="exposureSetTooltip"
+                      />
+                    </p>
+                    <span
+                      v-show="showBalanced"
+                      class="exposure-set-balanced-status"
+                    >
+                      Your exposure sets are currently:
+                      <v-chip
+                        class="mr-2"
+                        label
+                        outlined
+                      >
+                        <span
+                          v-if="!balanced"
+                          class="label-unbalanced"
+                        >
+                          <v-icon>mdi-scale-unbalanced</v-icon>
+                          Unbalanced
+                        </span>
+                        <span
+                          v-if="balanced"
+                        >
+                          <v-icon>mdi-scale-balance</v-icon>
+                          Balanced
+                        </span>
+                      </v-chip>
+                      <tool-tip
+                        :header="balanceTooltipHeader"
+                        :content="balanceTooltipContent"
+                        aria-label="Balance explanation tooltip"
+                        alignment="top"
+                        activatorType="link"
+                        activatorContent="What does this mean?"
+                        attach=".exposure-set-balanced-status"
+                        ref="balancedTooltip"
+                      />
+                    </span>
+                  </div>
+                  <experiment-assignments
+                    v-if="loaded"
+                    :experiment="experiment"
+                    :balanced="balanced"
+                    :activeExposureSet="exposureSet"
+                  />
+                </div>
+              </template>
+              <template
+                v-if="item.tab !== 'status' && item.tab !== 'components'"
+              >
+                <table>
+                  <tr
+                    v-for="section in sectionValuesMap[item.title]"
+                    :key="section.title"
+                    class="tableRow"
+                  >
+                    <td
+                      class="leftData col-4"
+                    >
+                      <template>
+                        <div
+                          class="detail"
+                        >
+                          <span
+                            class="heading"
+                          >
+                            {{ section.title }}
+                          </span>
+                          <v-btn
+                            @click="handleEdit(section.editSection, item.tab)"
+                            class="edit-section-link"
+                            tabindex="0"
+                            plain
+                            text
+                          >
+                            EDIT
+                          </v-btn>
+                        </div>
+                      </template>
+                    </td>
+                    <td
+                      class="col-7 rightData"
+                    >
+                      <!-- String Data -->
+                      <!-- For Experiment Title and Description -->
+                      <template
+                        v-if="section.type === 'string'"
+                      >
+                        {{ section.description }}
+                      </template>
+                      <!-- Array data -->
+                      <!-- For Experiment Condition Details -->
+                      <template
+                        v-if="section.type === 'array'"
+                        class="arrayData"
+                      >
+                        <label
+                          v-for="(condition, index) in section.description"
+                          :key="condition.conditionId"
+                          :for="`condition-${condition.conditionId}`"
+                          class="text-left conditionLabel"
+                        >
+                          <span
+                            class="conditionName"
+                          >
+                            Condition {{ index + 1 }}
+                          </span>
+                          <br />
+                          <v-chip
+                            :color="conditionColorMapping[condition.name]"
+                            label
+                          >
+                            {{ condition.name }}
+                          </v-chip>
+                          <v-chip
+                            v-show="condition.defaultCondition"
+                            class="px-3 py-1  ml-3 defaultPill"
+                            color="primary"
+                          >
+                            <v-icon>mdi-check</v-icon>
+                            <span>Default</span>
+                          </v-chip>
+                        </label>
+                      </template>
+                      <!-- Constant values -->
+                      <!-- For Experiment Type -->
+                      <template
+                        v-if="section.type === 'constant'"
+                      >
+                        <template
+                          v-if="section.description === 'WITHIN'"
+                        >
+                          <img
+                            src="@/assets/all_conditions.svg"
+                            alt="all conditions"
+                            class="constantImage mb-2"
+                          />
+                          <span
+                            class="conditionType mb-2"
+                          >
+                            All conditions
+                          </span>
+                          <p
+                            class="conditionDetail"
+                          >
+                            All students are exposed to every condition, in different orders. This way you can compare how the different conditions affected each individual
+                            student. This is called a within-subject design.
+                          </p>
+                        </template>
+                        <template
+                          v-if="section.description === 'BETWEEN'"
+                        >
+                          <img
+                            src="@/assets/one_condition.svg"
+                            alt="one conditions"
+                            class="constantImage mb-2"
+                          />
+                          <span
+                            class="conditionType mb-2"
+                          >
+                            Only one condition
+                          </span>
+                          <p
+                            class="conditionDetail"
+                          >
+                            Each student is only exposed to one condition, so that you can compare how the different conditions affected different students. This is called a
+                            between-subjects design.
+                          </p>
+                        </template>
+                      </template>
+                      <!-- Participation data -->
+                      <template
+                        v-if="section.type === 'participation'"
+                      >
+                        <!-- Consent Participation -->
+                        <template
+                          v-if="section.description === 'CONSENT'"
+                        >
+                          Informed Consent
+                          <button
+                            v-if="!pdfLoading"
+                            @click="openPDF"
+                            class="pdfButton"
+                          >
+                            {{ experiment.consent.title }}
+                          </button>
+                          <Spinner
+                            v-if="pdfLoading"
+                          />
+                        </template>
+                        <!-- Manual Participation -->
+                        <template
+                          v-else-if="section.description === 'MANUAL'"
+                        >
+                          Manual
+                          <br />
+                          <span>
+                            {{ experiment.acceptedParticipants }} students selected to participate out of {{ experiment.potentialParticipants }} students enrolled
+                          </span>
+                        </template>
+                        <!-- All Participation -->
+                        <template
+                          v-else
+                        >
+                          Include All Students
+                          <br />
+                          <span>
+                            {{ experiment.potentialParticipants }} students selected to participate out of {{ experiment.potentialParticipants }} students enrolled
+                          </span>
+                        </template>
+                      </template>
+                    </td>
+                  </tr>
+                </table>
+              </template>
+            </div>
+            <template
+              v-if="item.tab === 'results'"
+            >
+              <ResultsDashboard />
+            </template>
+          </v-tab-item>
+        </v-tabs-items>
+      </v-col>
+    </v-row>
+    <vue-pdf-embed
+      v-if="displayConsentFile"
+      :source="'data:application/pdf;base64,' + pdfFile"
+    />
+  </v-container>
+  <v-container v-else>
+    no experiment
+  </v-container>
+</div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from "vuex";
 import { EventBus } from "@/helpers/event-bus";
+import { statusAlert } from "@/helpers/ui-utils";
 import ExperimentAssignments from "@/views/ExperimentAssignments";
 import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus";
+import Help from "@/components/Help.vue";
 import ResultsDashboard from "@/views/dashboard/results/ResultsDashboard";
 import Spinner from "@/components/Spinner";
 import store from "@/store";
+import ToolTip from "@/components/ToolTip.vue";
 import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 
 export default {
@@ -481,8 +452,10 @@ export default {
   components: {
     ExperimentSummaryStatus,
     ExperimentAssignments,
+    Help,
     ResultsDashboard,
     Spinner,
+    ToolTip,
     VuePdfEmbed
   },
   data: () => ({
@@ -508,7 +481,11 @@ export default {
         active: false,
         id: null
       }
-    }
+    },
+    tooltipRefs: [
+      "balancedTooltip",
+      "exposureSetTooltip"
+    ]
   }),
   watch: {
     pdfFile() {
@@ -540,7 +517,8 @@ export default {
       editMode: "navigation/editMode",
       dataExportRequests: "dataexportrequest/dataExportRequests",
       configurations: "configuration/get",
-      allMessageContainers: "messagingMessageContainer/messageContainers"
+      allMessageContainers: "messagingMessageContainer/messageContainers",
+      alertStatuses: "alert/statuses"
     }),
     setupTabs() {
       // Expansion Tab Header Values
@@ -800,6 +778,19 @@ export default {
     },
     lmsTitle() {
       return this.configurations?.lmsTitle || "your LMS";
+    },
+    balanceTooltipHeader() {
+      return this.balanced ? "Balanced Exposure Sets" : "Unbalanced Exposure Sets";
+    },
+    balanceTooltipContent() {
+      if (this.balanced) {
+        return `Your exposure sets contain all the same number components, and components contain the same number of treatments. Great work!
+          Single version ${this.isMessagingEnabled ? 'messages and' : ''} assignments do not count toward balance.`;
+      }
+
+      return `A balanced experiment needs to have the same number ${this.isMessagingEnabled ? 'of assignments, integrations, and/or messages' : 'of assignments and integrations'} within each exposure set, and a treatment for each condition.
+        This will expose your students to every condition, but in different orders, so you can compare how the different conditions affected each student.
+        Single version ${this.isMessagingEnabled ? 'messages and' : ''} assignments do not count toward balance.`;
     }
   },
   methods: {
@@ -824,7 +815,15 @@ export default {
       getAllMessageContainers: "messagingMessageContainer/getAll"
     }),
     saveExit() {
-      this.$router.push({ name: "Home" });
+      this.$router.push({
+        name: "Home",
+        params: {
+          ...statusAlert(
+             this.alertStatuses.success,
+            "Experiment saved successfully"
+          )
+        }
+      });
     },
     async handleExperimentExport() {
       await this.exportExperiment(this.experimentId);
@@ -1141,6 +1140,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables";
+
 .header {
   display: flex;
   flex-direction: row;
@@ -1159,15 +1160,6 @@ export default {
 .v-application .v-sheet--outlined.blue.lighten-5 {
   border-color: rgba(29, 157, 255, 0.6) !important;
 }
-.v-tooltip__content {
-  max-width: 400px;
-  opacity: 1.0 !important;
-  background-color: rgba(55,61,63, 1.0) !important;
-  a {
-    color: #afdcff;
-  }
-}
-
 table {
   font-size: 16px;
   color: black;
@@ -1256,7 +1248,7 @@ div.icon-section-summary {
 .label-unbalanced {
   text-transform: none !important;
   opacity: 0.87 !important;
-  color: #E06766 !important;
+  color: map-get($red, "base") !important;
 }
 .sticky {
   position: sticky;
@@ -1293,8 +1285,25 @@ div.results {
   > .v-alert {
     margin: 0 auto;
     & a {
-      color: white;
+      color: inherit;
     }
+  }
+}
+::v-deep .edit-section-link {
+  max-width: fit-content !important;
+  max-height: fit-content !important;
+  padding: 0 !important;
+  margin-left: 0 !important;
+  &:hover,
+  &:focus {
+    text-decoration: underline;
+    background: none !important;
+  }
+  & .v-btn__content {
+    color: map-get($blue, "primary") !important;
+    opacity: 1 !important;
+    padding: 0 !important;
+    justify-content: left !important;
   }
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
-  <iframe
-    :src="previewUrl"
-  ></iframe>
+<iframe
+  :src="previewUrl"
+></iframe>
 </template>
 
 <script>

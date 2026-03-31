@@ -1,222 +1,195 @@
 <template>
-  <v-app
-    class="app"
-  >
-    <v-main>
-      <v-container>
-        <v-row>
-          <v-col>
-            <v-img
-              class="mx-auto mb-5"
-              src="@/assets/terracotta_logo.svg"
-              alt="Terracotta Logo"
-              max-width="173"
-            />
-            <v-card
-              class="storage-access-card mx-auto"
-              max-width="700"
+<v-app
+  class="app"
+>
+  <v-main>
+    <v-container>
+      <v-row>
+        <v-col>
+          <v-img
+            class="mx-auto mb-5"
+            src="@/assets/terracotta_logo.svg"
+            alt="Terracotta Logo"
+            max-width="173"
+          />
+          <v-card
+            class="storage-access-card mx-auto"
+            max-width="700"
+          >
+            <v-card-title
+              class="text-h5"
             >
-              <v-card-title
-                class="text-h5"
+              You are using a browser that requires we ask your permission to use cookies.
+            </v-card-title>
+            <v-card-text
+              class="storage-access-card__text"
+            >
+              <p>
+                For the best experience, we recommend <strong>opening {{ isAssignment ? "your assignment" : "Terracotta" }} in Chrome</strong>.
+              </p>
+              <p>
+                Continuing in your current browser will require a few extra steps (but don't worry; we'll walk you through them). You may be asked to:
+              </p>
+              <ul>
+                <li>
+                  Establish a first-party interaction with Terracotta.
+                  <tool-tip
+                    header="What is Terracotta?"
+                    content="Terracotta is an LMS plug-in that allows teachers and researchers to embed studies directly in their learning management system course sites."
+                    aria-label="Terracotta explanation tooltip"
+                    alignment="top"
+                    activatorType="paragraph"
+                    activatorContent="What is Terracotta?"
+                  />
+                </li>
+                <li>
+                  Allow Terracotta to use cookies and website data while you use your LMS.
+                  <tool-tip
+                    header="How Terracotta uses cookies"
+                    content="Cookies allow Terracotta to associate your activity with your LMS account. Some browsers restrict 3rd party access because it's often used to track activity
+                        across multiple sites. That's not what Terracotta is doing; it's only tracking your activity on this site to ensure it's associated with your account."
+                    aria-label="Terracotta cookies tooltip"
+                    alignment="top"
+                    activatorType="paragraph"
+                    activatorContent="Why does Terracotta need this information and how will it be used?"
+                  />
+                </li>
+              </ul>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn
+                @click="requestStorageAccess"
+                color="primary"
+                elevation="0"
               >
-                You are using a browser that requires we ask your permission to use cookies.
-              </v-card-title>
-              <v-card-text
-                class="storage-access-card__text"
-              >
-                <p>
-                  For the best experience, we recommend <strong>opening {{ isAssignment ? "your assignment" : "Terracotta" }} in Chrome</strong>.
-                </p>
-                <p>
-                  Continuing in your current browser will require a few extra steps (but don't worry; we'll walk you through them). You may be asked to:
-                </p>
-                <ul>
-                  <li>
-                    Establish a first-party interaction with Terracotta.
-                    <v-tooltip
-                      top
-                      color="#373d3f"
-                      transition="slide-y-transition"
-                      max-width="360px"
-                    >
-                      <template
-                        v-slot:activator="{ on, attrs }"
-                      >
-                        <span
-                          class="has-tooltip"
-                          v-bind="attrs"
-                          v-on="on"
-                        >
-                          What is Terracotta?
-                        </span>
-                      </template>
-                      <div>
-                        <h3>What is Terracotta?</h3>
-                        <div>
-                          Terracotta is an LMS plug-in that allows teachers and researchers to embed studies directly in their learning management system course sites.
-                        </div>
-                      </div>
-                    </v-tooltip>
-                  </li>
-                  <li>
-                    Allow Terracotta to use cookies and website data while you use your LMS.
-                    <v-tooltip
-                      color="#373d3f"
-                      transition="slide-y-transition"
-                      max-width="360px"
-                      top
-                    >
-                      <template
-                        v-slot:activator="{ on, attrs }"
-                      >
-                        <span
-                          class="has-tooltip"
-                          v-bind="attrs"
-                          v-on="on"
-                        >
-                          Why does Terracotta need this information and how will it be used?
-                        </span>
-                      </template>
-                      <div>
-                        <h3>How Terracotta uses cookies</h3>
-                        <div>
-                          Cookies allow Terracotta to associate your activity with your LMS account. Some browsers restrict 3rd party access because it's often used to track activity
-                          across multiple sites. That's not what Terracotta is doing; it's only tracking your activity on this site to ensure it's associated with your account.
-                        </div>
-                      </div>
-                    </v-tooltip>
-                  </li>
-                </ul>
-              </v-card-text>
-              <v-card-actions>
-                <v-btn
-                  @click="requestStorageAccess"
-                  color="primary"
-                  elevation="0"
-                >
-                  Launch {{ isAssignment ? "assignment" : "Terracotta" }}
-                </v-btn>
-              </v-card-actions>
-            </v-card>
-          </v-col>
-        </v-row>
-      </v-container>
+                Launch {{ isAssignment ? "assignment" : "Terracotta" }}
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
 
-      <form
-        ref="loginForm"
-        action="/oidc/login_initiations"
-        method="post"
-        hidden
+    <form
+      ref="loginForm"
+      action="/oidc/login_initiations"
+      method="post"
+      hidden
+    >
+      <div
+        class="form-group"
       >
-        <div
-          class="form-group"
+        <label
+          for="iss"
         >
-          <label
-            for="iss"
-          >
-            iss:
-          </label>
-          <input
-            :value="iss"
-            type="text"
-            id="iss"
-            name="iss"
-            class="form-control"
-          />
-        </div>
-        <div
-          class="form-group"
-        >
-          <label
-            for="login_hint"
-          >
-            login_hint:
-          </label>
-          <input
-            :value="loginHint"
-            type="text"
-            id="login_hint"
-            name="login_hint"
-            class="form-control"
-          />
-        </div>
-        <div
-          class="form-group"
-        >
-          <label
-            for="target_link_uri"
-          >
-            target_link_uri:
-          </label>
-          <input
-            :value="targetLinkUri"
-            type="text"
-            id="target_link_uri"
-            name="target_link_uri"
-            class="form-control"
-          />
-        </div>
-        <div
-          class="form-group"
-        >
-          <label
-            for="lti_message_hint"
-          >
-            lti_message_hint:
-          </label>
-          <input
-            :value="ltiMessageHint"
-            type="text"
-            id="lti_message_hint"
-            name="lti_message_hint"
-            class="form-control"
-          />
-        </div>
-        <div
-          class="form-group"
-        >
-          <label
-            for="client_id"
-          >
-            client_id:
-          </label>
-          <input
-            :value="clientId"
-            type="text"
-            id="client_id"
-            name="client_id"
-            class="form-control"
-          />
-        </div>
-        <div
-          v-if="ltiDeploymentId"
-          class="form-group"
-        >
-          <label
-            for="lti_deployment_id"
-          >
-            lti_deployment_id:
-          </label>
-          <input
-            :value="ltiDeploymentId"
-            type="text"
-            id="lti_deployment_id"
-            name="lti_deployment_id"
-            class="form-control"
-          />
-        </div>
+          iss:
+        </label>
         <input
-          type="submit"
-          value="Submit"
-          class="btn btn-primary"
+          :value="iss"
+          type="text"
+          id="iss"
+          name="iss"
+          class="form-control"
         />
-      </form>
-    </v-main>
-  </v-app>
+      </div>
+      <div
+        class="form-group"
+      >
+        <label
+          for="login_hint"
+        >
+          login_hint:
+        </label>
+        <input
+          :value="loginHint"
+          type="text"
+          id="login_hint"
+          name="login_hint"
+          class="form-control"
+        />
+      </div>
+      <div
+        class="form-group"
+      >
+        <label
+          for="target_link_uri"
+        >
+          target_link_uri:
+        </label>
+        <input
+          :value="targetLinkUri"
+          type="text"
+          id="target_link_uri"
+          name="target_link_uri"
+          class="form-control"
+        />
+      </div>
+      <div
+        class="form-group"
+      >
+        <label
+          for="lti_message_hint"
+        >
+          lti_message_hint:
+        </label>
+        <input
+          :value="ltiMessageHint"
+          type="text"
+          id="lti_message_hint"
+          name="lti_message_hint"
+          class="form-control"
+        />
+      </div>
+      <div
+        class="form-group"
+      >
+        <label
+          for="client_id"
+        >
+          client_id:
+        </label>
+        <input
+          :value="clientId"
+          type="text"
+          id="client_id"
+          name="client_id"
+          class="form-control"
+        />
+      </div>
+      <div
+        v-if="ltiDeploymentId"
+        class="form-group"
+      >
+        <label
+          for="lti_deployment_id"
+        >
+          lti_deployment_id:
+        </label>
+        <input
+          :value="ltiDeploymentId"
+          type="text"
+          id="lti_deployment_id"
+          name="lti_deployment_id"
+          class="form-control"
+        />
+      </div>
+      <input
+        type="submit"
+        value="Submit"
+        class="btn btn-primary"
+      />
+    </form>
+  </v-main>
+</v-app>
 </template>
 
 <script>
+import ToolTip from "@/components/ToolTip.vue";
+
 export default {
+  components: {
+    ToolTip
+  },
   props: {
     targetLinkUri: {
       type: String,
@@ -290,24 +263,11 @@ export default {
 
 .app {
   background-color: map-get($map: $grey, $key: "lighten-4") !important;
-}
-.has-tooltip {
-  text-decoration-style: dashed;
-  text-decoration-line: underline;
-  color: map-get($map: $blue, $key: "base");
-}
-.storage-access-card {
-  padding: 32px;
-}
-.storage-access-card__text {
-  color: rgba(0, 0, 0, 0.87) !important;
-}
-.v-tooltip__content {
-  max-width: 400px;
-  opacity: 1.0 !important;
-  background-color: rgba(55,61,63, 1.0) !important;
-  a {
-    color: #afdcff;
+  & .storage-access-card {
+    padding: 32px;
+    & .storage-access-card__text {
+      color: rgba(0, 0, 0, 0.87) !important;
+    }
   }
 }
 </style>

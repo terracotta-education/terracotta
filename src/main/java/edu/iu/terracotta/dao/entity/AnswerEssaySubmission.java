@@ -38,7 +38,6 @@ public class AnswerEssaySubmission extends BaseEntity {
     private Long answerEssaySubmissionId;
 
     @Lob
-    @Column
     private String response;
 
     @ManyToOne(optional = false)

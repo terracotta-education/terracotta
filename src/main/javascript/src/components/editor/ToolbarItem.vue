@@ -1,38 +1,29 @@
 <template>
-  <v-btn-toggle
-    v-model="toggled"
-    :key="nonActivatableItemKey"
-  >
-    <v-tooltip
-      top
-    >
-      <template
-        #activator="{ on }"
-      >
-        <v-btn
-          :title="title"
-          @click="handleAction"
-          class="item-button"
-          v-on="on"
-          small
-          icon
-        >
-          <v-icon
-            aria-hidden="false"
-          >
-            {{ icon }}
-          </v-icon>
-        </v-btn>
-      </template>
-      <template>
-        {{ title }}
-      </template>
-    </v-tooltip>
-  </v-btn-toggle>
+<v-btn-toggle
+  v-model="toggled"
+  :key="nonActivatableItemKey"
+>
+  <tool-tip
+    :icon="icon"
+    :content="title"
+    :ref="ref"
+    @clicked="handleAction"
+    @is-opened="$emit('is-hovered', ref)"
+    alignment="top"
+    activatorType="button"
+    activatorClass="item-button"
+    size="small"
+  />
+</v-btn-toggle>
 </template>
 
 <script>
+import ToolTip from "@/components/ToolTip.vue";
+
 export default {
+  components: {
+    ToolTip
+  },
   props: {
     editor: {
       type: Object,
@@ -114,6 +105,11 @@ export default {
       }
     }
   },
+  computed: {
+    ref() {
+      return `tooltip-item-${this.icon}`;
+    }
+  },
   methods: {
     handleAction() {
       this.$emit("clicked", this.action, this.attributes);
@@ -130,7 +126,7 @@ export default {
 </script>
 
 <style scoped>
-.v-btn-toggle {
+.v-btn-toggle::v-deep {
   background-color: transparent !important;
   & .item-button {
     margin: 2px 6px;

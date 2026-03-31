@@ -1,0 +1,6 @@
+.v-application .error--text {
+  color: map-get($red, "base") !important;
+}
+.v-application .v-alert--text::before {
+  opacity: 0.03 !important;
+}

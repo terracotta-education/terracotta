@@ -108,9 +108,9 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
                                     // delete the original file
                                     Files.deleteIfExists(Paths.get(String.format("%s/%s", consentFileLocalPathRoot, filePath)));
 
-                                    consentDocument.setEncryptionMethod(fileSubmissionLocal.getEncryptionMethod());
+                                    consentDocument.setEncryptionMethod(fileSubmissionLocal.encryptionMethod());
                                     consentDocument.setEncryptionPhrase(encryptionPhrase);
-                                    consentDocument.setFileUri(fileSubmissionLocal.getFilePath());
+                                    consentDocument.setFileUri(fileSubmissionLocal.filePath());
 
                                     consentDocumentRepository.save(consentDocument);
 

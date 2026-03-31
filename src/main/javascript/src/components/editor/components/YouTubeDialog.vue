@@ -1,50 +1,50 @@
 <template>
-  <v-dialog
-    :value="dialog"
-    max-width="500px"
-  >
-    <v-card>
-      <v-card-title>
-        <span
-          class="headline"
-        >
-          Youtube Embed
-        </span>
-        <v-spacer />
-        <v-btn
-          @click="close"
-          icon
-        >
-          <v-icon>
-            mdi-close
-          </v-icon>
-        </v-btn>
-      </v-card-title>
-      <v-card-text>
-        <v-textarea
-          v-model="embedCode"
-          hint="Paste the Youtube embed code above"
-          placeholder="Youtube embed code"
-          class="input-embed-code"
-        ></v-textarea>
-      </v-card-text>
-      <v-card-actions>
-        <v-btn
-          @click="close"
-          text
-        >
-          Close
-        </v-btn>
-        <v-btn
-          :disabled="isDisabled"
-          @click="add"
-          text
-        >
-          Add
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+<v-dialog
+  :value="dialog"
+  max-width="500px"
+>
+  <v-card>
+    <v-card-title>
+      <span
+        class="headline"
+      >
+        Youtube Embed
+      </span>
+      <v-spacer />
+      <v-btn
+        @click="close"
+        icon
+      >
+        <v-icon>
+          mdi-close
+        </v-icon>
+      </v-btn>
+    </v-card-title>
+    <v-card-text>
+      <v-textarea
+        v-model="embedCode"
+        hint="Paste the Youtube embed code above"
+        placeholder="Youtube embed code"
+        class="input-embed-code"
+      ></v-textarea>
+    </v-card-text>
+    <v-card-actions>
+      <v-btn
+        @click="close"
+        text
+      >
+        Close
+      </v-btn>
+      <v-btn
+        :disabled="isDisabled"
+        @click="add"
+        text
+      >
+        Add
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
 </template>
 
 <script>

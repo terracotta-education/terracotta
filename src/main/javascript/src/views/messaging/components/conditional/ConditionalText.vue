@@ -101,7 +101,7 @@
             @change="updateRule(ruleSetIndex, ruleIndex, rule)"
             item-text="title"
             label="Variable"
-            class="rule-assignment"
+            class="rule-variable"
             return-object
             outlined
             dense
@@ -116,6 +116,7 @@
             @change="updateRule(ruleSetIndex, ruleIndex, rule)"
             item-text="label"
             class="rule-comparison"
+            aria-label="comparison selector"
             return-object
             outlined
             dense
@@ -147,6 +148,7 @@
             <v-btn
               v-if="!readOnly && ruleSet.rules.length > 1"
               @click="deleteRule(ruleSetIndex, ruleIndex)"
+              :aria-label="`delete rule number ${ruleIndex + 1} from rule set number ${ruleSetIndex + 1}`"
               class="ml-2 px-0"
               text
             >
@@ -279,6 +281,7 @@
 
 <script>
 import { mapGetters, mapMutations } from "vuex";
+import { addAttributesToElement, statusAlert, createStatusAlert } from "@/helpers/ui-utils.js";
 import { validations, validateConditionalText } from "@/helpers/messaging/validation";
 import EditorSubMenu from "@/views/messaging/components/menu/editorsubmenu/EditorSubMenu.vue";
 import TipTapEditor from "@/components/editor/TipTapEditor";
@@ -329,6 +332,23 @@ export default {
     pipedTextToPlace: null
   }),
   watch: {
+    conditionalText: {
+      handler() {
+        this.$nextTick(() => {
+          const ruleNodes = document.querySelectorAll(".v-select.rule-variable .v-input__control .v-input__slot, .v-select.rule-comparison .v-input__control .v-input__slot");
+          ruleNodes.forEach(
+            node => {
+              const ariaOwnsId = node.getAttribute("aria-owns");
+              node.setAttribute("role", "combobox");
+              node.setAttribute("aria-controls", ariaOwnsId);
+            }
+          );
+          addAttributesToElement(".tiptap.ProseMirror", [{ name: "aria-label", value: "message editor content" }]);
+        });
+      },
+      deep: true,
+      immediate: true
+    },
     messageConditionalTextEditId: {
       handler() {
         this.isEdit = false;
@@ -350,7 +370,8 @@ export default {
       conditionalTexts: "messagingConditionalText/messageConditionalTexts",
       conditionalText: "messagingConditionalText/messageConditionalText",
       messageConditionalTextEditId: "messagingConditionalText/messageConditionalTextEditId",
-      pipedText: "messagingMessage/pipedText"
+      pipedText: "messagingMessage/pipedText",
+      alertStatuses: "alert/statuses"
     }),
     container() {
       return this.allMessageContainers.find(messageContainer => messageContainer.id === this.containerId);
@@ -371,19 +392,22 @@ export default {
         return this.conditionalText.ruleSets || [];
       },
       set(newRuleSets) {
-        this.conditionalText.ruleSets = newRuleSets
-          .map(
-            ruleSet => ({
-              ...ruleSet,
-              rules: ruleSet.rules
-                .map(
-                  rule => ({
-                    ...rule,
-                    assignment: this.allMessageRuleAssignments.find(assignment => assignment.lmsId === rule.lmsAssignmentId) || rule.assignment
-                  })
-                )
-            })
-          );
+        this.conditionalText = {
+          ...this.conditionalText,
+          ruleSets: newRuleSets
+            .map(
+              ruleSet => ({
+                ...ruleSet,
+                rules: ruleSet.rules
+                  .map(
+                    rule => ({
+                      ...rule,
+                      assignment: this.allMessageRuleAssignments.find(assignment => assignment.lmsId === rule.lmsAssignmentId) || rule.assignment
+                    })
+                  )
+              })
+            )
+        }
       }
     },
     result: {
@@ -456,6 +480,13 @@ export default {
           }]
         }
       );
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text rule set added"
+        )
+      );
     },
     addRule(ruleSetIndex) {
       this.ruleSets.splice(
@@ -477,6 +508,13 @@ export default {
           ]
         }
       );
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text rule added"
+        )
+      );
     },
     clearRule(ruleSetIndex, ruleIndex) {
       this.ruleSets.splice(
@@ -497,9 +535,23 @@ export default {
           )
         }
       );
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text rule cleared"
+        )
+      );
     },
     deleteRuleSet(ruleSetIndex) {
       this.ruleSets.splice(ruleSetIndex, 1);
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text rule set deleted"
+        )
+      );
     },
     deleteRule(ruleSetIndex, ruleIndex) {
       this.ruleSets.splice(
@@ -525,9 +577,23 @@ export default {
           }
         );
       }
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text rule deleted"
+        )
+      );
     },
     resetRuleSets() {
       this.ruleSets = JSON.parse(JSON.stringify(this.originalRuleSets));
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text rule sets reset"
+        )
+      );
     },
     updateRule(ruleSetIndex, ruleIndex, rule) {
       this.ruleSets = this.ruleSets.toSpliced(
@@ -547,6 +613,13 @@ export default {
             }
           )
         }
+      );
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text rule updated"
+        )
       );
     },
     updateOperatorToggle(newValue, ruleSetIndex, ruleIndex) {
@@ -574,12 +647,27 @@ export default {
         ...item,
         cursorPosition: this.editorCursorPosition
       };
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text piped text inserted"
+        )
+      );
     },
     cancel() {
       this.setMessageConditionalText(null);
       this.setMessageConditionalTextEditId(null);
       this.isEdit = false;
       this.originalRuleSets = [];
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text cancelled"
+        )
+      );
+
       this.$emit("cancel");
     },
     async handleSave() {
@@ -592,6 +680,14 @@ export default {
 
       this.addMessageConditionalTexts([this.conditionalText]);
       this.setMessageConditionalText(this.conditionalText);
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text saved and inserted"
+        )
+      );
+
       this.$emit("conditionalTextCreated", this.conditionalText);
     },
     async handleUpdate() {
@@ -604,6 +700,14 @@ export default {
 
       this.addMessageConditionalTexts([this.conditionalText]);
       this.setMessageConditionalText(this.conditionalText);
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Conditional text updated"
+        )
+      );
+
       this.$emit("conditionalTextUpdated", this.conditionalText);
     },
     async initialize() {
@@ -659,14 +763,16 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/variables.scss";
+
 .rule-sets {
   & .v-card {
-    border: 1px solid #9e9e9e;
+    border: 1px solid map-get($grey, "darker");
     border-radius: 4px;
   }
   & .rule-row {
-    & .rule-assignment,
+    & .rule-variable,
     & .rule-comparison,
     & .rule-value,
     & .rule-actions {
@@ -720,6 +826,6 @@ export default {
   }
 }
 .validation-error {
-  border: 2px solid red !important;
+  border: 2px solid map-get($red, "base") !important;
 }
 </style>

@@ -14,7 +14,6 @@ import edu.iu.terracotta.dao.model.enums.messaging.MessageContainerUpdatedFields
 import edu.iu.terracotta.dao.model.enums.messaging.MessageStatus;
 import edu.iu.terracotta.dao.model.enums.messaging.MessageType;
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -40,21 +39,19 @@ import lombok.Setter;
 @Table(name = "terr_messaging_container_configuration")
 public class MessageContainerConfiguration extends BaseMessageEntity {
 
-    @Column private int containerOrder;
-    @Column private Timestamp sendAt;
-    @Column private Integer sendAtTimezoneOffset; // minutes offset from UTC
-    @Column private String title;
-    @Column private boolean toConsentedOnly;
+    private int containerOrder;
+    private Timestamp sendAt;
+    private Integer sendAtTimezoneOffset; // minutes offset from UTC
+    private String title;
+    private boolean toConsentedOnly;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "container_id")
     private MessageContainer container;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private MessageStatus status;
 
-    @Column
     @Builder.Default
     @Enumerated(EnumType.STRING)
     private MessageType type = MessageType.NONE;

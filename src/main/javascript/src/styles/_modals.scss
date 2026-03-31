@@ -1,10 +1,26 @@
 .swal2-container {
-    button {
-        &.swal2-confirm {
-            background-color: map-get($green, 'base');
-        }
+  button {
+    &.swal2-confirm {
+      background-color: map-get($green, "base");
     }
+    &.swal2-cancel {
+      background-color: map-get($swal, "cancel");
+    }
+  }
 }
 .v-tooltip__content {
-    z-index: 999 !important;
+  z-index: 999 !important;
+}
+.flatpickr-day {
+  color: rgba(57, 57, 57, 1) !important;
+  &.nextMonthDay {
+    color: rgba(57, 57, 57, .8) !important;
+  }
+  &.selected,
+  &.selected:hover,
+  &.selected:focus {
+    background: map-get($blue, "primary") !important;
+    border-color: map-get($blue, "primary") !important;
+    color: white !important;
+  }
 }

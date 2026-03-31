@@ -1,52 +1,75 @@
 <template>
-  <v-col>
-    <v-row
-      class="header-row"
+<v-col>
+  <v-row
+    class="header-row"
+  >
+    <h4>{{ headerTitle }}</h4>
+    <v-img
+      v-if="headerIcon"
+      :style="dynamicStyles"
+      :src="headerIcon"
+      class="header-icon"
     >
-      <h4>{{ headerTitle }}</h4>
-      <v-img
-        v-if="headerIcon"
-        :style="dynamicStyles"
-        class="header-icon"
-        :src="headerIcon"
-      >
-      </v-img>
-    </v-row>
-    <v-row
-      class="count-row pt-4"
+    </v-img>
+  </v-row>
+  <v-row
+    class="count-row pt-4"
+  >
+    <span
+      :style="valueStyle"
+      class="summary-count"
     >
-      <span
-        :style="valueStyle"
-        class="summary-count"
-      >
-        {{ count }}
-        <InfoTooltip
-          v-if="displayTooltip"
-          :header="headerTitle"
-          :message="tooltip"
-          :activator="tooltipActivator"
-        />
-      </span>
-    </v-row>
-  </v-col>
+      {{ count }}
+      <tool-tip
+        v-if="displayTooltip"
+        :header="headerTitle"
+        :content="tooltip"
+        :activatorType="tooltipActivator.type"
+        :icon="tooltipActivator.text"
+        :aria-label="`${headerTitle} tooltip`"
+      />
+    </span>
+  </v-row>
+</v-col>
 </template>
 
 <script>
-import InfoTooltip from "@/components/InfoTooltip.vue";
+import ToolTip from "@/components/ToolTip.vue";
 
 export default {
   name: "SummaryCount",
-  props: [
-    "title",
-    "value",
-    "message",
-    "icon",
-    "iconBgColor",
-    "valueFontSize",
-    "showTooltip"
-  ],
   components: {
-    InfoTooltip
+    ToolTip
+  },
+  props: {
+    title: {
+      type: String,
+      required: false
+    },
+    value: {
+      type: [Number, String],
+      required: false
+    },
+    message: {
+      type: String,
+      required: false
+    },
+    icon: {
+      type: String,
+      required: false
+    },
+    iconBgColor: {
+      type: String,
+      required: false
+    },
+    valueFontSize: {
+      type: String,
+      required: false
+    },
+    showTooltip: {
+      type: Boolean,
+      required: false
+    }
   },
   computed: {
     headerTitle() {

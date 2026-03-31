@@ -1,50 +1,54 @@
 <template>
-  <div>
-    <h1
-      class="mb-3"
+<div
+  class="selection-method-container"
+>
+  <h1
+    class="mb-3"
+  >
+    How will study participation be determined?
+  </h1>
+  <v-expansion-panels
+    :value="expanded"
+    class="v-expansion-panels--icon"
+    multiple
+    flat
+  >
+    <v-expansion-panel
+      v-for="(panel, i) in panels"
+      :key="i"
+      :class="{'panel-not-selected': panel.type !== initialParticipationType, 'panel-selected': panel.type === initialParticipationType}"
+      :disabled="hasParticipantTypeSelected && panel.type !== initialParticipationType"
+      class="participation-expansion-panel"
     >
-      How will study participation be determined?
-    </h1>
-    <v-expansion-panels
-      :value="expanded"
-      class="v-expansion-panels--icon"
-      multiple
-      flat
-    >
-      <v-expansion-panel
-        v-for="(panel, i) in panels"
-        :key="i"
-        :class="{'panel-not-selected': panel.type !== initialParticipationType, 'panel-selected': panel.type === initialParticipationType}"
-        :disabled="hasParticipantTypeSelected && panel.type !== initialParticipationType"
+      <v-expansion-panel-header
+        hide-actions
       >
-        <v-expansion-panel-header
-          hide-actions
+        <img
+          :src="panel.img.src"
+          :alt="panel.img.alt"
+        />
+        <strong>{{ panel.header }}</strong>
+      </v-expansion-panel-header>
+      <v-expansion-panel-content>
+        <p>{{ panel.body }}</p>
+        <v-btn
+          :loading="loading"
+          :disabled="loading"
+          @click="setParticipationType(panel.type)"
+          color="primary"
+          elevation="0"
         >
-          <img
-            :src="panel.img.src"
-            :alt="panel.img.alt"
-          />
-            <strong>{{ panel.header }}</strong>
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <p>{{ panel.body }}</p>
-          <v-btn
-            :loading="loading"
-            :disabled="loading"
-            @click="setParticipationType(panel.type)"
-            color="primary"
-            elevation="0"
-          >
-            Select
-          </v-btn>
-        </v-expansion-panel-content>
-      </v-expansion-panel>
-    </v-expansion-panels>
-  </div>
+          Select
+        </v-btn>
+      </v-expansion-panel-content>
+    </v-expansion-panel>
+  </v-expansion-panels>
+</div>
 </template>
 
 <script>
 import { mapActions, mapGetters } from "vuex";
+import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 
 export default {
   name: "ParticipationSelectionMethod",
@@ -115,11 +119,11 @@ export default {
     }),
     setParticipationType(type) {
       this.initialParticipationType = type;
-      const e = this.experiment
-      e.participationType = type
+      const e = this.experiment;
+      e.participationType = type;
 
-      const experimentId = e.experimentId
-      const step = "participation_type"
+      const experimentId = e.experimentId;
+      const step = "participation_type";
 
       this.loading = true;
       this.updateExperiment(e)
@@ -187,11 +191,14 @@ export default {
   },
   async mounted() {
     this.initialParticipationType = this.participationType;
+    deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
   }
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "~@/styles/variables";
+
 .v-expansion-panel {
   margin-bottom: 30px !important;
 }
@@ -199,9 +206,15 @@ export default {
   border-color: rgba(3, 169, 244, 1) !important;
 }
 .panel-not-selected {
-  border-color: #e0e0e0 !important;
+  border-color: map-get($grey, "lighter") !important;
+}
+.participation-expansion-panel:focus-within {
+  border-color: rgba(0, 0, 0, .87) !important;
 }
 .v-expansion-panel-header {
   pointer-events: none;
+}
+.selection-method-container .panel-not-selected::v-deep {
+  color: rgba(0, 0, 0, .80) !important;
 }
 </style>

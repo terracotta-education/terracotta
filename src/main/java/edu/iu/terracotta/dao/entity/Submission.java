@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -41,18 +40,14 @@ public class Submission extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "submission_id",
-        nullable = false
-    )
     private Long submissionId;
 
-    @Column private Float calculatedGrade; //  grade calculated by points
-    @Column private Float alteredCalculatedGrade; // calculated grade altered by instructor (i.e. for partial credit)
-    @Column private Float totalAlteredGrade; // manual total altered grade (i.e. 0 for cheating)
-    @Column private Timestamp dateSubmitted;
-    @Column private boolean lateSubmission;
-    @Column private boolean gradeOverridden;
+    private Float calculatedGrade; //  grade calculated by points
+    private Float alteredCalculatedGrade; // calculated grade altered by instructor (i.e. for partial credit)
+    private Float totalAlteredGrade; // manual total altered grade (i.e. 0 for cheating)
+    private Timestamp dateSubmitted;
+    private boolean lateSubmission;
+    private boolean gradeOverridden;
 
     @ManyToOne(optional = false)
     @JoinColumn(

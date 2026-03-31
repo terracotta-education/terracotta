@@ -21,6 +21,9 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Value("${experiment.export.enabled:true}")
     private boolean experimentExportEnabled;
 
+    @Value("${app.help.url:https://terracotta-education.atlassian.net/wiki/x/xwDjCw}")
+    private String helpUrl;
+
     @Override
     public ConfigurationDto getConfigurations(SecuredInfo securedInfo) {
         PlatformDeployment platformDeployment = platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId())
@@ -28,6 +31,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
         return ConfigurationDto.builder()
             .experimentExportEnabled(experimentExportEnabled)
+            .helpUrl(helpUrl)
             .lms(platformDeployment.getLmsConnector())
             .lmsTitle(platformDeployment.getLmsConnector().title())
             .messagingEnabled(featureService.isFeatureEnabled(FeatureType.MESSAGING, securedInfo.getPlatformDeploymentId()))

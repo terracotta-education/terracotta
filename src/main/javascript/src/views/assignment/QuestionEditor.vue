@@ -1,77 +1,117 @@
 <template>
-  <div
-    v-if="isLoaded"
+<div
+  v-if="isLoaded"
+>
+  <tip-tap-editor
+    :content="initialContent"
+    @edited="handleEditedHtml"
+    aria-label="Enter question text"
+    editorType="html"
+    required
+  />
+  <v-text-field
+    v-model="points"
+    :rules="numberRule"
+    label="Points"
+    type="number"
+    step="any"
+    class="question-points"
+    aria-label="Enter question point value"
+    outlined
+    required
   >
-    <tip-tap-editor
-      :content="initialContent"
-      @edited="handleEditedHtml"
-      editorType="html"
-      required
-    />
-    <v-text-field
-      v-model="points"
-      :rules="numberRule"
-      label="Points"
-      type="number"
-      step="any"
-      class="question-points"
-      outlined
-      required
+  </v-text-field>
+
+  <!-- default slot for answer options or other custom content -->
+  <slot></slot>
+
+  <v-row>
+    <v-col
+      cols="auto"
+      class="flex-grow-1 py-0"
     >
-    </v-text-field>
-
-    <!-- default slot for answer options or other custom content -->
-    <slot></slot>
-
-    <v-row>
-      <v-col cols="auto" class="flex-grow-1 py-0">
-        <slot name="actions"> </slot>
-      </v-col>
-      <v-col cols="auto" class="text-right py-0">
-        <v-menu>
-          <template v-slot:activator="{ on, attrs }">
-            <v-icon color="black" v-bind="attrs" v-on="on">
-              mdi-dots-horizontal
-            </v-icon>
-          </template>
-          <v-list class="text-left">
-            <slot name="actions-overflow"></slot>
-            <v-list-item
-              v-if="isPageBreakAfter"
-              @click="removePageBreakAfter(question)"
-            >
-              <v-list-item-title>
-                <v-icon class="mr-2">mdi-format-page-break</v-icon>
-                Remove page break after question
-              </v-list-item-title>
-            </v-list-item>
-            <v-list-item
-              v-else
-              @click="addPageBreakAfter(question)"
-            >
-              <v-list-item-title>
-                <v-icon class="mr-2">mdi-format-page-break</v-icon>
-                Add page break after question
-              </v-list-item-title>
-            </v-list-item>
-            <v-list-item @click="handleDeleteQuestion(question)">
-              <v-list-item-title>
-                <v-icon class="mr-2">mdi-delete-outline</v-icon>
-                Delete question
-              </v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
-      </v-col>
-    </v-row>
-  </div>
+      <slot
+        name="actions"
+      ></slot>
+    </v-col>
+    <v-col
+      cols="auto"
+      class="text-right py-0"
+    >
+      <v-menu>
+        <template
+          v-slot:activator="{ on, attrs }"
+        >
+          <v-icon
+            color="black"
+            v-bind="attrs"
+            v-on="on"
+            :aria-label="`Open actions menu for question ${question.html || question.questionOrder + 1}`"
+          >
+            mdi-dots-horizontal
+          </v-icon>
+        </template>
+        <v-list
+          class="text-left"
+        >
+          <slot
+            name="actions-overflow"
+          ></slot>
+          <v-list-item
+            v-if="isPageBreakAfter"
+            @click="removePageBreakAfter(question)"
+          >
+            <v-list-item-title>
+              <v-icon
+                class="mr-2"
+                aria-label="Remove page break after question"
+              >
+                mdi-format-page-break
+              </v-icon>
+              Remove page break after question
+            </v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            v-else
+            @click="addPageBreakAfter(question)"
+          >
+            <v-list-item-title>
+              <v-icon
+                class="mr-2"
+                aria-label="Add page break after question"
+              >
+                mdi-format-page-break
+              </v-icon>
+              Add page break after question
+            </v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            @click="handleDeleteQuestion(question)"
+          >
+            <v-list-item-title>
+              <v-icon
+                class="mr-2"
+                aria-label="Delete question"
+              >
+                mdi-delete-outline
+              </v-icon>
+              Delete question
+            </v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+    </v-col>
+  </v-row>
+</div>
 </template>
 
 <script>
 import { mapActions, mapGetters, mapMutations } from "vuex";
+import { createStatusAlert, statusAlert } from "@/helpers/ui-utils.js";
 import TipTapEditor from "@/components/editor/TipTapEditor";
 
 export default {
+  name: "QuestionEditor",
   components: {
     TipTapEditor
   },
@@ -101,6 +141,7 @@ export default {
   computed: {
     ...mapGetters({
       questions: "assessment/questions",
+      alertStatuses: "alert/statuses"
     }),
     experimentId() {
       return parseInt(this.$route.params.experimentId);
@@ -177,16 +218,31 @@ export default {
       });
       if (reallyDelete?.isConfirmed) {
         try {
-          return await this.deleteQuestion([
+          const response = await this.deleteQuestion([
             this.experimentId,
             this.conditionId,
             this.treatmentId,
             this.assessmentId,
             question.questionId,
           ]);
+
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.success,
+              "Question deleted successfully."
+            )
+          );
+
+          return response;
         } catch (error) {
           console.error("handleDeleteQuestion | catch", { error });
           this.$swal("there was a problem deleting the question");
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.error,
+              "An error occurred while deleting the question. Please try again."
+            )
+          );
         }
       }
     },
@@ -216,10 +272,21 @@ export default {
         });
 
         this.handleSaveQuestions(list);
-
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.success,
+            "Page break added successfully."
+          )
+        );
       } catch (error) {
         console.error("addPageBreakAfter | catch", { error });
         this.$swal("there was a problem adding a page break");
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "An error occurred while adding the page break. Please try again."
+          )
+        );
       }
     },
     async removePageBreakAfter(question) {
@@ -243,10 +310,21 @@ export default {
         });
 
         this.handleSaveQuestions(list);
-
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.success,
+            "Page break removed successfully."
+          )
+        );
       } catch (error) {
         console.error("removePageBreakAfter | catch", { error });
         this.$swal("there was a problem removing a page break");
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "An error occurred while removing the page break. Please try again."
+          )
+        );
       }
     },
     async handleSaveQuestions(questions) {
@@ -269,8 +347,22 @@ export default {
               question.randomizeAnswers,
               question.answers
             ]);
+            createStatusAlert(
+              statusAlert(
+                this.alertStatuses.success,
+                "Questions saved successfully."
+              )
+            );
+
             return Promise.resolve(q);
           } catch (error) {
+            createStatusAlert(
+              statusAlert(
+                this.alertStatuses.error,
+                "An error occurred while saving the questions. Please try again."
+              )
+            );
+
             return Promise.reject(error);
           }
         })
@@ -289,6 +381,6 @@ export default {
 
 <style scoped>
 .question-points {
-  max-width: 15%
+  max-width: 15%;
 }
 </style>

@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleOperator;
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -32,7 +31,6 @@ import lombok.Setter;
 @Table(name = "terr_messaging_conditional_text_rule_set")
 public class MessageConditionalTextRuleSet extends BaseMessageEntity {
 
-    @Column
     @Enumerated(EnumType.STRING)
     private MessageRuleOperator operator;
 

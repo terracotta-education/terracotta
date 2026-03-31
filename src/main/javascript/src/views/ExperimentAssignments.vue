@@ -1,551 +1,550 @@
 <template>
-  <div>
-    <v-container
-      v-if="loaded && experiment"
-      class="px-0"
-    >
-      <v-row>
-        <v-col
-          cols="12"
+<div
+  id="terracotta-main"
+  tabindex="-1"
+>
+  <v-container
+    v-if="loaded && experiment"
+    class="px-0"
+  >
+    <v-row>
+      <v-col
+        cols="12"
+      >
+        <v-divider
+          v-if="!singleConditionExperiment"
+        />
+        <v-tabs
+          v-if="!singleConditionExperiment"
+          v-model="tab"
+          elevation="0"
+          show-arrows
         >
-          <v-divider
-            v-if="!singleConditionExperiment"
-          />
-          <v-tabs
-            v-if="!singleConditionExperiment"
-            v-model="tab"
-            elevation="0"
-            show-arrows
+          <v-tab
+            v-for="(exposure, eidx) in exposures"
+            :key="eidx"
+            @change="tab = eidx"
           >
-            <v-tab
-              v-for="(exposure, eidx) in exposures"
-              :key="eidx"
-              @change="tab = eidx"
+            <div
+              class="d-flex flex-column align-start py-1"
             >
               <div
-                class="d-flex flex-column align-start py-1"
+                class="section-tab-set"
               >
-                <div
-                  class="section-tab-set"
-                >
-                  Set {{ eidx + 1 }}
-                </div>
-                <div
-                  class="d-block mt-4"
-                  :class="balanced ? 'section-tab-components-balanced' : 'section-tab-components-unbalanced'"
-                >
-                  {{ rows[eidx].length }} Component{{ rows[eidx].length === 1 ? '': 's' }}
-                </div>
+                Set {{ eidx + 1 }}
               </div>
-            </v-tab>
-          </v-tabs>
-          <v-divider />
-          <v-tabs-items
-            v-model="tab"
-          >
-            <v-tab-item
-              v-for="(exposure, eidx) in exposures"
-              class="section-components py-3 px-3"
-              :key="eidx"
-            >
               <div
-                class="d-flex justify-space-between"
+                class="d-block mt-4"
+                :class="balanced ? 'section-tab-components-balanced' : 'section-tab-components-unbalanced'"
               >
-                <h3>Components</h3>
-                <div
-                  v-if="loaded && exposureRows.length"
-                  class="component-buttons d-flex justify-space-between"
-                >
-                  <div
-                    v-if="isMessagingEnabled"
-                    class="mb-5 mr-5"
-                  >
-                    <add-message-dialog
-                      :hasExisting="true"
-                      :isSingleConditionExperiment="singleConditionExperiment"
-                      @add="handleAddMessage($event, exposure)"
-                    />
-                  </div>
-                  <div>
-                    <add-assignment-dialog
-                      :hasExisting="true"
-                      :isSingleConditionExperiment="singleConditionExperiment"
-                      @multiple="handleAssignmentMultipleVersions(exposure)"
-                      @single="handleAssignmentSingleVersion(exposure)"
-                    />
-                  </div>
-                </div>
+                {{ rows[eidx].length }} Component{{ rows[eidx].length === 1 ? "": "s" }}
               </div>
-              <template
-                v-if="!loaded"
+            </div>
+          </v-tab>
+        </v-tabs>
+        <v-divider />
+        <v-tabs-items
+          v-model="tab"
+        >
+          <v-tab-item
+            v-for="(exposure, eidx) in exposures"
+            class="section-components py-3 px-3"
+            :key="eidx"
+          >
+            <div
+              class="d-flex justify-space-between"
+            >
+              <h3>Components</h3>
+              <div
+                v-if="loaded && exposureRows.length"
+                class="component-buttons d-flex justify-space-between"
               >
                 <div
-                  class="spinner-container-assignment"
+                  v-if="isMessagingEnabled"
+                  class="mb-5 mr-5"
                 >
-                  <spinner
-                    height="50px"
-                    width="50px"
+                  <add-message-dialog
+                    :hasExisting="true"
+                    :isSingleConditionExperiment="singleConditionExperiment"
+                    @add="handleAddMessage($event, exposure)"
                   />
                 </div>
-              </template>
-              <template
-                v-if="loaded"
+                <div>
+                  <add-assignment-dialog
+                    :hasExisting="true"
+                    :isSingleConditionExperiment="singleConditionExperiment"
+                    @multiple="handleAssignmentMultipleVersions(exposure)"
+                    @single="handleAssignmentSingleVersion(exposure)"
+                  />
+                </div>
+              </div>
+            </div>
+            <template
+              v-if="!loaded"
+            >
+              <div
+                class="spinner-container-assignment"
               >
-                <v-card
-                  v-if="!rows[eidx].length"
-                  class="no-assignments-yet d-flex flex-column rounded-lg mb-5 d-inline-block"
-                  outlined
+                <spinner
+                  height="50px"
+                  width="50px"
+                />
+              </div>
+            </template>
+            <template
+              v-if="loaded"
+            >
+              <v-card
+                v-if="!rows[eidx].length"
+                class="no-assignments-yet d-flex flex-column rounded-lg mb-5 d-inline-block"
+                outlined
+              >
+                <div
+                  class="no-assignments-yet-container"
                 >
+                  <h4>You don't have any components yet</h4>
                   <div
-                    class="no-assignments-yet-container"
+                    class="no-components-yet-buttons d-flex flex-row justify-space-between mx-auto"
                   >
-                    <h4>You don't have any components yet</h4>
-                    <div
-                      class="no-components-yet-buttons d-flex flex-row justify-space-between mx-auto"
-                    >
-                      <add-assignment-dialog
-                        @multiple="handleAssignmentMultipleVersions(exposure)"
-                        @single="handleAssignmentSingleVersion(exposure)"
-                        :hasExisting="false"
-                        :isSingleConditionExperiment="singleConditionExperiment"
-                      />
-                      <add-message-dialog
-                        v-if="isMessagingEnabled"
-                        :isSingleConditionExperiment="singleConditionExperiment"
-                        :hasExisting="false"
-                        @add="handleAddMessage($event, exposure)"
-                        class="ml-3"
-                      />
-                    </div>
+                    <add-assignment-dialog
+                      @multiple="handleAssignmentMultipleVersions(exposure)"
+                      @single="handleAssignmentSingleVersion(exposure)"
+                      :hasExisting="false"
+                      :isSingleConditionExperiment="singleConditionExperiment"
+                    />
+                    <add-message-dialog
+                      v-if="isMessagingEnabled"
+                      :isSingleConditionExperiment="singleConditionExperiment"
+                      :hasExisting="false"
+                      @add="handleAddMessage($event, exposure)"
+                      class="ml-3"
+                    />
                   </div>
-                </v-card>
-                <v-data-table
-                  v-if="rows[eidx].length"
-                  :headers="assignmentHeaders"
-                  :items="rows[eidx]"
-                  :expanded.sync="rowsExpanded[eidx]"
-                  :sort-by="['assignmentOrder']"
-                  :mobile-breakpoint="mobileBreakpoint"
-                  :items-per-page="rows[eidx].length"
-                  :item-class="() => 'assignment-row'"
-                  :key="componentTableKey"
-                  item-key="assignmentId"
-                  class="v-data-table-alt v-data-table--sorted data-table-assignments mx-3 mb-5 mt-3"
-                  hide-default-footer
-                  v-sortable-data-table
-                  show-expand
-                  @sorted="
-                    (event) =>
-                      saveOrder(
-                        event,
-                        rows[eidx],
-                        exposure
-                      )
-                  "
+                </div>
+              </v-card>
+              <v-data-table
+                v-if="rows[eidx].length"
+                :headers="assignmentHeaders"
+                :items="rows[eidx]"
+                :expanded.sync="rowsExpanded[eidx]"
+                :sort-by="['assignmentOrder']"
+                :mobile-breakpoint="mobileBreakpoint"
+                :items-per-page="rows[eidx].length"
+                :item-class="() => 'assignment-row'"
+                :key="componentTableKey"
+                item-key="assignmentId"
+                class="v-data-table-alt v-data-table--sorted data-table-assignments mx-3 mb-5 mt-3"
+                hide-default-footer
+                v-sortable-data-table
+                show-expand
+                @sorted="
+                  (event) =>
+                    saveOrder(
+                      event,
+                      rows[eidx],
+                      exposure
+                    )
+                "
+              >
+                <template
+                  v-slot:item.data-table-expand="{ item: row, isExpanded, expand }"
                 >
-                  <template
-                    v-slot:item.title="{ item: row }"
+                  <v-icon
+                    @click="expand(!isExpanded)"
+                    :aria-label="`Expand component row ${row.title}`"
                   >
-                    <!-- row slot-->
-                    <v-icon>
-                      {{ rowIcon(row) }}
-                    </v-icon>
-                    {{ row.title }}
-                    <v-chip
-                      v-if="row.treatments.length == 1"
-                      label
-                      color="lightgrey"
-                      class="v-chip--only-one"
-                    >
-                      Only One Version
-                    </v-chip>
-                  </template>
-                  <template
-                    v-slot:expanded-item="{ item: row }"
+                    {{ isExpanded ? "mdi-chevron-up" : "mdi-chevron-down" }}
+                  </v-icon>
+                </template>
+                <template
+                  v-slot:item.title="{ item: row }"
+                >
+                  <!-- row slot-->
+                  <v-icon>
+                    {{ rowIcon(row) }}
+                  </v-icon>
+                  {{ row.title }}
+                  <v-chip
+                    v-if="row.treatments.length === 1"
+                    color="lightgrey"
+                    class="v-chip--only-one"
+                    label
                   >
-                    <!-- expanded row (treatments) slot-->
-                    <td
-                      :colspan="assignmentHeaders.length"
-                      class="treatments-table-container"
+                    Only One Version
+                  </v-chip>
+                </template>
+                <template
+                  v-slot:expanded-item="{ item: row }"
+                >
+                  <!-- expanded row (treatments) slot-->
+                  <td
+                    :colspan="assignmentHeaders.length"
+                    class="treatments-table-container"
+                  >
+                    <v-data-table
+                      :headers="treatmentHeaders"
+                      :items="row.treatments"
+                      hide-default-header
+                      hide-default-footer
+                      item-key="treatmentId"
+                      class="treatment-row grey lighten-5"
                     >
-                      <v-data-table
-                        :headers="treatmentHeaders"
-                        :items="row.treatments"
-                        hide-default-header
-                        hide-default-footer
-                        item-key="treatmentId"
-                        class="treatment-row grey lighten-5"
-                      >
-                        <!-- eslint-disable-next-line -->
-                        <template v-slot:item.title="{ item: treatment }">
-                          <v-icon
-                            class="mr-1 component-icon"
-                          >
-                            {{ rowTreatmentsIcon(row, treatment) }}
-                          </v-icon>
-                          <v-tooltip
-                            v-if="showTreatmentRowTooltip(row, treatment)"
-                            top
-                          >
-                            <template #activator="{ on }">
-                              <v-icon
-                                class="icon-treatment-incomplete"
-                                v-on="on"
-                              >
-                                  mdi-alert-circle-outline
-                              </v-icon>
-                            </template>
-                            <span>{{ treatmentRowTooltipText(row, treatment) }}</span>
-                          </v-tooltip>
-                          <span
-                            :class="treatmentRowClass(row, treatment)"
-                          >
-                            Treatment
-                          </span>
-                          <v-chip
-                            v-if="!singleConditionExperiment && rows[eidx].find((r) => r.assignmentId === row.assignmentId).treatments.length === conditions.length"
-                            label
-                            :color="
-                              conditionColorMapping[
-                                conditionForTreatment(
-                                  exposure.groupConditionList,
-                                  treatment.conditionId
-                                ).conditionName
-                              ]
-                            "
-                          >
-                            {{
+                      <!-- eslint-disable-next-line -->
+                      <template v-slot:item.title="{ item: treatment }">
+                        <v-icon
+                          class="mr-1 component-icon"
+                        >
+                          {{ rowTreatmentsIcon(row, treatment) }}
+                        </v-icon>
+                        <tool-tip
+                          v-if="showTreatmentRowTooltip(row, treatment)"
+                          :content="treatmentRowTooltipText(row, treatment)"
+                          :ref="`tooltip-${row.assignmentId}-${treatment.treatmentId}`"
+                          aria-label="treatment explanation tooltip"
+                          icon="mdi-information-outline"
+                          alignment="top"
+                          activatorType="icon"
+                          activatorClass="icon-treatment-incomplete"
+                        />
+                        <span
+                          :class="treatmentRowClass(row, treatment)"
+                        >
+                          Treatment
+                        </span>
+                        <v-chip
+                          v-if="!singleConditionExperiment && rows[eidx].find((r) => r.assignmentId === row.assignmentId).treatments.length === conditions.length"
+                          label
+                          :color="
+                            conditionColorMapping[
                               conditionForTreatment(
                                 exposure.groupConditionList,
                                 treatment.conditionId
                               ).conditionName
-                            }}
-                          </v-chip>
-                          <div
-                            class="treatment-btn-group"
-                          >
-                            <v-btn
-                              text
-                              tile
-                              class="btn-treatment-edit"
-                              @click="handleEditTreatment(row, treatment)"
-                            >
-                              <v-icon>
-                                {{ editTreatmentIcon(row, treatment) }}
-                              </v-icon>
-                              <span
-                                class="btn-edit"
-                              >
-                                {{ editTreatmentText(row, treatment) }}
-                              </span>
-                            </v-btn>
-                            <v-btn
-                              v-if="isIntegrationAssignment(row, treatment) && !displayTreatmentMenu"
-                              :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
-                              :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
-                              target="_blank"
-                              text
-                              tile
-                            >
-                              <v-icon>mdi-eye-outline</v-icon>
-                              <span class="treatment-btn">Preview</span>
-                            </v-btn>
-                            <v-btn
-                              v-if="!isMessage(row) && !treatment.assessmentDto.integration"
-                              :disabled="!treatment.assessmentDto.questions.length"
-                              @click="handleTreatmentPreview(treatment)"
-                              text
-                              tile
-                            >
-                              <v-icon>mdi-eye-outline</v-icon>
-                              <span class="treatment-btn">Preview</span>
-                            </v-btn>
-                            <v-menu
-                              v-if="isIntegrationAssignment(row, treatment) && displayTreatmentMenu"
-                              :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
-                              offset-y
-                            >
-                              <template
-                                v-slot:activator="{ on, attrs }"
-                              >
-                                <v-btn
-                                  icon
-                                  text
-                                  tile
-                                  v-bind="attrs"
-                                  v-on="on"
-                                  aria-label="treatment actions"
-                                >
-                                  <v-icon>mdi-dots-horizontal</v-icon>
-                                </v-btn>
-                              </template>
-                              <v-list>
-                                <v-list-item
-                                  aria-label="preview integration"
-                                >
-                                  <v-list-item-title>
-                                    <v-icon>mdi-eye-outline</v-icon>
-                                    <span class="treatment-btn">
-                                      <a
-                                        :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
-                                        target="_blank"
-                                        class="integration-preview-link"
-                                      >
-                                        Preview
-                                      </a>
-                                    </span>
-                                  </v-list-item-title>
-                                </v-list-item>
-                              </v-list>
-                            </v-menu>
-                          </div>
-                        </template>
-                      </v-data-table>
-                    </td>
-                  </template>
-                  <!-- eslint-disable-next-line -->
-                  <template v-slot:item.treatments="{ item: row }">
-                    <!-- red text if treatment count != condition count or a treatment not having an assessment -->
-                    <span
-                      :class="rowTreatmentsColumnClass(row)"
-                    >
-                      {{ row.treatments.length }} / {{ row.treatments.length }}
-                      <v-tooltip
-                        v-if="hasIncompleteTreatments(row)"
-                        top
-                      >
-                        <template
-                          #activator="{ on }"
+                            ]
+                          "
                         >
-                          <v-icon
-                            class="label-treatment-incomplete"
-                            v-on="on"
-                          >
-                            mdi-alert-circle-outline
-                          </v-icon>
-                        </template>
-                        <span>
-                          {{ showRowTreatmentsColumnTooltipText(row) }}
-                        </span>
-                      </v-tooltip>
-                    </span>
-                  </template>
-                  <!-- eslint-disable-next-line -->
-                  <template v-slot:item.drag="{ item: row }">
-                    <!-- dragger slot-->
-                    <span
-                      class="dragger"
-                    >
-                      <v-icon>mdi-drag</v-icon>
-                    </span>
-                  </template>
-                  <!-- eslint-disable-next-line -->
-                  <template v-slot:item.published="{ item: row }">
-                    <!-- row published column slot -->
-                    <span
-                      :class="rowPublishedColumnClass(row)"
-                    >
-                      {{ rowPublishedColumnText(row) }}
-                    </span>
-                  </template>
-                  <!-- eslint-disable-next-line -->
-                  <template v-slot:item.dueDate="{ item: row }">
-                    <!-- row due date column slot -->
-                    {{ dueDate(row) }}
-                  </template>
-                  <!-- eslint-disable-next-line -->
-                  <template v-slot:item.actions="{ item: row }">
-                    <!-- row actions column slot -->
-                    <v-menu
-                      offset-y
-                    >
-                      <template
-                        v-slot:activator="{ on, attrs }"
-                      >
-                        <v-btn
-                          v-bind="attrs"
-                          v-on="on"
-                          aria-label="actions"
-                          icon
-                          text
-                          tile
+                          {{
+                            conditionForTreatment(
+                              exposure.groupConditionList,
+                              treatment.conditionId
+                            ).conditionName
+                          }}
+                        </v-chip>
+                        <div
+                          class="treatment-btn-group"
                         >
-                          <v-icon>mdi-dots-horizontal</v-icon>
-                        </v-btn>
-                      </template>
-                      <v-list>
-                        <v-menu
-                          v-if="showMoveAction(row)"
-                          :key="exposure.exposureId"
-                          transition="slide-x-transition"
-                          open-on-hover
-                          offset-x
-                        >
-                          <template
-                            v-slot:activator="{ on, attrs }"
+                          <v-btn
+                            text
+                            tile
+                            class="btn-treatment-edit"
+                            @click="handleEditTreatment(row, treatment)"
                           >
-                            <v-list-item
-                              v-bind="attrs"
-                              v-on="on"
-                              aria-label="move to exposure set"
+                            <v-icon>
+                              {{ editTreatmentIcon(row, treatment) }}
+                            </v-icon>
+                            <span
+                              class="btn-edit"
                             >
-                              <v-list-item-title>
-                                <v-icon>mdi-arrow-right-top</v-icon>
-                                Move
-                              </v-list-item-title>
-                              <v-list-item-action
-                                class="justify-end"
-                              >
-                                <v-icon>mdi-menu-right</v-icon>
-                              </v-list-item-action>
-                            </v-list-item>
-                          </template>
-                          <v-list>
+                              {{ editTreatmentText(row, treatment) }}
+                            </span>
+                          </v-btn>
+                          <v-btn
+                            v-if="isIntegrationAssignment(row, treatment) && !displayTreatmentMenu"
+                            :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
+                            :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
+                            target="_blank"
+                            text
+                            tile
+                          >
+                            <v-icon>mdi-eye-outline</v-icon>
+                            <span class="treatment-btn">Preview</span>
+                          </v-btn>
+                          <v-btn
+                            v-if="!isMessage(row) && !treatment.assessmentDto.integration"
+                            :disabled="!treatment.assessmentDto.questions.length"
+                            @click="handleTreatmentPreview(treatment)"
+                            text
+                            tile
+                          >
+                            <v-icon>mdi-eye-outline</v-icon>
+                            <span class="treatment-btn">Preview</span>
+                          </v-btn>
+                          <v-menu
+                            v-if="isIntegrationAssignment(row, treatment) && displayTreatmentMenu"
+                            :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
+                            offset-x
+                            left
+                            attach
+                          >
                             <template
-                              v-for="(exposure, idx) in exposures"
+                              v-slot:activator="{ on, attrs }"
                             >
+                              <v-btn
+                                icon
+                                text
+                                tile
+                                v-bind="attrs"
+                                v-on="on"
+                                aria-label="treatment actions"
+                              >
+                                <v-icon>mdi-dots-horizontal</v-icon>
+                              </v-btn>
+                            </template>
+                            <v-list>
                               <v-list-item
-                                v-if="exposure.exposureId !== row.exposureId"
-                                :key="exposure.exposureId"
-                                :aria-label="`Exposure set ${idx + 1}`"
-                                @click="handleMoveComponent(exposure.exposureId, row)"
+                                aria-label="preview integration"
                               >
                                 <v-list-item-title>
-                                  Exposure set {{ idx + 1 }}
+                                  <v-icon>mdi-eye-outline</v-icon>
+                                  <span class="treatment-btn">
+                                    <a
+                                      :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
+                                      target="_blank"
+                                      class="integration-preview-link"
+                                    >
+                                      Preview
+                                    </a>
+                                  </span>
                                 </v-list-item-title>
                               </v-list-item>
-                            </template>
-                          </v-list>
-                        </v-menu>
-                        <v-list-item
-                          aria-label="edit"
-                          @click="handleEditComponent(exposure.exposureId, row)"
-                        >
-                          <v-list-item-title>
-                            <v-icon>mdi-pencil</v-icon>
-                            Edit
-                          </v-list-item-title>
-                        </v-list-item>
-                        <v-list-item
-                          aria-label="duplicate"
-                          @click="handleDuplicateComponent(exposure.exposureId, row)">
-                          <v-list-item-title>
-                            <v-icon>mdi-content-duplicate</v-icon>
-                            Duplicate
-                          </v-list-item-title>
-                        </v-list-item>
-                        <v-list-item
-                          v-if="showDeleteComponent(row)"
-                          aria-label="delete"
-                          @click="handleDeleteComponent(exposure.exposureId, row)">
-                          <v-list-item-title>
-                            <v-icon>mdi-delete</v-icon>
-                            Delete
-                          </v-list-item-title>
-                        </v-list-item>
-                        <v-list-item
-                          v-if="showPublishComponent(row)"
-                          aria-label="publish"
-                          @click="handlePublishComponent(exposure.exposureId, row)">
-                          <v-list-item-title>
-                            <v-icon>mdi-publish</v-icon>
-                            Publish
-                          </v-list-item-title>
-                        </v-list-item>
-                        <v-list-item
-                          v-if="showUnpublishComponent(row)"
-                          aria-label="publish"
-                          @click="handleUnpublishComponent(exposure.exposureId, row)">
-                          <v-list-item-title>
-                            <v-icon>mdi-publish-off</v-icon>
-                            Unpublish
-                          </v-list-item-title>
-                        </v-list-item>
-                      </v-list>
-                    </v-menu>
-                  </template>
-                </v-data-table>
-              </template>
-              <div
-                v-if="!singleConditionExperiment"
-              >
-                <h3
-                  class="my-4"
-                >
-                  Design
-                </h3>
-                <v-card
-                  class="data-table-design px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
-                  outlined
-                >
-                  <div
-                    v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? null : maxDesignGroups)"
-                    class="groupNames"
-                    :key="group"
+                            </v-list>
+                          </v-menu>
+                        </div>
+                      </template>
+                    </v-data-table>
+                  </td>
+                </template>
+                <!-- eslint-disable-next-line -->
+                <template v-slot:item.treatments="{ item: row }">
+                  <!-- red text if treatment count != condition count or a treatment not having an assessment -->
+                  <span
+                    :class="rowTreatmentsColumnClass(row)"
                   >
-                    {{ group }} will receive
-                    <v-chip
-                      class="ma-2"
-                      :color="
-                        conditionColorMapping[
-                          groupNameConditionMapping(exposure.groupConditionList)[
-                            group
-                          ]
-                        ]
-                      "
-                      label
-                      :key="group"
+                    {{ row.treatments.length }} / {{ row.treatments.length }}
+                    <tool-tip
+                      v-if="hasIncompleteTreatments(row)"
+                      :content="showRowTreatmentsColumnTooltipText(row)"
+                      :ref="`tooltip-component-${row.assignmentId}`"
+                      aria-label="incomplete treatments explanation tooltip"
+                      icon="mdi-alert-circle-outline"
+                      alignment="top"
+                      activatorType="icon"
+                      activatorClass="label-treatment-incomplete"
+                    />
+                  </span>
+                </template>
+                <!-- eslint-disable-next-line -->
+                <template v-slot:item.drag="{ item: row }">
+                  <!-- dragger slot-->
+                  <span
+                    class="dragger"
+                  >
+                    <v-icon>mdi-drag</v-icon>
+                  </span>
+                </template>
+                <!-- eslint-disable-next-line -->
+                <template v-slot:item.published="{ item: row }">
+                  <!-- row published column slot -->
+                  <span
+                    :class="rowPublishedColumnClass(row)"
+                  >
+                    {{ rowPublishedColumnText(row) }}
+                  </span>
+                </template>
+                <!-- eslint-disable-next-line -->
+                <template v-slot:item.dueDate="{ item: row }">
+                  <!-- row due date column slot -->
+                  {{ dueDate(row) }}
+                </template>
+                <!-- eslint-disable-next-line -->
+                <template v-slot:item.actions="{ item: row }">
+                  <!-- row actions column slot -->
+                  <v-menu
+                    v-model="actionsMenuOpen[row.assignmentId]"
+                    class="component-actions-menu"
+                    left
+                    offset-x
+                    attach
+                  >
+                    <template
+                      v-slot:activator="{ on, attrs }"
                     >
-                      <!-- Sorted Group Names -->
-                      {{
+                      <v-btn
+                        v-bind="{role: attrs.role, 'aria-haspopup': attrs.haspopup}"
+                        v-on="on"
+                        aria-label="actions"
+                        icon
+                        text
+                        tile
+                      >
+                        <v-icon>mdi-dots-horizontal</v-icon>
+                      </v-btn>
+                    </template>
+                    <v-list>
+                      <v-list-item
+                        @click="handleMoveComponent(row)"
+                        :aria-label="`move ${row.title}`"
+                      >
+                        <v-list-item-title
+                          class="d-flex justify-content-center"
+                        >
+                          <v-icon>mdi-arrow-right-top</v-icon>
+                          Move
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item
+                        :aria-label="`edit ${row.title}`"
+                        @click="handleEditComponent(exposure.exposureId, row)"
+                      >
+                        <v-list-item-title
+                          class="d-flex justify-content-center"
+                        >
+                          <v-icon>mdi-pencil</v-icon>
+                          Edit
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item
+                        :aria-label="`duplicate ${row.title}`"
+                        @click="handleDuplicateComponent(exposure.exposureId, row)"
+                      >
+                        <v-list-item-title
+                          class="d-flex justify-content-center"
+                        >
+                          <v-icon>mdi-content-duplicate</v-icon>
+                          Duplicate
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item
+                        v-if="showDeleteComponent(row)"
+                        :aria-label="`delete ${row.title}`"
+                        @click="handleDeleteComponent(exposure.exposureId, row)"
+                      >
+                        <v-list-item-title
+                          class="d-flex justify-content-center"
+                        >
+                          <v-icon>mdi-delete</v-icon>
+                          Delete
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item
+                        v-if="showPublishComponent(row)"
+                        :aria-label="`publish ${row.title}`"
+                        @click="handlePublishComponent(exposure.exposureId, row)"
+                      >
+                        <v-list-item-title
+                          class="d-flex justify-content-center"
+                        >
+                          <v-icon>mdi-publish</v-icon>
+                          Publish
+                        </v-list-item-title>
+                      </v-list-item>
+                      <v-list-item
+                        v-if="showUnpublishComponent(row)"
+                        :aria-label="`unpublish ${row.title}`"
+                        @click="handleUnpublishComponent(exposure.exposureId, row)"
+                      >
+                        <v-list-item-title
+                          class="d-flex justify-content-center"
+                        >
+                          <v-icon>mdi-publish-off</v-icon>
+                          Unpublish
+                        </v-list-item-title>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
+                </template>
+              </v-data-table>
+            </template>
+            <div
+              v-if="!singleConditionExperiment"
+            >
+              <h3
+                class="my-4"
+              >
+                Design
+              </h3>
+              <v-card
+                class="data-table-design px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
+                outlined
+              >
+                <div
+                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? null : maxDesignGroups)"
+                  class="groupNames"
+                  :key="group"
+                >
+                  {{ group }} will receive
+                  <v-chip
+                    class="ma-2"
+                    :color="
+                      conditionColorMapping[
                         groupNameConditionMapping(exposure.groupConditionList)[
                           group
                         ]
-                      }}
-                    </v-chip>
-                  </div>
-                  <a
-                    v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups"
-                    @click="designExpanded = !designExpanded"
-                    class="text--blue"
+                      ]
+                    "
+                    label
+                    :key="group"
                   >
-                    <v-icon
-                      v-if="!designExpanded"
-                      color="blue"
-                    >
-                      mdi-plus
-                    </v-icon>
-                    <v-icon
-                      v-else
-                      color="blue"
-                    >
-                      mdi-minus
-                    </v-icon>
-                    <span>
-                      {{ designExpanded ? "Less" : "More" }}
-                    </span>
-                  </a>
-                </v-card>
-              </div>
-            </v-tab-item>
-          </v-tabs-items>
-        </v-col>
-      </v-row>
-    </v-container>
-  </div>
+                    <!-- Sorted Group Names -->
+                    {{
+                      groupNameConditionMapping(exposure.groupConditionList)[
+                        group
+                      ]
+                    }}
+                  </v-chip>
+                </div>
+                <a
+                  v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups"
+                  @click="designExpanded = !designExpanded"
+                  class="text--blue"
+                >
+                  <v-icon
+                    v-if="!designExpanded"
+                    color="blue"
+                  >
+                    mdi-plus
+                  </v-icon>
+                  <v-icon
+                    v-else
+                    color="blue"
+                  >
+                    mdi-minus
+                  </v-icon>
+                  <span>
+                    {{ designExpanded ? "Less" : "More" }}
+                  </span>
+                </a>
+              </v-card>
+            </div>
+          </v-tab-item>
+        </v-tabs-items>
+      </v-col>
+    </v-row>
+  </v-container>
+</div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from "vuex";
 import { message as messageStatus } from "@/helpers/messaging/status.js";
+import { deleteAttributesFromElement, statusAlert, createStatusAlert, showSkipLink } from "@/helpers/ui-utils.js";
 import AddAssignmentDialog from "@/components/AddAssignmentDialog";
 import AddMessageDialog from "@/views/messaging/components/dialog/AddMessageDialog";
 import moment from "moment";
+import MoveAssignmentDialog from "@/components/dialog/MoveAssignmentDialog.vue";
 import Sortable from "sortablejs";
 import Spinner from "@/components/Spinner";
+import ToolTip from "@/components/ToolTip.vue";
+import Vue from 'vue';
 
 export default {
   name: "ExperimentAssignments",
+  components: {
+    AddAssignmentDialog,
+    AddMessageDialog,
+    Spinner,
+    ToolTip
+  },
   props: {
     experiment: {
       type: Object,
@@ -558,11 +557,6 @@ export default {
       type: Number,
       default: 0
     }
-  },
-  components: {
-    AddAssignmentDialog,
-    AddMessageDialog,
-    Spinner,
   },
   directives: {
     sortableDataTable: {
@@ -646,6 +640,7 @@ export default {
       message: "mdi-message-text-outline"
     },
     componentTableKey: 0,
+    actionsMenuOpen: []
   }),
   watch: {
     rowsCount: {
@@ -654,6 +649,22 @@ export default {
         this.expandRows();
       },
       immediate: true
+    },
+    actionsMenuOpen: {
+      handler() {
+        this.$nextTick(() => {
+          deleteAttributesFromElement(".list-item-move", ["tabindex"]);
+        });
+      },
+        deep: true,
+        immediate: true
+    },
+    allMessageContainers: {
+      handler() {
+        this.calculateRows();
+        this.expandRows();
+      },
+      deep: true
     }
   },
   computed: {
@@ -667,7 +678,8 @@ export default {
       conditionColorMapping: "condition/conditionColorMapping",
       userId: "api/userId",
       allMessageContainers: "messagingMessageContainer/messageContainers",
-      configurations: "configuration/get"
+      configurations: "configuration/get",
+      alertStatuses: "alert/statuses"
     }),
     experimentId() {
       return parseInt(this.experiment.experimentId);
@@ -686,12 +698,12 @@ export default {
     },
     displayTreatmentMenu() {
       switch (this.$vuetify.breakpoint.name) {
-        case 'xs':
-        case 'sm':
-        case 'md':
+        case "xs":
+        case "sm":
+        case "md":
           return true;
-        case 'lg':
-        case 'xl':
+        case "lg":
+        case "xl":
           return false;
         default:
           return false;
@@ -725,7 +737,7 @@ export default {
       createAssessment: "assessment/createAssessment",
       getConsentFile: "consent/getConsentFile",
       moveAssignment: "assignment/moveAssignment",
-      setCurrentAssignment: 'assignments/setCurrentAssignment',
+      setCurrentAssignment: "assignments/setCurrentAssignment",
       saveEditMode: "navigation/saveEditMode",
       updateMessageContainer: "messagingMessageContainer/update",
       updateAllMessageContainers: "messagingMessageContainer/updateAll",
@@ -827,6 +839,13 @@ export default {
           ]
         )
       ]).then(this.componentTableKey++); // force refresh of component table
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Component order saved"
+        )
+      );
     },
     async handleMoveAssignment(targetExposureId, assignment) {
       try {
@@ -842,31 +861,46 @@ export default {
         ]);
 
         if (response.status === 201) {
-          return await this.fetchAssignmentsByExposure([
+          let assignmentsByExposure = await this.fetchAssignmentsByExposure([
             this.experimentId,
             targetExposureId,
             true,
           ]);
+
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.success,
+              "Assignment moved successfully"
+            )
+          );
+
+          return assignmentsByExposure;
         }
       } catch (error) {
         console.error("handleMoveAssignment | catch", { error });
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "There was a problem moving the assignment"
+          )
+        );
       }
     },
     async handleCreateAssignment(exposureId, conditionIds) {
       await this.saveEditMode({
-        initialPage: 'AssignmentCreateAssignment',
+        initialPage: "AssignmentCreateAssignment",
         callerPage: {
-          name: 'ExperimentSummary',
-          tab: 'components',
+          name: "ExperimentSummary",
+          tab: "components",
           exposureSet: this.tab
         }
       });
       this.$router.push(
         {
-          name: 'AssignmentCreateAssignment',
+          name: "AssignmentCreateAssignment",
           params: {
             exposureId: exposureId,
-            conditionIds: conditionIds
+            conditionIds: conditionIds,
           }
         }
       )
@@ -879,15 +913,15 @@ export default {
       }
       await this.setCurrentAssignment(assignment);
       await this.saveEditMode({
-        initialPage: 'AssignmentEditor',
+        initialPage: "AssignmentEditor",
         callerPage: {
-          name: 'ExperimentSummary',
-          tab: 'components',
+          name: "ExperimentSummary",
+          tab: "components",
           exposureSet: this.tab
         }
       });
       this.$router.push({
-        name: 'AssignmentEditor',
+        name: "AssignmentEditor",
         params: {
           assignmentId: assignment.assignmentId,
           exposureId: exposureId
@@ -930,16 +964,32 @@ export default {
         showCancelButton: true,
         confirmButtonText: "Yes, delete it",
         cancelButtonText: "No, cancel",
+        cancelButtonColor: "#515961",
       });
       if (reallyDelete?.isConfirmed) {
         try {
-          return await this.deleteAssignment([
+          let assignmentDeleted = await this.deleteAssignment([
             this.experimentId,
             eid,
             a.assignmentId,
           ]);
+
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.success,
+              "Assignment deleted successfully"
+            )
+          );
+
+          return assignmentDeleted;
         } catch (error) {
           console.error("handleDeleteQuestion | catch", { error });
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.error,
+              "There was a problem deleting the assignment"
+            )
+          );
         }
       }
     },
@@ -953,14 +1003,28 @@ export default {
         ]);
 
         if (response.status === 201) {
-          return await this.fetchAssignmentsByExposure([
+          let assignments = await this.fetchAssignmentsByExposure([
             this.experimentId,
             eid,
             true,
           ]);
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.success,
+              "Assignment duplicated successfully"
+            )
+          );
+
+          return assignments;
         }
       } catch (error) {
         console.error("handleDuplicateQuestion | catch", { error });
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "There was a problem duplicating the assignment"
+          )
+        );
       }
     },
     async goToBuilder(conditionId, assignmentId) {
@@ -1031,7 +1095,7 @@ export default {
       return newGroups?.sort().filter((g, i) => limit ? i < limit : true);
     },
     dueDate(row) {
-      return row.dueDate != null ? moment(row.dueDate).format('MMM D, YYYY hh:mma') : "";
+      return row.dueDate != null ? moment(row.dueDate).format("MMM D, YYYY hh:mma") : "";
     },
     async handleAssignmentStartedAlert(assignmentId) {
       var assignment = this.assignments.find((a) => a.assignmentId === assignmentId);
@@ -1044,6 +1108,7 @@ export default {
         showCancelButton: true,
         confirmButtonText: "OK",
         cancelButtonText: "Cancel",
+        cancelButtonColor: "#515961",
         showLoaderOnConfirm: true,
         reverseButtons: true,
         allowOutsideClick: () => !this.$swal.isLoading(),
@@ -1074,13 +1139,21 @@ export default {
     handleTreatmentPreview(treatment) {
       window.open(`/preview/experiments/${this.experimentId}/conditions/${treatment.conditionId}/treatments/${treatment.treatmentId}?ownerId=${this.userId}`, "_blank");
     },
-     async handleMoveComponent(exposureId, row) {
+     async handleMoveComponent(row) {
+      const availableExposures = this.exposures.filter(e => e.exposureId !== row.exposureId);
+      let selectedExposure = await this.handleDisplayMoveAssignmentDialog(availableExposures, row.title);
+
+      if (!selectedExposure || selectedExposure.isDismissed) {
+        // no exposure selected, or dialog dismissed
+        return;
+      }
+
       switch (row.type) {
         case this.rowType.assignment:
-          await this.handleMoveAssignment(exposureId, row);
+          await this.handleMoveAssignment(selectedExposure.value.exposureId, row);
           break;
         case this.rowType.message:
-          this.handleMoveMessageContainer(exposureId, row);
+          this.handleMoveMessageContainer(selectedExposure.value.exposureId, row);
           break;
         default:
           break;
@@ -1172,6 +1245,12 @@ export default {
               }
             ]
           );
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.success,
+              "Message published successfully"
+            )
+          );
           break;
         default:
           break;
@@ -1196,6 +1275,12 @@ export default {
               }
             ]
           );
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.success,
+              "Message unpublished successfully"
+            )
+          );
           break;
         default:
           break;
@@ -1216,7 +1301,7 @@ export default {
         case this.rowType.assignment:
           return treatmentRow.assessmentDto.integration ? this.treatmentIcon.integration : this.treatmentIcon.assignment;
         case this.rowType.message:
-          return ;
+          return this.treatmentIcon.message;
         default:
           return "";
       }
@@ -1457,8 +1542,20 @@ export default {
               messageContainer.id
             ]
           );
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.success,
+              "Message container deleted successfully"
+            )
+          );
         } catch (error) {
           console.error("handleDeleteMessageContainer | catch", { error });
+          createStatusAlert(
+            statusAlert(
+              this.alertStatuses.error,
+              "There was a problem deleting the message container"
+            )
+          );
         }
       }
     },
@@ -1473,8 +1570,20 @@ export default {
             exposureId: targetExposureId
           }
         ]);
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.success,
+            "Message container moved successfully"
+          )
+        );
       } catch (error) {
         console.error("handleMoveMessageContainer | catch", { error });
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "There was a problem moving the message container"
+          )
+        );
       }
     },
     async handleDuplicateMessageContainer(messageContainer) {
@@ -1484,8 +1593,20 @@ export default {
           messageContainer.exposureId,
           messageContainer.id
         ]);
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.success,
+            "Message container duplicated successfully"
+          )
+        );
       } catch (error) {
         console.error("handleDuplicateMessageContainer | catch", { error });
+        createStatusAlert(
+          statusAlert(
+            this.alertStatuses.error,
+            "There was a problem duplicating the message container"
+          )
+        );
       }
     },
     async handleMessageAction(messageContainerId, messageId) {
@@ -1506,9 +1627,53 @@ export default {
           }
         }
       )
+    },
+    handleDisplayMoveAssignmentDialog(availableExposures, assignmentTitle) {
+      return this.$swal({
+        html: '<div id="dialog-move-assignment"></div>',
+        showCancelButton: true,
+        confirmButtonText: "Move",
+        cancelButtonText: "Cancel",
+        reverseButtons: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        focusConfirm: false,
+        customClass: {
+          confirmButton: "response-option-confirm",
+          popup: "move-assignment-popup"
+        },
+        preConfirm: () => {
+          const exposureOption = this.$swal.getPopup().querySelector("input#exposure-option-selected");
+
+          if (exposureOption && exposureOption.value) {
+            return { exposureId: exposureOption.value };
+          }
+
+          // no value selected; prompt user to select one
+          this.$swal.showValidationMessage("Please select an exposure to move the assignment to.");
+        },
+        willOpen: () => {
+          var MoveAssignmentDialogClass = Vue.extend(MoveAssignmentDialog);
+          var moveAssignmentDialog = new MoveAssignmentDialogClass({
+            propsData: {
+              exposures: availableExposures,
+              assignmentName: assignmentTitle
+            }
+          });
+          moveAssignmentDialog.$mount(document.getElementById("dialog-move-assignment"));
+        },
+        didOpen: () => {
+          const exposureSetSelect = this.$swal.getHtmlContainer().querySelector("#move-radio-group");
+
+          if (exposureSetSelect) {
+            exposureSetSelect.focus();
+          }
+        }
+      });
     }
   },
   async mounted() {
+    showSkipLink(true);
     this.tab = parseInt(this.activeExposureSet);
     this.calculateRows();
     this.loaded = true;
@@ -1517,6 +1682,8 @@ export default {
 </script>
 
 <style lang="scss">
+@import "~@/styles/variables";
+
 .v-tabs-bar {
   height: auto;
   .v-tab {
@@ -1529,12 +1696,10 @@ export default {
   tr.v-data-table__expanded__content {
   box-shadow: none;
   border-bottom: 0 !important;
-  // border-bottom: thin solid rgba(0, 0, 0, 0.12) !important;
-
   > td {
     background-color: #fafafa !important;
     .v-data-table__wrapper {
-      border: none;
+      border: none !important;
       border-radius: 0;
     }
   }
@@ -1575,14 +1740,11 @@ export default {
   color: black;
   opacity: 0.74;
 }
-.label-treatment-complete,
-.label-treatment-incomplete {
+.label-treatment-complete {
   padding-right: 10px;
 }
 .treatment-btn,
 .label-treatment-complete,
-.icon-treatment-incomplete,
-.label-treatment-incomplete,
 .section-tab-components-balanced,
 .section-tab-components-unbalanced {
   text-transform: none !important;
@@ -1598,10 +1760,8 @@ export default {
     color: rgba(0, 0, 0, 0.26) !important;
   }
 }
-.icon-treatment-incomplete,
-.label-treatment-incomplete,
 .section-tab-components-unbalanced {
-  color: #E06766 !important;
+  color: map-get($red, "base") !important;
 }
 div.section-components.py-3.px-3 {
   padding-top: 40px !important;
@@ -1685,5 +1845,21 @@ a.integration-preview-link {
 }
 div.component-buttons {
   max-width: fit-content;
+}
+.swal2-styled {
+  &.swal2-cancel {
+    background-color: map-get($swal, "cancel" );
+  }
+}
+</style>
+
+<style lang="scss" scoped>
+@import "~@/styles/variables";
+
+.treatments-table-container::v-deep .icon-treatment-incomplete,
+.data-table-assignments::v-deep .label-treatment-incomplete {
+  text-transform: none !important;
+  opacity: 0.87 !important;
+  color: map-get($red, "base") !important;
 }
 </style>

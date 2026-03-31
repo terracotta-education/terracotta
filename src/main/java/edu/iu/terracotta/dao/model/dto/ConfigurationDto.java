@@ -20,6 +20,7 @@ public class ConfigurationDto {
     @Builder.Default private boolean experimentExportEnabled = false;
     @Builder.Default private boolean messagingEnabled = false;
 
+    private String helpUrl;
     private LmsConnector lms;
     private String lmsTitle;
 

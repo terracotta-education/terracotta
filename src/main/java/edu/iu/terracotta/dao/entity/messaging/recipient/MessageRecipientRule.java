@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleComparison;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleOperator;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -35,15 +34,13 @@ public class MessageRecipientRule extends BaseMessageEntity {
     )
     private MessageRecipientRuleSet ruleSet;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private MessageRuleOperator operator;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private MessageRuleComparison comparison;
 
-    @Column private String lmsAssignmentId;
-    @Column private String value;
+    private String lmsAssignmentId;
+    private String value;
 
 }

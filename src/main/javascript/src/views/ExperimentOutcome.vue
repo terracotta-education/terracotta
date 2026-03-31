@@ -1,50 +1,50 @@
 <template>
-  <div
-    class="experiment-outcome"
-  >
-    <nav>
-      <router-link
-        v-if="this.$router.currentRoute.meta.previousStep"
-        :disabled="isSaving"
-        :to="getBackTo"
-      >
-        <v-icon>mdi-chevron-left</v-icon> Back
-      </router-link>
-      <v-btn
-        :disabled="isSaving"
-        @click="handleSaveClick()"
-        color="primary"
-        elevation="0"
-        class="save-button"
-      >
-        <span
-          v-if="this.$router.currentRoute.meta.stepActionText"
-        >
-          {{ this.$router.currentRoute.meta.stepActionText }}
-        </span>
-        <span
-          v-else
-        >
-          SAVE & EXIT
-        </span>
-      </v-btn>
-    </nav>
-    <article
-      class="experiment-outcome__body"
+<div
+  class="experiment-outcome"
+>
+  <nav>
+    <router-link
+      v-if="this.$router.currentRoute.meta.previousStep"
+      :disabled="isSaving"
+      :to="getBackTo"
     >
-      <v-row>
-        <v-col
-          cols="12"
-        >
-          <router-view
-            :experiment="experiment"
-            :key="$route.fullPath"
-            ref="childComponent"
-          ></router-view>
-        </v-col>
-      </v-row>
-    </article>
-  </div>
+      <v-icon>mdi-chevron-left</v-icon> Back
+    </router-link>
+    <v-btn
+      :disabled="isSaving"
+      @click="handleSaveClick()"
+      color="primary"
+      elevation="0"
+      class="save-button"
+    >
+      <span
+        v-if="this.$router.currentRoute.meta.stepActionText"
+      >
+        {{ this.$router.currentRoute.meta.stepActionText }}
+      </span>
+      <span
+        v-else
+      >
+        SAVE & EXIT
+      </span>
+    </v-btn>
+  </nav>
+  <article
+    class="experiment-outcome__body"
+  >
+    <v-row>
+      <v-col
+        cols="12"
+      >
+        <router-view
+          :experiment="experiment"
+          :key="$route.fullPath"
+          ref="childComponent"
+        ></router-view>
+      </v-col>
+    </v-row>
+  </article>
+</div>
 </template>
 
 <script>
@@ -84,10 +84,10 @@ export default {
     }
   },
   beforeRouteEnter (to, from, next) {
-    return store.dispatch('experiment/fetchExperimentById', to.params.experimentId).then(next, next)
+    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next);
   },
   beforeRouteUpdate (to, from, next) {
-    return store.dispatch('experiment/fetchExperimentById', to.params.experimentId).then(next, next)
+    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next);
   },
 }
 </script>
@@ -109,11 +109,11 @@ export default {
         @extend .blue--text;
       }
     }
-    .save-button {
-      background: none!important;
+    & .save-button {
+      background: none !important;
       border: none;
-      padding: 0!important;
-      color: #069;
+      padding: 0 !important;
+      color: map-get($blue, "primary") !important;
       cursor: pointer;
     }
   }

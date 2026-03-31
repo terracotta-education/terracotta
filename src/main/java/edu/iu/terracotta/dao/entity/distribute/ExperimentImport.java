@@ -10,7 +10,6 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -41,12 +40,11 @@ public class ExperimentImport extends BaseUuidEntity {
     public static final String EXPERIMENT_TITLE_PREFIX = "(Imported)";
     public static final String ERROR_MESSAGE_SEPARATOR = ":::";
 
-    @Column private String sourceTitle;
-    @Column private String importedTitle;
-    @Column private String fileName;
-    @Column private String fileUri;
+    private String sourceTitle;
+    private String importedTitle;
+    private String fileName;
+    private String fileUri;
 
-    @Column
     @Enumerated(EnumType.STRING)
     private ExperimentImportStatus status;
 

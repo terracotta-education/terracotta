@@ -1,18 +1,18 @@
 <template>
-  <div
-    class="container-progress-bar w-100"
-    :style="dynamicStyles"
-  >
-    <ProgressBar
-      :val="progressValue"
-      :text="progressValue + '%'"
-      size="medium"
-      text-align="right"
-      text-position="top"
-      bar-color="#fbc62f"
-      bar-border-radius="5"
-    />
-  </div>
+<div
+  class="container-progress-bar w-100"
+  :style="dynamicStyles"
+>
+  <ProgressBar
+    :val="progressValue"
+    :text="`${progressValue}%`"
+    size="medium"
+    text-align="right"
+    text-position="top"
+    bar-color="#fbc62f"
+    bar-border-radius="5"
+  />
+</div>
 </template>
 
 <script>
@@ -20,9 +20,13 @@ import ProgressBar from 'vue-simple-progress'
 
 export default {
   name: "PercentBar",
-  props: [
-    "value"
-  ],
+  props: {
+    value: {
+      type: Number,
+      required: false,
+      default: 0
+    }
+  },
   components: {
     ProgressBar
   },
@@ -31,9 +35,11 @@ export default {
       if (this.value === null || this.value < 0) {
         return 0;
       }
+
       if (this.value > 100) {
         return 100;
       }
+
       return this.value;
     },
     dynamicStyles() {

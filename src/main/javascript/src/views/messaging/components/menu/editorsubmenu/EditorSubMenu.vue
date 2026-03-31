@@ -27,6 +27,7 @@
         v-if="!readOnly"
         v-bind="attrs"
         v-on="on"
+        aria-label="add piped text"
         color="primary"
         class="px-0"
         text
@@ -61,6 +62,7 @@
     v-if="showConditionalText && !hasConditionalTexts"
     :disabled="!hasMessageRuleAssignments"
     @click="addConditionalText"
+    aria-label="add conditional text"
     color="primary"
     class="px-0"
     text

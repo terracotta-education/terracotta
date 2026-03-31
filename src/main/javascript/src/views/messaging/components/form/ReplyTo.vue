@@ -128,6 +128,7 @@ export default {
             this.replyTo = this.replyToSelection ? [...this.replyToSelection] : [];
             this.newEmail = null;
             this.$emit("updated", this.replyTo);
+
             return false;
           }
 
@@ -161,6 +162,7 @@ export default {
             this.replyTo = this.replyToSelection ? [...this.replyToSelection] : [];
             this.newEmail = null;
             this.$emit("updated", this.replyTo);
+
             return false;
           }
         }
@@ -169,6 +171,7 @@ export default {
       this.replyTo = this.replyToSelection ? [...this.replyToSelection] : [];
       this.validationErrors = initValidations().container.replyTo;
       this.$emit("updated", this.replyTo);
+
       return true;
     },
     removeReplyTo(order) {
@@ -184,6 +187,7 @@ export default {
     },
     validateEmail(email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
       return emailRegex.test(email);
     },
     isValid() {

@@ -37,11 +37,10 @@ public class AnswerMc extends BaseEntity {
     )
     private Long answerMcId;
 
-    @Column private Integer answerOrder;
-    @Column private Boolean correct;
+    private Integer answerOrder;
+    private Boolean correct;
 
     @Lob
-    @Column
     private String html;
 
     @ManyToOne

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -25,14 +24,14 @@ import lombok.Setter;
 @Table(name = "terr_messaging_content_attachment")
 public class MessageContentAttachment extends BaseMessageEntity {
 
+    private String lmsId;
+    private String displayName;
+    private String filename;
+    private long size;
+    private String url;
+
     @ManyToOne
     @JoinColumn(name = "content_id")
     private MessageContent content;
-
-    @Column private String lmsId;
-    @Column private String displayName;
-    @Column private String filename;
-    @Column private long size;
-    @Column private String url;
 
 }

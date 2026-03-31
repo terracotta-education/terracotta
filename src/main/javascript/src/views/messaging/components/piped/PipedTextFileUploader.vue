@@ -110,6 +110,7 @@
 
 <script>
 import { mapGetters, mapActions } from "vuex";
+import { createStatusAlert, statusAlert } from "@/helpers/ui-utils";
 
 export default {
   props: {
@@ -146,7 +147,8 @@ export default {
   computed: {
     ...mapGetters({
       pipedText: "messagingMessage/pipedText",
-      message: "messagingMessage/message"
+      message: "messagingMessage/message",
+      alertStatuses: "alert/statuses"
     }),
   },
   methods: {
@@ -169,6 +171,13 @@ export default {
     },
     removeFile() {
       this.newFile = null;
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Piped text file removed"
+        )
+      );
     },
     ...mapActions({
       upload: "messagingMessage/uploadPipedText",
@@ -184,6 +193,14 @@ export default {
       ]);
 
       this.isUploading = false;
+
+      createStatusAlert(
+        statusAlert(
+          this.alertStatuses.success,
+          "Piped text file uploaded successfully"
+        )
+      );
+
       return;
     }
   }
@@ -202,7 +219,7 @@ export default {
   & .send-status {
     min-width: fit-content;
     margin-top: 8px;
-    color: #9e9e9e;
+    color: map-get($grey, "darker");
     font-size: 0.9em;
   }
   & .btn-upload {
@@ -217,30 +234,25 @@ export default {
   position: relative;
   border: 2px dashed map-get($grey, "lighten-2");
   border-radius: 9px;
-
   &:hover {
     border: 2px dashed map-get($blue, "lighten-2");
   }
-
   &--over {
     background: map-get($grey, "lighten-2");
     border: 2px solid map-get($blue, "lighten-2");
     opacity: 0.8;
   }
-
   &__info {
     position: absolute;
     top: 50%;
     width: 100%;
     transform: translate(0, -50%);
     text-align: center;
-
     p {
       margin: 0;
       padding: 0;
     }
   }
-
   &__uploaded {
     position: relative;
     display: flex;
@@ -249,30 +261,25 @@ export default {
     height: 153px;
     border: 2px dashed map-get($grey, "lighten-2");
     border-radius: 9px;
-
     * {
       color: black;
     }
-
     .v-card__text {
       display: flex;
       flex-direction: row;
       align-items: center;
       justify-content: space-between;
     }
-
     .icon-file-remove,
     .icon-file-view {
       height: 30px;
       width: 30px;
       border: 1px solid map-get($grey, "lighten-2");
       border-radius: 4px;
-
       i {
         font-size: 16px;
       }
     }
-
     .icon-file-remove {
       &:hover,
       &:focus {
@@ -280,7 +287,6 @@ export default {
         color: white;
       }
     }
-
     .icon-file-view {
       &:hover,
       &:focus {
@@ -289,7 +295,6 @@ export default {
       }
     }
   }
-
   input {
     position: absolute;
     cursor: pointer;

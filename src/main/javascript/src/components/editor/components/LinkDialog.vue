@@ -1,50 +1,50 @@
 <template>
-  <v-dialog
-    v-model="dialog"
-    max-width="500px"
-  >
-    <v-card>
-      <v-card-title>
-        <span
-          class="headline"
-        >
-          Link URL
-        </span>
-        <v-spacer />
-        <v-btn
-          @click="close"
-          icon
-        >
-          <v-icon>
-            mdi-close
-          </v-icon>
-        </v-btn>
-      </v-card-title>
-      <v-card-text>
-        <v-text-field
-          class="input-url"
-          label="URL"
-          v-model="url"
-        />
-      </v-card-text>
-      <v-card-actions>
-        <v-btn
-          text
-          @click="close"
-        >
-          CLOSE
-        </v-btn>
+<v-dialog
+  v-model="dialog"
+  max-width="500px"
+>
+  <v-card>
+    <v-card-title>
+      <span
+        class="headline"
+      >
+        Link URL
+      </span>
+      <v-spacer />
+      <v-btn
+        @click="close"
+        icon
+      >
+        <v-icon>
+          mdi-close
+        </v-icon>
+      </v-btn>
+    </v-card-title>
+    <v-card-text>
+      <v-text-field
+        class="input-url"
+        label="URL"
+        v-model="url"
+      />
+    </v-card-text>
+    <v-card-actions>
+      <v-btn
+        text
+        @click="close"
+      >
+        CLOSE
+      </v-btn>
 
-        <v-btn
-          :disabled="isDisabled"
-          @click="apply"
-          text
-        >
-          APPLY
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      <v-btn
+        :disabled="isDisabled"
+        @click="apply"
+        text
+      >
+        APPLY
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
 </template>
 
 <script>

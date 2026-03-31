@@ -1,53 +1,57 @@
 <template>
-  <div>
-    <v-row>
-    <div
-      class="col-6"
-    >
-        <v-text-field
-            v-model="assignment.title"
-            label="Component name"
-            outlined
-        ></v-text-field>
-    </div>
-    </v-row>
-    <p>This will create an unpublished component shell in {{ lmsTitle }} and will be the way Terracotta will deliver treatments to students.</p>
-    <v-divider />
-    <v-tabs
-      v-model="tab"
-      class="tabs"
-    >
-      <v-tab>Settings</v-tab>
-    </v-tabs>
-    <v-divider />
-    <v-tabs-items
-      v-model="tab"
-    >
-        <v-tab-item
-          class="my-5"
-        >
-          <assignment-settings />
-        </v-tab-item>
-    </v-tabs-items>
-    <v-btn
-      v-if="!this.editMode"
-      :disabled="contDisabled"
-      @click="saveNext('AssignmentYourAssignments')"
-      elevation="0"
-      color="primary"
-      class="mr-4"
-    >
-      Continue
-    </v-btn>
+<div>
+  <v-row>
+  <div
+    class="col-6"
+  >
+      <v-text-field
+          v-model="assignment.title"
+          label="Component name"
+          outlined
+      ></v-text-field>
   </div>
+  </v-row>
+  <p>This will create an unpublished component shell in {{ lmsTitle }} and will be the way Terracotta will deliver treatments to students.</p>
+  <v-divider />
+  <v-tabs
+    v-model="tab"
+    class="tabs"
+  >
+    <v-tab>Settings</v-tab>
+  </v-tabs>
+  <v-divider />
+  <v-tabs-items
+    v-model="tab"
+  >
+      <v-tab-item
+        class="my-5"
+      >
+        <assignment-settings />
+      </v-tab-item>
+  </v-tabs-items>
+  <v-btn
+    v-if="!this.editMode"
+    :disabled="contDisabled"
+    @click="saveNext('AssignmentYourAssignments')"
+    elevation="0"
+    color="primary"
+    class="mr-4"
+  >
+    Continue
+  </v-btn>
+</div>
 </template>
 
 <script>
 import { mapGetters, mapActions } from "vuex";
-import AssignmentSettings from './AssignmentSettings.vue';
+import { statusAlert } from "@/helpers/ui-utils";
+import AssignmentSettings from "./AssignmentSettings.vue";
 
 export default {
   name: "AssignmentEditor",
+  components: {
+    AssignmentSettings
+  },
   props: {
     experiment: {
       type: Object,
@@ -61,7 +65,8 @@ export default {
     ...mapGetters({
       assignment: "assignment/assignment",
       editMode: "navigation/editMode",
-      configurations: "configuration/get"
+      configurations: "configuration/get",
+      alertStatuses: "alert/statuses"
     }),
     experimentId() {
       return parseInt(this.$route.params.experimentId);
@@ -78,7 +83,7 @@ export default {
       );
     },
     getSaveExitPage() {
-      return this.editMode?.callerPage?.name || 'Home';
+      return this.editMode?.callerPage?.name || "Home";
     },
     lmsTitle() {
       return this.configurations?.lmsTitle || "LMS";
@@ -92,24 +97,27 @@ export default {
           this.$router.push({
             name: this.getSaveExitPage,
             params: {
-              experiment: this.experiment.experimentId
+              experiment: this.experiment.experimentId,
+              ...statusAlert(this.alertStatuses.success, "Assignment saved successfully.")
             }
           });
         }
       }
     },
     ...mapActions({
-      updateAssignment: 'assignment/updateAssignment',
-      fetchAssignment: 'assignment/fetchAssignment',
+      updateAssignment: "assignment/updateAssignment",
+      fetchAssignment: "assignment/fetchAssignment"
     }),
     async saveNext(routeName) {
       const savedAssignment = await this.handleSaveAssignment();
+
       if (savedAssignment) {
         this.$router.push({
           name: routeName,
           params: {
             experiment: this.experiment.experimentId,
-            exposureId: isNaN(this.exposureId) ? this.$route.params.exposureId : this.exposureId
+            exposureId: isNaN(this.exposureId) ? this.$route.params.exposureId : this.exposureId,
+            ...statusAlert(this.alertStatuses.success, "Assignment saved successfully.")
           }
         });
       }
@@ -121,18 +129,18 @@ export default {
         this.exposureId,
         this.assignmentId,
         {
-            ...this.assignment
+          ...this.assignment
         }
       ]);
 
-      console.log(response);
-
       if (response.status === 400) {
         this.$swal(response.data);
+
         return false;
       }
+
       return response;
-    },
+    }
   },
   async created() {
     await this.fetchAssignment([
@@ -140,9 +148,6 @@ export default {
       this.exposureId,
       this.assignmentId,
     ]);
-  },
-  components: {
-    AssignmentSettings,
-  },
-};
+  }
+}
 </script>

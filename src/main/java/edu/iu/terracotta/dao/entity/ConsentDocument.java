@@ -14,7 +14,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -38,23 +37,18 @@ public class ConsentDocument extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(
-        name = "consent_document_id",
-        nullable = false
-    )
     private Long consentDocumentId;
 
-    @Column private String title;
-    @Column private String filePointer;
-    @Column private String lmsAssignmentId;
-    @Column private String resourceLinkId;
-    @Column private String fileUri;
-    @Column private String encryptionPhrase;
-    @Column private String encryptionMethod;
-    @Column private String metadata; // JSON metadata from the LMS
+    private String title;
+    private String filePointer;
+    private String lmsAssignmentId;
+    private String resourceLinkId;
+    private String fileUri;
+    private String encryptionPhrase;
+    private String encryptionMethod;
+    private String metadata; // JSON metadata from the LMS
 
     @Lob
-    @Column
     private String html;
 
     @OneToOne(mappedBy = "consentDocument")

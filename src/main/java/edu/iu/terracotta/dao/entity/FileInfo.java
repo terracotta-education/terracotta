@@ -12,7 +12,6 @@ import org.hibernate.annotations.OnDeleteAction;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -30,15 +29,11 @@ import jakarta.persistence.Table;
 public class FileInfo extends BaseEntity {
 
     @Id
-    @Column(
-        name = "file_id",
-        nullable = false
-    )
     private String fileId;
 
-    @Column private String filename;
-    @Column private Long size;
-    @Column private String fileType;
+    private String filename;
+    private Long size;
+    private String fileType;
 
     @ManyToOne(optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)

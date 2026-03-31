@@ -1,111 +1,118 @@
 <template>
-  <div
-    v-show="pageFullyLoaded"
-    class="consent-steps my-5 mx-auto"
+<div
+  v-show="pageFullyLoaded"
+  class="consent-steps my-5 mx-auto"
+>
+  <v-row
+    class="mb-6 mx-0"
+  >
+    <div>
+      You are being asked to participate in a research study. Please read the statement below, then scroll to the bottom to select your response.
+      Your teacher will be able to see whether you submitted a response, but will not be able to see your selection.
+    </div>
+  </v-row>
+  <v-alert
+    v-if="respondedAlert.show"
+    type="info"
+    prominent
+    outlined
+    text
   >
     <v-row
-      class="mb-6 mx-0"
+      align="center"
     >
-      <div>
-        You are being asked to participate in a research study. Please read the statement below, then scroll to the bottom to select your response.
-        Your teacher will be able to see whether you submitted a response, but will not be able to see your selection.
+      <v-col
+        class="grow"
+      >
+        You responded "{{ respondedAlert.consent }}agree to participate" on {{ respondedAlert.date }}
+      </v-col>
+    </v-row>
+  </v-alert>
+  <v-alert
+    v-if="alreadyAccessedAlert.show"
+    type="error"
+    prominent
+    outlined
+    text
+  >
+    <v-row
+      align="center"
+    >
+      <v-col
+        class="grow"
+      >
+        You have already accessed an assignment that is part of this study. At this time, no matter your response to the following question, you cannot be included in this study.
+      </v-col>
+    </v-row>
+  </v-alert>
+  <vue-pdf-embed
+    v-if="pageFullyLoaded"
+    :source="'data:application/pdf;base64,' + pdfFile"
+  />
+  <form
+    @submit.prevent="updateConsent(answer || false)"
+  >
+    <v-card
+      class="mt-5"
+    >
+      <v-card-title>
+        In consideration of the above, will you participate in this research study?
+      </v-card-title>
+      <v-radio-group
+        v-model="answer"
+        :disabled="disableOptions"
+        class="ml-4"
+      >
+        <v-radio
+          v-for="opt in options"
+          :key="opt.label"
+          :label="opt.label"
+          :value="opt.value"
+        ></v-radio>
+      </v-radio-group>
+    </v-card>
+    <v-row
+      class="mt-5 submit-row"
+    >
+      <v-btn
+        :disabled="disableSubmit"
+        elevation="0"
+        color="primary"
+        class="mr-4"
+        type="submit"
+      >
+        Submit
+      </v-btn>
+      <div
+        v-if="disableOptions"
+        class="please-wait"
+      >
+        Submitting your consent. Please wait...
       </div>
     </v-row>
-    <v-alert
-      v-if="respondedAlert.show"
-      prominent
-      type="info"
-    >
-      <v-row
-        align="center"
-      >
-        <v-col
-          class="grow"
-        >
-          You responded "{{ respondedAlert.consent }}agree to participate" on {{ respondedAlert.date }}
-        </v-col>
-      </v-row>
-    </v-alert>
-    <v-alert
-      v-if="alreadyAccessedAlert.show"
-      prominent
-      type="error"
-    >
-      <v-row
-        align="center"
-      >
-        <v-col
-          class="grow"
-        >
-          You have already accessed an assignment that is part of this study. At this time, no matter your response to the following question, you cannot be included in this study.
-        </v-col>
-      </v-row>
-    </v-alert>
-    <vue-pdf-embed
-      v-if="pageFullyLoaded"
-      :source="'data:application/pdf;base64,' + pdfFile"
-    />
-    <form
-      @submit.prevent="updateConsent(answer || false)"
-    >
-      <v-card
-        class="mt-5"
-      >
-        <v-card-title>
-          In consideration of the above, will you participate in this research study?
-        </v-card-title>
-        <v-list
-          class="optionList"
-        >
-          <v-radio-group
-            v-model="answer"
-            :disabled="disableOptions"
-          >
-            <v-radio
-              v-for="opt in options"
-              :key="opt.label"
-              :label="opt.label"
-              :value="opt.value"
-            ></v-radio>
-          </v-radio-group>
-        </v-list>
-      </v-card>
-      <v-row
-        class="mt-5 submit-row"
-      >
-        <v-btn
-          :disabled="disableSubmit"
-          elevation="0"
-          color="primary"
-          class="mr-4"
-          type="submit"
-        >
-          Submit
-        </v-btn>
-        <div
-          v-if="disableOptions"
-          class="please-wait"
-        >
-          Submitting your consent. Please wait...
-        </div>
-      </v-row>
-    </form>
-  </div>
+  </form>
+</div>
 </template>
 
 <script>
 import { mapActions } from "vuex";
 import moment from "moment";
-import VuePdfEmbed from 'vue-pdf-embed/dist/vue2-pdf-embed';
+import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 
 export default {
   name: "StudentConsent",
-  props: [
-    "experimentId",
-    "userId"
-  ],
   components: {
     VuePdfEmbed
+  },
+  props: {
+    experimentId: {
+      type: String,
+      required: true,
+    },
+    userId: {
+      type: String,
+      required: true,
+    }
   },
   data: () => ({
     answer: "",
@@ -130,6 +137,7 @@ export default {
   watch: {
     pdfFile() {
       this.pdfReady = true;
+
       if (this.participantReady) {
         this.pageFullyLoaded = true;
       }
@@ -137,6 +145,7 @@ export default {
     participant: {
       handler() {
         this.participantReady = true;
+
         if (this.pdfReady) {
           this.pageFullyLoaded = true;
         }
@@ -251,17 +260,16 @@ export default {
       step: "launch_consent_assignment",
     });
     this.participant = stepResponse.data;
-  },
+  }
 };
 </script>
 
 <style lang="scss" scoped>
+@import "@/styles/variables";
+
 .consent-steps {
   min-height: 100%;
   padding: 30px 45px;
-}
-.optionList {
-  margin-left: 15px;
 }
 div.vue-pdf-embed {
   margin: 0 auto;
@@ -275,7 +283,7 @@ div.vue-pdf-embed {
   > .please-wait {
     max-height: fit-content;
     margin: auto 0;
-    color: #9e9e9e;
+    color: map-get($grey, "darker");
   }
 }
 </style>
