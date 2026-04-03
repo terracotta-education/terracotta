@@ -382,7 +382,7 @@
                             @click="openPDF"
                             class="pdfButton"
                           >
-                            {{ experiment.consent.title }}
+                            {{ consentTitle }}
                           </button>
                           <Spinner
                             v-if="pdfLoading"
@@ -791,6 +791,12 @@ export default {
       return `A balanced experiment needs to have the same number ${this.isMessagingEnabled ? 'of assignments, integrations, and/or messages' : 'of assignments and integrations'} within each exposure set, and a treatment for each condition.
         This will expose your students to every condition, but in different orders, so you can compare how the different conditions affected each student.
         Single version ${this.isMessagingEnabled ? 'messages and' : ''} assignments do not count toward balance.`;
+    },
+    isConsentType() {
+      return this.experiment?.participationType === "CONSENT";
+    },
+    consentTitle() {
+      return this.experiment?.consent?.title || "";
     }
   },
   methods: {
@@ -1073,6 +1079,12 @@ export default {
           "OUTDATED_ACKNOWLEDGED"
         ]);
       }
+    },
+    handleConsentExperimentWithoutConsent() {
+      if (this.isConsentType && !this.experiment?.consent) {
+        // experiment is missing consent; navigate to participant edit section so consent can be added
+        this.handleEdit(this.participantDetails[0].editSection, "participant");
+      }
     }
   },
   async mounted() {
@@ -1115,6 +1127,7 @@ export default {
 
     this.getAssignmentDetails();
     this.isLoading = false;
+    this.handleConsentExperimentWithoutConsent();
   },
   created() {
     // status page nav from Results Dashboard > Outcomes > Input
@@ -1136,7 +1149,7 @@ export default {
       window.clearInterval(this.experimentDataExportRequest.polling.id);
     }
   }
-};
+}
 </script>
 
 <style lang="scss" scoped>
