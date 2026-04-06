@@ -2,6 +2,15 @@
 <div
   class="selection-method-container"
 >
+  <v-alert
+    v-if="displayConsentFileMissingAlert"
+    type="warning"
+    elevation="0"
+    outlined
+    text
+  >
+    Please complete the participation section in order to continue setting up your experiment.
+  </v-alert>
   <h1
     class="mb-3"
   >
@@ -110,6 +119,12 @@ export default {
     },
     lmsTitle() {
       return this.configurations?.lmsTitle || "LMS";
+    },
+    isConsentType() {
+      return this.participationType === "CONSENT";
+    },
+    displayConsentFileMissingAlert() {
+      return this.editMode && this.isConsentType && !this.experiment?.consent;
     }
   },
   methods: {
