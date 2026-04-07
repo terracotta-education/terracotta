@@ -3,6 +3,14 @@
   v-if="experiment && exposureId"
   class="outcome-gradebook-container"
 >
+  <div
+    v-if="!isLoaded"
+  >
+    <page-loading
+      :display="!isLoaded"
+      :message="'Loading gradebook items from your LMS. Please wait.'"
+    />
+  </div>
   <h1
     class="mb-6"
   >
@@ -51,7 +59,7 @@
           >
             <td>
               <template
-                v-if="!outcomes.some(o=>parseInt(o.lmsOutcomeId)===parseInt(op.assignmentId) && o.exposureId === exposureId)"
+                v-if="!outcomes.some(o => o.lmsOutcomeId === op.assignmentId && o.exposureId === exposureId)"
               >
                 <v-checkbox
                   v-model="selectedAssignmentIds"
@@ -78,12 +86,17 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import { statusAlert } from "@/helpers/ui-utils.js";
+import PageLoading from "@/components/PageLoading";
 
 export default {
   name: "OutcomeGradebook",
+  components: {
+    PageLoading
+  },
   data: () => ({
     selectedAssignmentIds: [],
-    selectAll: false
+    selectAll: false,
+    isLoaded: false
   }),
   computed: {
     ...mapGetters({
@@ -103,11 +116,12 @@ export default {
     ...mapActions({
       fetchOutcomePotentials: "outcome/fetchOutcomePotentials",
       fetchOutcomes: "outcome/fetchOutcomes",
-      createOutcome: "outcome/createOutcome"
+      createOutcome: "outcome/createOutcome",
+      resetOutcomePotentials: "outcome/resetOutcomePotentials"
     }),
-   handleSelectAll(){
-     this.selectedAssignmentIds = this.selectAll ? this.outcomePotentials.map((op) => op.assignmentId) : [];
-   },
+    handleSelectAll() {
+      this.selectedAssignmentIds = this.selectAll ? this.outcomePotentials.map((op) => op.assignmentId) : [];
+    },
     async saveExit() {
       try {
         await Promise.all(this.selectedAssignmentIds.map(async assignmentId => {
@@ -133,7 +147,6 @@ export default {
           });
         })
       } catch(error) {
-        console.error({error});
         this.$swal({
           text: "An error occurred while creating outcomes. Please try again.",
           icon: "error"
@@ -142,8 +155,10 @@ export default {
     }
   },
   async created() {
+    await this.resetOutcomePotentials();
     await this.fetchOutcomes([this.experimentId, this.exposureId]);
     await this.fetchOutcomePotentials(this.experimentId);
+    this.isLoaded = true;
   }
 }
 </script>
