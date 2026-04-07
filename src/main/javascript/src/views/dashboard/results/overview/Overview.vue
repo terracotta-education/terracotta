@@ -66,7 +66,7 @@ export default {
     ResultsOverviewSummary
   },
   data: () => ({
-    isLoaded: false,
+    isLoaded: false
   }),
   computed: {
     ...mapGetters({
