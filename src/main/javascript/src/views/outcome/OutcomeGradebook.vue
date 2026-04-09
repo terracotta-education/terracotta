@@ -8,7 +8,7 @@
   >
     <page-loading
       :display="!isLoaded"
-      :message="'Loading gradebook items from your LMS. Please wait.'"
+      :message="`Loading gradebook items from ${lmsTitle}. Please wait.`"
     />
   </div>
   <h1
@@ -103,13 +103,17 @@ export default {
       experiment: "experiment/experiment",
       outcomePotentials: "outcome/outcomePotentials",
       outcomes: "outcome/outcomes",
-      alertStatuses: "alert/statuses"
+      alertStatuses: "alert/statuses",
+      configurations: "configuration/get",
     }),
     exposureId() {
       return parseInt(this.$route.params.exposureId);
     },
     experimentId() {
       return parseInt(this.$route.params.experimentId);
+    },
+    lmsTitle() {
+      return this.configurations?.lmsTitle || "your LMS";
     }
   },
   methods: {
