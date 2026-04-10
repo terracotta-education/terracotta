@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app.impl;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.Feature;
@@ -10,12 +9,14 @@ import edu.iu.terracotta.dao.model.dto.FeatureDto;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
 import edu.iu.terracotta.dao.repository.FeatureRepository;
 import edu.iu.terracotta.service.app.FeatureService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.LambdaCanBeMethodReference"})
 public class FeatureServiceImpl implements FeatureService {
 
-    @Autowired private FeatureRepository featureRepository;
+    private final FeatureRepository featureRepository;
 
     @Override
     public List<FeatureDto> toDto(List<Feature> features) {

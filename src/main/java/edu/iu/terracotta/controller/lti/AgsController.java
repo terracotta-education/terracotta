@@ -13,9 +13,9 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -39,14 +39,15 @@ import java.util.Optional;
 @Controller
 @Scope("session")
 @RequestMapping("/ags")
+@RequiredArgsConstructor
 @SuppressWarnings({"SameReturnValue", "PMD.GuardLogStatement"})
 public class AgsController {
 
     public static final String LTIADVAGSMAIN = "ltiAdvAgsMain";
 
-    @Autowired private LtiContextRepository ltiContextRepository;
-    @Autowired private ToolDeploymentRepository toolDeploymentRepository;
-    @Autowired private AdvantageAgsService advantageAGSServiceService;
+    private final LtiContextRepository ltiContextRepository;
+    private final ToolDeploymentRepository toolDeploymentRepository;
+    private final AdvantageAgsService advantageAGSServiceService;
 
     @GetMapping("/")
     public String agsGetLineItems(HttpServletRequest req, Principal principal, Model model) throws ConnectionException, TerracottaConnectorException {

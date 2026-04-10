@@ -73,6 +73,7 @@ import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.Locator;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
@@ -85,7 +86,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -115,18 +115,19 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.CANVAS)
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
-    @Autowired private ApiOneUseTokenRepository apiOneUseTokenRepository;
-    @Autowired private MessageConfigurationRepository messageConfigurationRepository;
-    @Autowired private MessageContentRepository messageContentRepository;
-    @Autowired private MessageContainerConfigurationRepository messageContainerConfigurationRepository;
-    @Autowired private MessageContainerRepository messageContainerRepository;
-    @Autowired private MessageRepository messageRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private LtiDataService ltiDataService;
+    private final ApiOneUseTokenRepository apiOneUseTokenRepository;
+    private final MessageConfigurationRepository messageConfigurationRepository;
+    private final MessageContentRepository messageContentRepository;
+    private final MessageContainerConfigurationRepository messageContainerConfigurationRepository;
+    private final MessageContainerRepository messageContainerRepository;
+    private final MessageRepository messageRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final LtiDataService ltiDataService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

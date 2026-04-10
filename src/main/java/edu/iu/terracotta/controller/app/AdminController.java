@@ -5,7 +5,6 @@ import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,18 +21,20 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AdminService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 @RequestMapping(value = AdminController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AdminController {
 
     public static final String REQUEST_ROOT = "api/platformdeployment/{id}/resync/targeturis";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private AdminService adminService;
+    private final ApiJwtService apijwtService;
+    private final AdminService adminService;
 
     @Deprecated
     @PostMapping

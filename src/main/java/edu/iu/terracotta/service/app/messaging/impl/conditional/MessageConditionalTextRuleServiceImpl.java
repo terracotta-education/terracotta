@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalTextRule;
@@ -13,12 +12,14 @@ import edu.iu.terracotta.dao.model.dto.messaging.conditional.MessageConditionalT
 import edu.iu.terracotta.service.app.messaging.MessageConditionalTextRuleService;
 import edu.iu.terracotta.service.app.messaging.MessageRuleAssignmentService;
 import edu.iu.terracotta.service.app.messaging.MessageRuleComparisonService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class MessageConditionalTextRuleServiceImpl implements MessageConditionalTextRuleService {
 
-    @Autowired private MessageRuleComparisonService messageRuleComparisonService;
-    @Autowired private MessageRuleAssignmentService messageRuleAssignmentService;
+    private final MessageRuleComparisonService messageRuleComparisonService;
+    private final MessageRuleAssignmentService messageRuleAssignmentService;
 
     @Override
     public void create(MessageConditionalTextRuleDto conditionalTextRuleDto, MessageConditionalTextRuleSet conditionalTextRuleSet) {

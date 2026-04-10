@@ -1,6 +1,5 @@
 package edu.iu.terracotta.controller.app;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,18 +13,20 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.model.dto.ConfigurationDto;
 import edu.iu.terracotta.service.app.ConfigurationService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = ConfigurationController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ConfigurationController {
 
     public static final String REQUEST_ROOT = "api/configuration";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private ConfigurationService configurationService;
+    private final ApiJwtService apijwtService;
+    private final ConfigurationService configurationService;
 
     @GetMapping
     public ResponseEntity<ConfigurationDto> get(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {

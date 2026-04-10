@@ -7,7 +7,6 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,14 +21,16 @@ import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationTokenRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class IntegrationTokenServiceImpl implements IntegrationTokenService {
 
-    @Autowired private IntegrationTokenRepository integrationTokenRepository;
+    private final IntegrationTokenRepository integrationTokenRepository;
 
     @Value("${app.integrations.token.ttl:43200}")
     private long ttl;

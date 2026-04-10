@@ -42,12 +42,12 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
@@ -61,25 +61,26 @@ import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentServiceImpl implements ExperimentService {
 
-    @Autowired private ConditionRepository conditionRepository;
-    @Autowired private ConsentDocumentRepository consentDocumentRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExposureRepository exposureRepository;
-    @Autowired private LtiContextRepository ltiContextRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private AssignmentService assignmentService;
-    @Autowired private AssignmentAsyncService assignmentAsyncService;
-    @Autowired private ConditionService conditionService;
-    @Autowired private ExposureService exposureService;
-    @Autowired private FeatureService featureService;
-    @Autowired private FileStorageService fileStorageService;
-    @Autowired private ParticipantAsyncService participantAsyncService;
-    @Autowired private ParticipantService participantService;
+    private final ConditionRepository conditionRepository;
+    private final ConsentDocumentRepository consentDocumentRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExposureRepository exposureRepository;
+    private final LtiContextRepository ltiContextRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final ParticipantRepository participantRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final AssignmentService assignmentService;
+    private final AssignmentAsyncService assignmentAsyncService;
+    private final ConditionService conditionService;
+    private final ExposureService exposureService;
+    private final FeatureService featureService;
+    private final FileStorageService fileStorageService;
+    private final ParticipantAsyncService participantAsyncService;
+    private final ParticipantService participantService;
 
     @Override
     public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms) throws ConnectionException, TerracottaConnectorException {

@@ -7,7 +7,6 @@ import java.util.Optional;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiTokenEntity;
@@ -16,14 +15,16 @@ import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiTokenRepositor
 import edu.iu.terracotta.runner.apitokencleaner.ApiTokenCleanerSchedulerService;
 import edu.iu.terracotta.runner.apitokencleaner.model.ApiTokenCleanerScheduleMessage;
 import edu.iu.terracotta.runner.apitokencleaner.model.ApiTokenCleanerScheduleResult;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ApiTokenCleanerSchedulerServiceImpl implements ApiTokenCleanerSchedulerService {
 
-    @Autowired private ApiTokenRepository apiTokenRepository;
+    private final ApiTokenRepository apiTokenRepository;
 
     @Override
     public Optional<ApiTokenCleanerScheduleResult> cleanup(int expirationTtlDays) {

@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -55,6 +54,7 @@ import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOverviewService;
 import edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.countTreatmentsByAssignmentId;
@@ -72,18 +72,19 @@ import static edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignm
 
 @Slf4j
 @Service
-@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
+@RequiredArgsConstructor
+@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ResultsOverviewServiceImpl implements ResultsOverviewService {
 
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AssessmentSubmissionService assessmentSubmissionService;
-    @Autowired private AssignmentService assignmentService;
-    @Autowired private SubmissionService submissionService;
+    private final AssessmentRepository assessmentRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final ParticipantRepository participantRepository;
+    private final SubmissionRepository submissionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AssessmentSubmissionService assessmentSubmissionService;
+    private final AssignmentService assignmentService;
+    private final SubmissionService submissionService;
 
     private Map<Long, List<Assessment>> allAssessmentsByAssignment;
     private Map<Long, List<Treatment>> allTreatmentsByAssignment;

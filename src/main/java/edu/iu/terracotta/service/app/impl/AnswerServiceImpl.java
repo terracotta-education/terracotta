@@ -18,10 +18,8 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
-
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -35,14 +33,16 @@ import java.util.stream.Collectors;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 
-@Component
+@Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.PreserveStackTrace"})
 public class AnswerServiceImpl implements AnswerService {
 
-    @Autowired private AnswerMcRepository answerMcRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private FileStorageService fileStorageService;
+    private final AnswerMcRepository answerMcRepository;
+    private final QuestionRepository questionRepository;
+    private final FileStorageService fileStorageService;
 
     @PersistenceContext private EntityManager entityManager;
 

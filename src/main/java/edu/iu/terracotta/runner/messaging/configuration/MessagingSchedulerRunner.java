@@ -4,13 +4,14 @@ import com.github.kagkarlsson.scheduler.task.schedule.Schedules;
 
 import edu.iu.terracotta.exceptions.scheduledtask.ScheduledTaskNotFound;
 import edu.iu.terracotta.runner.messaging.MessagingSchedulerService;
-import edu.iu.terracotta.runner.messaging.configuration.model.MessagingScheduleResult;
+import edu.iu.terracotta.runner.messaging.model.MessagingScheduleResult;
 import edu.iu.terracotta.service.app.ScheduledTaskService;
 
 import com.github.kagkarlsson.scheduler.task.Task;
 import com.github.kagkarlsson.scheduler.task.TaskDescriptor;
 import com.github.kagkarlsson.scheduler.task.helper.Tasks;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
@@ -18,20 +19,20 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Duration;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Slf4j
 @Configuration
-@SuppressWarnings({"unused", "PMD.GuardLogStatement"})
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessagingSchedulerRunner {
 
     public static final String TASK_NAME = "send_queued_messages";
     public static final TaskDescriptor<Void> MESSAGING_SEND_TASK = TaskDescriptor.of(TASK_NAME);
 
-    @Autowired private ScheduledTaskService scheduledTaskService;
+    private final ScheduledTaskService scheduledTaskService;
 
     @Value("${app.messaging.scheduler.enabled:false}")
     private boolean enabled;

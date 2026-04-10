@@ -5,7 +5,6 @@ import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -24,16 +23,18 @@ import edu.iu.terracotta.utils.lti.Lti3Request;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 @Primary
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.LooseCoupling"})
 public class AdvantageDeepLinkServiceImpl implements AdvantageDeepLinkService {
 
-    @Autowired private LtiDeepLinkRepository ltiDeepLinkRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private ConnectorService<AdvantageDeepLinkService> connectorService;
-    @Autowired private LtiJwtService ltijwtService;
+    private final LtiDeepLinkRepository ltiDeepLinkRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final ConnectorService<AdvantageDeepLinkService> connectorService;
+    private final LtiJwtService ltijwtService;
 
     private AdvantageDeepLinkService instance(PlatformDeployment platformDeployment) throws TerracottaConnectorException {
         return connectorService.instance(platformDeployment, AdvantageDeepLinkService.class);

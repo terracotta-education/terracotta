@@ -4,9 +4,9 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.dto.ToolRegistrationDt
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGenerator;
 import edu.iu.terracotta.connectors.generic.service.lti.RegistrationService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -19,10 +19,11 @@ import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class RegistrationServiceImpl implements RegistrationService {
 
-    @Autowired private ExceptionMessageGenerator exceptionMessageGenerator;
+    private final ExceptionMessageGenerator exceptionMessageGenerator;
 
     @Override
     public String callDynamicRegistration(String token, ToolRegistrationDto toolRegistrationDto, String endpoint) throws ConnectionException {

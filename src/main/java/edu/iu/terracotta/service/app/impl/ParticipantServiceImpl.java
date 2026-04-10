@@ -51,12 +51,12 @@ import edu.iu.terracotta.service.app.GroupParticipantService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,23 +77,24 @@ import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.UselessParentheses", "PMD.GuardLogStatement", "PMD.PreserveStackTrace", "squid:S112", "squid:S1066"})
 public class ParticipantServiceImpl implements ParticipantService {
 
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ConsentDocumentRepository consentDocumentRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private GroupRepository groupRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AdvantageAgsService advantageAgsService;
-    @Autowired private AdvantageMembershipService advantageMembershipService;
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private ApiClient apiClient;
-    @Autowired private GroupParticipantService groupParticipantService;
-    @Autowired private LtiDataService ltiDataService;
+    private final AssignmentRepository assignmentRepository;
+    private final ConsentDocumentRepository consentDocumentRepository;
+    private final ExperimentRepository experimentRepository;
+    private final GroupRepository groupRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final ParticipantRepository participantRepository;
+    private final SubmissionRepository submissionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AdvantageAgsService advantageAgsService;
+    private final AdvantageMembershipService advantageMembershipService;
+    private final ApiJwtService apiJwtService;
+    private final ApiClient apiClient;
+    private final GroupParticipantService groupParticipantService;
+    private final LtiDataService ltiDataService;
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {

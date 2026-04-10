@@ -57,16 +57,16 @@ import edu.iu.terracotta.service.app.integrations.IntegrationLaunchService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -84,29 +84,30 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
-@Component
+@Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions", "PMD.LooseCoupling"})
 public class SubmissionServiceImpl implements SubmissionService {
 
-    @Autowired private AnswerMcRepository answerMcRepository;
-    @Autowired private AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
-    @Autowired private SubmissionCommentRepository submissionCommentRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private IntegrationLaunchService integrationLaunchService;
-    @Autowired private QuestionSubmissionService questionSubmissionService;
-    @Autowired private SubmissionCommentService submissionCommentService;
-    @Autowired private AssessmentSubmissionService assessmentSubmissionService;
-    @Autowired private AdvantageAgsService advantageAgsService;
-    @Autowired private CaliperService caliperService;
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private IntegrationTokenService integrationTokenService;
-    @Autowired private ApiClient apiClient;
+    private final AnswerMcRepository answerMcRepository;
+    private final AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final ParticipantRepository participantRepository;
+    private final QuestionSubmissionRepository questionSubmissionRepository;
+    private final SubmissionCommentRepository submissionCommentRepository;
+    private final SubmissionRepository submissionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final IntegrationLaunchService integrationLaunchService;
+    private final QuestionSubmissionService questionSubmissionService;
+    private final SubmissionCommentService submissionCommentService;
+    private final AssessmentSubmissionService assessmentSubmissionService;
+    private final AdvantageAgsService advantageAgsService;
+    private final CaliperService caliperService;
+    private final ApiJwtService apiJwtService;
+    private final IntegrationTokenService integrationTokenService;
+    private final ApiClient apiClient;
 
     @Value("${app.integrations.token.ttl:43200}")
     private long integrationTokenTtl;

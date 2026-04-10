@@ -2,7 +2,6 @@ package edu.iu.terracotta.controller.lti;
 
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.MediaType;
 import org.springframework.ui.Model;
@@ -11,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
@@ -23,10 +23,11 @@ import java.util.Base64;
 @RestController
 @Scope("session")
 @RequestMapping("/jwks")
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class JwkController {
 
-    @Autowired private LtiDataService ltiDataService;
+    private final LtiDataService ltiDataService;
 
     @GetMapping(value = "/jwk", produces = MediaType.APPLICATION_JSON_VALUE)
     public String jwk(HttpServletRequest req, Model model) throws GeneralSecurityException {

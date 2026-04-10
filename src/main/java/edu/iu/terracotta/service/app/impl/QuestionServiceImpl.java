@@ -32,16 +32,15 @@ import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
-
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,17 +48,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Component
+@Service
+@RequiredArgsConstructor
 public class QuestionServiceImpl implements QuestionService {
 
-    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private AnswerService answerService;
-    @Autowired private FileStorageService fileStorageService;
-    @Autowired private IntegrationService integrationService;
+    private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final QuestionRepository questionRepository;
+    private final QuestionSubmissionRepository questionSubmissionRepository;
+    private final SubmissionRepository submissionRepository;
+    private final AnswerService answerService;
+    private final FileStorageService fileStorageService;
+    private final IntegrationService integrationService;
 
     @PersistenceContext private EntityManager entityManager;
 

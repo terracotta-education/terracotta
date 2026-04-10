@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -45,19 +44,21 @@ import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
 import edu.iu.terracotta.utils.TextConstants;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+    @RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = ExperimentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class DistributeController {
 
     public static final String REQUEST_ROOT = "api/experiments";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private ExperimentExportService exportService;
-    @Autowired private ExperimentImportService importService;
+    private final ApiJwtService apijwtService;
+    private final ExperimentExportService exportService;
+    private final ExperimentImportService importService;
 
     @GetMapping("/{id}/export")
     public ResponseEntity<Resource> export(@PathVariable long id, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {

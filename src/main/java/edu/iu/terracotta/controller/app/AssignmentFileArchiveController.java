@@ -4,7 +4,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -31,18 +30,20 @@ import edu.iu.terracotta.exceptions.AssignmentFileArchiveNotFoundException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.service.app.AssignmentFileArchiveService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = AssignmentFileArchiveController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AssignmentFileArchiveController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}/files";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private AssignmentFileArchiveService assignmentFileArchiveService;
+    private final ApiJwtService apijwtService;
+    private final AssignmentFileArchiveService assignmentFileArchiveService;
 
     @GetMapping
     public ResponseEntity<AssignmentFileArchiveDto> files(@PathVariable long experimentId,

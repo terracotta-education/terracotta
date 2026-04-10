@@ -16,9 +16,9 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -41,14 +41,15 @@ import java.util.List;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = OutcomeController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class OutcomeController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private OutcomeService outcomeService;
+    private final ApiJwtService apijwtService;
+    private final OutcomeService outcomeService;
 
     @GetMapping("/exposures/{exposureId}/outcomes")
     public ResponseEntity<List<OutcomeDto>> allOutcomesByExposure(@PathVariable long experimentId,

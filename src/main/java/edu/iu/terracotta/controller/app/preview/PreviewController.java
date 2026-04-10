@@ -2,7 +2,6 @@ package edu.iu.terracotta.controller.app.preview;
 
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -25,16 +24,18 @@ import edu.iu.terracotta.dao.model.dto.preview.TreatmentPreviewDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.service.app.preview.TreatmentPreviewService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @RequestMapping(PreviewController.REQUEST_ROOT)
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class PreviewController {
 
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private TreatmentPreviewService treatmentPreviewService;
+    private final ApiJwtService apiJwtService;
+    private final TreatmentPreviewService treatmentPreviewService;
 
     public static final String REQUEST_ROOT = "preview/experiments/{experimentId}";
 

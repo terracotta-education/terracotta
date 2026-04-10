@@ -6,7 +6,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -15,14 +14,16 @@ import edu.iu.terracotta.dao.entity.messaging.piped.MessagePipedTextItem;
 import edu.iu.terracotta.dao.entity.messaging.piped.MessagePipedTextItemValue;
 import edu.iu.terracotta.dao.model.dto.messaging.piped.MessagePipedTextItemValueDto;
 import edu.iu.terracotta.service.app.messaging.MessagePipedTextItemValueService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessagePipedTextItemValueServiceImpl implements MessagePipedTextItemValueService {
 
-    @Autowired private LtiUserRepository ltiUserRepository;
+    private final LtiUserRepository ltiUserRepository;
 
     @Override
     public void create(MessagePipedTextItemValueDto pipedTextItemValueDto, MessagePipedTextItem pipedTextItem) {

@@ -2,7 +2,6 @@ package edu.iu.terracotta.controller.app.dashboard;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,18 +21,20 @@ import edu.iu.terracotta.dao.model.dto.dashboard.ResultsDashboardDto;
 import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.request.ResultsOutcomesRequestDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsDashboardService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = ResultsDashboardController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ResultsDashboardController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/dashboard/results";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private ResultsDashboardService resultsDashboardService;
+    private final ApiJwtService apijwtService;
+    private final ResultsDashboardService resultsDashboardService;
 
     @GetMapping("/overview")
     public ResponseEntity<ResultsDashboardDto> getOverview(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {

@@ -3,7 +3,6 @@ package edu.iu.terracotta.runner.apitokencleaner.configuration;
 import java.time.Duration;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,19 +16,21 @@ import edu.iu.terracotta.exceptions.scheduledtask.ScheduledTaskNotFound;
 import edu.iu.terracotta.runner.apitokencleaner.ApiTokenCleanerSchedulerService;
 import edu.iu.terracotta.runner.apitokencleaner.model.ApiTokenCleanerScheduleResult;
 import edu.iu.terracotta.service.app.ScheduledTaskService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ApiTokenCleanerSchedulerRunner {
 
     public static final String TASK_NAME = "delete_expired_api_tokens";
     public static final TaskDescriptor<Void> API_TOKEN_CLEANER_TASK = TaskDescriptor.of(TASK_NAME);
 
-    @Autowired private ScheduledTaskService scheduledTaskService;
+    private final ScheduledTaskService scheduledTaskService;
 
     @Value("${api.token.cleaner.scheduler.enabled:false}")
     private boolean enabled;

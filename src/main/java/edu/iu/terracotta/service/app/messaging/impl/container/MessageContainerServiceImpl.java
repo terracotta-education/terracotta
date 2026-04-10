@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -28,21 +27,23 @@ import edu.iu.terracotta.service.app.messaging.MessageContainerService;
 import edu.iu.terracotta.service.app.messaging.MessageEmailReplyToService;
 import edu.iu.terracotta.service.app.messaging.MessageService;
 import io.jsonwebtoken.lang.Collections;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference"})
 public class MessageContainerServiceImpl implements MessageContainerService {
 
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private MessageContainerRepository containerRepository;
-    @Autowired private MessageConfigurationService configurationService;
-    @Autowired private MessageContainerConfigurationService containerConfigurationService;
-    @Autowired private MessageEmailReplyToService messageEmailReplyToService;
-    @Autowired private MessageService messageService;
-    @Autowired private ComponentUtils componentUtils;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final MessageContainerRepository containerRepository;
+    private final MessageConfigurationService configurationService;
+    private final MessageContainerConfigurationService containerConfigurationService;
+    private final MessageEmailReplyToService messageEmailReplyToService;
+    private final MessageService messageService;
+    private final ComponentUtils componentUtils;
 
     @Override
     public List<MessageContainerDto> getAll(long experimentId, long exposureId, SecuredInfo securedInfo) {

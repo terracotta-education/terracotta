@@ -16,7 +16,6 @@ import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParameterMissingException;
 import edu.iu.terracotta.service.app.MediaService;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,16 +27,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes"})
 @RequestMapping(value = MediaProfileController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class MediaProfileController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/questions/{questionId}/media_event";
 
-    @Autowired private MediaService mediaService;
-    @Autowired private ApiJwtService apijwtService;
+    private final MediaService mediaService;
+    private final ApiJwtService apijwtService;
 
     @PostMapping
     public ResponseEntity postMediaEvent(@PathVariable long experimentId,
