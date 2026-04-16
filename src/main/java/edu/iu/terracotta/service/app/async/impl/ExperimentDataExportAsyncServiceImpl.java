@@ -13,7 +13,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,16 +30,18 @@ import edu.iu.terracotta.exceptions.export.data.ExperimentDataExportException;
 import edu.iu.terracotta.service.app.ExportService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentDataExportAsyncService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings("PMD.GuardLogStatement")
 public class ExperimentDataExportAsyncServiceImpl implements ExperimentDataExportAsyncService {
 
-    @Autowired private ExperimentDataExportRepository experimentDataExportRepository;
-    @Autowired private ExportService exportService;
-    @Autowired private FileStorageService fileStorageService;
+    private final ExperimentDataExportRepository experimentDataExportRepository;
+    private final ExportService exportService;
+    private final FileStorageService fileStorageService;
 
     @Async
     @Override

@@ -15,9 +15,9 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -38,15 +38,16 @@ import java.util.List;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = QuestionSubmissionCommentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class QuestionSubmissionCommentController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/question_submission_comments";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private SubmissionService submissionService;
-    @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
+    private final ApiJwtService apijwtService;
+    private final SubmissionService submissionService;
+    private final QuestionSubmissionCommentService questionSubmissionCommentService;
 
     @GetMapping
     public ResponseEntity<List<QuestionSubmissionCommentDto>> getQuestionSubmissionComments(@PathVariable long experimentId,

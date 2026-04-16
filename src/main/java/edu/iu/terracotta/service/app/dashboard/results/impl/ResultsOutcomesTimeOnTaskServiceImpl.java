@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.Assessment;
@@ -40,12 +39,14 @@ import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.exposure.Outco
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesTimeOnTaskService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class ResultsOutcomesTimeOnTaskServiceImpl implements ResultsOutcomesTimeOnTaskService {
 
-    @Autowired private SubmissionService submissionService;
+    private final SubmissionService submissionService;
 
     @Override
     public OutcomesConditions conditions(Experiment experiment, List<Long> exposureIds, List<Assignment> experimentAssignments, Map<Long, List<Assessment>> allAssessmentsByAssignment, List<Participant> experimentConsentedParticipants, Map<Long, List<Treatment>> allTreatmentsByAssignment, List<Treatment> experimentTreatments) {

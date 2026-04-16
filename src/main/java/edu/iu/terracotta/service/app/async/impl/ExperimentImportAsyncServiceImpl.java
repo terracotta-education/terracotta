@@ -17,7 +17,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,32 +70,34 @@ import edu.iu.terracotta.exceptions.ExperimentImportException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncService {
 
-    @Autowired private AnswerMcRepository answerMcRepository;
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ConditionRepository conditionRepository;
-    @Autowired private ConsentDocumentRepository consentDocumentRepository;
-    @Autowired private ExperimentImportRepository experimentImportRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private ExposureRepository exposureRepository;
-    @Autowired private GroupRepository groupRepository;
-    @Autowired private IntegrationClientRepository integrationClientRepository;
-    @Autowired private IntegrationConfigurationRepository integrationConfigurationRepository;
-    @Autowired private IntegrationRepository integrationRepository;
-    @Autowired private OutcomeRepository outcomeRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AssignmentService assignmentService;
-    @Autowired private FileStorageService fileStorageService;
+    private final AnswerMcRepository answerMcRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ConditionRepository conditionRepository;
+    private final ConsentDocumentRepository consentDocumentRepository;
+    private final ExperimentImportRepository experimentImportRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final ExposureRepository exposureRepository;
+    private final GroupRepository groupRepository;
+    private final IntegrationClientRepository integrationClientRepository;
+    private final IntegrationConfigurationRepository integrationConfigurationRepository;
+    private final IntegrationRepository integrationRepository;
+    private final OutcomeRepository outcomeRepository;
+    private final QuestionRepository questionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AssignmentService assignmentService;
+    private final FileStorageService fileStorageService;
 
     @Async
     @Override

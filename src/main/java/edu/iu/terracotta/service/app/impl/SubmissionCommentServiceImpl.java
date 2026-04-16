@@ -12,24 +12,25 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
 
-@Component
+@Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.LambdaCanBeMethodReference"})
 public class SubmissionCommentServiceImpl implements SubmissionCommentService {
 
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private SubmissionCommentRepository submissionCommentRepository;
-    @Autowired private SubmissionRepository submissionRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final SubmissionCommentRepository submissionCommentRepository;
+    private final SubmissionRepository submissionRepository;
 
     @Override
     public List<SubmissionCommentDto> getSubmissionComments(Long submissionId) {

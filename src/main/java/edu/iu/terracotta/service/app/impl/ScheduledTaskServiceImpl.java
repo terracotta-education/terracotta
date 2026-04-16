@@ -1,17 +1,18 @@
 package edu.iu.terracotta.service.app.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.scheduledtask.ScheduledTask;
 import edu.iu.terracotta.dao.repository.ScheduledTaskRepository;
 import edu.iu.terracotta.exceptions.scheduledtask.ScheduledTaskNotFound;
 import edu.iu.terracotta.service.app.ScheduledTaskService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class ScheduledTaskServiceImpl implements ScheduledTaskService {
 
-    @Autowired private ScheduledTaskRepository scheduledTaskRepository;
+    private final ScheduledTaskRepository scheduledTaskRepository;
 
     @Override
     public void resetTask(String taskName) throws ScheduledTaskNotFound {

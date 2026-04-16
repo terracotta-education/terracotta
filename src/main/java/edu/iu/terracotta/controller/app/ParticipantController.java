@@ -16,9 +16,9 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -44,14 +44,15 @@ import java.util.Map;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @RequestMapping(value = ParticipantController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement", "PMD.PreserveStackTrace", "squid:S112"})
 public class ParticipantController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/participants";
 
-    @Autowired private ParticipantService participantService;
-    @Autowired private ApiJwtService apijwtService;
+    private final ParticipantService participantService;
+    private final ApiJwtService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable long experimentId,

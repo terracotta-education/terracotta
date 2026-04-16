@@ -67,6 +67,7 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.Locator;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
@@ -80,7 +81,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.time.DateUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -105,13 +105,14 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
 
-    @Autowired private ApiOneUseTokenRepository apiOneUseTokenRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private LtiDataService ltiDataService;
+    private final ApiOneUseTokenRepository apiOneUseTokenRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final LtiDataService ltiDataService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

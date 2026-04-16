@@ -5,7 +5,6 @@ import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -34,23 +33,25 @@ import edu.iu.terracotta.service.app.messaging.MessageRecipientRuleSetService;
 import edu.iu.terracotta.service.app.messaging.MessageService;
 import edu.iu.terracotta.service.app.messaging.MessagePipedTextService;
 import io.jsonwebtoken.lang.Collections;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference"})
 public class MessageServiceImpl implements MessageService {
 
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private MessageContainerRepository containerRepository;
-    @Autowired private MessageRepository messageRepository;
-    @Autowired private AssignmentService assignmentService;
-    @Autowired private MessageConfigurationService configurationService;
-    @Autowired private MessageContentService contentService;
-    @Autowired private MessageEmailReplyToService messageEmailReplyToService;
-    @Autowired private MessageRuleAssignmentService messageRuleAssignmentService;
-    @Autowired private MessageRecipientRuleSetService messageRuleSetService;
-    @Autowired private MessagePipedTextService pipedTextService;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final MessageContainerRepository containerRepository;
+    private final MessageRepository messageRepository;
+    private final AssignmentService assignmentService;
+    private final MessageConfigurationService configurationService;
+    private final MessageContentService contentService;
+    private final MessageEmailReplyToService messageEmailReplyToService;
+    private final MessageRuleAssignmentService messageRuleAssignmentService;
+    private final MessageRecipientRuleSetService messageRuleSetService;
+    private final MessagePipedTextService pipedTextService;
 
     @Override
     public void create(MessageContainer container, long exposureId, boolean single) {

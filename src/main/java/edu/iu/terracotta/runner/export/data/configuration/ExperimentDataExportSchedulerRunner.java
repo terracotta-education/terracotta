@@ -3,7 +3,6 @@ package edu.iu.terracotta.runner.export.data.configuration;
 import java.time.Duration;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,19 +16,21 @@ import edu.iu.terracotta.exceptions.scheduledtask.ScheduledTaskNotFound;
 import edu.iu.terracotta.runner.export.data.ExperimentDataExportSchedulerService;
 import edu.iu.terracotta.runner.export.data.model.ExperimentDataExportScheduleResult;
 import edu.iu.terracotta.service.app.ScheduledTaskService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Configuration
-@SuppressWarnings({"unused", "PMD.GuardLogStatement"})
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentDataExportSchedulerRunner {
 
     public static final String TASK_NAME = "delete_expired_experiment_data_exports";
     public static final TaskDescriptor<Void> EXPERIMENT_DATA_EXPORT_DELETE_TASK = TaskDescriptor.of(TASK_NAME);
 
-    @Autowired private ScheduledTaskService scheduledTaskService;
+    private final ScheduledTaskService scheduledTaskService;
 
     @Value("${experiment.data.export.scheduler.enabled:false}")
     private boolean enabled;

@@ -13,9 +13,9 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -36,14 +36,15 @@ import java.util.List;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = OutcomeScoreController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class OutcomeScoreController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/outcomes/{outcomeId}/outcome_scores";
 
-    @Autowired private OutcomeScoreService outcomeScoreService;
-    @Autowired private ApiJwtService apijwtService;
+    private final OutcomeScoreService outcomeScoreService;
+    private final ApiJwtService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<OutcomeScoreDto>> getAllOutcomeScoresByOutcome(@PathVariable long experimentId,

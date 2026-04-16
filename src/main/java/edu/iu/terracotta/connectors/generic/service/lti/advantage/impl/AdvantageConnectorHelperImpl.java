@@ -9,13 +9,13 @@ import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGe
 import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -36,11 +36,12 @@ import java.util.List;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "rawtypes"})
 public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
 
-    @Autowired private LtiJwtService ltijwtService;
-    @Autowired private ExceptionMessageGenerator exceptionMessageGenerator;
+    private final LtiJwtService ltijwtService;
+    private final ExceptionMessageGenerator exceptionMessageGenerator;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

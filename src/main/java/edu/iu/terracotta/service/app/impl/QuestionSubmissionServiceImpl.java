@@ -51,15 +51,15 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -77,25 +77,26 @@ import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
-@Component
+@Service
+@RequiredArgsConstructor
 @SuppressWarnings({"squid:S2229", "PMD.GuardLogStatement"})
 public class QuestionSubmissionServiceImpl implements QuestionSubmissionService {
 
-    @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
-    @Autowired private AnswerMcRepository answerMcRepository;
-    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
-    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private AnswerService answerService;
-    @Autowired private AnswerSubmissionService answerSubmissionService;
-    @Autowired private FileStorageService fileStorageService;
-    @Autowired private QuestionSubmissionCommentService questionSubmissionCommentService;
-    @Autowired private ApiClient apiClient;
+    private final AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    private final AnswerMcRepository answerMcRepository;
+    private final AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final QuestionRepository questionRepository;
+    private final QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
+    private final QuestionSubmissionRepository questionSubmissionRepository;
+    private final SubmissionRepository submissionRepository;
+    private final AnswerService answerService;
+    private final AnswerSubmissionService answerSubmissionService;
+    private final FileStorageService fileStorageService;
+    private final QuestionSubmissionCommentService questionSubmissionCommentService;
+    private final ApiClient apiClient;
 
     private JsonMapper jsonMapper = JsonMapper.builder().build();
 

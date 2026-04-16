@@ -17,10 +17,10 @@ import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -43,6 +43,7 @@ import java.util.Map;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = AnswerController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AnswerController {
@@ -53,9 +54,9 @@ public class AnswerController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private AnswerService answerService;
-    @Autowired private QuestionService questionService;
+    private final ApiJwtService apijwtService;
+    private final AnswerService answerService;
+    private final QuestionService questionService;
 
     @GetMapping
     public ResponseEntity<List<AnswerDto>> getAnswersByQuestion(@PathVariable long experimentId,

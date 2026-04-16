@@ -1,4 +1,4 @@
-package edu.iu.terracotta.runner.messaging.configuration.model;
+package edu.iu.terracotta.runner.messaging.model;
 
 import java.util.List;
 

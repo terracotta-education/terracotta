@@ -55,6 +55,7 @@ import edu.ksu.canvas.requestOptions.GetSubmissionsOptions;
 import edu.ksu.canvas.requestOptions.GetUsersInCourseOptions;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
 import edu.ksu.canvas.requestOptions.ListUserCoursesOptions;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -62,7 +63,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -79,12 +79,13 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.CANVAS)
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference", "PMD.UnusedPrivateMethod", "PMD.LooseCoupling"})
 public class CanvasApiClientImpl implements ApiClient {
 
-    @Autowired private CanvasLmsOAuthServiceImpl canvasLmsOAuthService;
-    @Autowired private CanvasLmsUtilsImpl canvasLmsUtils;
+    private final CanvasLmsOAuthServiceImpl canvasLmsOAuthService;
+    private final CanvasLmsUtilsImpl canvasLmsUtils;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

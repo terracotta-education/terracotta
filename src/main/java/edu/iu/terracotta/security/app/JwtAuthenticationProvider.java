@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableSet;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
+import lombok.RequiredArgsConstructor;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,7 +13,6 @@ import java.util.stream.Collectors;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.JwtAuthenticationToken;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -22,9 +23,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationProvider implements AuthenticationProvider {
 
-    @Autowired private ApiJwtService jwtService;
+    private final ApiJwtService jwtService;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {

@@ -8,12 +8,15 @@ import static org.mockito.Mockito.when;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.canvas.service.api.impl.CanvasApiClientImpl;
+import edu.iu.terracotta.connectors.canvas.service.lms.impl.CanvasLmsOAuthServiceImpl;
+import edu.iu.terracotta.connectors.canvas.service.lms.impl.CanvasLmsUtilsImpl;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -21,7 +24,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@SuppressWarnings({"PMD.LooseCoupling"})
 public class ConnectorServiceImplTest extends BaseTest {
+
+    @Mock private CanvasLmsOAuthServiceImpl canvasLmsOAuthService;
+    @Mock private CanvasLmsUtilsImpl canvasLmsUtils;
 
     @InjectMocks private ConnectorServiceImpl<ApiClient> connectorService;
 
@@ -32,7 +39,7 @@ public class ConnectorServiceImplTest extends BaseTest {
 
         Map<LmsConnector, Map<String, Object>> connectorServiceMap = new HashMap<>();
         Map<String, Object> canvasMap = new HashMap<>();
-        canvasMap.put(ApiClient.class.getSimpleName(), new CanvasApiClientImpl());
+        canvasMap.put(ApiClient.class.getSimpleName(), new CanvasApiClientImpl(canvasLmsOAuthService, canvasLmsUtils));
         connectorServiceMap.put(LmsConnector.CANVAS, canvasMap);
         ReflectionTestUtils.setField(connectorService, "connectorServiceMap", connectorServiceMap);
     }

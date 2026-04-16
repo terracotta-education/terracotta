@@ -10,7 +10,6 @@ import java.util.Optional;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -48,21 +47,23 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportErrorService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ExperimentImportServiceImpl implements ExperimentImportService {
 
-    @Autowired private ExperimentImportErrorRepository experimentImportErrorRepository;
-    @Autowired private ExperimentImportRepository experimentImportRepository;
-    @Autowired private LtiContextRepository ltiContextRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private ExperimentImportAsyncService experimentImportAsyncService;
-    @Autowired private ExperimentImportErrorService experimentImportErrorService;
-    @Autowired private FileStorageService fileStorageService;
+    private final ExperimentImportErrorRepository experimentImportErrorRepository;
+    private final ExperimentImportRepository experimentImportRepository;
+    private final LtiContextRepository ltiContextRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final ExperimentImportAsyncService experimentImportAsyncService;
+    private final ExperimentImportErrorService experimentImportErrorService;
+    private final FileStorageService fileStorageService;
 
     @Override
     public ImportDto preprocess(MultipartFile file, SecuredInfo securedInfo) throws ExperimentImportException {

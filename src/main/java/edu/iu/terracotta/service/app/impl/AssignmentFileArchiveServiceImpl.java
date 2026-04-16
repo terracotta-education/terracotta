@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -23,18 +22,20 @@ import edu.iu.terracotta.exceptions.AssignmentFileArchiveNotFoundException;
 import edu.iu.terracotta.service.app.AssignmentFileArchiveService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class AssignmentFileArchiveServiceImpl implements AssignmentFileArchiveService {
 
-    @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private FileStorageService fileStorageService;
-    @Autowired private AssignmentAsyncService asyncService;
+    private final AssignmentFileArchiveRepository assignmentFileArchiveRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final SubmissionRepository submissionRepository;
+    private final FileStorageService fileStorageService;
+    private final AssignmentAsyncService asyncService;
 
     @Override
     public AssignmentFileArchiveDto process(Assignment assignment, SecuredInfo securedInfo) throws IOException {

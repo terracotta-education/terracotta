@@ -3,9 +3,9 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import io.micrometer.common.util.StringUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +19,12 @@ import java.security.GeneralSecurityException;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 @RequestMapping(value = "/api/oauth", produces = MediaType.APPLICATION_JSON_VALUE)
 public class TokenController {
 
-    @Autowired private ApiJwtService apiJwtService;
+    private final ApiJwtService apiJwtService;
 
     @PostMapping("/trade")
     public ResponseEntity getTimedToken(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {

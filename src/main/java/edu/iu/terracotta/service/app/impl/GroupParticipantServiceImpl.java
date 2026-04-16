@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.Assignment;
@@ -23,14 +22,17 @@ import edu.iu.terracotta.dao.repository.GroupRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.service.app.GroupParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.LooseCoupling"})
 public class GroupParticipantServiceImpl implements GroupParticipantService {
 
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private GroupRepository groupRepository;
-    @Autowired private ParticipantRepository participantRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final GroupRepository groupRepository;
+    private final ParticipantRepository participantRepository;
 
     private Random random = new Random();
 

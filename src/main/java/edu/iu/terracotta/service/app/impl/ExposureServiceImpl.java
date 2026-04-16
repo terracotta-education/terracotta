@@ -16,25 +16,27 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
 
-@Component
+@Service
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.LambdaCanBeMethodReference"})
 public class ExposureServiceImpl implements ExposureService {
 
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private ExposureRepository exposureRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final ExposureRepository exposureRepository;
 
     @Override
     public List<ExposureDto> getExposures(Long experimentId) {

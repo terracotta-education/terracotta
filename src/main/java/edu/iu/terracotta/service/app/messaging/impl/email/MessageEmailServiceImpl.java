@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -40,6 +39,7 @@ import edu.iu.terracotta.service.app.messaging.MessageSendService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
@@ -50,14 +50,15 @@ import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessageEmailServiceImpl implements MessageEmailService {
 
-    @Autowired private MessageLogRepository messageLogRepository;
-    @Autowired private MessageSendService messageSendService;
-    @Autowired private MessageRuleComparisonService ruleComparisonService;
-    @Autowired private JavaMailSender javaMailSender;
-    @Autowired private LmsUtils lmsUtils;
+    private final MessageLogRepository messageLogRepository;
+    private final MessageSendService messageSendService;
+    private final MessageRuleComparisonService ruleComparisonService;
+    private final JavaMailSender javaMailSender;
+    private final LmsUtils lmsUtils;
 
     @Value("${app.messaging.email.from:no-reply@mail.terracotta.education}")
     private String from;

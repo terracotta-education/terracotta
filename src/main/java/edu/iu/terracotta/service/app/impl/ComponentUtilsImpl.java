@@ -3,7 +3,6 @@ package edu.iu.terracotta.service.app.impl;
 import java.util.List;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -12,12 +11,14 @@ import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
 import edu.iu.terracotta.dao.repository.AssignmentRepository;
 import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerRepository;
 import edu.iu.terracotta.service.app.ComponentUtils;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class ComponentUtilsImpl implements ComponentUtils {
 
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private MessageContainerRepository messageContainerRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final MessageContainerRepository messageContainerRepository;
 
     @Override
     public int calculateNextOrder(long exposureId, LtiUserEntity owner) {

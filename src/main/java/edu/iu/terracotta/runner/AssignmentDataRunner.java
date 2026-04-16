@@ -1,7 +1,6 @@
 package edu.iu.terracotta.runner;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
@@ -16,14 +15,16 @@ import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AssignmentDataRunner implements ApplicationListener<ApplicationReadyEvent> {
 
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private SubmissionRepository submissionRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final SubmissionRepository submissionRepository;
 
     @Value("${app.assignments.fix.start.dates.enabled:false}")
     private boolean enabled;

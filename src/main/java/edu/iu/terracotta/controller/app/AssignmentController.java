@@ -25,9 +25,9 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -51,15 +51,16 @@ import java.util.List;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = AssignmentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AssignmentController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/assignments";
 
-    @Autowired private AssignmentService assignmentService;
-    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
-    @Autowired private ApiJwtService apijwtService;
+    private final AssignmentService assignmentService;
+    private final AssignmentTreatmentService assignmentTreatmentService;
+    private final ApiJwtService apijwtService;
 
     @GetMapping
     public ResponseEntity<List<AssignmentDto>> allAssignmentsByExposure(@PathVariable long experimentId,

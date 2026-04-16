@@ -7,10 +7,10 @@ import java.util.Optional;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -41,15 +41,16 @@ import edu.iu.terracotta.utils.TextConstants;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentService {
 
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AssessmentService assessmentService;
-    @Autowired private ApiClient apiClient;
+    private final AssessmentRepository assessmentRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final SubmissionRepository submissionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AssessmentService assessmentService;
+    private final ApiClient apiClient;
 
     @PersistenceContext private EntityManager entityManager;
 

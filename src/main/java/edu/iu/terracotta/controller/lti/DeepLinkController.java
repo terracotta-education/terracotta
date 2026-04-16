@@ -7,9 +7,9 @@ import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageDeepL
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -23,11 +23,12 @@ import java.util.UUID;
 @Slf4j
 @Controller
 @Scope("session")
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class DeepLinkController {
 
-    @Autowired AdvantageDeepLinkService deepLinkService;
-    @Autowired LtiJwtService ltiJwtService;
+    private final AdvantageDeepLinkService deepLinkService;
+    private final LtiJwtService ltiJwtService;
 
     @GetMapping({"/deeplink/toJwt/{id}"})
     public ResponseEntity<Object> deepLinksToJwt(@PathVariable UUID id, HttpServletRequest req) throws GeneralSecurityException, IOException, TerracottaConnectorException {

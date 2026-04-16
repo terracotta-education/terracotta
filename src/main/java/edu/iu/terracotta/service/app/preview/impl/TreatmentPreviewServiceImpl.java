@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app.preview.impl;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -23,18 +22,20 @@ import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.preview.TreatmentPreviewService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
 
-    @Autowired private ConditionRepository conditionRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private TreatmentPreviewRepository treatmentPreviewRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AnswerService answerService;
-    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
-    @Autowired private QuestionService questionService;
+    private final ConditionRepository conditionRepository;
+    private final ExperimentRepository experimentRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final TreatmentPreviewRepository treatmentPreviewRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AnswerService answerService;
+    private final AssignmentTreatmentService assignmentTreatmentService;
+    private final QuestionService questionService;
 
     @Override
     public TreatmentPreview create(long treatmentId, long experimentId, long conditionId, String ownerId) {

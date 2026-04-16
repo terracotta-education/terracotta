@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,18 +31,20 @@ import edu.iu.terracotta.exceptions.messaging.MessageContainerNotMatchingExcepti
 import edu.iu.terracotta.exceptions.messaging.MessageContainerOwnerNotMatchingException;
 import edu.iu.terracotta.service.app.messaging.MessageContainerService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = MessageContainerController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class MessageContainerController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/messaging/container";
 
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private MessageContainerService messageContainerService;
+    private final ApiJwtService apiJwtService;
+    private final MessageContainerService messageContainerService;
 
     @GetMapping
     public ResponseEntity<List<MessageContainerDto>> getAll(@PathVariable long experimentId, @PathVariable long exposureId, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {

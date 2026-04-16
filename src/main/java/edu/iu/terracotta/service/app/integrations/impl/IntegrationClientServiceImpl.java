@@ -3,7 +3,6 @@ package edu.iu.terracotta.service.app.integrations.impl;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
@@ -11,11 +10,13 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundEx
 import edu.iu.terracotta.dao.model.dto.integrations.IntegrationClientDto;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationClientRepository;
 import edu.iu.terracotta.service.app.integrations.IntegrationClientService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class IntegrationClientServiceImpl implements IntegrationClientService {
 
-    @Autowired private IntegrationClientRepository integrationClientRepository;
+    private final IntegrationClientRepository integrationClientRepository;
 
     @Override
     public List<IntegrationClient> getAll() {

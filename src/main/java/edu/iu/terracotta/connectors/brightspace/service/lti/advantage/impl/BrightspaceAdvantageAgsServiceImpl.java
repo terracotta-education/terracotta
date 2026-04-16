@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -29,17 +28,19 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGenerator;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class BrightspaceAdvantageAgsServiceImpl implements AdvantageAgsService {
 
-    @Autowired private AdvantageConnectorHelper advantageConnectorHelper;
-    @Autowired private ExceptionMessageGenerator exceptionMessageGenerator;
+    private final AdvantageConnectorHelper advantageConnectorHelper;
+    private final ExceptionMessageGenerator exceptionMessageGenerator;
 
     @Override
     public LtiToken getToken(LtiAgsScope type, PlatformDeployment platformDeployment) throws ConnectionException {

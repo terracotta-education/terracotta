@@ -19,7 +19,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -97,6 +96,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.Locator;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
@@ -104,6 +104,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.ONE_ED_TECH)
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
@@ -113,9 +114,9 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
 
-    @Autowired private ApiOneUseTokenRepository apiOneUseTokenRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private LtiDataService ltiDataService;
+    private final ApiOneUseTokenRepository apiOneUseTokenRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final LtiDataService ltiDataService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

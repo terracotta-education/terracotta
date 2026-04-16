@@ -23,6 +23,7 @@ import edu.iu.terracotta.service.caliper.CaliperService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.security.SignatureException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
@@ -33,7 +34,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URIBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -59,16 +59,17 @@ import java.util.Optional;
 @Controller
 @Scope("session")
 @RequestMapping("/lti3")
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class Lti3Controller {
 
-    @Autowired private LtiLinkRepository ltiLinkRepository;
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private AdvantageDeepLinkService advantageDeepLinkService;
-    @Autowired private CaliperService caliperService;
-    @Autowired private LtiDataService ltiDataService;
-    @Autowired private LtiJwtService ltiJwtService;
-    @Autowired private LmsOAuthServiceManager lmsOAuthServiceManager;
+    private final LtiLinkRepository ltiLinkRepository;
+    private final ApiJwtService apiJwtService;
+    private final AdvantageDeepLinkService advantageDeepLinkService;
+    private final CaliperService caliperService;
+    private final LtiDataService ltiDataService;
+    private final LtiJwtService ltiJwtService;
+    private final LmsOAuthServiceManager lmsOAuthServiceManager;
 
     @RequestMapping({"", "/"})
     public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, ApiException, ConnectionException, LmsOAuthException, TerracottaConnectorException {
