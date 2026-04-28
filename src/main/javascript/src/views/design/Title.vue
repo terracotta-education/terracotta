@@ -76,7 +76,7 @@ export default {
             this.$swal('There was an error saving your experiment.');
           }
         })
-        .catch(response => {
+        .catch(() => {
           this.$swal('There was an error saving your experiment.');
         })
     },

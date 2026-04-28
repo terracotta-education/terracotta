@@ -422,7 +422,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 throw new AssignmentLockedException(
                     String.format(
                         TextConstants.ASSIGNMENT_LOCKED_AT,
-                        securedInfo.getLockAt().getTime()
+                        securedInfo.getLockAt().toString()
                     )
                 );
             }
@@ -475,7 +475,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throw new AssignmentLockedException(
                 String.format(
                     TextConstants.ASSIGNMENT_LOCKED_AT,
-                    lmsAssignment.get().getLockAt().getTime()
+                    lmsAssignment.get().getLockAt().toString()
                 )
             );
         }
