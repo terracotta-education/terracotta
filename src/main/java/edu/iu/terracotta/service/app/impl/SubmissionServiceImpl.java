@@ -73,6 +73,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -371,7 +372,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             submission.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submission.get()));
         }
 
-        if (securedInfo.getLockAt() == null || submission.get().getDateSubmitted().after(securedInfo.getLockAt())) {
+        if (datesAllowed(submission.get().getDateSubmitted(), securedInfo)) {
             saveAndFlush(assessmentSubmissionService.gradeSubmission(submission.get(), new RegradeDetails()));
             caliperService.sendAssignmentSubmitted(submission.get(), securedInfo);
             sendSubmissionGradeToLmsWithLti(submission.get(), student);
@@ -380,13 +381,17 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
     }
 
-    @Override
-    public boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo) {
-        if (securedInfo.getUnlockAt() == null || securedInfo.getUnlockAt().before(new Date())) {
-            return securedInfo.getLockAt() == null || securedInfo.getLockAt().after(new Date());
+    private boolean datesAllowed(Timestamp timestamp, SecuredInfo securedInfo) {
+        if (securedInfo.getUnlockAt() == null || securedInfo.getUnlockAt().before(timestamp)) {
+            return securedInfo.getLockAt() == null || securedInfo.getLockAt().after(timestamp);
         }
 
         return false;
+    }
+
+    @Override
+    public boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo) {
+        return datesAllowed(Timestamp.from(Instant.now()), securedInfo);
     }
 
     @Override
