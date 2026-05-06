@@ -36,6 +36,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymen
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Exposure;
@@ -101,6 +102,13 @@ import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
+
+import static edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim.CONTEXT_ID;
+import static edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim.NONCE;
+import static edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim.PLATFORM_DEPLOYMENT_ID;
+import static edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim.ROLES;
+import static edu.iu.terracotta.connectors.oneedtech.dao.model.enums.jwt.OneEdTechJwtClaim.ONE_ED_TECH;
+import static edu.iu.terracotta.connectors.oneedtech.dao.model.enums.jwt.OneEdTechJwtClaim.USER_ID;
 
 @Slf4j
 @Service
@@ -813,7 +821,25 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public SecuredInfo extractValues(String token) throws NumberFormatException, TerracottaConnectorException {
-        throw new UnsupportedOperationException("Unimplemented method 'extractValues'");
+        Jws<Claims> claims = validateToken(token);
+
+        if (claims == null) {
+            return null;
+        }
+
+        SecuredInfo securedInfo = new SecuredInfo();
+        securedInfo.setUserId(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getPayload().get(PLATFORM_DEPLOYMENT_ID.key())));
+        securedInfo.setContextId(Long.valueOf((Integer) claims.getPayload().get(CONTEXT_ID.key())));
+        securedInfo.setRoles((List<String>) claims.getPayload().get(ROLES.key()));
+        securedInfo.setLmsUserId(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setLmsUserGlobalId(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setLmsLoginId(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setLmsName(ONE_ED_TECH.key());
+        securedInfo.setLmsUserName(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setNonce(claims.getPayload().get(NONCE.key()).toString());
+
+        return securedInfo;
     }
 
     @Override
