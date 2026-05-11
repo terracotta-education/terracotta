@@ -1,7 +1,6 @@
 package edu.iu.terracotta.runner;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
@@ -23,18 +22,20 @@ import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
 import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.service.app.FileStorageService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ConsentDocumentConversionRunner implements ApplicationListener<ApplicationReadyEvent> {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd/HH");
 
-    @Autowired private ConsentDocumentRepository consentDocumentRepository;
-    @Autowired private FileStorageService fileStorageService;
+    private final ConsentDocumentRepository consentDocumentRepository;
+    private final FileStorageService fileStorageService;
 
     @Value("${app.consent.documents.conversion.enabled:false}")
     private boolean enabled;

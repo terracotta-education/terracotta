@@ -10,21 +10,22 @@ import edu.iu.terracotta.exceptions.ParameterMissingException;
 import edu.iu.terracotta.service.app.MediaService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.caliper.impl.CaliperServiceImpl;
+import lombok.RequiredArgsConstructor;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
+@RequiredArgsConstructor
 public class MediaServiceImpl implements MediaService {
 
     public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";
 
-    @Autowired private SubmissionService submissionService;
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private CaliperServiceImpl caliperService;
+    private final SubmissionService submissionService;
+    private final ApiJwtService apijwtService;
+    private final CaliperServiceImpl caliperService;
 
     @Override
     public void fromDto(MediaEventDto mediaEventDto, SecuredInfo securedInfo, Long experimentId, Long submissionId, Long questionId)

@@ -7,7 +7,6 @@ import java.util.Optional;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
@@ -37,24 +36,26 @@ import edu.iu.terracotta.service.app.integrations.IntegrationScoreAsyncService;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
 import edu.iu.terracotta.service.caliper.CaliperService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class IntegrationScoreServiceImpl implements IntegrationScoreService {
 
-    @Autowired private IntegrationClientRepository integrationClientRepository;
-    @Autowired private IntegrationTokenLogRepository integrationTokenLogRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private CaliperService caliperService;
-    @Autowired private IntegrationScoreAsyncService integrationScoreAsyncService;
-    @Autowired private IntegrationTokenService integrationTokenService;
-    @Autowired private QuestionSubmissionService questionSubmissionService;
-    @Autowired private SubmissionService submissionService;
+    private final IntegrationClientRepository integrationClientRepository;
+    private final IntegrationTokenLogRepository integrationTokenLogRepository;
+    private final QuestionRepository questionRepository;
+    private final QuestionSubmissionRepository questionSubmissionRepository;
+    private final SubmissionRepository submissionRepository;
+    private final CaliperService caliperService;
+    private final IntegrationScoreAsyncService integrationScoreAsyncService;
+    private final IntegrationTokenService integrationTokenService;
+    private final QuestionSubmissionService questionSubmissionService;
+    private final SubmissionService submissionService;
 
     @Override
     public void score(String launchToken, String score, Optional<String> previewTokenClient) throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {

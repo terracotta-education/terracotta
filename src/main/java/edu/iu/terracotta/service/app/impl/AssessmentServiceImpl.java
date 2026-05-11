@@ -68,17 +68,17 @@ import edu.iu.terracotta.service.app.integrations.IntegrationClientService;
 import edu.iu.terracotta.service.app.integrations.IntegrationLaunchParameterService;
 import edu.iu.terracotta.service.app.integrations.IntegrationService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.persistence.EntityManager;
@@ -99,34 +99,35 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Component
+@Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class AssessmentServiceImpl implements AssessmentService {
 
     public static final int TITLE_MAX_LENGTH = 255;
 
-    @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
-    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private ConditionRepository conditionRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private QuestionMcRepository questionMcRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private AssessmentSubmissionService assessmentSubmissionService;
-    @Autowired private FileStorageService fileStorageService;
-    @Autowired private IntegrationClientService integrationClientService;
-    @Autowired private IntegrationLaunchParameterService integrationLaunchParameterService;
-    @Autowired private IntegrationService integrationService;
-    @Autowired private ParticipantService participantService;
-    @Autowired private QuestionService questionService;
-    @Autowired private SubmissionService submissionService;
+    private final AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    private final AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final ConditionRepository conditionRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final ParticipantRepository participantRepository;
+    private final QuestionMcRepository questionMcRepository;
+    private final QuestionRepository questionRepository;
+    private final SubmissionRepository submissionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final ApiJwtService apiJwtService;
+    private final AssessmentSubmissionService assessmentSubmissionService;
+    private final FileStorageService fileStorageService;
+    private final IntegrationClientService integrationClientService;
+    private final IntegrationLaunchParameterService integrationLaunchParameterService;
+    private final IntegrationService integrationService;
+    private final ParticipantService participantService;
+    private final QuestionService questionService;
+    private final SubmissionService submissionService;
 
     @PersistenceContext private EntityManager entityManager;
 

@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -41,17 +40,19 @@ import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiScopeService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthService;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity> {
 
-    @Autowired private ApiTokenRepository apiTokenRepository;
-    @Autowired private ApiOAuthSettingsRepository apiOAuthSettingsRepository;
-    @Autowired private ApiScopeService apiScopeService;
+    private final ApiTokenRepository apiTokenRepository;
+    private final ApiOAuthSettingsRepository apiOAuthSettingsRepository;
+    private final ApiScopeService apiScopeService;
 
     @Value("${brightspace.api.lp.version:1.52}")
     private String brightspaceApiLpVersion;

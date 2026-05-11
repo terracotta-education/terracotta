@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.time.DateUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Iterables;
@@ -32,14 +31,16 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.LooseCoupling"})
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
 public class BrightspaceAdvantageDeepLinkServiceImpl implements AdvantageDeepLinkService {
 
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private LtiDataService ltiDataService;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final LtiDataService ltiDataService;
 
     @Override
     public DeepLinkJwtDto generateDeepLinkJwt(List<String> deepLinkRequestIds, Jws<Claims> idToken, String returnUrl) throws GeneralSecurityException, IOException, TerracottaConnectorException {

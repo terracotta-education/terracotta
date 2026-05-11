@@ -25,6 +25,7 @@ import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.codec.binary.Base64;
@@ -32,9 +33,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -48,17 +48,18 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@Component
+@Service
+@RequiredArgsConstructor
 @SuppressWarnings({"squid:S1192", "PMD.GuardLogStatement", "PMD.PreserveStackTrace"})
 public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
-    @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
-    @Autowired private AnswerIntegrationSubmissionRepository answerIntegrationSubmissionRepository;
-    @Autowired private AnswerMcRepository answerMcRepository;
-    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
-    @Autowired private FileStorageService fileStorageService;
+    private final AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    private final AnswerIntegrationSubmissionRepository answerIntegrationSubmissionRepository;
+    private final AnswerMcRepository answerMcRepository;
+    private final AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    private final QuestionSubmissionRepository questionSubmissionRepository;
+    private final FileStorageService fileStorageService;
 
     @Override
     public List<AnswerSubmissionDto> getAnswerSubmissions(long questionSubmissionId, String answerType) throws DataServiceException, IOException {

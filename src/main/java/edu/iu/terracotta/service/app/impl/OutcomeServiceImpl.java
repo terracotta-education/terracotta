@@ -34,15 +34,15 @@ import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -52,19 +52,20 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-@Component
+@Service
+@RequiredArgsConstructor
 public class OutcomeServiceImpl implements OutcomeService {
 
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExposureRepository exposureRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private OutcomeRepository outcomeRepository;
-    @Autowired private OutcomeScoreRepository outcomeScoreRepository;
-    @Autowired private OutcomeScoreService outcomeScoreService;
-    @Autowired private ParticipantService participantService;
-    @Autowired private ApiClient apiClient;
-    @Autowired private LmsUtils lmsUtils;
+    private final AssignmentRepository assignmentRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExposureRepository exposureRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final OutcomeRepository outcomeRepository;
+    private final OutcomeScoreRepository outcomeScoreRepository;
+    private final OutcomeScoreService outcomeScoreService;
+    private final ParticipantService participantService;
+    private final ApiClient apiClient;
+    private final LmsUtils lmsUtils;
 
     @Override
     public List<OutcomeDto> getOutcomesForExposure(long exposureId) {

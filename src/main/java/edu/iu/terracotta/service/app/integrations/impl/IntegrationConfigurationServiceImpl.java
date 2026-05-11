@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app.integrations.impl;
 
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.integrations.Integration;
@@ -17,14 +16,16 @@ import edu.iu.terracotta.dao.repository.integrations.IntegrationConfigurationRep
 import edu.iu.terracotta.dao.repository.integrations.IntegrationRepository;
 import edu.iu.terracotta.service.app.integrations.IntegrationClientService;
 import edu.iu.terracotta.service.app.integrations.IntegrationConfigurationService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class IntegrationConfigurationServiceImpl implements IntegrationConfigurationService {
 
-    @Autowired private IntegrationClientRepository integrationClientRepository;
-    @Autowired private IntegrationConfigurationRepository integrationConfigurationRepository;
-    @Autowired private IntegrationRepository integrationRepository;
-    @Autowired private IntegrationClientService integrationClientService;
+    private final IntegrationClientRepository integrationClientRepository;
+    private final IntegrationConfigurationRepository integrationConfigurationRepository;
+    private final IntegrationRepository integrationRepository;
+    private final IntegrationClientService integrationClientService;
 
     @Override
     public IntegrationConfiguration create(Integration integration, UUID clientUuid) throws IntegrationClientNotFoundException {

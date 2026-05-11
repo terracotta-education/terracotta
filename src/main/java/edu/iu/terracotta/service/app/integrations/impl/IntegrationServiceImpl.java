@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -33,18 +32,20 @@ import edu.iu.terracotta.service.app.integrations.IntegrationClientService;
 import edu.iu.terracotta.service.app.integrations.IntegrationConfigurationService;
 import edu.iu.terracotta.service.app.integrations.IntegrationLaunchParameterService;
 import edu.iu.terracotta.service.app.integrations.IntegrationService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.LambdaCanBeMethodReference", "PMD.GuardLogStatement", "PMD.PreserveStackTrace"})
 public class IntegrationServiceImpl implements IntegrationService {
 
-    @Autowired private IntegrationRepository integrationRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private IntegrationClientService integrationClientService;
-    @Autowired private IntegrationConfigurationService integrationConfigurationService;
-    @Autowired private IntegrationLaunchParameterService integrationLaunchParameterService;
+    private final IntegrationRepository integrationRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final IntegrationClientService integrationClientService;
+    private final IntegrationConfigurationService integrationConfigurationService;
+    private final IntegrationLaunchParameterService integrationLaunchParameterService;
 
     @Override
     public Integration create(Question question, UUID clientUuid) throws IntegrationClientNotFoundException {

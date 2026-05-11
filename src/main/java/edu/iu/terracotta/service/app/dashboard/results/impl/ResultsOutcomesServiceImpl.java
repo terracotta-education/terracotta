@@ -13,7 +13,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.Assessment;
@@ -50,6 +49,7 @@ import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesAverageGra
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesTimeOnTaskService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByConditionIdAndExposureId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByExposureId;
@@ -59,20 +59,21 @@ import static edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUti
 import static edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUtils.calculateStatistics;
 
 @Service
-@SuppressWarnings({"rawtypes", "unchecked"})
+@RequiredArgsConstructor
+@SuppressWarnings({"rawtypes", "unchecked", "PMD.LooseCoupling"})
 public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
 
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private ExposureRepository exposureRepository;
-    @Autowired private OutcomeRepository outcomeRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AssessmentSubmissionService assessmentSubmissionService;
-    @Autowired private ResultsOutcomesAverageGradeService resultsOutcomesAverageGradeService;
-    @Autowired private ResultsOutcomesTimeOnTaskService resultsOutcomesTimeOnTaskService;
-    @Autowired private SubmissionService submissionService;
+    private final AssessmentRepository assessmentRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final ExposureRepository exposureRepository;
+    private final OutcomeRepository outcomeRepository;
+    private final ParticipantRepository participantRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AssessmentSubmissionService assessmentSubmissionService;
+    private final ResultsOutcomesAverageGradeService resultsOutcomesAverageGradeService;
+    private final ResultsOutcomesTimeOnTaskService resultsOutcomesTimeOnTaskService;
+    private final SubmissionService submissionService;
 
     private Map<Long, List<Assessment>> allAssessmentsByAssignment;
     private Map<Long, List<Treatment>> allTreatmentsByAssignment;

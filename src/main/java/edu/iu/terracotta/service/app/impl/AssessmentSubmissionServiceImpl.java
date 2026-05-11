@@ -3,7 +3,6 @@ package edu.iu.terracotta.service.app.impl;
 import java.util.List;
 
 import org.apache.commons.lang3.BooleanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
@@ -19,14 +18,16 @@ import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionService {
 
-    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private QuestionSubmissionService questionSubmissionService;
+    private final AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    private final QuestionSubmissionRepository questionSubmissionRepository;
+    private final SubmissionRepository submissionRepository;
+    private final QuestionSubmissionService questionSubmissionService;
 
     @Override
     public Submission gradeSubmission(Submission submission, RegradeDetails regradeDetails) throws DataServiceException {

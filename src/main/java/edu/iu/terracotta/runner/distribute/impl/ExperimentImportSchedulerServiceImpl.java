@@ -13,7 +13,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -23,14 +22,16 @@ import edu.iu.terracotta.dao.repository.distribute.ExperimentImportRepository;
 import edu.iu.terracotta.runner.distribute.ExperimentImportSchedulerService;
 import edu.iu.terracotta.runner.distribute.model.ExperimentImportScheduleMessage;
 import edu.iu.terracotta.runner.distribute.model.ExperimentImportScheduleResult;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentImportSchedulerServiceImpl implements ExperimentImportSchedulerService {
 
-    @Autowired private ExperimentImportRepository experimentImportRepository;
+    private final ExperimentImportRepository experimentImportRepository;
 
     @Value("${experiment.export.local.path.root}")
     private String experimentExportLocalPathRoot;

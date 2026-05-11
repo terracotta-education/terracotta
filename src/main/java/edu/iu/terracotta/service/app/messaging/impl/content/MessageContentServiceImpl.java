@@ -10,7 +10,6 @@ import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.TextNode;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalText;
@@ -26,17 +25,19 @@ import edu.iu.terracotta.service.app.messaging.MessageConditionalTextService;
 import edu.iu.terracotta.service.app.messaging.MessageContentAttachmentService;
 import edu.iu.terracotta.service.app.messaging.MessageContentService;
 import edu.iu.terracotta.service.app.messaging.MessagePipedTextService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessageContentServiceImpl implements MessageContentService {
 
-    @Autowired private MessageContentRepository contentRepository;
-    @Autowired private MessageConditionalTextService conditionalTextService;
-    @Autowired private MessageContentAttachmentService contentAttachmentService;
-    @Autowired private MessagePipedTextService pipedTextService;
+    private final MessageContentRepository contentRepository;
+    private final MessageConditionalTextService conditionalTextService;
+    private final MessageContentAttachmentService contentAttachmentService;
+    private final MessagePipedTextService pipedTextService;
 
     @Override
     public void create(Message message) {

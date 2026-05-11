@@ -10,7 +10,8 @@ public enum SubmissionsCsv {
     // NOTE: order is important!
     SUBMISSION_ID("submission_id"),
     PARTICIPANT_ID("participant_id"),
-    ASSIGNMENT_ID("assignment_id"),
+    TERRACOTTA_ASSIGNMENT_ID("assignment_id"),
+    LMS_ASSIGNMENT_ID("lms_assignment_id"),
     TREATMENT_ID("treatment_id"),
     SUBMITTED_AT("submitted_at"),
     CALCULATED_SCORE("calculated_score"),

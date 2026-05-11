@@ -32,6 +32,7 @@ import edu.iu.terracotta.dao.repository.distribute.ExperimentImportRepository;
 import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.service.app.FileStorageService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
@@ -44,7 +45,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -72,22 +72,23 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({
     "squid:S1192", "squid:S112", "squid:S125", "squid:S2737", "squid:S4449", "squid:S1075",
     "PMD.GuardLogStatement", "PMD.PreserveStackTrace"
 })
 public class FileStorageServiceImpl implements FileStorageService {
 
-    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
-    @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
-    @Autowired private ConsentDocumentRepository consentDocumentRepository;
-    @Autowired private ExperimentImportRepository experimentImportRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExperimentDataExportRepository exportDataRepository;
-    @Autowired private LmsUtils lmsUtils;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private ApiClient apiClient;
-    @Autowired private ApiJwtService apijwtService;
+    private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    private final AssignmentFileArchiveRepository assignmentFileArchiveRepository;
+    private final ConsentDocumentRepository consentDocumentRepository;
+    private final ExperimentImportRepository experimentImportRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExperimentDataExportRepository exportDataRepository;
+    private final LmsUtils lmsUtils;
+    private final LtiUserRepository ltiUserRepository;
+    private final ApiClient apiClient;
+    private final ApiJwtService apijwtService;
 
     @Value("${upload.path}")
     private String uploadDir;

@@ -9,7 +9,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -37,20 +36,22 @@ import edu.iu.terracotta.exceptions.export.data.ExperimentDataExportException;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentDataExportAsyncService;
 import edu.iu.terracotta.service.app.export.data.ExperimentDataExportService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentDataExportServiceImpl implements ExperimentDataExportService {
 
-    @Autowired private ExperimentDataExportRepository experimentDataExportRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private MessageLogRepository messageLogRepository;
-    @Autowired private OutcomeRepository outcomeRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private ExperimentDataExportAsyncService experimentDataExportAsyncService;
-    @Autowired private FileStorageService fileStorageService;
+    private final ExperimentDataExportRepository experimentDataExportRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final MessageLogRepository messageLogRepository;
+    private final OutcomeRepository outcomeRepository;
+    private final SubmissionRepository submissionRepository;
+    private final ExperimentDataExportAsyncService experimentDataExportAsyncService;
+    private final FileStorageService fileStorageService;
 
     @Value("${experiment.data.export.processing.ttl.seconds:600}")
     private long processingTtlSeconds;

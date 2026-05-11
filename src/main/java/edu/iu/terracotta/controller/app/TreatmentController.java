@@ -28,9 +28,9 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -52,15 +52,16 @@ import java.util.List;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = TreatmentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class TreatmentController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
-    @Autowired private TreatmentService treatmentService;
+    private final ApiJwtService apijwtService;
+    private final AssignmentTreatmentService assignmentTreatmentService;
+    private final TreatmentService treatmentService;
 
     @GetMapping
     public ResponseEntity<List<TreatmentDto>> allTreatmentsByCondition(@PathVariable long experimentId,

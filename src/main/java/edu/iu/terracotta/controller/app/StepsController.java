@@ -35,7 +35,6 @@ import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.lang.Collections;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,11 +46,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"unchecked"})
 @RequestMapping(value = StepsController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class StepsController {
@@ -66,14 +68,14 @@ public class StepsController {
     public static final String LAUNCH_CONSENT_ASSIGNMENT = "launch_consent_assignment";
     public static final String VIEW_ASSIGNMENT = "view_assignment";
 
-    @Autowired private ExposureService exposureService;
-    @Autowired private ParticipantService participantService;
-    @Autowired private GroupService groupService;
-    @Autowired private SubmissionService submissionService;
-    @Autowired private AssessmentService assessmentService;
-    @Autowired private AssignmentService assignmentService;
-    @Autowired private QuestionSubmissionService questionSubmissionService;
-    @Autowired private ApiJwtService apijwtService;
+    private final ExposureService exposureService;
+    private final ParticipantService participantService;
+    private final GroupService groupService;
+    private final SubmissionService submissionService;
+    private final AssessmentService assessmentService;
+    private final AssignmentService assignmentService;
+    private final QuestionSubmissionService questionSubmissionService;
+    private final ApiJwtService apijwtService;
 
     @PostMapping
     public ResponseEntity<Object> postStep(@PathVariable long experimentId,

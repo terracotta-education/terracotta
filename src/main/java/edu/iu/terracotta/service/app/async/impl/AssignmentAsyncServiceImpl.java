@@ -25,7 +25,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.jsoup.Jsoup;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -62,25 +61,27 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
-    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
-    @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private LtiContextRepository ltiContextRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private ObsoleteAssignmentRepository obsoleteAssignmentRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AssignmentService assignmentService;
-    @Autowired private FileStorageService fileStorageService;
-    @Autowired private ApiClient apiClient;
+    private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    private final AssignmentFileArchiveRepository assignmentFileArchiveRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExperimentRepository experimentRepository;
+    private final LtiContextRepository ltiContextRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final ObsoleteAssignmentRepository obsoleteAssignmentRepository;
+    private final ParticipantRepository participantRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AssignmentService assignmentService;
+    private final FileStorageService fileStorageService;
+    private final ApiClient apiClient;
 
     @Value("${assignment.file.archive.local.path.root}")
     private String assignmentFileArchiveLocalPathRoot;

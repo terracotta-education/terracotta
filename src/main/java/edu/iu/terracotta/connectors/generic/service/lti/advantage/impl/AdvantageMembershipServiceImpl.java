@@ -8,18 +8,19 @@ import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Primary
 @Service
+@RequiredArgsConstructor
 public class AdvantageMembershipServiceImpl implements AdvantageMembershipService {
 
-    @Autowired private ConnectorService<AdvantageMembershipService> connectorService;
+    private final ConnectorService<AdvantageMembershipService> connectorService;
 
     private AdvantageMembershipService instance(LtiContextEntity ltiContextEntity) throws TerracottaConnectorException {
         return instance(ltiContextEntity.getToolDeployment().getPlatformDeployment());

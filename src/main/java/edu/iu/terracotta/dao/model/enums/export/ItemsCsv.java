@@ -9,7 +9,8 @@ public enum ItemsCsv {
 
     // NOTE: order is important!
     ITEM_ID("item_id"),
-    ASSIGNMENT_ID("assignment_id"),
+    TERRACOTTA_ASSIGNMENT_ID("assignment_id"),
+    LMS_ASSIGNMENT_ID("lms_assignment_id"),
     TREATMENT_ID("treatment_id"),
     CONDITION_ID("condition_id"),
     ITEM_TEXT("item_text"),

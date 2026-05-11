@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -26,16 +25,18 @@ import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGe
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class BrightspaceAdvantageMembershipServiceImpl implements AdvantageMembershipService {
 
-    @Autowired private AdvantageConnectorHelper advantageConnectorHelper;
-    @Autowired private ExceptionMessageGenerator exceptionMessageGenerator;
+    private final AdvantageConnectorHelper advantageConnectorHelper;
+    private final ExceptionMessageGenerator exceptionMessageGenerator;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

@@ -12,7 +12,6 @@ import java.util.function.Predicate;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
@@ -55,22 +54,24 @@ import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.ExperimentExportException;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ExperimentExportServiceImpl implements ExperimentExportService {
 
-    @Autowired private AnswerMcRepository answerMcRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private GroupRepository groupRepository;
-    @Autowired private OutcomeRepository outcomeRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private QuestionMcRepository questionMcRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private FileStorageService fileStorageService;
-    @Autowired private LmsUtils lmsUtils;
+    private final AnswerMcRepository answerMcRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final GroupRepository groupRepository;
+    private final OutcomeRepository outcomeRepository;
+    private final QuestionRepository questionRepository;
+    private final QuestionMcRepository questionMcRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final FileStorageService fileStorageService;
+    private final LmsUtils lmsUtils;
 
     private Experiment experiment;
     private List<AnswerMc> answersMc;

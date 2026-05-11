@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.MapUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
@@ -22,15 +21,17 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymen
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ConnectorServiceImpl<T> implements ConnectorService<T> {
 
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private ApplicationContext applicationContext;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final ApplicationContext applicationContext;
 
     private Map<LmsConnector, Map<String, Object>> connectorServiceMap = new HashMap<>();
 

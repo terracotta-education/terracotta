@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
@@ -19,12 +18,14 @@ import edu.iu.terracotta.dao.model.enums.messaging.MessageRecipientMatchType;
 import edu.iu.terracotta.dao.repository.messaging.message.MessageConfigurationRepository;
 import edu.iu.terracotta.service.app.messaging.MessageConfigurationService;
 import edu.iu.terracotta.service.app.messaging.MessageEmailReplyToService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class MessageConfigurationServiceImpl implements MessageConfigurationService {
 
-    @Autowired private MessageConfigurationRepository configurationRepository;
-    @Autowired private MessageEmailReplyToService messageEmailReplyToService;
+    private final MessageConfigurationRepository configurationRepository;
+    private final MessageEmailReplyToService messageEmailReplyToService;
 
     @Override
     public void create(Message message) {

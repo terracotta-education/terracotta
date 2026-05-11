@@ -19,7 +19,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +36,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymen
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Exposure;
@@ -97,13 +97,22 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.Locator;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
+import static edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim.CONTEXT_ID;
+import static edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim.NONCE;
+import static edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim.PLATFORM_DEPLOYMENT_ID;
+import static edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim.ROLES;
+import static edu.iu.terracotta.connectors.oneedtech.dao.model.enums.jwt.OneEdTechJwtClaim.ONE_ED_TECH;
+import static edu.iu.terracotta.connectors.oneedtech.dao.model.enums.jwt.OneEdTechJwtClaim.USER_ID;
+
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.ONE_ED_TECH)
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
@@ -113,9 +122,9 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
 
-    @Autowired private ApiOneUseTokenRepository apiOneUseTokenRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private LtiDataService ltiDataService;
+    private final ApiOneUseTokenRepository apiOneUseTokenRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final LtiDataService ltiDataService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;
@@ -812,7 +821,25 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public SecuredInfo extractValues(String token) throws NumberFormatException, TerracottaConnectorException {
-        throw new UnsupportedOperationException("Unimplemented method 'extractValues'");
+        Jws<Claims> claims = validateToken(token);
+
+        if (claims == null) {
+            return null;
+        }
+
+        SecuredInfo securedInfo = new SecuredInfo();
+        securedInfo.setUserId(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getPayload().get(PLATFORM_DEPLOYMENT_ID.key())));
+        securedInfo.setContextId(Long.valueOf((Integer) claims.getPayload().get(CONTEXT_ID.key())));
+        securedInfo.setRoles((List<String>) claims.getPayload().get(ROLES.key()));
+        securedInfo.setLmsUserId(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setLmsUserGlobalId(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setLmsLoginId(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setLmsName(ONE_ED_TECH.key());
+        securedInfo.setLmsUserName(claims.getPayload().get(USER_ID.key()).toString());
+        securedInfo.setNonce(claims.getPayload().get(NONCE.key()).toString());
+
+        return securedInfo;
     }
 
     @Override

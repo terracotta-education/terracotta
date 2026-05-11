@@ -13,7 +13,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -23,14 +22,16 @@ import edu.iu.terracotta.dao.repository.AssignmentFileArchiveRepository;
 import edu.iu.terracotta.runner.assignmentfilearchive.AssignmentFileArchiveSchedulerService;
 import edu.iu.terracotta.runner.assignmentfilearchive.model.AssignmentFileArchiveScheduleMessage;
 import edu.iu.terracotta.runner.assignmentfilearchive.model.AssignmentFileArchiveScheduleResult;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class AssignmentFileArchiveSchedulerServiceImpl implements AssignmentFileArchiveSchedulerService {
 
-    @Autowired private AssignmentFileArchiveRepository assignmentFileArchiveRepository;
+    private final AssignmentFileArchiveRepository assignmentFileArchiveRepository;
 
     @Value("${assignment.file.archive.local.path.root}")
     private String assignmentFileArchiveLocalPathRoot;

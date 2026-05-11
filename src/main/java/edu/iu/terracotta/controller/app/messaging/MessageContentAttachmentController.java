@@ -3,7 +3,6 @@ package edu.iu.terracotta.controller.app.messaging;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,18 +27,20 @@ import edu.iu.terracotta.exceptions.messaging.MessageNotMatchingException;
 import edu.iu.terracotta.exceptions.messaging.MessageOwnerNotMatchingException;
 import edu.iu.terracotta.service.app.messaging.MessageContentAttachmentService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = MessageContentAttachmentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class MessageContentAttachmentController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/messaging/container/{containerUuid}/message/{messageUuid}/content/{contentUuid}/file";
 
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private MessageContentAttachmentService messageContentAttachmentService;
+    private final ApiJwtService apiJwtService;
+    private final MessageContentAttachmentService messageContentAttachmentService;
 
     @GetMapping
     public ResponseEntity<List<MessageContentAttachmentDto>> get(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID contentUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {

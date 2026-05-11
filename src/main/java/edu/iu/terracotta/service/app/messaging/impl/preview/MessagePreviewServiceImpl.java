@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
@@ -25,17 +24,20 @@ import edu.iu.terracotta.service.app.messaging.MessageRecipientRuleSetService;
 import edu.iu.terracotta.service.app.messaging.MessageRuleComparisonService;
 import edu.iu.terracotta.service.app.messaging.MessageSendService;
 import io.jsonwebtoken.lang.Collections;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.LooseCoupling"})
 public class MessagePreviewServiceImpl implements MessagePreviewService {
 
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private MessageConditionalTextService conditionalTextService;
-    @Autowired private MessagePipedTextService pipedTextService;
-    @Autowired private MessageSendService messageSendService;
-    @Autowired private MessageRecipientRuleService recipientRuleService;
-    @Autowired private MessageRecipientRuleSetService recipientRuleSetService;
-    @Autowired private MessageRuleComparisonService ruleComparisonService;
+    private final ParticipantRepository participantRepository;
+    private final MessageConditionalTextService conditionalTextService;
+    private final MessagePipedTextService pipedTextService;
+    private final MessageSendService messageSendService;
+    private final MessageRecipientRuleService recipientRuleService;
+    private final MessageRecipientRuleSetService recipientRuleSetService;
+    private final MessageRuleComparisonService ruleComparisonService;
 
     @Override
     public MessagePreviewDto preview(MessagePreviewDto messagePreviewDto, Message message) throws ParticipantNotMatchingException, MessageBodyParseException {

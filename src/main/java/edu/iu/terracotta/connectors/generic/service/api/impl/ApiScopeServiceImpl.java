@@ -7,7 +7,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiScope;
@@ -18,12 +17,14 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymen
 import edu.iu.terracotta.connectors.generic.exceptions.ApiScopeNotFoundException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiScopeService;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class ApiScopeServiceImpl implements ApiScopeService {
 
-    @Autowired private ApiScopeRepository apiScopeRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
+    private final ApiScopeRepository apiScopeRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
 
     @Override
     public ApiScope getScopeById(long id) throws ApiScopeNotFoundException {

@@ -20,10 +20,10 @@ import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -53,6 +53,7 @@ import java.util.List;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked"})
 @RequestMapping(value = AnswerSubmissionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class AnswerSubmissionController {
@@ -63,9 +64,9 @@ public class AnswerSubmissionController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}";
 
-    @Autowired private AnswerSubmissionService answerSubmissionService;
-    @Autowired private SubmissionService submissionService;
-    @Autowired private ApiJwtService apijwtService;
+    private final AnswerSubmissionService answerSubmissionService;
+    private final SubmissionService submissionService;
+    private final ApiJwtService apijwtService;
 
     @GetMapping("/question_submissions/{questionSubmissionId}/answer_submissions")
     public ResponseEntity<List<AnswerSubmissionDto>> getAnswerSubmissionsByQuestionId(@PathVariable long experimentId,

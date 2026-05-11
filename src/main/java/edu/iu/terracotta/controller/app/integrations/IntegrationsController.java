@@ -7,7 +7,6 @@ import java.util.Base64;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -28,17 +27,19 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreService;
 import edu.iu.terracotta.service.app.integrations.IntegrationService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @RequestMapping("/integrations")
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class IntegrationsController {
 
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private IntegrationScoreService integrationScoreService;
-    @Autowired private IntegrationService integrationService;
+    private final ApiJwtService apiJwtService;
+    private final IntegrationScoreService integrationScoreService;
+    private final IntegrationService integrationService;
 
     @GetMapping
     public String score(@RequestParam(name = "launch_token", required = false) String launchToken, @RequestParam(required = false) String score, HttpServletRequest req) throws IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {

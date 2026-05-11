@@ -5,9 +5,9 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -32,11 +32,12 @@ import java.util.Optional;
 @Slf4j
 @Controller
 @Scope("session")
+@RequiredArgsConstructor
 @RequestMapping("/config")
 public class LtiConfigurationController {
 
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private ToolDeploymentRepository toolDeploymentRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final ToolDeploymentRepository toolDeploymentRepository;
 
     /**
      * To show the configurations.
