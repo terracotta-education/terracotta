@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,23 +21,25 @@ import edu.iu.terracotta.dao.model.enums.messaging.MessageStatus;
 import edu.iu.terracotta.dao.repository.messaging.container.MessageContainerRepository;
 import edu.iu.terracotta.dao.repository.messaging.message.MessageRepository;
 import edu.iu.terracotta.runner.messaging.MessagingSchedulerService;
-import edu.iu.terracotta.runner.messaging.configuration.model.MessagingScheduleMessage;
-import edu.iu.terracotta.runner.messaging.configuration.model.MessagingScheduleResult;
+import edu.iu.terracotta.runner.messaging.model.MessagingScheduleMessage;
+import edu.iu.terracotta.runner.messaging.model.MessagingScheduleResult;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.messaging.MessageConversationService;
 import edu.iu.terracotta.service.app.messaging.MessageEmailService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessagingSchedulerServiceImpl implements MessagingSchedulerService {
 
-    @Autowired private MessageContainerRepository messageContainerRepository;
-    @Autowired private MessageRepository messageRepository;
-    @Autowired private FeatureService featureService;
-    @Autowired private MessageConversationService messageConversationService;
-    @Autowired private MessageEmailService messageEmailService;
+    private final MessageContainerRepository messageContainerRepository;
+    private final MessageRepository messageRepository;
+    private final FeatureService featureService;
+    private final MessageConversationService messageConversationService;
+    private final MessageEmailService messageEmailService;
 
     @Override
     @Transactional

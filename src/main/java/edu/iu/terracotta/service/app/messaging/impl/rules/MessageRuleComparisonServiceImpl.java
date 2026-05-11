@@ -10,7 +10,6 @@ import java.util.Optional;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.math3.util.Precision;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.enums.WorkflowState;
@@ -32,12 +31,14 @@ import edu.iu.terracotta.dao.model.enums.messaging.rule.match.RuleSetMatch;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.messaging.MessageRuleComparisonService;
 import io.jsonwebtoken.lang.Collections;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class MessageRuleComparisonServiceImpl implements MessageRuleComparisonService {
 
-    @Autowired private SubmissionService submissionService;
-    @Autowired private LmsUtils lmsUtils;
+    private final SubmissionService submissionService;
+    private final LmsUtils lmsUtils;
 
     @Override
     public MessageRuleComparisonDto toDto(MessageRuleComparison ruleComparisonMessage) {

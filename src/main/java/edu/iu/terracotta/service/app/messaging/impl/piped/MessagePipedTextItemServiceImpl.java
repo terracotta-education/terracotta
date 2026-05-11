@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.messaging.piped.MessagePipedText;
@@ -13,11 +12,13 @@ import edu.iu.terracotta.dao.model.dto.messaging.piped.MessagePipedTextItemDto;
 import edu.iu.terracotta.service.app.messaging.MessagePipedTextItemService;
 import edu.iu.terracotta.service.app.messaging.MessagePipedTextItemValueService;
 import io.jsonwebtoken.lang.Collections;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class MessagePipedTextItemServiceImpl implements MessagePipedTextItemService {
 
-    @Autowired private MessagePipedTextItemValueService pipedTextItemValueService;
+    private final MessagePipedTextItemValueService pipedTextItemValueService;
 
     @Override
     public void create(List<MessagePipedTextItemDto> pipedTextItemDtos, MessagePipedText pipedText) {

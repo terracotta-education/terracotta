@@ -36,29 +36,30 @@ import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-@Component
+@Service
+@RequiredArgsConstructor
 public class TreatmentServiceImpl implements TreatmentService {
 
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ConditionRepository conditionRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private AssessmentService assessmentService;
-    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
+    private final AssignmentRepository assignmentRepository;
+    private final ConditionRepository conditionRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final ApiJwtService apiJwtService;
+    private final AssessmentService assessmentService;
+    private final AssignmentTreatmentService assignmentTreatmentService;
 
     @PersistenceContext private EntityManager entityManager;
 

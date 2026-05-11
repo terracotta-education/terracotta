@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -30,12 +29,14 @@ import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.Submission;
+import lombok.RequiredArgsConstructor;
 
 @Primary
 @Service
+@RequiredArgsConstructor
 public class ApiClientImpl implements ApiClient {
 
-    @Autowired private ConnectorService<ApiClient> connectorService;
+    private final ConnectorService<ApiClient> connectorService;
 
     private ApiClient instance(LtiUserEntity apiUser) throws TerracottaConnectorException {
         return instance(apiUser.getPlatformDeployment());

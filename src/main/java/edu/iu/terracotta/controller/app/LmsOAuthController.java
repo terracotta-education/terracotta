@@ -7,7 +7,6 @@ import java.util.Optional;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,19 +23,21 @@ import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @RequestMapping("/lms/oauth2")
 @SuppressWarnings({"PMD.AvoidCatchingThrowable"})
 public class LmsOAuthController {
 
     public static final String SESSION_LMS_OAUTH2_STATE = "lms_oauth2_state";
 
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private LmsOAuthServiceManager lmsOAuthServiceManager;
-    @Autowired private ApiJwtService apijwtService;
+    private final LtiUserRepository ltiUserRepository;
+    private final LmsOAuthServiceManager lmsOAuthServiceManager;
+    private final ApiJwtService apijwtService;
 
     @GetMapping("/oauth_response")
     public String handleOauthResponse(HttpServletRequest req, Model model) throws GeneralSecurityException, IOException, LmsOAuthException, TerracottaConnectorException {

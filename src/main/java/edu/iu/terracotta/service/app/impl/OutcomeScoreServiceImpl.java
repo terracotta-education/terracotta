@@ -12,23 +12,24 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
 
-@Component
+@Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.LambdaCanBeMethodReference"})
 public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
-    @Autowired private OutcomeRepository outcomeRepository;
-    @Autowired private OutcomeScoreRepository outcomeScoreRepository;
-    @Autowired private ParticipantRepository participantRepository;
+    private final OutcomeRepository outcomeRepository;
+    private final OutcomeScoreRepository outcomeScoreRepository;
+    private final ParticipantRepository participantRepository;
 
     @Override
     public List<OutcomeScoreDto> getOutcomeScores(Long outcomeId) {

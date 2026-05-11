@@ -67,6 +67,7 @@ import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.Submission;
 import io.micrometer.common.util.StringUtils;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
@@ -74,7 +75,6 @@ import tools.jackson.databind.json.JsonMapper;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -91,13 +91,14 @@ import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference", "PMD.UnusedPrivateMethod", "PMD.LooseCoupling"})
 public class BrightspaceApiClientImpl implements ApiClient {
 
-    @Autowired private BrightspaceAdvantageAgsServiceImpl brightspaceAdvantageAgsService;
-    @Autowired private BrightspaceLmsOAuthServiceImpl brightspaceLmsOAuthService;
-    @Autowired private BrightspaceLmsUtilsImpl brightspaceLmsUtils;
+    private final BrightspaceAdvantageAgsServiceImpl brightspaceAdvantageAgsService;
+    private final BrightspaceLmsOAuthServiceImpl brightspaceLmsOAuthService;
+    private final BrightspaceLmsUtilsImpl brightspaceLmsUtils;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

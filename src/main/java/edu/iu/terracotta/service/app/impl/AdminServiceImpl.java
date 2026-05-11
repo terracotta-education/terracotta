@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -22,19 +21,21 @@ import edu.iu.terracotta.dao.repository.AssignmentRepository;
 import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AdminService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@SuppressWarnings({"unused", "PMD.GuardLogStatement"})
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class AdminServiceImpl implements AdminService {
 
-    @Autowired private AdminUserRepository adminUserRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ConsentDocumentRepository consentDocumentRepository;
-    @Autowired private LtiMembershipRepository ltiMembershipRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private ApiClientImpl apiClient;
+    private final AdminUserRepository adminUserRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ConsentDocumentRepository consentDocumentRepository;
+    private final LtiMembershipRepository ltiMembershipRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final ApiClientImpl apiClient;
 
     @Override
     @Deprecated

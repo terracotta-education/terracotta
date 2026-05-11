@@ -1,6 +1,5 @@
 package edu.iu.terracotta.service.app.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -11,12 +10,14 @@ import edu.iu.terracotta.dao.model.dto.ConfigurationDto;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
 import edu.iu.terracotta.service.app.ConfigurationService;
 import edu.iu.terracotta.service.app.FeatureService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class ConfigurationServiceImpl implements ConfigurationService {
 
-    @Autowired private FeatureService featureService;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
+    private final FeatureService featureService;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
 
     @Value("${experiment.export.enabled:true}")
     private boolean experimentExportEnabled;

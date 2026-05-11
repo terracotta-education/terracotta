@@ -92,6 +92,7 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Jwts.SIG;
 import io.jsonwebtoken.Locator;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import edu.iu.terracotta.utils.LtiStrings;
@@ -100,7 +101,6 @@ import edu.iu.terracotta.utils.TextConstants;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.ResponseEntity;
@@ -125,6 +125,7 @@ import java.util.UUID;
 @Slf4j
 @Primary
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ApiJwtServiceImpl implements ApiJwtService {
 
@@ -133,37 +134,37 @@ public class ApiJwtServiceImpl implements ApiJwtService {
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
 
-    @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-    @Autowired private AnswerMcRepository answerMcRepository;
-    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ConditionRepository conditionRepository;
-    @Autowired private ExperimentImportRepository experimentImportRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExposureRepository exposureRepository;
-    @Autowired private GroupRepository groupRepository;
-    @Autowired private IntegrationRepository integrationRepository;
-    @Autowired private MessageConditionalTextRepository messageConditionalTextRepository;
-    @Autowired private MessageConfigurationRepository messageConfigurationRepository;
-    @Autowired private MessageContainerRepository messageContainerRepository;
-    @Autowired private MessageContainerConfigurationRepository messageContainerConfigurationRepository;
-    @Autowired private MessageContentRepository messageContentRepository;
-    @Autowired private MessageRepository messageRepository;
-    @Autowired private MessageRecipientRuleRepository messageRuleRepository;
-    @Autowired private MessageRecipientRuleSetRepository messageRuleSetRepository;
-    @Autowired private OutcomeRepository outcomeRepository;
-    @Autowired private OutcomeScoreRepository outcomeScoreRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
-    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
-    @Autowired private SubmissionCommentRepository submissionCommentRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AdminService adminService;
-    @Autowired private ConnectorService<ApiJwtService> connectorService;
-    @Autowired private LtiDataService ltiDataService;
+    private final AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    private final AnswerMcRepository answerMcRepository;
+    private final AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ConditionRepository conditionRepository;
+    private final ExperimentImportRepository experimentImportRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExposureRepository exposureRepository;
+    private final GroupRepository groupRepository;
+    private final IntegrationRepository integrationRepository;
+    private final MessageConditionalTextRepository messageConditionalTextRepository;
+    private final MessageConfigurationRepository messageConfigurationRepository;
+    private final MessageContainerRepository messageContainerRepository;
+    private final MessageContainerConfigurationRepository messageContainerConfigurationRepository;
+    private final MessageContentRepository messageContentRepository;
+    private final MessageRepository messageRepository;
+    private final MessageRecipientRuleRepository messageRuleRepository;
+    private final MessageRecipientRuleSetRepository messageRuleSetRepository;
+    private final OutcomeRepository outcomeRepository;
+    private final OutcomeScoreRepository outcomeScoreRepository;
+    private final ParticipantRepository participantRepository;
+    private final QuestionRepository questionRepository;
+    private final QuestionSubmissionCommentRepository questionSubmissionCommentRepository;
+    private final QuestionSubmissionRepository questionSubmissionRepository;
+    private final SubmissionCommentRepository submissionCommentRepository;
+    private final SubmissionRepository submissionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AdminService adminService;
+    private final ConnectorService<ApiJwtService> connectorService;
+    private final LtiDataService ltiDataService;
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;

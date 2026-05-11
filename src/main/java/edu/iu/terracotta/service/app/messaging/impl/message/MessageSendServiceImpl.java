@@ -20,7 +20,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -48,20 +47,22 @@ import edu.iu.terracotta.dao.repository.messaging.piped.PipedTextItemRepository;
 import edu.iu.terracotta.exceptions.messaging.MessageBodyParseException;
 import edu.iu.terracotta.service.app.messaging.MessageRuleComparisonService;
 import edu.iu.terracotta.service.app.messaging.MessageSendService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@RequiredArgsConstructor
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class MessageSendServiceImpl implements MessageSendService {
 
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private MessageConditionalTextRepository conditionalTextRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private PipedTextItemRepository pipedTextItemRepository;
-    @Autowired private MessageRuleComparisonService ruleComparisonService;
-    @Autowired private ApiClient apiClient;
-    @Autowired private LmsUtils lmsUtils;
+    private final LtiUserRepository ltiUserRepository;
+    private final MessageConditionalTextRepository conditionalTextRepository;
+    private final ParticipantRepository participantRepository;
+    private final PipedTextItemRepository pipedTextItemRepository;
+    private final MessageRuleComparisonService ruleComparisonService;
+    private final ApiClient apiClient;
+    private final LmsUtils lmsUtils;
 
     @Override
     public List<LtiUserEntity> getRecipients(Message message) throws ApiException, IOException, TerracottaConnectorException {

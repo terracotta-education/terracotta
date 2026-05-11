@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsFile;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
@@ -17,15 +16,17 @@ import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import edu.iu.terracotta.dao.model.dto.messaging.content.MessageContentAttachmentDto;
 import edu.iu.terracotta.dao.repository.messaging.content.MessageContentAttachmentRepository;
 import edu.iu.terracotta.service.app.messaging.MessageContentAttachmentService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference"})
 public class MessageContentAttachmentServiceImpl implements MessageContentAttachmentService {
 
-    @Autowired private MessageContentAttachmentRepository contentAttachmentRepository;
-    @Autowired private ApiClient apiClient;
+    private final MessageContentAttachmentRepository contentAttachmentRepository;
+    private final ApiClient apiClient;
 
     @Override
     public List<MessageContentAttachmentDto> get(MessageContent content) {

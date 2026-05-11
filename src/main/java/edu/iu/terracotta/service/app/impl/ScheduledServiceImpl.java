@@ -1,8 +1,8 @@
 package edu.iu.terracotta.service.app.impl;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -14,12 +14,13 @@ import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ScheduledServiceImpl {
 
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    @Autowired private ApiOneUseTokenRepository apiOneUseTokenRepository;
+    private final ApiOneUseTokenRepository apiOneUseTokenRepository;
 
     @Scheduled(cron = "${scheduled.deleteoldtokens.cron:0 0 1 * * ?}")
     public void deleteOldTokens() {

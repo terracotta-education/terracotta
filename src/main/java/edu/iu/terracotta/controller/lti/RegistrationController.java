@@ -13,9 +13,9 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.RegistrationService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpEntity;
@@ -50,12 +50,13 @@ import java.util.Optional;
 @Slf4j
 @Controller
 @Scope("session")
+@RequiredArgsConstructor
 @RequestMapping("/registration")
 public class RegistrationController {
 
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private RegistrationService registrationService;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final ApiJwtService apijwtService;
+    private final RegistrationService registrationService;
 
     @Value("${application.name}")
     private String clientName;

@@ -19,9 +19,9 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -42,16 +42,17 @@ import java.util.Optional;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"squid:S1192"})
 @RequestMapping(ConsentFileController.REQUEST_ROOT)
 public class ConsentFileController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/consent";
 
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private ExperimentService experimentService;
-    @Autowired private FileStorageService fileStorageService;
+    private final ExperimentRepository experimentRepository;
+    private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
+    private final FileStorageService fileStorageService;
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {AssignmentNotCreatedException.class, ApiException.class})

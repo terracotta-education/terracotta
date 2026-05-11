@@ -1,7 +1,6 @@
 package edu.iu.terracotta.service.app.dashboard.results.impl;
 
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -16,16 +15,18 @@ import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsDashboardService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOverviewService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class ResultsDashboardServiceImpl implements ResultsDashboardService {
 
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ResultsOutcomesService resultsOutcomesService;
-    @Autowired private ResultsOverviewService resultsOverviewService;
+    private final ExperimentRepository experimentRepository;
+    private final ResultsOutcomesService resultsOutcomesService;
+    private final ResultsOverviewService resultsOverviewService;
 
     @Override
     public ResultsDashboardDto overview(long experimentId, SecuredInfo securedInfo) throws ExperimentNotMatchingException {

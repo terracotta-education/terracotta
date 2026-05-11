@@ -12,7 +12,6 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+
 import java.security.Principal;
 import java.util.Optional;
 
@@ -29,12 +30,13 @@ import java.util.Optional;
  */
 @Controller
 @Scope("session")
+@RequiredArgsConstructor
 @RequestMapping("/membership")
 public class MembershipController {
 
-    @Autowired private LtiContextRepository ltiContextRepository;
-    @Autowired private ToolDeploymentRepository toolDeploymentRepository;
-    @Autowired private AdvantageMembershipService advantageMembershipService;
+    private final LtiContextRepository ltiContextRepository;
+    private final ToolDeploymentRepository toolDeploymentRepository;
+    private final AdvantageMembershipService advantageMembershipService;
 
     @RequestMapping({"", "/"})
     public String membershipGet(HttpServletRequest req, Principal principal, Model model) throws ConnectionException, TerracottaConnectorException {

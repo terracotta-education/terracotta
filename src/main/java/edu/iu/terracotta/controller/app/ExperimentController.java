@@ -16,9 +16,9 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -42,14 +42,15 @@ import java.util.List;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = ExperimentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ExperimentController {
 
     public static final String REQUEST_ROOT = "api/experiments";
 
-    @Autowired private ExperimentService experimentService;
-    @Autowired private ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
+    private final ApiJwtService apijwtService;
 
     /**
      * To show the experiment in a course (context) in a platform deployment.

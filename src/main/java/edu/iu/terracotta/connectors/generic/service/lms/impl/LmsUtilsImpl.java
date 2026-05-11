@@ -1,7 +1,6 @@
 package edu.iu.terracotta.connectors.generic.service.lms.impl;
 
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -9,12 +8,14 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
+import lombok.RequiredArgsConstructor;
 
 @Primary
 @Service
+@RequiredArgsConstructor
 public class LmsUtilsImpl implements LmsUtils {
 
-    @Autowired private ConnectorService<LmsUtils> connectorService;
+    private final ConnectorService<LmsUtils> connectorService;
 
     private LmsUtils instance(PlatformDeployment platformDeployment) throws TerracottaConnectorException {
         return connectorService.instance(platformDeployment, LmsUtils.class);

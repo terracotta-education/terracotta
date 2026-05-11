@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.dao.entity.messaging.message.Message;
@@ -12,12 +11,14 @@ import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRuleSet;
 import edu.iu.terracotta.dao.model.dto.messaging.recipient.MessageRecipientRuleSetDto;
 import edu.iu.terracotta.service.app.messaging.MessageRecipientRuleService;
 import edu.iu.terracotta.service.app.messaging.MessageRecipientRuleSetService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.LambdaCanBeMethodReference"})
 public class MessageRecipientRuleSetServiceImpl implements MessageRecipientRuleSetService {
 
-    @Autowired private MessageRecipientRuleService recipientRuleService;
+    private final MessageRecipientRuleService recipientRuleService;
 
     @Override
     public void create(MessageRecipientRuleSetDto recipientRuleSetDto, Message message) {

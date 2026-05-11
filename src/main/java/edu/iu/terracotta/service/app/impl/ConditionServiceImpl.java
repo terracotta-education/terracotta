@@ -11,10 +11,10 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
@@ -26,13 +26,14 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.PreserveStackTrace"})
 public class ConditionServiceImpl implements ConditionService {
 
     private static final int CONDITION_COUNT_ALLOWED = 16;
 
-    @Autowired private ConditionRepository conditionRepository;
-    @Autowired private ExperimentRepository experimentRepository;
+    private final ConditionRepository conditionRepository;
+    private final ExperimentRepository experimentRepository;
 
     @Override
     public List<ConditionDto> findAllByExperimentId(long experimentId) {

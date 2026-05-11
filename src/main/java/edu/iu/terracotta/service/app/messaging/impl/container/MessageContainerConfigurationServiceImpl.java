@@ -2,7 +2,6 @@ package edu.iu.terracotta.service.app.messaging.impl.container;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -18,17 +17,19 @@ import io.micrometer.common.util.StringUtils;
 import edu.iu.terracotta.service.app.ComponentUtils;
 import edu.iu.terracotta.service.app.messaging.MessageConfigurationService;
 import edu.iu.terracotta.service.app.messaging.MessageContainerConfigurationService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessageContainerConfigurationServiceImpl implements MessageContainerConfigurationService {
 
-    @Autowired private MessageContainerConfigurationRepository containerConfigurationRepository;
-    @Autowired private MessageEmailReplyToService messageEmailReplyToService;
-    @Autowired private MessageConfigurationService configurationService;
-    @Autowired private ComponentUtils componentUtils;
+    private final MessageContainerConfigurationRepository containerConfigurationRepository;
+    private final MessageEmailReplyToService messageEmailReplyToService;
+    private final MessageConfigurationService configurationService;
+    private final ComponentUtils componentUtils;
 
     @Override
     public void create(MessageContainer container, LtiUserEntity owner) {

@@ -1,4 +1,4 @@
-package edu.iu.terracotta.runner.messaging.configuration.model;
+package edu.iu.terracotta.runner.messaging.model;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;

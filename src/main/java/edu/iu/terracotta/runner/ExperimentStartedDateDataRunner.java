@@ -1,7 +1,6 @@
 package edu.iu.terracotta.runner;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
@@ -16,15 +15,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ExperimentStartedDateDataRunner implements ApplicationListener<ApplicationReadyEvent> {
 
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ExperimentRepository experimentRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExperimentRepository experimentRepository;
 
     @Value("${app.experiments.fix.start.dates.enabled:false}")
     private boolean enabled;

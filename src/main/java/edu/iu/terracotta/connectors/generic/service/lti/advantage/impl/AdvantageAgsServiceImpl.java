@@ -15,9 +15,9 @@ import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGe
 import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -37,12 +37,13 @@ import java.util.Objects;
 @Slf4j
 @Primary
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement", "PMD.UnusedPrivateMethod"})
 public class AdvantageAgsServiceImpl implements AdvantageAgsService {
 
-    @Autowired private ConnectorService<AdvantageAgsService> connectorService;
-    @Autowired private AdvantageConnectorHelper advantageConnectorHelper;
-    @Autowired private ExceptionMessageGenerator exceptionMessageGenerator;
+    private final ConnectorService<AdvantageAgsService> connectorService;
+    private final AdvantageConnectorHelper advantageConnectorHelper;
+    private final ExceptionMessageGenerator exceptionMessageGenerator;
 
     private AdvantageAgsService instance(LtiContextEntity ltiContextEntity) throws TerracottaConnectorException {
         return instance(ltiContextEntity.getToolDeployment().getPlatformDeployment());

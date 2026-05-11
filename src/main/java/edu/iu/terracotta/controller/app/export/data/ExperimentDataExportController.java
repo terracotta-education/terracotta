@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -33,18 +32,20 @@ import edu.iu.terracotta.exceptions.AssignmentFileArchiveNotFoundException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.service.app.export.data.ExperimentDataExportService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = ExperimentDataExportController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ExperimentDataExportController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/export/data";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private ExperimentDataExportService experimentDataExportService;
+    private final ApiJwtService apijwtService;
+    private final ExperimentDataExportService experimentDataExportService;
 
     @GetMapping
     public ResponseEntity<ExperimentDataExportDto> process(@PathVariable long experimentId, HttpServletRequest req)

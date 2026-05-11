@@ -66,16 +66,16 @@ import edu.iu.terracotta.service.app.integrations.IntegrationLaunchService;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 import jakarta.persistence.EntityManager;
@@ -91,7 +91,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
-@Component
+@Service
+@RequiredArgsConstructor
 @SuppressWarnings(
     {
         "rawtypes", "unchecked", "PMD.GuardLogStatement", "PMD.PreserveStackTrace",
@@ -102,30 +103,30 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     private static final int MAX_TITLE_LENGTH = 255;
 
-    @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-    @Autowired private AnswerFileSubmissionRepository answerFileSubmissionRepository;
-    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-    @Autowired private AssessmentRepository assessmentRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ApiTokenRepository apiTokenRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExposureRepository exposureRepository;
-    @Autowired private LtiContextRepository ltiContextRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private AssessmentService assessmentService;
-    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
-    @Autowired private CaliperService caliperService;
-    @Autowired private ComponentUtils componentUtils;
-    @Autowired private IntegrationLaunchService integrationLaunchService;
-    @Autowired private IntegrationTokenService integrationTokenService;
-    @Autowired private LmsUtils lmsUtils;
-    @Autowired private ParticipantService participantService;
-    @Autowired private SubmissionService submissionService;
-    @Autowired private ApiClient apiClient;
+    private final AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
+    private final AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ApiTokenRepository apiTokenRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExposureRepository exposureRepository;
+    private final LtiContextRepository ltiContextRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final SubmissionRepository submissionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final ApiJwtService apiJwtService;
+    private final AssessmentService assessmentService;
+    private final AssignmentTreatmentService assignmentTreatmentService;
+    private final CaliperService caliperService;
+    private final ComponentUtils componentUtils;
+    private final IntegrationLaunchService integrationLaunchService;
+    private final IntegrationTokenService integrationTokenService;
+    private final LmsUtils lmsUtils;
+    private final ParticipantService participantService;
+    private final SubmissionService submissionService;
+    private final ApiClient apiClient;
 
     @PersistenceContext private EntityManager entityManager;
 

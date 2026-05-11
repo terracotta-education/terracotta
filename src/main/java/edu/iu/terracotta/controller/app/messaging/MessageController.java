@@ -3,7 +3,6 @@ package edu.iu.terracotta.controller.app.messaging;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -45,21 +44,23 @@ import edu.iu.terracotta.service.app.messaging.MessageEmailService;
 import edu.iu.terracotta.service.app.messaging.MessagePreviewService;
 import edu.iu.terracotta.service.app.messaging.MessageService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = MessageController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class MessageController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/messaging/container/{containerUuid}/message";
 
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private MessageContentService contentService;
-    @Autowired private MessageEmailService messageEmailService;
-    @Autowired private MessagePreviewService previewService;
-    @Autowired private MessageService messageService;
+    private final ApiJwtService apiJwtService;
+    private final MessageContentService contentService;
+    private final MessageEmailService messageEmailService;
+    private final MessagePreviewService previewService;
+    private final MessageService messageService;
 
     @PutMapping("/{uuid}")
     public ResponseEntity<MessageDto> put(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessageDto messageDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {

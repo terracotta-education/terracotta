@@ -27,19 +27,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import java.util.UUID;
 
 @Slf4j
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 @Import(SecurityAutoConfiguration.class)
 public class WebSecurityConfig {
 
-    @Autowired private ApiJwtService apiJwtService;
-    @Autowired private ApiTokenService apiDataService;
-    @Autowired private LtiDataService ltiDataService;
-    @Autowired private LtiJwtService ltijwtService;
+    private final ApiJwtService apiJwtService;
+    private final ApiTokenService apiDataService;
+    private final LtiDataService ltiDataService;
+    private final LtiJwtService ltijwtService;
 
     @Value("${terracotta.admin.user:admin}")
     private String adminUser;

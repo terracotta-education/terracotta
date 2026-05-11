@@ -1,7 +1,6 @@
 package edu.iu.terracotta.config;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -10,6 +9,7 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -18,15 +18,14 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ApplicationConfig implements ApplicationContextAware {
 
     private static final Object contextLock = new Object();
     private static final Object configLock = new Object();
 
-    @Getter
-    @Autowired
-    private ConfigurableEnvironment environment;
+    @Getter private final ConfigurableEnvironment environment;
 
     @Getter private static ApplicationContext context;
     private static ApplicationConfig config;

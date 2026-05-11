@@ -17,10 +17,10 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.lti.Lti3Request;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,18 +36,17 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class LtiDataServiceImpl implements LtiDataService {
 
-    @Autowired private LtiContextRepository ltiContextRepository;
-    @Autowired private LtiLinkRepository ltiLinkRepository;
-    @Autowired private LtiMembershipRepository ltiMembershipRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private ToolDeploymentRepository toolDeploymentRepository;
+    private final LtiContextRepository ltiContextRepository;
+    private final LtiLinkRepository ltiLinkRepository;
+    private final LtiMembershipRepository ltiMembershipRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final ToolDeploymentRepository toolDeploymentRepository;
 
-    @Getter
-    @Autowired
-    private PlatformDeploymentRepository platformDeploymentRepository;
+    @Getter private final PlatformDeploymentRepository platformDeploymentRepository;
 
     @PersistenceContext private EntityManager entityManager;
 

@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,18 +28,20 @@ import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private ApiClient apiClient;
-    @Autowired private FeatureService featureService;
-    @Autowired private LmsUtils lmsUtils;
+    private final ExperimentRepository experimentRepository;
+    private final ParticipantRepository participantRepository;
+    private final ApiClient apiClient;
+    private final FeatureService featureService;
+    private final LmsUtils lmsUtils;
 
     @Async
     @Override

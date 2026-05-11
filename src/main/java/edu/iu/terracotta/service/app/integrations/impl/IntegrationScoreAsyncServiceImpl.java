@@ -1,7 +1,6 @@
 package edu.iu.terracotta.service.app.integrations.impl;
 
 import java.io.IOException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,15 +13,17 @@ import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.integrations.IntegrationScoreAsyncService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class IntegrationScoreAsyncServiceImpl implements IntegrationScoreAsyncService {
 
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private SubmissionService submissionService;
+    private final SubmissionRepository submissionRepository;
+    private final SubmissionService submissionService;
 
     @Async
     @Override

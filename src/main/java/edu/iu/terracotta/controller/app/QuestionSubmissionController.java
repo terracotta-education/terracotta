@@ -26,9 +26,9 @@ import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.utils.TextConstants;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -56,15 +56,16 @@ import java.util.Map;
 
 @Slf4j
 @Controller
+@RequiredArgsConstructor
 @SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = QuestionSubmissionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class QuestionSubmissionController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions";
 
-    @Autowired private ApiJwtService apijwtService;
-    @Autowired private QuestionSubmissionService questionSubmissionService;
-    @Autowired private SubmissionService submissionService;
+    private final ApiJwtService apijwtService;
+    private final QuestionSubmissionService questionSubmissionService;
+    private final SubmissionService submissionService;
 
     @GetMapping({"", "/"})
     public ResponseEntity<List<QuestionSubmissionDto>> getQuestionSubmissionsBySubmission(@PathVariable long experimentId,

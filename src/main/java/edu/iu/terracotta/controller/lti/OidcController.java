@@ -7,9 +7,9 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymen
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LtiOidcUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
@@ -39,6 +39,7 @@ import java.util.UUID;
 @Slf4j
 @Controller
 @Scope("session")
+@RequiredArgsConstructor
 @RequestMapping("/oidc/login_initiations")
 @SuppressWarnings({"unchecked", "PMD.LooseCoupling"})
 public class OidcController {
@@ -51,8 +52,8 @@ public class OidcController {
     private static final String CLIENT_ID = "client_id";
     private static final String DEPLOYMENT_ID = "lti_deployment_id";
 
-    @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
-    @Autowired private LtiDataService ltiDataService;
+    private final PlatformDeploymentRepository platformDeploymentRepository;
+    private final LtiDataService ltiDataService;
 
     @Value("${app.lti.data.verbose.logging.enabled:false}")
     private boolean ltiDataVerboseLoggingEnabled;

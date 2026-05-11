@@ -22,7 +22,6 @@ import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,16 +41,18 @@ import edu.iu.terracotta.exceptions.messaging.MessagePipedTextFileUploadExceptio
 import edu.iu.terracotta.exceptions.messaging.MessagePipedTextValidationException;
 import edu.iu.terracotta.service.app.messaging.MessagePipedTextItemService;
 import edu.iu.terracotta.service.app.messaging.MessagePipedTextService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessagePipedTextServiceImpl implements MessagePipedTextService {
 
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private PipedTextRepository pipedTextRepository;
-    @Autowired private MessagePipedTextItemService pipedTextItemService;
+    private final LtiUserRepository ltiUserRepository;
+    private final PipedTextRepository pipedTextRepository;
+    private final MessagePipedTextItemService pipedTextItemService;
 
     @Override
     public void create(MessagePipedTextDto pipedTextDto, MessageContent content) {

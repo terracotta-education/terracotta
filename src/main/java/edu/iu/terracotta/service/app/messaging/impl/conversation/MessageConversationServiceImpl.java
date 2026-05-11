@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -27,18 +26,20 @@ import edu.iu.terracotta.exceptions.messaging.MessageSendConversationException;
 import edu.iu.terracotta.service.app.messaging.MessageConversationService;
 import edu.iu.terracotta.service.app.messaging.MessageRuleComparisonService;
 import edu.iu.terracotta.service.app.messaging.MessageSendService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessageConversationServiceImpl implements MessageConversationService {
 
-    @Autowired private MessageLogRepository messageLogRepository;
-    @Autowired private ApiClient apiClient;
-    @Autowired private LmsUtils lmsUtils;
-    @Autowired private MessageSendService messageSendService;
-    @Autowired private MessageRuleComparisonService ruleComparisonService;
+    private final MessageLogRepository messageLogRepository;
+    private final ApiClient apiClient;
+    private final LmsUtils lmsUtils;
+    private final MessageSendService messageSendService;
+    private final MessageRuleComparisonService ruleComparisonService;
 
     @Override
     public void send(Message message) throws MessageNotMatchingException, MessageSendConversationException, TerracottaConnectorException {

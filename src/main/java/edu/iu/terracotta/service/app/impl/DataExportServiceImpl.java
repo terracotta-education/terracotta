@@ -58,6 +58,7 @@ import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.aws.AwsService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -68,7 +69,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.PageRequest;
@@ -97,34 +97,35 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class DataExportServiceImpl implements DataExportService {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private static final String NA = "N/A";
 
-    @Autowired private AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
-    @Autowired private AnswerMcRepository answerMcRepository;
-    @Autowired private AnswerMcSubmissionRepository answerMcSubmissionRepository;
-    @Autowired private AssignmentRepository assignmentRepository;
-    @Autowired private ConditionRepository conditionRepository;
-    @Autowired private EventRepository eventRepository;
-    @Autowired private ExperimentRepository experimentRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private LtiUserRepository ltiUserRepository;
-    @Autowired private OutcomeRepository outcomeRepository;
-    @Autowired private OutcomeScoreRepository outcomeScoreRepository;
-    @Autowired private ParticipantRepository participantRepository;
-    @Autowired private QuestionRepository questionRepository;
-    @Autowired private QuestionSubmissionRepository questionSubmissionRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private TreatmentRepository treatmentRepository;
-    @Autowired private AssignmentTreatmentService assignmentTreatmentService;
-    @Autowired private AwsService awsService;
-    @Autowired private Environment env;
-    @Autowired private OutcomeService outcomeService;
-    @Autowired private ParticipantService participantService;
-    @Autowired private SubmissionService submissionService;
+    private final AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    private final AnswerMcRepository answerMcRepository;
+    private final AnswerMcSubmissionRepository answerMcSubmissionRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ConditionRepository conditionRepository;
+    private final EventRepository eventRepository;
+    private final ExperimentRepository experimentRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final LtiUserRepository ltiUserRepository;
+    private final OutcomeRepository outcomeRepository;
+    private final OutcomeScoreRepository outcomeScoreRepository;
+    private final ParticipantRepository participantRepository;
+    private final QuestionRepository questionRepository;
+    private final QuestionSubmissionRepository questionSubmissionRepository;
+    private final SubmissionRepository submissionRepository;
+    private final TreatmentRepository treatmentRepository;
+    private final AssignmentTreatmentService assignmentTreatmentService;
+    private final AwsService awsService;
+    private final Environment env;
+    private final OutcomeService outcomeService;
+    private final ParticipantService participantService;
+    private final SubmissionService submissionService;
 
     @Value("${app.export.batch.size:50}")
     private int exportBatchSize;
