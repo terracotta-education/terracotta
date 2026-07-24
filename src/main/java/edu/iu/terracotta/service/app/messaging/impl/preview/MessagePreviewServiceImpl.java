@@ -90,7 +90,7 @@ public class MessagePreviewServiceImpl implements MessagePreviewService {
                 Collectors.toMap(
                     Map.Entry::getKey,
                     entry -> entry.getValue().stream()
-                        .filter(lmsSubmission -> Strings.CI.equals(lmsSubmission.getUserLoginId(), participant.getLtiUserEntity().getEmail()))
+                        .filter(lmsSubmission -> Strings.CI.equals(lmsSubmission.getUserId(), participant.getLtiUserEntity().getLmsUserId()))
                         .toList()
                 )
             );
