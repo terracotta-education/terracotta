@@ -23,7 +23,6 @@ import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsSe
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.Assignment;
-import edu.iu.terracotta.dao.entity.Condition;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.Submission;
@@ -34,7 +33,6 @@ import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.dto.UserDto;
-import edu.iu.terracotta.dao.model.enums.DistributionTypes;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
 import edu.iu.terracotta.dao.repository.AssignmentRepository;
 import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
@@ -78,7 +76,7 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.UselessParentheses", "PMD.GuardLogStatement", "PMD.PreserveStackTrace", "squid:S112", "squid:S1066"})
+@SuppressWarnings({"PMD.LooseCoupling", "PMD.UselessParentheses", "PMD.GuardLogStatement", "PMD.PreserveStackTrace", "squid:S112", "squid:S1066"})
 public class ParticipantServiceImpl implements ParticipantService {
 
     private final AssignmentRepository assignmentRepository;
@@ -783,16 +781,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         // 2. Check if the student is in a group (and if not assign it to the right one if consent is true)
         if (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null) {
-            if (DistributionTypes.CUSTOM.equals(experiment.getDistributionType())) {
-                for (Condition condition : experiment.getConditions()) {
-                    if (BooleanUtils.isTrue(condition.getDefaultCondition())) {
-                        participant.setGroup(groupParticipantService.getUniqueGroupByConditionId(experiment.getExperimentId(), securedInfo.getLmsAssignmentId(), condition.getConditionId()));
-                        break;
-                    }
-                }
-            } else { // We assign it to the more unbalanced group (if consent is true)
-                participant.setGroup(groupParticipantService.nextGroup(experiment));
-            }
+            participant.setGroup(groupParticipantService.nextGroup(experiment));
         }
 
         return participantRepository.save(participant);
