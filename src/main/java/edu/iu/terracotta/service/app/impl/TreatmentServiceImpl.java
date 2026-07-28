@@ -79,12 +79,15 @@ public class TreatmentServiceImpl implements TreatmentService {
 
         List<TreatmentDto> treatmentDtoList = new ArrayList<>();
 
-        for (Treatment treatment : treatments) {
-            // Only add assignment DTO attributes when an instructor user
-            if (instructorUser != null) {
-                assignmentTreatmentService.setAssignmentDtoAttrs(treatment.getAssignment(), securedInfo.getLmsCourseId(), instructorUser);
-            }
+        if (instructorUser != null) {
+            // one LMS call for all assignments instead of one call per treatment
+            assignmentTreatmentService.setAssignmentDtoAttrs(
+                treatments.stream().map(Treatment::getAssignment).toList(),
+                instructorUser
+            );
+        }
 
+        for (Treatment treatment : treatments) {
             treatmentDtoList.add(assignmentTreatmentService.toTreatmentDto(treatment, submissions, true, securedInfo));
         }
 

@@ -14,7 +14,7 @@ import java.io.InputStream;
 @Component
 public class AwsServiceImpl implements AwsService {
 
-    @Value("${aws.region:US_EAST_1}")
+    @Value("${aws.region:us-east-1}")
     private String region;
 
     @Value("${aws.enabled:true}")

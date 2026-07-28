@@ -6,7 +6,6 @@ import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.entity.Assignment;
-import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
@@ -196,12 +195,11 @@ public class StepsController {
             case LAUNCH_CONSENT_ASSIGNMENT:
                 if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
                     // Return this student's participant record, refreshing the list of participants if necessary
-                    List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
-                    List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), true, securedInfo);
+                    List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(experimentId, securedInfo.getUserId(), true, securedInfo, false);
 
                     if (studentUserAsParticipant.isEmpty()) {
-                        participantService.refreshParticipants(experimentId, currentParticipantList);
-                        studentUserAsParticipant = participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), true, securedInfo);
+                        participantService.refreshParticipants(experimentId);
+                        studentUserAsParticipant = participantService.getParticipants(experimentId, securedInfo.getUserId(), true, securedInfo, false);
                     }
 
                     return new ResponseEntity<>(studentUserAsParticipant.get(0), HttpStatus.OK);

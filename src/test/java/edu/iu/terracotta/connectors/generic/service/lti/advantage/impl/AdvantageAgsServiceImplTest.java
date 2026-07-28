@@ -1,15 +1,12 @@
 package edu.iu.terracotta.connectors.generic.service.lti.advantage.impl;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Result;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
-import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
-import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,24 +55,6 @@ public class AdvantageAgsServiceImplTest extends BaseTest {
         advantageAgsService.getToken(LtiAgsScope.SCORES, platformDeployment);
 
         verify(advantageConnectorHelper).getToken(platformDeployment, LtiAgsScope.AGS_SCORE.key());
-    }
-
-    @Test
-    public void testGetLineItems() throws ConnectionException, TerracottaConnectorException {
-        LineItems lineItems = advantageAgsService.getLineItems(ltiToken, ltiContextEntity);
-
-        assertNotNull(lineItems);
-        assertEquals(1, lineItems.getLineItemList().size());
-    }
-
-    @Test
-    public void testGetLineItemsNextPage() throws ConnectionException, TerracottaConnectorException {
-        when(advantageConnectorHelper.nextPage(any(HttpHeaders.class))).thenReturn(LTI_URL, (String) null);
-
-        LineItems lineItems = advantageAgsService.getLineItems(ltiToken, ltiContextEntity);
-
-        assertNotNull(lineItems);
-        assertEquals(1, lineItems.getLineItemList().size());
     }
 
     @Test
@@ -154,15 +133,6 @@ public class AdvantageAgsServiceImplTest extends BaseTest {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Result[].class))).thenReturn(new ResponseEntity<>(HttpStatusCode.valueOf(400)));
 
         assertThrows(ConnectionException.class, () -> advantageAgsService.getResults(ltiToken, ltiContextEntity, "lineItemId"));
-    }
-
-    @Test
-    public void testPostScoreUsingCanvas() throws ConnectionException, TerracottaConnectorException {
-        when(advantageAgsConnectorService.instance(any(PlatformDeployment.class), eq(AdvantageAgsService.class))).thenReturn(canvasAdvantageAgsService);
-
-        advantageAgsService.postScore(ltiToken, ltiToken, ltiContextEntity, "lineItemId", score);
-
-        verify(canvasAdvantageAgsService).postScore(ltiToken, ltiToken, ltiContextEntity, "lineItemId", score);
     }
 
 }

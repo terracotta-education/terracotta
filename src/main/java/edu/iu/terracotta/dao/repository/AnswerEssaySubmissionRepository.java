@@ -13,6 +13,8 @@ import java.util.List;
 public interface AnswerEssaySubmissionRepository extends JpaRepository<AnswerEssaySubmission, Long> {
 
     List<AnswerEssaySubmission> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
+    List<AnswerEssaySubmission> findByQuestionSubmission_QuestionSubmissionIdIn(List<Long> questionSubmissionIds);
+    long countByQuestionSubmission_QuestionSubmissionIdIn(List<Long> questionSubmissionIds);
     AnswerEssaySubmission findByAnswerEssaySubmissionId(Long answerEssaySubmissionId);
     boolean existsByQuestionSubmission_QuestionSubmissionIdAndAnswerEssaySubmissionId(Long questionSubmissionId, Long answerEssaySubmissionId);
 

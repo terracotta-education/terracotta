@@ -112,12 +112,14 @@ public class LtiConfigurationController {
         platformDeploymentToChange.setEnableAutomaticDeployments(platformDeployment.getEnableAutomaticDeployments());
 
         // add any missing ToolDeployments
-        for (ToolDeployment toolDeployment : platformDeployment.getToolDeployments()) {
-            if (platformDeploymentToChange.getToolDeployments().stream()
-                    .noneMatch(td -> td.getLtiDeploymentId().equals(toolDeployment.getLtiDeploymentId()))) {
-                toolDeployment.setPlatformDeployment(platformDeploymentToChange);
-                ToolDeployment savedToolDeployment = toolDeploymentRepository.save(toolDeployment);
-                platformDeploymentToChange.getToolDeployments().add(savedToolDeployment);
+        if (platformDeployment.getToolDeployments() != null) {
+            for (ToolDeployment toolDeployment : platformDeployment.getToolDeployments()) {
+                if (platformDeploymentToChange.getToolDeployments().stream()
+                        .noneMatch(td -> td.getLtiDeploymentId().equals(toolDeployment.getLtiDeploymentId()))) {
+                    toolDeployment.setPlatformDeployment(platformDeploymentToChange);
+                    ToolDeployment savedToolDeployment = toolDeploymentRepository.save(toolDeployment);
+                    platformDeploymentToChange.getToolDeployments().add(savedToolDeployment);
+                }
             }
         }
 

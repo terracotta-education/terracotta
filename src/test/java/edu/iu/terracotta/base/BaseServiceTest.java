@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -122,6 +123,13 @@ public class BaseServiceTest extends BaseRepositoryTest {
     @Mock protected AdvantageMembershipService advantageMembershipService;
     @Mock protected AnswerService answerService;
     @Mock protected AnswerSubmissionService answerSubmissionService;
+    // @InjectMocks pitfall: canvasApiClient/canvasApiJwtService below also implement ApiClient/ApiJwtService,
+    // and brightspaceLmsUtils below also implements LmsUtils, so a class under test with a constructor
+    // parameter typed ApiClient, ApiJwtService, or LmsUtils has two type-matching mock candidates here.
+    // Mockito's constructor-injection strategy matches by type only (no field-name tiebreak), so
+    // @InjectMocks can silently wire the wrong one. If the class under test depends on ApiClient,
+    // ApiJwtService, or LmsUtils directly, construct it manually in the test instead of relying on
+    // @InjectMocks, e.g.: `new XServiceImpl(apiClient, apiJwtService, lmsUtils, ...)`.
     @Mock protected ApiClient apiClient;
     @Mock protected ApiJwtService apiJwtService;
     @Mock protected ApiOAuthSettings apiOAuthSettings;
@@ -197,7 +205,8 @@ public class BaseServiceTest extends BaseRepositoryTest {
             when(advantageConnectorHelper.createTokenizedRequestEntity(any(LtiToken.class), any(LineItem.class))).thenReturn(lineItemHttpEntity);
             when(advantageConnectorHelper.createTokenizedRequestEntity(any(LtiToken.class), any(LineItems.class))).thenReturn(lineItemsHttpEntity);
             when(advantageConnectorHelper.nextPage(any(HttpHeaders.class))).thenReturn(null);
-            when(advantageMembershipService.callMembershipService(any(LtiToken.class), any(LtiContextEntity.class))).thenReturn(courseUsers);
+            when(advantageMembershipService.callMembershipService(any(LtiToken.class), any(LtiContextEntity.class), any(UUID.class))).thenReturn(courseUsers);
+            when(advantageMembershipService.callMembershipService(any(LtiToken.class), any(LtiContextEntity.class), any(UUID.class), anyBoolean())).thenReturn(courseUsers);
             when(advantageMembershipService.getToken(any(PlatformDeployment.class))).thenReturn(ltiToken);
             when(answerService.postAnswerMC(any(AnswerDto.class), anyLong())).thenReturn(answerDto);
             when(apiClient.createLmsAssignment(any(LtiUserEntity.class), any(Assignment.class), anyString())).thenReturn(lmsAssignment);
@@ -261,7 +270,6 @@ public class BaseServiceTest extends BaseRepositoryTest {
             when(integrationTokenService.findByToken(anyString())).thenReturn(integrationToken);
             when(integrationTokenService.redeemToken(anyString())).thenReturn(integrationToken);
             when(lmsUtils.parseCourseId(any(PlatformDeployment.class), anyString())).thenReturn("courseId");
-            when(participantService.refreshParticipants(anyLong(), anyList())).thenReturn(List.of(participant));
             when(questionService.getQuestion(anyLong())).thenReturn(question);
             when(questionService.postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean())).thenReturn(questionDto);
             when(questionService.save(any(Question.class))).thenReturn(question);
@@ -272,6 +280,7 @@ public class BaseServiceTest extends BaseRepositoryTest {
             when(resultsOutcomesTimeOnTaskService.conditions(any(Experiment.class), anyList(), anyList(), anyMap(), anyList(), anyMap(), anyList())).thenReturn(outcomesConditions);
             when(resultsOutcomesTimeOnTaskService.exposures(any(Experiment.class), anyList(), anyList(), anyMap(), anyList(), anyList())).thenReturn(outcomesExposures);
             when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
+            when(submissionService.getScoresFromMultipleSubmissions(anyList(), any(Assessment.class))).thenReturn(Map.of(1L, 1F));
             when(submissionService.getSubmissionScore(any(Submission.class))).thenReturn(1F);
         } catch (Exception e) {
             log.error("Exception occurred in BaseServiceTest setup()", e);

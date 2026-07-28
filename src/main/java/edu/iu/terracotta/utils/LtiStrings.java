@@ -7,6 +7,7 @@ public final class LtiStrings {
 
     public static final int ROLE_STUDENT = 0;
     public static final int ROLE_INSTRUCTOR = 1;
+    public static final int ROLE_ADMIN = 2;
 
     //Those are used by the session.
     public static final String LTI_SESSION_USER_ID = "user_id";

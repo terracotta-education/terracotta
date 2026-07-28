@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
@@ -14,7 +15,10 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageAgsService;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.dao.entity.AnswerEssaySubmission;
+import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.AnswerMc;
+import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
 import edu.iu.terracotta.dao.entity.AnswerMcSubmissionOption;
 import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Assignment;
@@ -34,8 +38,11 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundExc
 import edu.iu.terracotta.dao.model.dto.SubmissionDto;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.dao.model.enums.RegradeOption;
+import edu.iu.terracotta.dao.repository.AnswerEssaySubmissionRepository;
+import edu.iu.terracotta.dao.repository.AnswerFileSubmissionRepository;
 import edu.iu.terracotta.dao.repository.AnswerMcRepository;
 import edu.iu.terracotta.dao.repository.AnswerMcSubmissionOptionRepository;
+import edu.iu.terracotta.dao.repository.AnswerMcSubmissionRepository;
 import edu.iu.terracotta.dao.repository.AssessmentRepository;
 import edu.iu.terracotta.dao.repository.AssignmentRepository;
 import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
@@ -83,6 +90,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -90,8 +98,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions", "PMD.LooseCoupling"})
 public class SubmissionServiceImpl implements SubmissionService {
 
+    private final AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
+    private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
     private final AnswerMcRepository answerMcRepository;
     private final AnswerMcSubmissionOptionRepository answerMcSubmissionOptionRepository;
+    private final AnswerMcSubmissionRepository answerMcSubmissionRepository;
     private final AssessmentRepository assessmentRepository;
     private final AssignmentRepository assignmentRepository;
     private final ExposureGroupConditionRepository exposureGroupConditionRepository;
@@ -249,7 +260,12 @@ public class SubmissionServiceImpl implements SubmissionService {
             integrationLaunchService.buildUrl(submission, 0, submission.getIntegration());
             submissionDto.setIntegrationLaunchUrl(submission.getIntegrationLaunchUrl());
             submissionDto.setIntegrationFeedbackEnabled(submission.isIntegrationFeedbackEnabled());
-            submissionDto.setIntegrationTokenExpirationDate(submission.getIntegrationTokenLaunchedAt().getTime() + (integrationTokenTtl * 1000));
+
+            // integrationTokenLaunchedAt is null until the integration token has actually been launched
+            if (submission.getIntegrationTokenLaunchedAt() != null) {
+                submissionDto.setIntegrationTokenExpirationDate(submission.getIntegrationTokenLaunchedAt().getTime() + (integrationTokenTtl * 1000));
+            }
+
             submissionDto.setIntegrationTokenWarningPeriod(integrationTokenWarningPeriod * 1000);
             submissionDto.setIntegrationTokenExpirationCheckInterval(integrationTokenExpirationCheckInterval * 1000);
         }
@@ -261,12 +277,31 @@ public class SubmissionServiceImpl implements SubmissionService {
             // submissions (so the frontend can tell whether it needs to create or update
             // answer submissions)
             boolean hasSubmitted = submission.getDateSubmitted() != null;
+            boolean includeAnswerSubmissions = !hasSubmitted;
+            List<Long> questionSubmissionIds = questionSubmissionList.stream()
+                .map(QuestionSubmission::getQuestionSubmissionId)
+                .toList();
+
+            // one query per collection for all question submissions instead of one query per collection per question submission
+            Map<Long, List<AnswerMcSubmission>> mcAnswersCache = includeAnswerSubmissions
+                ? answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds).stream()
+                    .collect(Collectors.groupingBy(answer -> answer.getQuestionSubmission().getQuestionSubmissionId()))
+                : Collections.emptyMap();
+            Map<Long, List<AnswerEssaySubmission>> essayAnswersCache = includeAnswerSubmissions
+                ? answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds).stream()
+                    .collect(Collectors.groupingBy(answer -> answer.getQuestionSubmission().getQuestionSubmissionId()))
+                : Collections.emptyMap();
+            Map<Long, List<AnswerFileSubmission>> fileAnswersCache = includeAnswerSubmissions
+                ? answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds).stream()
+                    .collect(Collectors.groupingBy(answer -> answer.getQuestionSubmission().getQuestionSubmissionId()))
+                : Collections.emptyMap();
+
             submissionDto.setQuestionSubmissionDtoList(
                 questionSubmissionList.stream()
                     .map(
                         questionSubmission -> {
                             try {
-                                return questionSubmissionService.toDto(questionSubmission, !hasSubmitted, false);
+                                return questionSubmissionService.toDto(questionSubmission, includeAnswerSubmissions, false, Collections.emptyMap(), mcAnswersCache, essayAnswersCache, fileAnswersCache);
                             } catch (Exception e) {
                                 return null;
                             }
@@ -402,30 +437,38 @@ public class SubmissionServiceImpl implements SubmissionService {
         final Submission newSubmission = save(submission);
 
         // for each randomized MC question, create a QuestionSubmission and randomized list of AnswerMcSubmissionOptions
+        List<QuestionSubmission> questionSubmissionsToSave = new ArrayList<>();
+        List<AnswerMcSubmissionOption> answerOptionsToSave = new ArrayList<>();
+
         assessment.getQuestions().stream()
-            .filter(
-                question -> {
-                    return question.getQuestionType() == QuestionTypes.MC && ((QuestionMc) question).isRandomizeAnswers();
-                })
+            .filter(question -> question.getQuestionType() == QuestionTypes.MC && ((QuestionMc) question).isRandomizeAnswers())
             .forEach(
                 question -> {
                     QuestionSubmission questionSubmission = new QuestionSubmission();
                     questionSubmission.setQuestion(question);
                     questionSubmission.setSubmission(newSubmission);
-                    final QuestionSubmission newQuestionSubmission = questionSubmissionRepository.save(questionSubmission);
-                    List<AnswerMc> answers = answerMcRepository.findByQuestion_QuestionId(question.getQuestionId());
-                    Collections.shuffle(answers);
-                    AtomicInteger order = new AtomicInteger(0);
-
-                    answers.forEach(
-                        answerMc -> {
-                            AnswerMcSubmissionOption answerMcSubmissionOption = new AnswerMcSubmissionOption();
-                            answerMcSubmissionOption.setAnswerMc(answerMc);
-                            answerMcSubmissionOption.setAnswerOrder(order.getAndIncrement());
-                            answerMcSubmissionOption.setQuestionSubmission(newQuestionSubmission);
-                            answerMcSubmissionOptionRepository.save(answerMcSubmissionOption);
-                        });
+                    questionSubmissionsToSave.add(questionSubmission);
                 });
+
+        List<QuestionSubmission> savedQuestionSubmissions = questionSubmissionRepository.saveAll(questionSubmissionsToSave);
+
+        savedQuestionSubmissions.forEach(
+            savedQs -> {
+                List<AnswerMc> answers = answerMcRepository.findByQuestion_QuestionId(savedQs.getQuestion().getQuestionId());
+                Collections.shuffle(answers);
+                AtomicInteger order = new AtomicInteger(0);
+
+                answers.forEach(
+                    answerMc -> {
+                        AnswerMcSubmissionOption answerMcSubmissionOption = new AnswerMcSubmissionOption();
+                        answerMcSubmissionOption.setAnswerMc(answerMc);
+                        answerMcSubmissionOption.setAnswerOrder(order.getAndIncrement());
+                        answerMcSubmissionOption.setQuestionSubmission(savedQs);
+                        answerOptionsToSave.add(answerMcSubmissionOption);
+                    });
+            });
+
+        answerMcSubmissionOptionRepository.saveAll(answerOptionsToSave);
 
         setAssignmentStart(assessment.getTreatment().getAssignment(), securedInfo);
         integrationTokenService.create(newSubmission, securedInfo);
@@ -448,12 +491,45 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     @Override
     public void sendSubmissionGradeToLmsWithLti(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
+        PlatformDeployment platformDeployment = submission.getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment();
+        LtiToken ltiTokenScore = advantageAgsService.getToken(LtiAgsScope.SCORES, platformDeployment);
+        LtiToken ltiTokenResults = advantageAgsService.getToken(LtiAgsScope.RESULTS, platformDeployment);
+
+        sendSubmissionGradeToLmsWithLti(submission, studentSubmission, ltiTokenScore, ltiTokenResults);
+    }
+
+    @Override
+    public void sendSubmissionGradesToLmsWithLti(List<Submission> submissions, boolean studentSubmission) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
+        Map<Long, LtiToken> scoreTokensByPlatformDeploymentId = new HashMap<>();
+        Map<Long, LtiToken> resultsTokensByPlatformDeploymentId = new HashMap<>();
+
+        for (Submission submission : submissions) {
+            PlatformDeployment platformDeployment = submission.getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment();
+            long platformDeploymentId = platformDeployment.getKeyId();
+
+            LtiToken ltiTokenScore = scoreTokensByPlatformDeploymentId.get(platformDeploymentId);
+
+            if (ltiTokenScore == null) {
+                ltiTokenScore = advantageAgsService.getToken(LtiAgsScope.SCORES, platformDeployment);
+                scoreTokensByPlatformDeploymentId.put(platformDeploymentId, ltiTokenScore);
+            }
+
+            LtiToken ltiTokenResults = resultsTokensByPlatformDeploymentId.get(platformDeploymentId);
+
+            if (ltiTokenResults == null) {
+                ltiTokenResults = advantageAgsService.getToken(LtiAgsScope.RESULTS, platformDeployment);
+                resultsTokensByPlatformDeploymentId.put(platformDeploymentId, ltiTokenResults);
+            }
+
+            sendSubmissionGradeToLmsWithLti(submission, studentSubmission, ltiTokenScore, ltiTokenResults);
+        }
+    }
+
+    private void sendSubmissionGradeToLmsWithLti(Submission submission, boolean studentSubmission, LtiToken ltiTokenScore, LtiToken ltiTokenResults) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
         //We need, the assignment, and the iss configuration...
         Assessment assessment = submission.getAssessment();
         Assignment assignment = assessment.getTreatment().getAssignment();
         Experiment experiment = assignment.getExposure().getExperiment();
-        LtiToken ltiTokenScore = advantageAgsService.getToken(LtiAgsScope.SCORES, experiment.getPlatformDeployment());
-        LtiToken ltiTokenResults = advantageAgsService.getToken(LtiAgsScope.RESULTS, experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         String lineitemId = lineItemId(assignment);
 
@@ -523,6 +599,37 @@ public class SubmissionServiceImpl implements SubmissionService {
         List<Submission> submissionList = submissionRepository.findByParticipant_IdAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
                 participant.getParticipantId(), assessment.getAssessmentId());
 
+        return computeScoreFromSubmissions(submissionList, assessment);
+    }
+
+    @Override
+    public Map<Long, Float> getScoresFromMultipleSubmissions(List<Participant> participants, Assessment assessment) {
+        List<Long> participantIds = participants.stream()
+            .map(Participant::getParticipantId)
+            .toList();
+
+        Map<Long, List<Submission>> submissionsByParticipantId = submissionRepository.findByParticipant_IdInAndAssessment_AssessmentIdAndDateSubmittedNotNullOrderByDateSubmitted(
+                participantIds, assessment.getAssessmentId()).stream()
+            .collect(Collectors.groupingBy(submission -> submission.getParticipant().getParticipantId()));
+
+        Map<Long, Float> scoresByParticipantId = new HashMap<>();
+
+        for (Long participantId : participantIds) {
+            Float score = computeScoreFromSubmissions(submissionsByParticipantId.getOrDefault(participantId, Collections.emptyList()), assessment);
+
+            if (score != null) {
+                scoresByParticipantId.put(participantId, score);
+            }
+        }
+
+        return scoresByParticipantId;
+    }
+
+    private Float computeScoreFromSubmissions(List<Submission> submissionList, Assessment assessment) {
+        if (CollectionUtils.isEmpty(submissionList)) {
+            return null;
+        }
+
         // Handle case where only one submission is allowed
         if (assessment.getNumOfSubmissions() != null && assessment.getNumOfSubmissions() == 1) {
             Submission soleSubmission = submissionList.get(0);
@@ -587,12 +694,11 @@ public class SubmissionServiceImpl implements SubmissionService {
 
                 // The first submission's score contributes
                 // 'cumulativeScoringInitialPercentage' to the total score
-                if (CollectionUtils.isNotEmpty(submissionList)) {
-                    Submission submission = submissionList.get(0);
+                // (submissionList is never empty here; that's already ruled out by the isEmpty guard above)
+                Submission firstSubmission = submissionList.get(0);
 
-                    if (!isManualGradingNeeded(submission)) {
-                        score = getSubmissionScore(submission) * assessment.getCumulativeScoringInitialPercentage() / 100f;
-                    }
+                if (!isManualGradingNeeded(firstSubmission)) {
+                    score = getSubmissionScore(firstSubmission) * assessment.getCumulativeScoringInitialPercentage() / 100f;
                 }
                 // All subsequent submission scores contribute an evenly distributed amount of
                 // the remaining percentage

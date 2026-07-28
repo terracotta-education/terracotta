@@ -106,7 +106,7 @@ public class ConnectorServiceImpl<T> implements ConnectorService<T> {
             .orElseThrow(
                 () -> new TerracottaConnectorException(
                     String.format(
-                        "Error occurred attempting to to get connector service type [%s] for LMS Connector. PlatformDeployment ID: [%s] not found.",
+                        "Error occurred attempting to get connector service type [%s] for LMS Connector. PlatformDeployment ID: [%s] not found.",
                         type.getSimpleName(),
                         platformDeploymentId
                     )
@@ -121,7 +121,7 @@ public class ConnectorServiceImpl<T> implements ConnectorService<T> {
         if (platformDeployment.isEmpty()) {
             throw new TerracottaConnectorException(
                 String.format(
-                    "Error occurred attempting to to get connector service type [%s] for LMS Connector. PlatformDeployment cannot be null.",
+                    "Error occurred attempting to get connector service type [%s] for LMS Connector. PlatformDeployment cannot be null.",
                     type.getSimpleName()
                 )
             );
@@ -140,10 +140,10 @@ public class ConnectorServiceImpl<T> implements ConnectorService<T> {
 
             throw new Exception(String.format("Connector service [%s] not found in map", type.getSimpleName()));
         } catch (Exception e) {
-            log.error("Error occurred attempting to to get connector service type [{}] for LMS Connector: [{}]", type.getSimpleName(), platformDeployment.getLmsConnector(), e);
+            log.error("Error occurred attempting to get connector service type [{}] for LMS Connector: [{}]", type.getSimpleName(), platformDeployment.getLmsConnector(), e);
             throw new TerracottaConnectorException(
                 String.format(
-                    "Error occurred attempting to to get connector service type [%s] for LMS Connector: [%s]",
+                    "Error occurred attempting to get connector service type [%s] for LMS Connector: [%s]",
                     type.getSimpleName(),
                     platformDeployment.getLmsConnector()
                 ),

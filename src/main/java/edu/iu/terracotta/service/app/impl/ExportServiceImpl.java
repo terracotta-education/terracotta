@@ -4,6 +4,7 @@ import com.opencsv.CSVWriter;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -179,7 +180,7 @@ public class ExportServiceImpl implements ExportService {
 
         int page = 0;
         long participantCount = 0;
-        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
+        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize));
 
         while (CollectionUtils.isNotEmpty(participants)) {
             // remove test students
@@ -198,7 +199,7 @@ public class ExportServiceImpl implements ExportService {
             // participants.csv
             handleParticpantsCsv(participants, files);
 
-            participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+            participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize));
         }
 
         // experiment.csv
@@ -275,12 +276,15 @@ public class ExportServiceImpl implements ExportService {
         List<Outcome> outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(outcomesPage, exportBatchSize)).getContent();
 
         if (CollectionUtils.isNotEmpty(outcomes)) {
-            participantService.refreshParticipants(experimentId, outcomes.get(0).getExposure().getExperiment().getParticipants());
+            participantService.refreshParticipants(experimentId);
         }
 
         while (CollectionUtils.isNotEmpty(outcomes)) {
+            // one LMS call for all external outcomes in this page instead of one call per outcome
+            Map<String, List<LmsSubmission>> submissionsByLmsAssignmentId = outcomeService.fetchSubmissionsForOutcomes(outcomes, securedInfo);
+
             for (Outcome outcome : outcomes) {
-                outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo, false);
+                outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo, false, submissionsByLmsAssignmentId);
             }
 
             outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(++outcomesPage, exportBatchSize)).getContent();
@@ -359,35 +363,40 @@ public class ExportServiceImpl implements ExportService {
                 writer.writeNext(ParticipantTreatmentCsv.getHeaderRow());
             }
 
-            CollectionUtils.emptyIfNull(participants).stream()
+            List<Participant> consentedParticipants = CollectionUtils.emptyIfNull(participants).stream()
                 .filter(participant -> BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() != null)
-                .forEach(participant ->
-                    CollectionUtils.emptyIfNull(findExposureGroupConditionByGroupId(participant.getGroup().getGroupId())).stream()
-                        .forEach(egc ->
-                            CollectionUtils.emptyIfNull(findAssignmentsByExposureIdAndActive(egc.getExposure().getExposureId())).stream()
-                                .forEach(assignment ->
-                                    CollectionUtils.emptyIfNull(findTreatmentByConditionIdAndAssignmentId(egc.getCondition().getConditionId(), assignment.getAssignmentId())).stream()
-                                        .forEach(treatment ->
-                                            writer.writeNext(
-                                                new String[] {
-                                                    participant.getParticipantId().toString(),
-                                                    egc.getExposure().getExposureId().toString(),
-                                                    egc.getCondition().getConditionId().toString(),
-                                                    StringUtils.isNotBlank(egc.getCondition().getName()) ? egc.getCondition().getName() : NA,
-                                                    assignment.getAssignmentId().toString(),
-                                                    assignment.getLmsAssignmentId().toString(),
-                                                    assignment.getTitle(),
-                                                    assignment.getDueDate() != null ? simpleDateFormatter.format(assignment.getDueDate()) : NA,
-                                                    treatment.getTreatmentId().toString(),
-                                                    treatment.getAssessment().getMultipleSubmissionScoringScheme().toString(),
-                                                    calculateAttemptsAllowed(treatment.getAssessment().getNumOfSubmissions()),
-                                                    calculateTimeRequiredBetweenAttempts(treatment.getAssignment().getHoursBetweenSubmissions()),
-                                                    calculateFinalScore(participant, treatment.getAssessment())
-                                                })
-                                        )
-                                )
-                        )
-                );
+                .toList();
+
+            // cache scores per assessment for this batch of participants instead of querying once per (participant, assessment) pair
+            Map<Long, Map<Long, Float>> scoresByAssessmentIdThenParticipantId = new HashMap<>();
+
+            consentedParticipants.forEach(participant ->
+                CollectionUtils.emptyIfNull(findExposureGroupConditionByGroupId(participant.getGroup().getGroupId())).stream()
+                    .forEach(egc ->
+                        CollectionUtils.emptyIfNull(findAssignmentsByExposureIdAndActive(egc.getExposure().getExposureId())).stream()
+                            .forEach(assignment ->
+                                CollectionUtils.emptyIfNull(findTreatmentByConditionIdAndAssignmentId(egc.getCondition().getConditionId(), assignment.getAssignmentId())).stream()
+                                    .forEach(treatment ->
+                                        writer.writeNext(
+                                            new String[] {
+                                                participant.getParticipantId().toString(),
+                                                egc.getExposure().getExposureId().toString(),
+                                                egc.getCondition().getConditionId().toString(),
+                                                StringUtils.isNotBlank(egc.getCondition().getName()) ? egc.getCondition().getName() : NA,
+                                                assignment.getAssignmentId().toString(),
+                                                assignment.getLmsAssignmentId().toString(),
+                                                assignment.getTitle(),
+                                                assignment.getDueDate() != null ? simpleDateFormatter.format(assignment.getDueDate()) : NA,
+                                                treatment.getTreatmentId().toString(),
+                                                treatment.getAssessment().getMultipleSubmissionScoringScheme().toString(),
+                                                calculateAttemptsAllowed(treatment.getAssessment().getNumOfSubmissions()),
+                                                calculateTimeRequiredBetweenAttempts(treatment.getAssignment().getHoursBetweenSubmissions()),
+                                                calculateFinalScore(participant, treatment.getAssessment(), consentedParticipants, scoresByAssessmentIdThenParticipantId)
+                                            })
+                                    )
+                            )
+                    )
+            );
         }
     }
 
@@ -407,8 +416,13 @@ public class ExportServiceImpl implements ExportService {
         return String.format("%s hours", hoursBetweenSubmissions);
     }
 
-    private String calculateFinalScore(Participant participant, Assessment assessment) {
-        Float finalScore = submissionService.getScoreFromMultipleSubmissions(participant, assessment);
+    private String calculateFinalScore(Participant participant, Assessment assessment, List<Participant> consentedParticipants, Map<Long, Map<Long, Float>> scoresByAssessmentIdThenParticipantId) {
+        Map<Long, Float> scoresByParticipantId = scoresByAssessmentIdThenParticipantId.computeIfAbsent(
+            assessment.getAssessmentId(),
+            assessmentId -> submissionService.getScoresFromMultipleSubmissions(consentedParticipants, assessment)
+        );
+
+        Float finalScore = scoresByParticipantId.get(participant.getParticipantId());
 
         if (finalScore == null) {
             return NA;
@@ -653,16 +667,22 @@ public class ExportServiceImpl implements ExportService {
                 return;
             }
 
-            List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
+            // paginate participants and index by user ID instead of loading them all and linear-scanning per message log
+            Map<Long, Participant> participantsByUserId = new HashMap<>();
+            int page = 0;
+            List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize));
+
+            while (CollectionUtils.isNotEmpty(participants)) {
+                participants.forEach(participant -> participantsByUserId.put(participant.getLtiUserEntity().getUserId(), participant));
+                participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize));
+            }
 
             messageLogs.stream()
                 .forEach(
                     messageLog -> {
-                        Optional<Participant> participant = participants.stream()
-                            .filter(p -> p.getLtiUserEntity().getUserId() == messageLog.getRecipient().getUserId())
-                            .findFirst();
+                        Participant participant = participantsByUserId.get(messageLog.getRecipient().getUserId());
 
-                        if (participant.isEmpty()) {
+                        if (participant == null) {
                             log.warn("No participant found for message log ID: [{}]", messageLog.getId());
                             return;
                         }
@@ -675,8 +695,8 @@ public class ExportServiceImpl implements ExportService {
                             Long.toString(messageLog.getConditionId()),
                             messageLog.getConditionName(),
                             messageLog.getMessageSubject(),
-                            participant.get().getParticipantId().toString(),
-                            BooleanUtils.isTrue(participant.get().getConsent()) ? "INCLUDED" : "EXCLUDED",
+                            participant.getParticipantId().toString(),
+                            BooleanUtils.isTrue(participant.getConsent()) ? "INCLUDED" : "EXCLUDED",
                             messageLog.getCreatedAt().toLocalDateTime().format(dateTimeFormatter)
                         });
                     }
@@ -884,17 +904,13 @@ public class ExportServiceImpl implements ExportService {
         treatments = treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(experimentId);
         List<MessageContainer> messageContainers = containerRepository.findAllByExposure_Experiment_ExperimentIdAndOwner_LmsUserId(experimentId, securedInfo.getLmsUserId());
 
-        CollectionUtils.emptyIfNull(messageContainers).stream()
-            .forEach(
-                messageContainer ->
-                    messageContainer.getMessages().stream()
-                        .forEach(
-                            message -> {
-                                messageLogs.addAll(messageLogRepository.findAllByMessage_Id(message.getId()));
-                                messages.add(message);
-                            }
-                        )
-            );
+        List<Message> allMessages = CollectionUtils.emptyIfNull(messageContainers).stream()
+            .flatMap(mc -> mc.getMessages().stream())
+            .toList();
+        messages.addAll(allMessages);
+        messageLogs.addAll(messageLogRepository.findAllByMessage_IdIn(
+            allMessages.stream().map(Message::getId).toList()
+        ));
 
         if (CollectionUtils.isEmpty(assignments)) {
             return;

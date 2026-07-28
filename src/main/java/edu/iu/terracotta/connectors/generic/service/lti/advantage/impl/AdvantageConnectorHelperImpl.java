@@ -32,7 +32,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -42,6 +45,12 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
 
     private final LtiJwtService ltijwtService;
     private final ExceptionMessageGenerator exceptionMessageGenerator;
+    private final Map<String, CachedToken> tokenCache = new ConcurrentHashMap<>();
+
+    // RestTemplate is thread-safe once constructed and has no per-request mutable state, so a
+    // single shared instance is reused for every AGS/NRPS/registration/OAuth call instead of
+    // allocating a new client (and request factory) on every outbound request.
+    private final RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;
@@ -120,6 +129,13 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
     // The platformDeployment has the URL to ask for the token.
     @Override
     public LtiToken getToken(PlatformDeployment platformDeployment, String scope) throws ConnectionException {
+        String cacheKey = platformDeployment.getKeyId() + "|" + scope;
+        CachedToken cached = tokenCache.get(cacheKey);
+
+        if (cached != null && cached.isFresh()) {
+            return cached.token();
+        }
+
         try {
             HttpEntity request = createTokenRequest(scope, platformDeployment);
             String postTokenUrl = platformDeployment.getOAuth2TokenUrl();
@@ -132,6 +148,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
 
             if (reportPostResponse == null) {
                 log.warn("Problem getting the token");
+                throw new ConnectionException("Problem getting the token");
             }
 
             if (!reportPostResponse.getStatusCode().is2xxSuccessful()) {
@@ -140,13 +157,23 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
                 throw new ConnectionException(exceptionMsg);
             }
 
-            return reportPostResponse.getBody();
+            LtiToken token = reportPostResponse.getBody();
+            // buffer of 60 seconds to avoid using a token that expires mid-request
+            tokenCache.put(cacheKey, new CachedToken(token, Instant.now().plusSeconds(token.getExpires_in() - 60)));
+
+            return token;
         } catch (Exception e) {
             log.error("Error getting the token: '{}'", e.getMessage());
             StringBuilder exceptionMsg = new StringBuilder();
             exceptionMsg.append("Can't get the token. Exception");
             log.error(exceptionMsg.toString());
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
+        }
+    }
+
+    private record CachedToken(LtiToken token, Instant expiresAt) {
+        boolean isFresh() {
+            return Instant.now().isBefore(expiresAt);
         }
     }
 
@@ -198,7 +225,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
 
     @Override
     public RestTemplate createRestTemplate() {
-        return new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        return restTemplate;
     }
 
     @Override

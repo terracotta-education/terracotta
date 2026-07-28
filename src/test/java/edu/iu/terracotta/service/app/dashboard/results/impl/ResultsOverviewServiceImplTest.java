@@ -34,6 +34,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         setup();
 
         when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(Arrays.asList(assessment, assessment));
+        when(assessmentRepository.findByTreatment_Assignment_AssignmentIdIn(any())).thenReturn(Arrays.asList(assessment, assessment));
         when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(Arrays.asList(assignment, assignment));
         when(exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(exposureGroupCondition));
         when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(participant));
@@ -43,6 +44,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
 
         when(assessmentSubmissionService.calculateMaxScore(any(Assessment.class))).thenReturn(1F);
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(1F);
+        when(submissionService.getScoresFromMultipleSubmissions(any(), any(Assessment.class))).thenReturn(Collections.singletonMap(1L, 1F));
 
         when(assessment.getQuestions()).thenReturn(Collections.emptyList());
         when(experiment.getExposureType()).thenReturn(ExposureTypes.BETWEEN);
@@ -114,6 +116,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
     @Test
     void testOverviewSingleCondition() {
         when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
+        when(treatmentRepository.findByAssignment_AssignmentIdInOrderByCondition_ConditionIdAsc(any())).thenReturn(Arrays.asList(treatment, treatment));
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
         assertNotNull(ret);
@@ -165,6 +168,7 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
     @Test
     void testOverviewNoAssignmentScores() {
         when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(null);
+        when(submissionService.getScoresFromMultipleSubmissions(any(), any(Assessment.class))).thenReturn(Collections.emptyMap());
 
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 

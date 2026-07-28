@@ -238,15 +238,11 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
     }
 
     private void experiment(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
-        List<String> existingExperiments = experimentRepository.findAll().stream()
-            .map(Experiment::getTitle)
-            .toList();
-
         String title = String.format("%s %s", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle());
         int index = 1;
 
         // ensure experiment title does not exist already
-        while (existingExperiments.contains(title)) {
+        while (experimentRepository.existsByTitle(title)) {
             title = String.format("%s %s (%s)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle(), index++);
         }
 

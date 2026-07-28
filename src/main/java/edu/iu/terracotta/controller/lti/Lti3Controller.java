@@ -15,7 +15,6 @@ import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageDeepLinkService;
-import edu.iu.terracotta.controller.app.LmsOAuthController;
 import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -32,24 +31,18 @@ import edu.iu.terracotta.utils.lti.Lti3Request;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URIBuilder;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * This LTI 3 redirect controller will retrieve the LTI3 requests and redirect them to the right page.
@@ -57,7 +50,6 @@ import java.util.Optional;
  */
 @Slf4j
 @Controller
-@Scope("session")
 @RequestMapping("/lti3")
 @RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement"})
@@ -143,43 +135,23 @@ public class Lti3Controller {
             );
 
             if (LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(lti3Request.getLtiMessageType())) {
-                if (LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING.equals(lti3Request.getLtiMessageType())) {
-                    LtiDeepLink ltiDeepLink = advantageDeepLinkService.generateLtiDeepLink(
-                        lti3Request,
-                        req,
-                        state
-                    );
+                LtiDeepLink ltiDeepLink = advantageDeepLinkService.generateLtiDeepLink(
+                    lti3Request,
+                    req,
+                    state
+                );
 
-                    return String.format(
-                        "redirect:/app/deepLink.html?id=%s",
-                        ltiDeepLink.getUuid()
-                    );
-                }
-            }
-
-            // Check for platform_redirect_url to determine if this is a first-party interaction request
-            try {
-                List<NameValuePair> targetLinkQueryParams = new URIBuilder(lti3Request.getLtiTargetLinkUrl()).getQueryParams();
-                Optional<NameValuePair> platformRedirectUrl = targetLinkQueryParams.stream()
-                    .filter(nv -> "platform_redirect_url".equals(nv.getName()))
-                    .findFirst();
-
-                if (platformRedirectUrl.isPresent()) {
-                    return String.format(
-                        "redirect:/app/firstParty.html?targetLinkUri=%s",
-                        URLEncoder.encode(lti3Request.getLtiTargetLinkUrl(), Charset.defaultCharset())
-                    );
-                }
-            } catch (URISyntaxException ex) {
-                model.addAttribute(TextConstants.ERROR, ex.getMessage());
-                return TextConstants.LTI3ERROR;
+                return String.format(
+                    "redirect:/app/deepLink.html?id=%s",
+                    ltiDeepLink.getUuid()
+                );
             }
 
             String redirectUrl = "redirect:/app/app.html?token=" + oneTimeToken;
 
             // Check if we need to get API token from instructor to use LMS API
             if (lti3Request.isRoleInstructor()) {
-                String oauth2APITokenRedirectURL = getOAuth2APITokenRedirectURL(req, lti3Request.getKey(), lti3Request.getUser(), lti3Request);
+                String oauth2APITokenRedirectURL = getOAuth2APITokenRedirectURL(lti3Request.getKey(), lti3Request.getUser(), lti3Request);
 
                 if (oauth2APITokenRedirectURL != null) {
                     redirectUrl += "&lms_api_oauth_url=" + URLEncoder.encode(oauth2APITokenRedirectURL, Charset.defaultCharset());
@@ -193,7 +165,7 @@ public class Lti3Controller {
         }
     }
 
-    private String getOAuth2APITokenRedirectURL(HttpServletRequest req, PlatformDeployment platformDeployment, LtiUserEntity user, Lti3Request lti3Request)
+    private String getOAuth2APITokenRedirectURL(PlatformDeployment platformDeployment, LtiUserEntity user, Lti3Request lti3Request)
             throws GeneralSecurityException, IOException, LmsOAuthException, TerracottaConnectorException {
         LmsOAuthService<?> lmsOAuthService = null;
 
@@ -213,10 +185,10 @@ public class Lti3Controller {
             return null;
         }
 
-        // if LMS OAuth settings are configured but user doesn't have an access token, get one. Create and return authorization url.
+        // if LMS OAuth settings are configured but user doesn't have an access token, get one. Create and return
+        // authorization url. The state is a self-contained signed JWT (see ApiJwtService#validateStateForAPITokenRequest),
+        // so its own signature is enough to validate it later in LmsOAuthController - no session needed to track it.
         String state = apiJwtService.generateStateForAPITokenRequest(lti3Request);
-        HttpSession session = req.getSession();
-        session.setAttribute(LmsOAuthController.SESSION_LMS_OAUTH2_STATE, state);
 
         try {
             return lmsOAuthService.getAuthorizationRequestURI(platformDeployment, state);

@@ -22,8 +22,22 @@ public class FileExtended extends LmsFile {
     }
 
     @Override
+    public void setId(String id) {
+        if (id == null) {
+            return;
+        }
+
+        file.setId(Long.parseLong(id));
+    }
+
+    @Override
     public String getDisplayName() {
         return file.getDisplayName();
+    }
+
+    @Override
+    public void setDisplayName(String displayName) {
+        file.setDisplayName(displayName);
     }
 
     @Override
@@ -32,13 +46,28 @@ public class FileExtended extends LmsFile {
     }
 
     @Override
+    public void setFilename(String filename) {
+        file.setFilename(filename);
+    }
+
+    @Override
     public long getSize() {
         return file.getSize();
     }
 
     @Override
+    public void setSize(long size) {
+        file.setSize(size);
+    }
+
+    @Override
     public String getUrl() {
         return file.getUrl();
+    }
+
+    @Override
+    public void setUrl(String url) {
+        file.setUrl(url);
     }
 
     @Override

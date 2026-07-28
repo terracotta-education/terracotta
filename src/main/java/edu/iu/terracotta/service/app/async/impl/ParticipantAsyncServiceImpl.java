@@ -3,31 +3,42 @@ package edu.iu.terracotta.service.app.async.impl;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
-import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsUser;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentState;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentType;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
-import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
-import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.FeatureService;
+import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,70 +48,119 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
-    private final ExperimentRepository experimentRepository;
+    private final LmsUserBatchRepository lmsUserBatchRepository;
+    private final LtiContextRepository ltiContextRepository;
+    private final LtiUserRepository ltiUserRepository;
     private final ParticipantRepository participantRepository;
     private final ApiClient apiClient;
     private final FeatureService featureService;
+    private final LmsUserBatchAsyncService lmsUserBatchAsyncService;
     private final LmsUtils lmsUtils;
+
+    @PersistenceContext private EntityManager entityManager;
+
+    @Value("${app.participant.batch.size:500}")
+    private int batchSize;
 
     @Async
     @Override
     @Transactional(rollbackFor = { ApiException.class })
-    public void updateParticipantData(long experimentId, SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
-        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+    public void updateParticipantData(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        LtiContextEntity ltiContextEntity = ltiContextRepository.findById(securedInfo.getContextId())
+            .orElse(null);
 
-        if (experiment == null) {
-            log.error("Experiment not found for ID: [{}]", experimentId);
+        if (ltiContextEntity == null) {
+            log.error("LTI Context not found for ID: [{}]", securedInfo.getContextId());
             return;
         }
 
-        if (!featureService.isFeatureEnabled(FeatureType.MESSAGING, experiment.getPlatformDeployment().getKeyId())) {
+        if (!featureService.isFeatureEnabled(FeatureType.MESSAGING, ltiContextEntity.getToolDeployment().getPlatformDeployment().getKeyId())) {
             // only update participants if messaging feature is enabled
             return;
         }
 
-        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
+        LtiUserEntity ltiUserEntity = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
-        if (CollectionUtils.isEmpty(participants)) {
-            log.info("No participants found for the experiment with ID: [{}]", experimentId);
+        if (ltiUserEntity == null) {
+            log.error("LTI User not found for ID: [{}] and platform ID: [{}]", securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
             return;
         }
 
-        List<LmsUser> students = apiClient
-            .listUsersForCourse(
-                LmsGetUsersInCourseOptions.builder()
-                    .lmsCourseId(lmsUtils.parseCourseId(experiment.getPlatformDeployment(), experiment.getLtiContextEntity().getContext_memberships_url()))
-                    .enrollmentState(Arrays.asList(EnrollmentState.ACTIVE, EnrollmentState.INVITED))
-                    .enrollmentType(Arrays.asList(EnrollmentType.STUDENT))
-                    .build(),
-                experiment.getCreatedBy()
-            );
+        UUID batchId = UUID.randomUUID();
 
-        if (CollectionUtils.isEmpty(students)) {
-            log.info(
-                "No students found for the course with ID: [{}] in the platform deployment with key ID: [{}]",
-                experiment.getLtiContextEntity().getContext_memberships_url(),
-                experiment.getPlatformDeployment().getKeyId()
-            );
+        apiClient.listUsersForCourse(
+            LmsGetUsersInCourseOptions.builder()
+                .batchId(batchId)
+                .batchSize(batchSize)
+                .enrollmentState(Arrays.asList(EnrollmentState.ACTIVE, EnrollmentState.INVITED))
+                .enrollmentType(Arrays.asList(EnrollmentType.STUDENT))
+                .lmsCourseId(lmsUtils.parseCourseId(ltiContextEntity.getToolDeployment().getPlatformDeployment(), ltiContextEntity.getContext_memberships_url()))
+                .build(),
+            ltiUserEntity
+        );
+
+        int page = 0;
+        PageRequest pageable = PageRequest.of(page, batchSize);
+        List<LmsParticipantSummary> lmsParticipantSummariesToUpdate = participantRepository.findLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId(), pageable);
+
+        if (CollectionUtils.isEmpty(lmsParticipantSummariesToUpdate)) {
+            String message = String.format("No participants to update found for LTI Context with ID: [%s]", securedInfo.getContextId());
+            log.info(message);
+            lmsUserBatchAsyncService.processed(batchId, message);
             return;
         }
 
-        // Update participants without LTI user IDs based on email matching
-        participants.stream()
-            .filter(participant -> participant.getLtiUserEntity().getLmsUserId() == null)
-            .forEach(
-                participant -> {
-                    participant.getLtiUserEntity().setLmsUserId(
-                        students.stream()
-                            .filter(student -> Strings.CI.equals(student.getEmail(), participant.getLtiUserEntity().getEmail()))
-                            .findFirst()
-                            .map(LmsUser::getId)
+        while (CollectionUtils.isNotEmpty(lmsParticipantSummariesToUpdate)) {
+            List<Participant> participants = participantRepository.findAllById(
+                lmsParticipantSummariesToUpdate.stream()
+                    .map(LmsParticipantSummary::getId)
+                    .toList()
+            );
+
+            List<LmsUserBatchEmailProjection> batchEmails = lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailIn(
+                batchId,
+                participants.stream()
+                    .map(p -> p.getLtiUserEntity().getEmail())
+                    .toList(),
+                PageRequest.of(0, batchSize)
+            );
+
+            // Update participants without LTI user IDs based on email matching
+            lmsParticipantSummariesToUpdate.stream()
+                .forEach(
+                    lmsParticipantSummary -> {
+                        Optional<Participant> participant = participants.stream()
+                            .filter(p -> p.getId().longValue() == lmsParticipantSummary.getId())
+                            .findFirst();
+
+                        if (participant.isEmpty()) {
+                            log.warn("Participant not found for ID: [{}]", lmsParticipantSummary.getId());
+                            return;
+                        }
+
+                        participant.get().getLtiUserEntity().setLmsUserId(
+                            batchEmails.stream()
+                                .filter(batchEmail -> Strings.CI.equals(batchEmail.getEmail(), participant.get().getLtiUserEntity().getEmail()))
+                                .findFirst()
+                            .map(LmsUserBatchEmailProjection::getLmsUserId)
                             .orElse(null)
-                    );
+                        );
 
-                    participantRepository.save(participant);
-                }
-            );
+                        ltiUserRepository.save(participant.get().getLtiUserEntity());
+                    }
+                );
+
+            // flush and clear each batch
+            entityManager.flush();
+            entityManager.clear();
+
+            // retrieve next set of participants to update
+            pageable.withPage(page++);
+            lmsParticipantSummariesToUpdate = participantRepository.findLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId(), pageable);
+        }
+
+        // send the event and delete temporary batch data
+        lmsUserBatchAsyncService.success(batchId);
     }
 
 }

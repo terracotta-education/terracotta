@@ -38,6 +38,12 @@ import tools.jackson.databind.json.JsonMapper;
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class CanvasAdvantageAgsServiceImpl implements AdvantageAgsService {
 
+    // JsonMapper is thread-safe once built; reuse one shared instance instead of building a
+    // fresh mapper (with mixin wiring) on every postScore() call.
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder()
+        .addMixIn(Score.class, CanvasScore.class) // mixin to add Canvas-specific submission key
+        .build();
+
     private final AdvantageConnectorHelper advantageConnectorHelper;
     private final ExceptionMessageGenerator exceptionMessageGenerator;
 
@@ -64,6 +70,13 @@ public class CanvasAdvantageAgsServiceImpl implements AdvantageAgsService {
 
             while (nextPage != null) {
                 ResponseEntity<LineItem[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET, request, LineItem[].class);
+
+                if (!responseForNextPage.getStatusCode().is2xxSuccessful()) {
+                    String exceptionMsg = "Can't get the AGS";
+                    log.error(exceptionMsg);
+                    throw new ConnectionException(exceptionMsg);
+                }
+
                 LineItem[] nextLineItemsList = responseForNextPage.getBody();
                 lineItemsList.addAll(Arrays.asList(nextLineItemsList));
                 nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
@@ -154,14 +167,10 @@ public class CanvasAdvantageAgsServiceImpl implements AdvantageAgsService {
     @Override
     public void postScore(LtiToken ltiTokenScores, LtiToken ltiTokenResults, LtiContextEntity context, String lineItemId, Score score) throws ConnectionException {
         try {
-            JsonMapper jsonMapper = JsonMapper.builder()
-                .addMixIn(Score.class, CanvasScore.class) // mixin to add Canvas-specific submission key
-                .build();
-
             ResponseEntity<Void> response = advantageConnectorHelper.createRestTemplate().exchange(
                 lineItemId + "/scores",
                 HttpMethod.POST,
-                advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenScores, jsonMapper.writeValueAsString(score)),
+                advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenScores, JSON_MAPPER.writeValueAsString(score)),
                 Void.class
             );
 

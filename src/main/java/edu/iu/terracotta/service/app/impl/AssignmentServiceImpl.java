@@ -88,7 +88,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -147,11 +146,12 @@ public class AssignmentServiceImpl implements AssignmentService {
         List<AssignmentDto> assignmentDtoList = new ArrayList<>();
         LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
-        for (Assignment assignment : assignments) {
-            if (instructorUser != null) {
-                assignmentTreatmentService.setAssignmentDtoAttrs(assignment, securedInfo.getLmsCourseId(), instructorUser);
-            }
+        if (instructorUser != null) {
+            // one LMS call for all assignments instead of one call per assignment
+            assignmentTreatmentService.setAssignmentDtoAttrs(assignments, instructorUser);
+        }
 
+        for (Assignment assignment : assignments) {
             assignmentDtoList.add(assignmentTreatmentService.toAssignmentDto(assignment, submissions, true, securedInfo));
         }
 
@@ -368,9 +368,8 @@ public class AssignmentServiceImpl implements AssignmentService {
             .filter(Submission::isSubmitted)
             .toList();
 
-        for (Submission submission : submissionList) {
-            submissionService.sendSubmissionGradeToLmsWithLti(submission, false);
-        }
+        // fetches AGS tokens once instead of once per submission
+        submissionService.sendSubmissionGradesToLmsWithLti(submissionList, false);
     }
 
     @Override
@@ -406,17 +405,15 @@ public class AssignmentServiceImpl implements AssignmentService {
             for (Submission submission : submissionList) {
                 //   - if one of them is not submitted, (and we can use it, we need to return that one),
                 if (submission.getDateSubmitted() == null) {
-                    AtomicInteger answerSubmissionCount = new AtomicInteger(0);
-                    submission.getQuestionSubmissions()
-                        .forEach(
-                            questionSubmission -> {
-                                answerSubmissionCount.addAndGet(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId()).size());
-                                answerSubmissionCount.addAndGet(answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId()).size());
-                                answerSubmissionCount.addAndGet(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId()).size());
-                            }
-                        );
+                    List<Long> questionSubmissionIds = submission.getQuestionSubmissions().stream()
+                        .map(qs -> qs.getQuestionSubmissionId())
+                        .toList();
+                    long answerSubmissionCount =
+                        answerEssaySubmissionRepository.countByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds) +
+                        answerFileSubmissionRepository.countByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds) +
+                        answerMcSubmissionRepository.countByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds);
 
-                    if (answerSubmissionCount.get() == assessment.getQuestions().size()) {
+                    if (answerSubmissionCount == assessment.getQuestions().size()) {
                         // all questions have an answer; finalize and grade
                         submissionService.finalizeAndGrade(
                             submission.getSubmissionId(),

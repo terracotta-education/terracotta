@@ -14,7 +14,6 @@ public class TextConstants {
     public static final String LTI3_SUFFIX = "/lti3/";
     public static final String DEFAULT_KID = "OWNKEY";
     public static final String BEARER = "Bearer ";
-    public static final String ERROR_DEEP_RESPONSE = "Error creating the DeepLinking Response";
     public static final String NOT_FOUND_SUFFIX = " not found";
     public static final String LTI3ERROR = "lti3Error";
     public static final String OAUTH2_ERROR = "oauth2Error";
@@ -42,8 +41,6 @@ public class TextConstants {
     public static final String ID_MISSING = "Error 125: A valid question id must be included in a submission post.";
     public static final String GROUP_NOT_MATCHING = "Error 108: The group does not belong to experiment defined in the path.";
     public static final String SUBMISSION_IDS_MISSING = "Error 113: The request requires at least one submissionId in the list of submissions";
-    public static final String CONSENT_PENDING = "Error 114: Consent_Pending: The student has not signed the consent";
-    public static final String GROUP_PENDING = "Error 115: Group_Pending: The student has not been assigned to a group";
     public static final String ASSIGNMENT_LOCKED = "Error 116: The assignment is not open at this moment";
     public static final String ASSIGNMENT_LOCKED_AT = "Assignment was locked at %s";
     public static final String ASSIGNMENT_LOCKED_UNTIL = "Assignment is locked until %s";

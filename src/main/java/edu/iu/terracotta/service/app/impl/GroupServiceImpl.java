@@ -156,13 +156,9 @@ public class GroupServiceImpl implements GroupService {
                 }
 
                 // reset the groups for each participant
-                CollectionUtils.emptyIfNull(experiment.get().getParticipants()).stream()
-                    .forEach(
-                        participant -> {
-                            participant.setGroup(null);
-                            participantRepository.save(participant);
-                        }
-                    );
+                List<edu.iu.terracotta.dao.entity.Participant> participants = new java.util.ArrayList<>(CollectionUtils.emptyIfNull(experiment.get().getParticipants()));
+                participants.forEach(participant -> participant.setGroup(null));
+                participantRepository.saveAll(participants);
 
                 // delete the groups
                 exposureGroupConditionRepository.deleteByExposure_Experiment_ExperimentId(experimentId);
@@ -228,9 +224,10 @@ public class GroupServiceImpl implements GroupService {
                 int groupIndex = (i + loopNum) % groups.size();
                 int exposureGroupConditionIndex = loopNum * groups.size() + i;
                 exposureGroupConditionList.get(exposureGroupConditionIndex).setGroup(groups.get(groupIndex));
-                exposureGroupConditionRepository.save(exposureGroupConditionList.get(exposureGroupConditionIndex));
             }
         }
+
+        exposureGroupConditionRepository.saveAll(exposureGroupConditionList);
     }
 
     private List<Group> createGroups(int numberOfGroups, Experiment experiment ) {
@@ -240,10 +237,10 @@ public class GroupServiceImpl implements GroupService {
             Group group = new Group();
             group.setExperiment(experiment);
             group.setName(String.format("Group %s", i));
-            groups.add(groupRepository.save(group));
+            groups.add(group);
         }
 
-        return groups;
+        return groupRepository.saveAll(groups);
     }
 
     @Override

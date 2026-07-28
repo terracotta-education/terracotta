@@ -120,6 +120,10 @@ import java.util.UUID;
 @SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
+    // JsonMapper is thread-safe once built; reuse one shared instance instead of building a
+    // fresh mapper on every unsecureToken() call.
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
+
     private final ApiOneUseTokenRepository apiOneUseTokenRepository;
     private final MessageConfigurationRepository messageConfigurationRepository;
     private final MessageContentRepository messageContentRepository;
@@ -192,8 +196,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         String jwtPayload = new String(Base64.getUrlDecoder().decode(jwtSections[1]));
 
         try {
-            return JsonMapper.builder()
-                .build()
+            return JSON_MAPPER
                 .readValue(
                     jwtPayload,
                     new TypeReference<Map<String,Object>>() {}
@@ -487,7 +490,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
             .audience()
             .add(tokenClaims.getPayload().getAudience())  //We send here the authToken url.
             .and()
-            .expiration(DateUtils.addDays(date, length)) //a java.util.Date
+            .expiration(DateUtils.addSeconds(date, length)) //a java.util.Date
             .notBefore(date) //a java.util.Date
             .issuedAt(date) // for example, now
             .claim(JwtClaim.CONTEXT_ID.key(), tokenClaims.getPayload().get(JwtClaim.CONTEXT_ID.key()))
@@ -559,6 +562,11 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
             return null;
         }
 
+        return extractValues(claims);
+    }
+
+    @Override
+    public SecuredInfo extractValues(Jws<Claims> claims) {
         SecuredInfo securedInfo = new SecuredInfo();
         securedInfo.setUserId(claims.getPayload().get(JwtClaim.USER_ID.key()).toString());
         securedInfo.setPlatformDeploymentId(Long.valueOf((Integer) claims.getPayload().get(JwtClaim.PLATFORM_DEPLOYMENT_ID.key())));
@@ -607,6 +615,11 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     @Override
     public ResponseEntity<String> getTimedToken(String token) throws NumberFormatException, TerracottaConnectorException {
         Jws<Claims> claims = validateToken(token);
+
+        if (claims == null) {
+            log.warn("JWS claims is null. Token: [{}]", token);
+            return null;
+        }
 
         if ((Boolean) claims.getPayload().get(JwtClaim.ONE_USE.key())) {
             try {

@@ -20,6 +20,8 @@ import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import edu.iu.terracotta.utils.CaliperUtils;
 import edu.iu.terracotta.utils.LtiStrings;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -51,7 +53,6 @@ import org.imsglobal.caliper.events.MediaEvent.Builder;
 import org.imsglobal.caliper.events.ToolUseEvent;
 import org.imsglobal.caliper.events.ViewEvent;
 import org.joda.time.DateTime;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -65,40 +66,35 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class CaliperServiceImpl implements CaliperService {
 
     public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";
 
-    @Autowired private EventRepository eventRepository;
-    @Autowired private ExposureGroupConditionRepository exposureGroupConditionRepository;
-    @Autowired private SubmissionRepository submissionRepository;
-    @Autowired private AssessmentSubmissionService assessmentSubmissionService;
+    private final EventRepository eventRepository;
+    private final ExposureGroupConditionRepository exposureGroupConditionRepository;
+    private final SubmissionRepository submissionRepository;
+    private final AssessmentSubmissionService assessmentSubmissionService;
 
-    private final SoftwareApplication softwareApplication;
-    private final JsonldContext context;
-    private final boolean caliperSend;
-    private final boolean caliperDB;
+    @Value("${caliper.sensor-id:1}") private String sensorId;
+    @Value("${caliper.client-id:1}") private String clientId;
+    @Value("${caliper.api-key:1}") private String apiKey;
+    @Value("${caliper.connection-timeout:10000}") private int connectionTimeout;
+    @Value("${caliper.content-type:application/json}") private String contentType;
+    @Value("${caliper.host:nohost}") private String host;
+    @Value("${caliper.socket-timeout:10000}") private int socketTimeOut;
+    @Value("${caliper.send:false}") private boolean caliperSend;
+    @Value("${caliper.store-db:false}") private boolean caliperDB;
+    @Value("${application.name}") private String applicationName;
+    @Value("${application.url}") private String applicationUrl;
 
+    private SoftwareApplication softwareApplication;
+    private JsonldContext context;
     private Sensor defaultSensor;
-    private String applicationName;
-    private String applicationUrl;
 
-    public CaliperServiceImpl(@Value("${caliper.sensor-id:1}") final String sensorId,
-                              @Value("${caliper.client-id:1}") final String clientId,
-                              @Value("${caliper.api-key:1}") final String apiKey,
-                              @Value("${caliper.connection-timeout:10000}") final int connectionTimeout,
-                              @Value("${caliper.content-type:application/json}") final String contentType,
-                              @Value("${caliper.host:nohost}") final String host,
-                              @Value("${caliper.socket-timeout:10000}") final int socketTimeOut,
-                              @Value("${caliper.send:false}") final boolean caliperSendAttribute,
-                              @Value("${caliper.store-db:false}") final boolean caliperStoreDBAttribute,
-                              @Value("${application.name}") final String applicationNameAttribute,
-                              @Value("${application.url}") final String applicationUrlAttribute) {
-        applicationName = applicationNameAttribute;
-        applicationUrl = applicationUrlAttribute;
-        caliperSend = caliperSendAttribute;
-        caliperDB = caliperStoreDBAttribute;
+    @PostConstruct
+    public void init() {
         context = JsonldStringContext.create(DATA_VERSION);
         softwareApplication = prepareSoftwareApplication();
 
@@ -676,6 +672,7 @@ public class CaliperServiceImpl implements CaliperService {
             .resultScore(submission.getTotalAlteredGrade())
             .dateCreated(convertTimestamp(submission.getCreatedAt(), false))
             .comment(comment)
+            .extensions(new HashMap<>())
             .build();
     }
 
@@ -688,13 +685,18 @@ public class CaliperServiceImpl implements CaliperService {
     }
 
     private Membership prepareMembership(Participant participant, SecuredInfo securedInfo) {
+        // roleToCaliperRole returns null for unrecognized role codes; Caliper's roles list rejects nulls,
+        // so fall back to an empty list rather than a singleton list wrapping a null
+        Role caliperRole = roleToCaliperRole(participant.getLtiMembershipEntity().getRole());
+        List<Role> roles = caliperRole == null ? Collections.emptyList() : Collections.singletonList(caliperRole);
+
         return Membership.builder()
             .id(participant.getLtiUserEntity().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getLmsCourseId())
             .type(EntityType.MEMBERSHIP)
             .member(prepareActor(participant, securedInfo.getLmsUserGlobalId()))
             .organization(prepareGroup(participant.getLtiMembershipEntity(), securedInfo))
             .status(getStatus(participant.getDropped(), participant.getExperiment().getClosed() != null))
-            .roles(Collections.singletonList(roleToCaliperRole(participant.getLtiMembershipEntity().getRole())))
+            .roles(roles)
             .build();
     }
 
@@ -765,7 +767,8 @@ public class CaliperServiceImpl implements CaliperService {
             date = new DateTime(timestamp.getTime());
 
             if (plusOne) {
-                date.plus(1);
+                // DateTime is immutable; plus() returns a new instance rather than mutating date in place
+                date = date.plus(1);
             }
         } catch (Exception e) {
             date = null;

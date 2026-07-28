@@ -95,7 +95,7 @@ public class ExperimentDataExportSchedulerServiceImpl implements ExperimentDataE
                                     error = e.getMessage();
                                 }
 
-                                if (deleted.stream().anyMatch(deletedFile -> !deletedFile)) {
+                                if (StringUtils.isEmpty(error) && deleted.stream().anyMatch(deletedFile -> !deletedFile)) {
                                     error = String.format("Failed to delete file URI: [%s]", expiredExperimentDataExport.getFileUri());
                                 }
 

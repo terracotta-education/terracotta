@@ -7,9 +7,10 @@ const state = {
 }
 
 const actions = {
-  async fetchParticipants({ commit }, experimentId) {
+  async fetchParticipants({ commit }, payload) {
+    // payload = experimentId, refresh
     return participantService
-      .getAll(experimentId)
+      .getAll(...payload)
       .then((data) => {
         commit("setParticipants", data)
       })

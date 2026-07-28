@@ -71,10 +71,12 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -231,7 +233,7 @@ public class CanvasApiClientImpl implements ApiClient {
                     .editAssignment(canvasCourseId, AssignmentExtended.of(lmsAssignment).getAssignment())
             );
         } catch (Exception e) {
-            throw new ApiException(String.format("Failed to edit the assignments with id [%s] from canvas course [%]", lmsAssignment.getId(), canvasCourseId), e);
+            throw new ApiException(String.format("Failed to edit the assignments with id [%s] from canvas course [%s]", lmsAssignment.getId(), canvasCourseId), e);
         }
     }
 
@@ -326,16 +328,20 @@ public class CanvasApiClientImpl implements ApiClient {
 
         if (CollectionUtils.isEmpty(assignmentExtendeds)) {
             log.info("No assignments exist in Canvas for course ID: [{}]", canvasCourseId);
-            //return;
+            return;
         }
 
+        // allAssignmentIds can span every assignment/consent-document ID across the whole
+        // platform deployment; check membership via a Set instead of an O(n) List scan per
+        // assignment in this course.
+        Set<String> allAssignmentIdsLookup = new HashSet<>(allAssignmentIds);
         List<String> assignmentsUpdatedTargetLink = assignmentExtendeds.stream()
-            .filter(assignmentExtended -> allAssignmentIds.contains(assignmentExtended.getId()))
+            .filter(assignmentExtended -> allAssignmentIdsLookup.contains(assignmentExtended.getId()))
             .filter(
                 assignmentExtended -> {
                     String[] baseUrl = StringUtils.splitByWholeSeparator(assignmentExtended.getAssignment().getExternalToolTagAttributes().getUrl(), "/lti3");
 
-                    return ArrayUtils.isNotEmpty(baseUrl) || !Strings.CI.equals(baseUrl[0], platformDeployment.getLocalUrl());
+                    return ArrayUtils.isNotEmpty(baseUrl) && !Strings.CI.equals(baseUrl[0], platformDeployment.getLocalUrl());
                 }
             )
             .map(
@@ -491,7 +497,7 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     @Override
-    public List<LmsUser> listUsersForCourse(LmsGetUsersInCourseOptions lmsGetUsersInCourseOptions, LtiUserEntity apiUser) throws ApiException {
+    public List<LmsUser> listUsersForCourse(LmsGetUsersInCourseOptions lmsGetUsersInCourseOptions, LtiUserEntity apiUser) throws ApiException, TerracottaConnectorException {
         List<GetUsersInCourseOptions.EnrollmentState> enrollmentStates = lmsGetUsersInCourseOptions.getEnrollmentState().stream()
             .map(enrollmentState -> EnumUtils.getEnumIgnoreCase(GetUsersInCourseOptions.EnrollmentState.class, enrollmentState.toString(), GetUsersInCourseOptions.EnrollmentState.ACTIVE))
             .toList();
@@ -503,10 +509,12 @@ public class CanvasApiClientImpl implements ApiClient {
         getUsersInCourseOptions.enrollmentType(enrollmentTypes);
 
         try {
-            return castList(getReader(apiUser, UserReaderExtended.class).getUsersInCourse(getUsersInCourseOptions));
+            getReader(apiUser, UserReaderExtended.class, lmsGetUsersInCourseOptions.getBatchSize()).getUsersInCourse(getUsersInCourseOptions, lmsGetUsersInCourseOptions.getBatchId());
         } catch (IOException | CanvasException ex) {
             throw new ApiException(String.format("Failed to get the list of users for Canvas course ID: [%s] for Canvas user ID: [%s]", getUsersInCourseOptions.getCourseId(), apiUser.getLmsUserId()), ex);
         }
+
+        return List.of();
     }
 
     @Override
@@ -586,6 +594,10 @@ public class CanvasApiClientImpl implements ApiClient {
         return getReaderInternal(apiUser, clazz, getOauthToken(apiUser));
     }
 
+    private <T extends CanvasReader<?, T>> T getReader(LtiUserEntity apiUser, Class<T> clazz, Integer batchSize) throws ApiException {
+        return getReaderInternal(apiUser, clazz, getOauthToken(apiUser), batchSize);
+    }
+
     private <T extends CanvasReader<?, T>> T getReader(LtiUserEntity apiUser, Class<T> clazz, String tokenOverride) throws ApiException {
         return getReaderInternal(apiUser, clazz, getOauthToken(apiUser, tokenOverride));
     }
@@ -596,6 +608,10 @@ public class CanvasApiClientImpl implements ApiClient {
 
     public <T extends CanvasReader<?, T>> T getReaderInternal(LtiUserEntity apiUser, Class<T> clazz, OauthToken oauthToken) {
         return getApiFactory(apiUser).getReader(clazz, oauthToken);
+    }
+
+    public <T extends CanvasReader<?, T>> T getReaderInternal(LtiUserEntity apiUser, Class<T> clazz, OauthToken oauthToken, Integer batchSize) {
+        return getApiFactory(apiUser, batchSize).getReader(clazz, oauthToken);
     }
 
     public <T extends CanvasReader<?, T>> T getReaderInternal(String baseUrl, Class<T> clazz, OauthToken oauthToken) {
@@ -612,6 +628,10 @@ public class CanvasApiClientImpl implements ApiClient {
 
     private CanvasApiFactoryExtended getApiFactory(LtiUserEntity apiUser) {
         return new CanvasApiFactoryExtended(apiUser.getPlatformDeployment().getBaseUrl());
+    }
+
+    private CanvasApiFactoryExtended getApiFactory(LtiUserEntity apiUser, Integer batchSize) {
+        return new CanvasApiFactoryExtended(apiUser.getPlatformDeployment().getBaseUrl(), batchSize);
     }
 
     private CanvasApiFactoryExtended getApiFactory(String baseUrl) {
@@ -669,13 +689,16 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     private <T> Optional<T> castOptional(Optional<? extends LmsEntity<T>> extended) {
+        if (extended.isEmpty()) {
+            return Optional.empty();
+        }
+
         try {
             return Optional.of(extended.get().from());
         } catch (Exception e) {
             log.error("Error casting extended entity to optional entity", e);
             return Optional.empty();
         }
-
     }
 
     private <T> List<T> castList(List<? extends LmsEntity<T>> extendeds) {

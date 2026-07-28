@@ -34,6 +34,11 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
         String jwtValue = jwtAuthentication.getToken();
         try {
             Jws<Claims> jwtClaims = jwtService.validateToken(jwtValue);
+
+            if (jwtClaims == null) {
+                throw new BadCredentialsException("Failed to authenticate JWT");
+            }
+
             return new JwtAuthenticationToken(
                     jwtValue, jwtClaims.getPayload().getSubject(), extractGrantedAuthorities(jwtClaims.getPayload()), jwtClaims.getPayload());
         } catch (JwtException e) {

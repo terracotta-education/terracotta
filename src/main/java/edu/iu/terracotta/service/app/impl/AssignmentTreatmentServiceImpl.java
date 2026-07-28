@@ -2,8 +2,10 @@ package edu.iu.terracotta.service.app.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -194,6 +196,27 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
 
         assignment.setPublished(lmsAssignment.get().isPublished());
         assignment.setDueDate(lmsAssignment.get().getDueAt());
+    }
+
+    @Override
+    public void setAssignmentDtoAttrs(List<Assignment> assignments, LtiUserEntity instructorUser) throws ApiException, TerracottaConnectorException {
+        if (CollectionUtils.isEmpty(assignments)) {
+            return;
+        }
+
+        Map<String, LmsAssignment> lmsAssignmentsByLmsAssignmentId = apiClient.listAssignments(instructorUser, assignments.get(0).getExposure().getExperiment()).stream()
+            .collect(Collectors.toMap(LmsAssignment::getId, lmsAssignment -> lmsAssignment, (first, second) -> first));
+
+        for (Assignment assignment : assignments) {
+            LmsAssignment lmsAssignment = lmsAssignmentsByLmsAssignmentId.get(assignment.getLmsAssignmentId());
+
+            if (lmsAssignment == null) {
+                continue;
+            }
+
+            assignment.setPublished(lmsAssignment.isPublished());
+            assignment.setDueDate(lmsAssignment.getDueAt());
+        }
     }
 
 }
