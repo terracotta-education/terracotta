@@ -692,12 +692,18 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(lmsUserBatchAsyncService).fail(any(UUID.class), anyString());
     }
 
+    // prepareParticipation should reset consent for existing participants directly, without
+    // syncing the entire course roster; new participants get correct consent at creation time.
     @Test
     public void testPrepareParticipation() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
+
         assertDoesNotThrow(() -> participantService.prepareParticipation(1L, securedInfo));
 
-        // side effect proving refreshParticipants()'s real body executed
-        verify(lmsUserBatchAsyncService).success(any(UUID.class));
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(lmsUserBatchAsyncService, never()).success(any(UUID.class));
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
     }
 
     @Test
@@ -759,6 +765,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         assertDoesNotThrow(() -> participantService.setAllToTrue(1L));
 
+        verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(true);
         verify(participantRepository).saveAll(List.of(participant));
     }
@@ -769,6 +776,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         assertDoesNotThrow(() -> participantService.setAllToFalse(1L));
 
+        verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(false);
     }
 
@@ -778,6 +786,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         assertDoesNotThrow(() -> participantService.setAllToNull(1L));
 
+        verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(null);
     }
 

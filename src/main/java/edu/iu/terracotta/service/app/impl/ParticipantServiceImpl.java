@@ -535,7 +535,29 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        refreshParticipants(experimentId);
+        // reset consent for participants who already exist, instead of syncing the entire
+        // course roster; a brand-new participant already gets the correct initial consent for
+        // the current participation type at creation time (see buildAndSaveParticipant), so
+        // there's nothing left to catch up for them
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+
+        if (experiment == null) {
+            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+        }
+
+        int page = 0;
+        PageRequest pageRequest = PageRequest.of(page, batchSize);
+        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+
+        while (CollectionUtils.isNotEmpty(participants)) {
+            participants.forEach(participant -> resetParticipantConsentIfExperimentNotStarted(experiment, participant));
+
+            entityManager.flush();
+            entityManager.clear();
+
+            pageRequest = PageRequest.of(++page, batchSize);
+            participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+        }
     }
 
     @Override
@@ -721,8 +743,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     private void setConsentToAll(Boolean consent, Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        refreshParticipants(experimentId);
-
+        // apply to participants who already exist, instead of syncing the entire course
+        // roster; a brand-new participant already gets the correct initial consent for the
+        // current participation type at creation time (see buildAndSaveParticipant)
         int page = 0;
         PageRequest pageRequest = PageRequest.of(page, batchSize);
         List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
