@@ -837,23 +837,25 @@ public class ParticipantServiceImpl implements ParticipantService {
             // brand-new participant: create directly from the current LTI launch instead of
             // syncing the entire course roster just to add one record
             participant = createParticipantFromLaunch(experiment, securedInfo);
-        } else if ((BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null)
-                || BooleanUtils.isTrue(participant.getDropped())) {
-            // an existing consenting participant isn't assigned to a group, or is marked as
-            // dropped: fall through to a full roster refresh below
-            participant = null;
-        }
-
-        if (participant == null) {
-            refreshParticipants(experiment.getExperimentId());
-            participant = findParticipant(experiment.getExperimentId(), securedInfo.getUserId());
 
             if (participant == null) {
-                throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
-            }
+                // launch's LtiUserEntity couldn't be resolved (shouldn't normally happen):
+                // fall back to a full roster refresh
+                refreshParticipants(experiment.getExperimentId());
+                participant = findParticipant(experiment.getExperimentId(), securedInfo.getUserId());
 
-            // get managed entity
-            participant = participantRepository.findById(participant.getId()).get();
+                if (participant == null) {
+                    throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
+                }
+
+                // get managed entity
+                participant = participantRepository.findById(participant.getId()).get();
+            }
+        } else if ((BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null)
+                || BooleanUtils.isTrue(participant.getDropped())) {
+            // an active LTI launch already proves the participant is currently enrolled, so
+            // repair their state directly instead of syncing the entire course roster
+            resetParticipantConsentIfExperimentNotStarted(experiment, participant);
         }
 
         if (BooleanUtils.isTrue(participant.getDropped())) {

@@ -149,45 +149,46 @@ public class ParticipantServiceImplTest extends BaseTest {
     public void testhandleExperimentParticipantNotInAGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(this.participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
-        doNothing().when(participantService).refreshParticipants(anyLong());
-        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
 
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
-        verify(participantService).refreshParticipants(experiment.getExperimentId());
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, this.participant);
         verify(participant).setGroup(any(Group.class));
     }
 
-    // Test handleExperimentParticipant when a student has consented but hasn't been
-    // assigned a group: refreshParticipants should be triggered before the group is assigned.
+    // Test handleExperimentParticipant when a student has consented but hasn't been assigned a
+    // group: the participant should be repaired directly (an active LTI launch already proves
+    // they're enrolled), not via a full roster refresh.
     @Test
     public void testHandleExperimentParticipantConsentedButNoGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
-        doNothing().when(participantService).refreshParticipants(anyLong());
-        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(experiment.getExperimentId());
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
         verify(participant).setGroup(any(Group.class));
     }
 
-    // Test handleExperimentParticipant when a student has not consented but is marked
-    // as dropped: refreshParticipants should be triggered and the dropped flag cleared.
+    // Test handleExperimentParticipant when a student has not consented but is marked as
+    // dropped: the dropped flag should be cleared directly, not via a full roster refresh.
     @Test
     public void testHandleExperimentParticipantNotConsentedAndDropped() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participant.getConsent()).thenReturn(false);
         when(participant.getDropped()).thenReturn(true);
-        doNothing().when(participantService).refreshParticipants(anyLong());
-        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(experiment.getExperimentId());
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
         verify(participant).setDropped(false);
         verify(participant, never()).setGroup(any(Group.class));
     }
