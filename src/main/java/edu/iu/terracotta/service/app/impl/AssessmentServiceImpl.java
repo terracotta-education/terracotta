@@ -619,7 +619,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     public Assessment getAssessmentForParticipant(Participant participant, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
         Assessment assessment = null;
 
-        if (!participant.getConsent()) {
+        if (BooleanUtils.isNotTrue(participant.getConsent())) {
             //We need the default condition assessment
             for (Condition condition : participant.getExperiment().getConditions()) {
                 if (condition.getDefaultCondition()) {
