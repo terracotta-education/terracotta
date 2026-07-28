@@ -75,6 +75,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -123,10 +124,34 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         }
 
         List<QuestionSubmission> questionSubmissions = questionSubmissionRepository.findBySubmission_SubmissionId(submissionId);
+        List<Long> questionSubmissionIds = questionSubmissions.stream()
+            .map(QuestionSubmission::getQuestionSubmissionId)
+            .toList();
+
+        // one query per collection for all question submissions instead of one query per collection per question submission
+        Map<Long, List<QuestionSubmissionComment>> commentsCache = questionSubmissionComments
+            ? questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds).stream()
+                .collect(Collectors.groupingBy(comment -> comment.getQuestionSubmission().getQuestionSubmissionId()))
+            : Collections.emptyMap();
+        Map<Long, List<AnswerMcSubmission>> mcAnswersCache = answerSubmissions
+            ? answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds).stream()
+                .collect(Collectors.groupingBy(answer -> answer.getQuestionSubmission().getQuestionSubmissionId()))
+            : Collections.emptyMap();
+        Map<Long, List<AnswerEssaySubmission>> essayAnswersCache = answerSubmissions
+            ? answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds).stream()
+                .collect(Collectors.groupingBy(answer -> answer.getQuestionSubmission().getQuestionSubmissionId()))
+            : Collections.emptyMap();
+        Map<Long, List<AnswerFileSubmission>> fileAnswersCache = answerSubmissions
+            ? answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(questionSubmissionIds).stream()
+                .collect(Collectors.groupingBy(answer -> answer.getQuestionSubmission().getQuestionSubmissionId()))
+            : Collections.emptyMap();
+
         List<QuestionSubmissionDto> questionSubmissionDtoList = new ArrayList<>();
 
         for (QuestionSubmission questionSubmission : questionSubmissions) {
-            questionSubmissionDtoList.add(toDto(questionSubmission, answerSubmissions, questionSubmissionComments, showCorrectAnswers));
+            questionSubmissionDtoList.add(
+                toDto(questionSubmission, answerSubmissions, questionSubmissionComments, showCorrectAnswers, commentsCache, mcAnswersCache, essayAnswersCache, fileAnswersCache)
+            );
         }
 
         return questionSubmissionDtoList;
@@ -189,8 +214,12 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         return returnedDtoList;
     }
 
-    private QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments, boolean showCorrectAnswers) throws IOException {
-        QuestionSubmissionDto questionSubmissionDto = toDto(questionSubmission, answerSubmissions, questionSubmissionComments);
+    private QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments, boolean showCorrectAnswers,
+            Map<Long, List<QuestionSubmissionComment>> commentsCache,
+            Map<Long, List<AnswerMcSubmission>> mcAnswersCache,
+            Map<Long, List<AnswerEssaySubmission>> essayAnswersCache,
+            Map<Long, List<AnswerFileSubmission>> fileAnswersCache) throws IOException {
+        QuestionSubmissionDto questionSubmissionDto = toDto(questionSubmission, answerSubmissions, questionSubmissionComments, commentsCache, mcAnswersCache, essayAnswersCache, fileAnswersCache);
         questionSubmissionDto.setAnswerDtoList(answerService.findAllByQuestionIdMC(questionSubmission.getQuestion().getQuestionId(), showCorrectAnswers));
 
         return questionSubmissionDto;
@@ -198,16 +227,30 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
     @Override
     public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) throws IOException {
+        return toDto(questionSubmission, answerSubmissions, questionSubmissionComments, null, null, null, null);
+    }
+
+    @Override
+    public QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments,
+            Map<Long, List<QuestionSubmissionComment>> commentsCache,
+            Map<Long, List<AnswerMcSubmission>> mcAnswersCache,
+            Map<Long, List<AnswerEssaySubmission>> essayAnswersCache,
+            Map<Long, List<AnswerFileSubmission>> fileAnswersCache) throws IOException {
         QuestionSubmissionDto questionSubmissionDto = QuestionSubmissionDto.builder().build();
         questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
         questionSubmissionDto.setSubmissionId(questionSubmission.getSubmission().getSubmissionId());
         questionSubmissionDto.setQuestionId(questionSubmission.getQuestion().getQuestionId());
         questionSubmissionDto.setCalculatedPoints(questionSubmission.getCalculatedPoints());
         questionSubmissionDto.setAlteredGrade(questionSubmission.getAlteredGrade());
+        long questionSubmissionId = questionSubmission.getQuestionSubmissionId();
         List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList = new ArrayList<>();
 
         if (questionSubmissionComments) {
-            for (QuestionSubmissionComment questionSubmissionComment : questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId())) {
+            List<QuestionSubmissionComment> comments = commentsCache != null
+                ? commentsCache.getOrDefault(questionSubmissionId, Collections.emptyList())
+                : questionSubmissionCommentRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
+
+            for (QuestionSubmissionComment questionSubmissionComment : comments) {
                 questionSubmissionCommentDtoList.add(questionSubmissionCommentService.toDto(questionSubmissionComment));
             }
         }
@@ -216,9 +259,15 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
 
         if (answerSubmissions) {
-            List<AnswerMcSubmission> answerMcSubmissions = answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-            List<AnswerEssaySubmission> answerEssaySubmissions = answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-            List<AnswerFileSubmission> answerFileSubmissions = answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+            List<AnswerMcSubmission> answerMcSubmissions = mcAnswersCache != null
+                ? mcAnswersCache.getOrDefault(questionSubmissionId, Collections.emptyList())
+                : answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
+            List<AnswerEssaySubmission> answerEssaySubmissions = essayAnswersCache != null
+                ? essayAnswersCache.getOrDefault(questionSubmissionId, Collections.emptyList())
+                : answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
+            List<AnswerFileSubmission> answerFileSubmissions = fileAnswersCache != null
+                ? fileAnswersCache.getOrDefault(questionSubmissionId, Collections.emptyList())
+                : answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionId);
 
             for (AnswerMcSubmission answerMcSubmission : answerMcSubmissions) {
                 answerSubmissionDtoList.add(answerSubmissionService.toDtoMC(answerMcSubmission));

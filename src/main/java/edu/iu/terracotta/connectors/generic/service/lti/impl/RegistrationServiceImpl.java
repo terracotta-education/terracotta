@@ -25,6 +25,10 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     private final ExceptionMessageGenerator exceptionMessageGenerator;
 
+    // RestTemplate is thread-safe once constructed; reuse one shared instance instead of
+    // allocating a new client (and request factory) on every registration call.
+    private final RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+
     @Override
     public String callDynamicRegistration(String token, ToolRegistrationDto toolRegistrationDto, String endpoint) throws ConnectionException {
         try {
@@ -55,6 +59,6 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     public RestTemplate createRestTemplate() {
-        return new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        return restTemplate;
     }
 }

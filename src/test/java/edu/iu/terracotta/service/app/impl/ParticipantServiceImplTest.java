@@ -3,45 +3,45 @@ package edu.iu.terracotta.service.app.impl;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
-import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
-import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUser;
-import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUsers;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Group;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
@@ -56,12 +56,23 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
-import edu.iu.terracotta.utils.TextConstants;
+import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
+import org.springframework.test.util.ReflectionTestUtils;
 
+@SuppressWarnings("unchecked")
 public class ParticipantServiceImplTest extends BaseTest {
 
-    @Spy
-    @InjectMocks
+    // NOTE: LmsUserBatchRepository and LmsUserBatchAsyncService are NOT declared anywhere in the
+    // BaseModelTest/BaseRepositoryTest/BaseServiceTest hierarchy, so without these local @Mock
+    // fields, Mockito's @InjectMocks constructor-injection would wire null for these two
+    // ParticipantServiceImpl constructor params, causing NPEs anywhere refreshParticipants()'s
+    // real body is exercised (as opposed to being merely stubbed out at the participantService spy).
+    @Mock
+    private LmsUserBatchRepository lmsUserBatchRepository;
+
+    @Mock
+    private LmsUserBatchAsyncService lmsUserBatchAsyncService;
+
     private ParticipantServiceImpl participantService;
 
     @BeforeEach
@@ -70,6 +81,34 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         setup();
         clearInvocations(participant);
+
+        // apiClient/apiJwtService below are ApiClient/ApiJwtService-typed mock candidates that also
+        // collide with CanvasApiClientImpl/CanvasApiJwtServiceImpl in BaseServiceTest (see the
+        // @InjectMocks pitfall note there), so this class is constructed manually instead of relying
+        // on @InjectMocks, which non-deterministically wired the wrong mocks and left apiClient calls
+        // (e.g. calculatedPublishedAssignmentIds, postConsentSubmission) silently unstubbed.
+        participantService = Mockito.spy(
+            new ParticipantServiceImpl(
+                assignmentRepository,
+                consentDocumentRepository,
+                experimentRepository,
+                groupRepository,
+                lmsUserBatchRepository,
+                ltiUserRepository,
+                participantRepository,
+                submissionRepository,
+                treatmentRepository,
+                advantageAgsService,
+                advantageMembershipService,
+                apiJwtService,
+                apiClient,
+                groupParticipantService,
+                lmsUserBatchAsyncService,
+                ltiDataService
+            )
+        );
+        ReflectionTestUtils.setField(participantService, "batchSize", 500);
+        ReflectionTestUtils.setField(participantService, "entityManager", entityManager);
 
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
@@ -80,7 +119,6 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testhandleExperimentParticipantAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(), anyList());
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
@@ -89,7 +127,6 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testhandleExperimentParticipantNotAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(), anyList());
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.MANUAL);
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
@@ -99,8 +136,6 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testhandleExperimentParticipantInGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
-                anyList());
         when(this.participant.getConsent()).thenReturn(true);
 
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
@@ -111,373 +146,49 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testhandleExperimentParticipantNotInAGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
-                anyList());
         when(this.participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong());
+        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
 
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
+        verify(participantService).refreshParticipants(experiment.getExperimentId());
         verify(participant).setGroup(any(Group.class));
     }
 
-    @Test
-    public void testhandleExperimentParticipantNoParticipant() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(), anyList());
-        doReturn(null).when(participantService).findParticipant(anyList(),anyString());
-
-        Exception exception = assertThrows(ParticipantNotMatchingException.class, () -> { participantService.handleExperimentParticipant(experiment, securedInfo); });
-
-        assertEquals(TextConstants.PARTICIPANT_NOT_MATCHING, exception.getMessage());
-    }
-
-    @Test
-    public void testRefreshParticipantsNoAddsNoDrops() throws ConnectionException, ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        PlatformDeployment platformDeployment = new PlatformDeployment();
-        when(experiment.getStarted()).thenReturn(new Timestamp(System.currentTimeMillis()));
-        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
-        LtiContextEntity context = new LtiContextEntity();
-        when(experiment.getLtiContextEntity()).thenReturn(context);
-        when(experimentRepository.findById(experiment.getExperimentId())).thenReturn(Optional.of(experiment));
-
-        // LTI Course Roster
-        CourseUsers courseUsers = CourseUsers.builder().build();
-        CourseUser courseUser1 = CourseUser.builder().build();
-        courseUser1.setUserId("userKey1");
-        courseUser1.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser1);
-        CourseUser courseUser2 = CourseUser.builder().build();
-        courseUser2.setUserId("userKey2");
-        courseUser2.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser2);
-        CourseUser courseUser3 = CourseUser.builder().build();
-        courseUser3.setUserId("userKey3");
-        courseUser3.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser3);
-        when(advantageMembershipService.callMembershipService(any(), eq(context))).thenReturn(courseUsers);
-
-        // Current Participant list
-        List<Participant> currentParticipants = new ArrayList<>();
-        Participant participant1 = new Participant();
-        participant1.setParticipantId(1L);
-        participant1.setDropped(false);
-        participant1.setLtiUserEntity(new LtiUserEntity("userKey1", null, null));
-        currentParticipants.add(participant1);
-        Participant participant2 = new Participant();
-        participant2.setParticipantId(2L);
-        participant2.setDropped(false);
-        participant2.setLtiUserEntity(new LtiUserEntity("userKey2", null, null));
-        currentParticipants.add(participant2);
-        Participant participant3 = new Participant();
-        participant3.setParticipantId(3L);
-        participant3.setDropped(false);
-        participant3.setLtiUserEntity(new LtiUserEntity("userKey3", null, null));
-        currentParticipants.add(participant3);
-
-        List<Participant> refreshedParticipants = participantService.refreshParticipants(experiment.getExperimentId(),
-                currentParticipants);
-
-        assertEquals(refreshedParticipants.size(), currentParticipants.size());
-        verify(participantRepository).flush();
-        // make sure that save was never called
-        verifyNoMoreInteractions(participantRepository);
-
-    }
-
-    // Test refreshParticipants that when a student adds the course
-    @Test
-    public void testRefreshParticipantsWithAddedStudent() throws ConnectionException, ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-
-        PlatformDeployment platformDeployment = new PlatformDeployment();
-        when(experiment.getStarted()).thenReturn(new Timestamp(System.currentTimeMillis()));
-        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
-        LtiContextEntity context = new LtiContextEntity();
-        when(experiment.getLtiContextEntity()).thenReturn(context);
-        when(experimentRepository.findById(experiment.getExperimentId())).thenReturn(Optional.of(experiment));
-
-        // LTI Course Roster
-        CourseUsers courseUsers = CourseUsers.builder().build();
-        CourseUser courseUser1 = CourseUser.builder().build();
-        courseUser1.setUserId("userKey1");
-        courseUser1.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser1);
-        CourseUser courseUser2 = CourseUser.builder().build();
-        courseUser2.setUserId("userKey2");
-        courseUser2.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser2);
-        CourseUser courseUser3 = CourseUser.builder().build();
-        courseUser3.setUserId("userKey3");
-        courseUser3.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser3);
-        // NEW CourseUser, not in participant list
-        CourseUser courseUser4 = CourseUser.builder().build();
-        courseUser4.setUserId("userKey4");
-        courseUser4.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser4);
-        when(advantageMembershipService.callMembershipService(any(), eq(context))).thenReturn(courseUsers);
-
-        when(ltiDataService.findByUserKeyAndPlatformDeployment(courseUser4.getUserId(),
-                platformDeployment)).thenReturn(null);
-        when(ltiDataService.saveLtiUserEntity(argThat(u -> u.getUserKey().equals(courseUser4.getUserId()))))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-        when(participantRepository.save(argThat(p -> "userKey4".equals(p.getLtiUserEntity().getUserKey()))))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        // Current Participant list
-        List<Participant> currentParticipants = new ArrayList<>();
-        Participant participant1 = new Participant();
-        participant1.setParticipantId(1L);
-        participant1.setDropped(false);
-        participant1.setLtiUserEntity(new LtiUserEntity("userKey1", null, null));
-        currentParticipants.add(participant1);
-        Participant participant2 = new Participant();
-        participant2.setParticipantId(2L);
-        participant2.setDropped(false);
-        participant2.setLtiUserEntity(new LtiUserEntity("userKey2", null, null));
-        currentParticipants.add(participant2);
-        Participant participant3 = new Participant();
-        participant3.setParticipantId(3L);
-        participant3.setDropped(false);
-        participant3.setLtiUserEntity(new LtiUserEntity("userKey3", null, null));
-        currentParticipants.add(participant3);
-
-        List<Participant> refreshedParticipants = participantService.refreshParticipants(experiment.getExperimentId(),
-                currentParticipants);
-
-        assertEquals(4, refreshedParticipants.size());
-        Optional<Participant> newParticipant = refreshedParticipants.stream()
-                .filter(p -> "userKey4".equals(p.getLtiUserEntity().getUserKey())).findFirst();
-        assertTrue(newParticipant.isPresent());
-        verify(participantRepository).flush();
-        verify(participantRepository).save(argThat(p -> "userKey4".equals(p.getLtiUserEntity().getUserKey())));
-        // make sure that save was never called
-        verifyNoMoreInteractions(participantRepository);
-
-    }
-
-    // Test refreshParticipants that when a student drops the course
-    @Test
-    public void testRefreshParticipantsWithDroppedStudent() throws ConnectionException, ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-
-        PlatformDeployment platformDeployment = new PlatformDeployment();
-        when(experiment.getStarted()).thenReturn(new Timestamp(System.currentTimeMillis()));
-        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
-        LtiContextEntity context = new LtiContextEntity();
-        when(experiment.getLtiContextEntity()).thenReturn(context);
-        when(experimentRepository.findById(experiment.getExperimentId())).thenReturn(Optional.of(experiment));
-
-        // LTI Course Roster
-        CourseUsers courseUsers = CourseUsers.builder().build();
-        CourseUser courseUser1 = CourseUser.builder().build();
-        courseUser1.setUserId("userKey1");
-        courseUser1.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser1);
-        CourseUser courseUser2 = CourseUser.builder().build();
-        courseUser2.setUserId("userKey2");
-        courseUser2.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser2);
-        // This is the dropped student
-        // CourseUser courseUser3 = CourseUser.builder().build();
-        // courseUser3.setUserId("userKey3");
-        // courseUser3.setRoles(Arrays.asList(Roles.LEARNER));
-        // courseUsers.getCourseUserList().add(courseUser3);
-        when(advantageMembershipService.callMembershipService(any(), eq(context))).thenReturn(courseUsers);
-
-        when(participantRepository
-                .save(argThat(p -> "userKey3".equals(p.getLtiUserEntity().getUserKey()) && p.getDropped())))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        // Current Participant list
-        List<Participant> currentParticipants = new ArrayList<>();
-        Participant participant1 = new Participant();
-        participant1.setParticipantId(1L);
-        participant1.setDropped(false);
-        participant1.setLtiUserEntity(new LtiUserEntity("userKey1", null, null));
-        currentParticipants.add(participant1);
-        Participant participant2 = new Participant();
-        participant2.setParticipantId(2L);
-        participant2.setDropped(false);
-        participant2.setLtiUserEntity(new LtiUserEntity("userKey2", null, null));
-        currentParticipants.add(participant2);
-        Participant participant3 = new Participant();
-        participant3.setParticipantId(3L);
-        participant3.setDropped(false);
-        participant3.setLtiUserEntity(new LtiUserEntity("userKey3", null, null));
-        currentParticipants.add(participant3);
-
-        List<Participant> refreshedParticipants = participantService.refreshParticipants(experiment.getExperimentId(),
-                currentParticipants);
-
-        assertEquals(3, refreshedParticipants.size());
-        verify(participantRepository)
-                .save(argThat(p -> "userKey3".equals(p.getLtiUserEntity().getUserKey()) && p.getDropped()));
-        verify(participantRepository).flush();
-        // make sure that save was never called
-        verifyNoMoreInteractions(participantRepository);
-
-    }
-
-    // Test refreshParticipants resets consent of all participants when
-    // experiment is not started
-    @Test
-    public void testRefreshParticipantsResetsConsent() throws ConnectionException, ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-
-        // Simulate switching from AUTO to CONSENT
-        PlatformDeployment platformDeployment = new PlatformDeployment();
-        when(experiment.getStarted()).thenReturn(null);
-        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
-        when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
-        LtiContextEntity context = new LtiContextEntity();
-        when(experiment.getLtiContextEntity()).thenReturn(context);
-        when(experimentRepository.findById(experiment.getExperimentId())).thenReturn(Optional.of(experiment));
-
-        // LTI Course Roster
-        CourseUsers courseUsers = CourseUsers.builder().build();
-        CourseUser courseUser1 = CourseUser.builder().build();
-        courseUser1.setUserId("userKey1");
-        courseUser1.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser1);
-        CourseUser courseUser2 = CourseUser.builder().build();
-        courseUser2.setUserId("userKey2");
-        courseUser2.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser2);
-        CourseUser courseUser3 = CourseUser.builder().build();
-        courseUser3.setUserId("userKey3");
-        courseUser3.setRoles(Arrays.asList(Roles.LEARNER));
-        courseUsers.getCourseUserList().add(courseUser3);
-        when(advantageMembershipService.callMembershipService(any(), eq(context))).thenReturn(courseUsers);
-
-        // Current Participant list
-        List<Participant> currentParticipants = new ArrayList<>();
-        Participant participant1 = new Participant();
-        participant1.setParticipantId(1L);
-        participant1.setDropped(false);
-        participant1.setLtiUserEntity(new LtiUserEntity("userKey1", null, null));
-        participant1.setConsent(true);
-        participant1.setDateGiven(new Timestamp(System.currentTimeMillis()));
-        participant1.setDateRevoked(null);
-        participant1.setSource(ParticipationTypes.AUTO);
-        currentParticipants.add(participant1);
-        Participant participant2 = new Participant();
-        participant2.setParticipantId(2L);
-        participant2.setDropped(false);
-        participant2.setLtiUserEntity(new LtiUserEntity("userKey2", null, null));
-        participant2.setConsent(true);
-        participant2.setDateGiven(new Timestamp(System.currentTimeMillis()));
-        participant2.setDateRevoked(null);
-        participant2.setSource(ParticipationTypes.AUTO);
-        currentParticipants.add(participant2);
-        Participant participant3 = new Participant();
-        participant3.setParticipantId(3L);
-        participant3.setDropped(false);
-        participant3.setLtiUserEntity(new LtiUserEntity("userKey3", null, null));
-        participant3.setConsent(true);
-        participant3.setDateGiven(new Timestamp(System.currentTimeMillis()));
-        participant3.setDateRevoked(null);
-        participant3.setSource(ParticipationTypes.AUTO);
-        currentParticipants.add(participant3);
-
-        List<Participant> refreshedParticipants = participantService.refreshParticipants(experiment.getExperimentId(),
-                currentParticipants);
-
-        assertTrue(refreshedParticipants.stream().allMatch(p -> p.getConsent() == false));
-        assertTrue(refreshedParticipants.stream().allMatch(p -> p.getDateGiven() == null));
-        assertTrue(refreshedParticipants.stream().allMatch(p -> p.getDateRevoked() == null));
-        assertTrue(refreshedParticipants.stream().allMatch(p -> p.getSource() == ParticipationTypes.CONSENT));
-
-        assertEquals(refreshedParticipants.size(), currentParticipants.size());
-        verify(participantRepository, times(3)).save(any(Participant.class));
-        verify(participantRepository).flush();
-    }
-
-    // Test handleExperimentParticipant when a student has no participant
-    // record yet. refreshedParticipants should be called
-    @Test
-    public void testHandleExperimentParticipantAddedStudent() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-
-        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
-                anyList());
-
-        participantService.handleExperimentParticipant(experiment, securedInfo);
-
-        verify(participantService).refreshParticipants(anyLong(), anyList());
-    }
-
-    // Test handleExperimentParticipant when a student has consented but
-    // hasn't been assigned a group (refreshParticipants should be called)
+    // Test handleExperimentParticipant when a student has consented but hasn't been
+    // assigned a group: refreshParticipants should be triggered before the group is assigned.
     @Test
     public void testHandleExperimentParticipantConsentedButNoGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
-                anyList());
+        doNothing().when(participantService).refreshParticipants(anyLong());
+        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(anyLong(), anyList());
+        verify(participantService).refreshParticipants(experiment.getExperimentId());
+        verify(participant).setGroup(any(Group.class));
     }
 
-    // Test handleExperimentParticipant when a student has consented and been
-    // assigned to a group (refreshParticipants should NOT be called)
-    @Test
-    public void testHandleExperimentParticipantConsentedAndHasGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-
-        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
-        when(participant.getConsent()).thenReturn(true);
-        when(participant.getGroup()).thenReturn(new Group());
-
-        participantService.handleExperimentParticipant(experiment, securedInfo);
-
-        verify(participantService, never()).refreshParticipants(anyLong(), anyList());
-    }
-
-    // Test handleExperimentParticipant when a student has not consented but
-    // is marked as dropped (refreshParticipants should be called)
+    // Test handleExperimentParticipant when a student has not consented but is marked
+    // as dropped: refreshParticipants should be triggered and the dropped flag cleared.
     @Test
     public void testHandleExperimentParticipantNotConsentedAndDropped() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participant.getConsent()).thenReturn(false);
         when(participant.getDropped()).thenReturn(true);
-        doReturn(Collections.singletonList(participant)).when(participantService).refreshParticipants(anyLong(),
-                anyList());
+        doNothing().when(participantService).refreshParticipants(anyLong());
+        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(anyLong(), anyList());
-    }
-
-    // Test handleExperimentParticipant when a student has not consented and
-    // is marked as dropped (refreshParticipants should NOT be called)
-    @Test
-    public void testHandleExperimentParticipantNotConsentedAndNotDropped() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
-
-        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
-        when(participant.getConsent()).thenReturn(false);
-        when(participant.getDropped()).thenReturn(false);
-
-        participantService.handleExperimentParticipant(experiment, securedInfo);
-
-        verify(participantService, never()).refreshParticipants(anyLong(), anyList());
-    }
-
-    @Test
-    public void testGetParticpants() {
-        List<ParticipantDto> retVal = participantService.getParticipants(Arrays.asList(participant, participant), 1l, USER_ID, false, securedInfo);
-
-        assertEquals(2, retVal.size());
-    }
-
-    @Test
-    public void testGetParticpantsStudent() {
-        List<ParticipantDto> retVal = participantService.getParticipants(Arrays.asList(participant, participant), 1l, USER_ID, true, securedInfo);
-
-        assertEquals(1, retVal.size());
+        verify(participantService).refreshParticipants(experiment.getExperimentId());
+        verify(participant).setDropped(false);
+        verify(participant, never()).setGroup(any(Group.class));
     }
 
     @Test
@@ -551,6 +262,24 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testChangeParticipantSavesAllAtOnceInsteadOfPerEntry() {
+        Participant secondParticipant = mock(Participant.class);
+        when(secondParticipant.getParticipantId()).thenReturn(2L);
+
+        ParticipantDto secondParticipantDto = mock(ParticipantDto.class);
+
+        Map<Participant, ParticipantDto> map = new LinkedHashMap<>();
+        map.put(participant, participantDto);
+        map.put(secondParticipant, secondParticipantDto);
+
+        List<Participant> retVal = participantService.changeParticipant(map, 1L, securedInfo);
+
+        assertEquals(2, retVal.size());
+        verify(participantRepository, never()).save(any(Participant.class));
+        verify(participantRepository).saveAll(Arrays.asList(participant, secondParticipant));
+    }
+
+    @Test
     public void testChangeConsent() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
         when(securedInfo.getConsent()).thenReturn(true);
 
@@ -560,60 +289,447 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testChangeConsentStarted() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException {
-        when(securedInfo.getConsent()).thenReturn(true);
-        when(participant.getConsent()).thenReturn(false);
-        when(participantDto.getConsent()).thenReturn(true);
-        when(experiment.isSingleCondition()).thenReturn(false);
-        when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
-        when(treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Collections.emptyList());
+    public void testChangeConsentNoConsentValueReturnsEarly() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        // securedInfo.getConsent() defaults to null; should return participant immediately without touching experiment/changeParticipant.
+        Participant retVal = participantService.changeConsent(participantDto, securedInfo, 1L);
 
-        Exception exception = assertThrows(ParticipantAlreadyStartedException.class, () -> { participantService.changeConsent(participantDto, securedInfo, 1L); });
-
-        assertEquals("Participant has already started experiment, consent cannot be changed to given", exception.getMessage());
+        assertNotNull(retVal);
+        verify(participantRepository, never()).saveAll(any());
     }
 
     @Test
-    public void testFindParticipant() {
-        Participant retVal = participantService.findParticipant(Collections.singletonList(participant), USER_ID);
+    public void testChangeConsentFalseConsentValueReturnsEarly() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(false);
+
+        Participant retVal = participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        assertNotNull(retVal);
+        verify(participantRepository, never()).saveAll(any());
+    }
+
+    @Test
+    public void testChangeConsentUserKeyMismatchReturnsEarly() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(securedInfo.getUserId()).thenReturn("someone_else");
+
+        Participant retVal = participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        assertNotNull(retVal);
+        verify(participantRepository, never()).saveAll(any());
+    }
+
+    @Test
+    public void testChangeConsentTrueToFalseSetsRevokedSource() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.getConsent()).thenReturn(true);
+        when(participantDto.getConsent()).thenReturn(false);
+
+        Participant retVal = participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        assertNotNull(retVal);
+        // setSource(REVOKED) is set once directly in changeConsent() and again inside the changeParticipant() call it delegates to.
+        verify(participant, atLeastOnce()).setSource(ParticipationTypes.REVOKED);
+    }
+
+    @Test
+    public void testChangeConsentAlreadyStartedThrows() {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.getConsent()).thenReturn(false);
+        when(participantDto.getConsent()).thenReturn(true);
+        // more than one treatment for the assignment means the participant "has submitted"
+        when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(Arrays.asList(treatment, treatment));
+
+        assertThrows(
+            ParticipantAlreadyStartedException.class,
+            () -> participantService.changeConsent(participantDto, securedInfo, 1L)
+        );
+    }
+
+    @Test
+    public void testChangeConsentExperimentNotMatchingThrows() {
+        when(securedInfo.getConsent()).thenReturn(true);
+        // first call (inside changeParticipant) returns the real experiment; second call (back in changeConsent) returns null
+        when(experimentRepository.findByExperimentId(anyLong())).thenReturn(experiment, (Experiment) null);
+
+        assertThrows(
+            ExperimentNotMatchingException.class,
+            () -> participantService.changeConsent(participantDto, securedInfo, 1L)
+        );
+    }
+
+    @Test
+    public void testChangeConsentTestStudentDoesNotMarkExperimentStarted() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.isTestStudent()).thenReturn(true);
+
+        Participant retVal = participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        assertNotNull(retVal);
+        verify(experiment, never()).setStarted(any());
+    }
+
+    @Test
+    public void testGetParticipantNonStudent() throws InvalidUserException, ParticipantNotMatchingException {
+        Participant retVal = participantService.getParticipant(1L, 1L, USER_ID, false);
 
         assertNotNull(retVal);
     }
 
     @Test
-    public void testSetAllToNull() {
-        assertDoesNotThrow(() -> {
-            participantService.setAllToNull(1L, securedInfo);
-        });
+    public void testGetParticipantNonStudentNotMatchingThrows() {
+        when(participantRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThrows(
+            ParticipantNotMatchingException.class,
+            () -> participantService.getParticipant(1L, 1L, USER_ID, false)
+        );
     }
 
     @Test
-    public void testSetAllToTrue() {
-        assertDoesNotThrow(() -> {
-            participantService.setAllToTrue(1L, securedInfo);
-        });
+    public void testGetParticipantStudentInvalidUserThrows() {
+        when(participant.getParticipantId()).thenReturn(99L);
+
+        assertThrows(
+            InvalidUserException.class,
+            () -> participantService.getParticipant(1L, 1L, USER_ID, true)
+        );
     }
 
     @Test
-    public void testSetAllToFalse() {
-        assertDoesNotThrow(() -> {
-            participantService.setAllToFalse(1L, securedInfo);
-        });
+    public void testGetParticipantsNonStudentNoRefresh() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+
+        List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, false, securedInfo, false);
+
+        assertEquals(1, retVal.size());
+        // refreshParticipants() would call lmsUserBatchAsyncService.success(...) as a side effect; absence of that call proves it wasn't invoked.
+        verify(lmsUserBatchAsyncService, never()).success(any());
     }
 
     @Test
-    public void testPostConsentSubmission() {
-        assertDoesNotThrow(() -> {
-            participantService.postConsentSubmission(participant, securedInfo);
-        });
+    public void testGetParticipantsNonStudentWithRefresh() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+
+        List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, false, securedInfo, true);
+
+        assertEquals(1, retVal.size());
+        // side effect proving refreshParticipants()'s real body executed
+        verify(lmsUserBatchAsyncService).success(any(UUID.class));
     }
 
     @Test
-    public void testPostConsentSubmissionNoLineItem() {
-        when(consentDocument.getResourceLinkId()).thenReturn("1");
+    public void testGetParticipantsNonStudentExcludesTestStudents() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participant.isTestStudent()).thenReturn(true);
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
 
-        assertDoesNotThrow(() -> {
-            participantService.postConsentSubmission(participant, securedInfo);
-        });
+        List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, false, securedInfo, false);
+
+        assertTrue(retVal.isEmpty());
     }
+
+    @Test
+    public void testGetParticipantsStudentFound() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, true, securedInfo, false);
+
+        assertEquals(1, retVal.size());
+    }
+
+    @Test
+    public void testGetParticipantsStudentNotFoundReturnsEmptyList() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+
+        List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, true, securedInfo, false);
+
+        assertTrue(retVal.isEmpty());
+    }
+
+    @Test
+    public void testPostParticipantIdInPostExceptionThrows() {
+        when(participantDto.getParticipantId()).thenReturn(5L);
+
+        assertThrows(
+            IdInPostException.class,
+            () -> participantService.postParticipant(participantDto, 1L, securedInfo)
+        );
+    }
+
+    @Test
+    public void testPostParticipantFromDtoFailureWrapsDataServiceException() {
+        when(participantDto.getParticipantId()).thenReturn(null);
+        when(experimentRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        DataServiceException ex = assertThrows(
+            DataServiceException.class,
+            () -> participantService.postParticipant(participantDto, 1L, securedInfo)
+        );
+        assertTrue(ex.getMessage().contains("Error 105"));
+    }
+
+    @Test
+    public void testToDtoTwoArgOverload() {
+        ParticipantDto retVal = participantService.toDto(participant, securedInfo);
+
+        assertNotNull(retVal);
+        assertEquals(1L, retVal.getGroupId());
+    }
+
+    @Test
+    public void testToDtoNoGroupLeavesGroupIdUnset() {
+        when(participant.getGroup()).thenReturn(null);
+
+        ParticipantDto retVal = participantService.toDto(participant, List.of(1L), securedInfo);
+
+        assertNotNull(retVal);
+        assertNull(retVal.getGroupId());
+    }
+
+    @Test
+    public void testFromDtoSuccess() throws DataServiceException {
+        when(participantDto.getExperimentId()).thenReturn(1L);
+
+        Participant retVal = participantService.fromDto(participantDto);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testFromDtoGroupAssignedWhenExists() throws DataServiceException {
+        when(participantDto.getExperimentId()).thenReturn(1L);
+        when(groupRepository.existsByExperiment_ExperimentIdAndGroupId(anyLong(), anyLong())).thenReturn(true);
+
+        Participant retVal = participantService.fromDto(participantDto);
+
+        assertNotNull(retVal.getGroup());
+    }
+
+    @Test
+    public void testFromDtoExperimentNotFoundThrows() {
+        when(participantDto.getExperimentId()).thenReturn(1L);
+        when(experimentRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThrows(DataServiceException.class, () -> participantService.fromDto(participantDto));
+    }
+
+    @Test
+    public void testFromDtoUserNotFoundThrows() {
+        when(participantDto.getExperimentId()).thenReturn(1L);
+        when(ltiUserRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThrows(DataServiceException.class, () -> participantService.fromDto(participantDto));
+    }
+
+    @Test
+    public void testSaveAndFlush() {
+        participantService.saveAndFlush(participant);
+
+        verify(participantRepository).saveAndFlush(participant);
+    }
+
+    @Test
+    public void testRefreshParticipantsNoUsersInBatch() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        // lmsUserBatchRepository.findByBatchId is unstubbed -> returns empty list -> loop body never runs
+        assertDoesNotThrow(() -> participantService.refreshParticipants(1L));
+
+        verify(lmsUserBatchAsyncService).success(any(UUID.class));
+    }
+
+    @Test
+    public void testRefreshParticipantsMatchesExistingParticipant() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        LmsUserBatch batchUser = LmsUserBatch.builder().userKey(USER_ID).email(EMAIL).name(DISPLAY_NAME).build();
+
+        when(lmsUserBatchRepository.findByBatchId(any(UUID.class), any())).thenReturn(List.of(batchUser), Collections.emptyList());
+        when(participantRepository.findAllByExperiment_ExperimentIdAndLtiUserEntity_UserKeyIn(anyLong(), any())).thenReturn(List.of(participant));
+
+        assertDoesNotThrow(() -> participantService.refreshParticipants(1L));
+
+        verify(participant).setDropped(false);
+        verify(ltiDataService, never()).saveLtiUserEntity(any());
+        verify(lmsUserBatchAsyncService).success(any(UUID.class));
+    }
+
+    @Test
+    public void testRefreshParticipantsCreatesNewParticipantForUnmatchedUser() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        LmsUserBatch batchUser = LmsUserBatch.builder().userKey("new_user_key").email(EMAIL).name(DISPLAY_NAME).build();
+        LtiUserEntity newLtiUserEntity = mock(LtiUserEntity.class);
+        LtiMembershipEntity newLtiMembershipEntity = mock(LtiMembershipEntity.class);
+
+        when(lmsUserBatchRepository.findByBatchId(any(UUID.class), any())).thenReturn(List.of(batchUser), Collections.emptyList());
+        when(participantRepository.findAllByExperiment_ExperimentIdAndLtiUserEntity_UserKeyIn(anyLong(), any())).thenReturn(Collections.emptyList());
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(anyString(), any())).thenReturn(null);
+        when(ltiDataService.saveLtiUserEntity(any())).thenReturn(newLtiUserEntity);
+        when(ltiDataService.findByUserAndContext(any(), any())).thenReturn(null);
+        when(ltiDataService.saveLtiMembershipEntity(any())).thenReturn(newLtiMembershipEntity);
+
+        assertDoesNotThrow(() -> participantService.refreshParticipants(1L));
+
+        verify(ltiDataService).saveLtiUserEntity(any());
+        verify(ltiDataService).saveLtiMembershipEntity(any());
+    }
+
+    @Test
+    public void testRefreshParticipantsCreatesNewParticipantReusingExistingUserAndMembership() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        LmsUserBatch batchUser = LmsUserBatch.builder().userKey("new_user_key").email(EMAIL).name(DISPLAY_NAME).build();
+
+        when(lmsUserBatchRepository.findByBatchId(any(UUID.class), any())).thenReturn(List.of(batchUser), Collections.emptyList());
+        when(participantRepository.findAllByExperiment_ExperimentIdAndLtiUserEntity_UserKeyIn(anyLong(), any())).thenReturn(Collections.emptyList());
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(anyString(), any())).thenReturn(ltiUserEntity);
+        when(ltiDataService.findByUserAndContext(any(), any())).thenReturn(ltiMembershipEntity);
+
+        assertDoesNotThrow(() -> participantService.refreshParticipants(1L));
+
+        verify(ltiDataService, never()).saveLtiUserEntity(any());
+        verify(ltiDataService, never()).saveLtiMembershipEntity(any());
+    }
+
+    @Test
+    public void testRefreshParticipantsExperimentNotFoundThrows() {
+        when(experimentRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThrows(
+            ExperimentNotMatchingException.class,
+            () -> participantService.refreshParticipants(1L)
+        );
+    }
+
+    @Test
+    public void testRefreshParticipantsConnectionExceptionWrapsAndFails() throws Exception {
+        when(advantageMembershipService.getToken(any())).thenThrow(new ConnectionException("connection failed"));
+
+        assertThrows(
+            ParticipantNotUpdatedException.class,
+            () -> participantService.refreshParticipants(1L)
+        );
+
+        verify(lmsUserBatchAsyncService).fail(any(UUID.class), anyString());
+    }
+
+    @Test
+    public void testPrepareParticipation() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        assertDoesNotThrow(() -> participantService.prepareParticipation(1L, securedInfo));
+
+        // side effect proving refreshParticipants()'s real body executed
+        verify(lmsUserBatchAsyncService).success(any(UUID.class));
+    }
+
+    @Test
+    public void testFindParticipantFound() {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+
+        Participant retVal = participantService.findParticipant(1L, USER_ID);
+
+        assertNotNull(retVal);
+    }
+
+    @Test
+    public void testFindParticipantNotFound() {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+
+        Participant retVal = participantService.findParticipant(1L, "no_such_user");
+
+        assertNull(retVal);
+    }
+
+    @Test
+    public void testCalculatedPublishedAssignmentIdsIncludesPublished() {
+        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, "1", ltiUserEntity);
+
+        assertEquals(List.of(1L), retVal);
+    }
+
+    @Test
+    public void testCalculatedPublishedAssignmentIdsExcludesUnpublished() {
+        when(lmsAssignment.isPublished()).thenReturn(false);
+
+        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, "1", ltiUserEntity);
+
+        assertTrue(retVal.isEmpty());
+    }
+
+    @Test
+    public void testCalculatedPublishedAssignmentIdsExcludesOnException() throws Exception {
+        when(apiClient.listAssignment(any(), anyString(), anyString())).thenThrow(new RuntimeException("api failure"));
+
+        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, "1", ltiUserEntity);
+
+        assertTrue(retVal.isEmpty());
+    }
+
+    @Test
+    public void testBuildHeaders() {
+        org.springframework.web.util.UriComponentsBuilder ucBuilder = org.springframework.web.util.UriComponentsBuilder.fromUriString("http://localhost:8080");
+
+        org.springframework.http.HttpHeaders headers = participantService.buildHeaders(ucBuilder, 1L, 2L);
+
+        assertNotNull(headers.getLocation());
+        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/participant/2"));
+    }
+
+    @Test
+    public void testSetAllToTrue() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+
+        assertDoesNotThrow(() -> participantService.setAllToTrue(1L));
+
+        verify(participant).setConsent(true);
+        verify(participantRepository).saveAll(List.of(participant));
+    }
+
+    @Test
+    public void testSetAllToFalse() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+
+        assertDoesNotThrow(() -> participantService.setAllToFalse(1L));
+
+        verify(participant).setConsent(false);
+    }
+
+    @Test
+    public void testSetAllToNull() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+
+        assertDoesNotThrow(() -> participantService.setAllToNull(1L));
+
+        verify(participant).setConsent(null);
+    }
+
+    @Test
+    public void testPostConsentSubmissionSuccess() throws Exception {
+        assertDoesNotThrow(() -> participantService.postConsentSubmission(participant, securedInfo));
+
+        verify(advantageAgsService).postScore(any(), any(), any(), anyString(), any());
+    }
+
+    @Test
+    public void testPostConsentSubmissionFallsBackToFixResourceLinkId() throws Exception {
+        // consentDocument's resourceLinkId doesn't match any lineitem initially, forcing the fallback lookup
+        when(consentDocument.getResourceLinkId()).thenReturn("different_link_id");
+
+        assertDoesNotThrow(() -> participantService.postConsentSubmission(participant, securedInfo));
+
+        verify(consentDocumentRepository).save(consentDocument);
+        verify(advantageAgsService).postScore(any(), any(), any(), anyString(), any());
+    }
+
+    @Test
+    public void testPostConsentSubmissionThrowsWhenNoLineItemFound() {
+        when(consentDocument.getResourceLinkId()).thenReturn("different_link_id");
+        when(jwt.get(anyString())).thenReturn("no_matching_resource_link_id");
+
+        assertThrows(
+            DataServiceException.class,
+            () -> participantService.postConsentSubmission(participant, securedInfo)
+        );
+    }
+
+    @Test
+    public void testPostConsentSubmissionApiExceptionWrapsAsDataServiceException() throws Exception {
+        when(consentDocument.getResourceLinkId()).thenReturn("different_link_id");
+        when(apiClient.listAssignment(any(), anyString(), anyString())).thenThrow(new ApiException("boom"));
+
+        assertThrows(
+            DataServiceException.class,
+            () -> participantService.postConsentSubmission(participant, securedInfo)
+        );
+    }
+
 }

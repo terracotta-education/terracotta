@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,8 +26,10 @@ import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 import edu.iu.terracotta.dao.entity.messaging.attachment.MessageContentAttachment;
+import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalText;
 import edu.iu.terracotta.dao.entity.messaging.log.MessageLog;
 import edu.iu.terracotta.dao.entity.messaging.message.Message;
+import edu.iu.terracotta.dao.entity.messaging.piped.MessagePipedTextItem;
 import edu.iu.terracotta.dao.model.dto.messaging.send.MessageSendTestDto;
 import edu.iu.terracotta.dao.model.enums.messaging.MessageProcessingStatus;
 import edu.iu.terracotta.dao.repository.messaging.log.MessageLogRepository;
@@ -75,7 +78,7 @@ public class MessageEmailServiceImpl implements MessageEmailService {
     @Value("${app.messaging.email.test.body:Congratulations! You have successfully sent a test message.}")
     private String testBody;
 
-    @Value("${aws.region:US_EAST_2}")
+    @Value("${aws.ses.region:us-east-2}")
     private String awsRegion;
 
     @Override
@@ -163,6 +166,9 @@ public class MessageEmailServiceImpl implements MessageEmailService {
                 throw new MessageBodyParseException(String.format("Error retrieving LMS submissions for message ID: [%s]", message.getId()), e);
             }
 
+            Map<String, MessageConditionalText> conditionalTextCache = new HashMap<>();
+            Map<String, MessagePipedTextItem> pipedTextItemCache = new HashMap<>();
+
             // send each batch of emails with a delay
             for (List<LtiUserEntity> recipientBatch : recipientBatches) {
                 try {
@@ -188,7 +194,10 @@ public class MessageEmailServiceImpl implements MessageEmailService {
                     body = messageSendService.parseMessageBody(
                         message,
                         recipient,
-                        participantSubmissions
+                        participantSubmissions,
+                        false,
+                        conditionalTextCache,
+                        pipedTextItemCache
                     );
                     sendEmailWithSES(message, body, emailMessage, recipient, messageLog);
                 }
@@ -287,7 +296,7 @@ public class MessageEmailServiceImpl implements MessageEmailService {
         emailMessage.getMimeMessage().writeTo(messageOutputStream);
 
         SesClient sesClient = SesClient.builder()
-            .region(Region.US_EAST_2)
+            .region(Region.of(awsRegion))
             .build();
         SendRawEmailRequest sendRawEmailRequest = SendRawEmailRequest.builder()
             .destinations(List.of(recipient.getEmail()))

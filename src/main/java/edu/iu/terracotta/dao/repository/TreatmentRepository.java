@@ -3,10 +3,12 @@ package edu.iu.terracotta.dao.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Treatment;
 
+import java.util.Collection;
 import java.util.List;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
@@ -14,8 +16,10 @@ public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
 
     List<Treatment> findByCondition_ConditionIdOrderByCondition_ConditionIdAsc(Long conditionId);
     List<Treatment> findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(Long conditionId, Long assignmentId);
-    List<Treatment> findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(Long experimentId);
+    @Query("SELECT t FROM Treatment t WHERE t.condition.experiment.experimentId = :experimentId ORDER BY t.condition.conditionId ASC")
+    List<Treatment> findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(@Param("experimentId") Long experimentId);
     List<Treatment> findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(Long assignmentId);
+    List<Treatment> findByAssignment_AssignmentIdInOrderByCondition_ConditionIdAsc(Collection<Long> assignmentIds);
     List<Treatment> findByAssignment_Exposure_ExposureId(long exposureId);
     Treatment findByTreatmentId(Long treatmentId);
     boolean existsByCondition_Experiment_ExperimentIdAndCondition_ConditionIdAndTreatmentId(Long experimentId, Long conditionId, Long treatmentId);

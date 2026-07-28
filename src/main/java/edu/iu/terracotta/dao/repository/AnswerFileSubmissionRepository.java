@@ -11,6 +11,8 @@ import java.util.List;
 public interface AnswerFileSubmissionRepository extends JpaRepository<AnswerFileSubmission, Long> {
 
     List<AnswerFileSubmission> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
+    List<AnswerFileSubmission> findByQuestionSubmission_QuestionSubmissionIdIn(List<Long> questionSubmissionIds);
+    long countByQuestionSubmission_QuestionSubmissionIdIn(List<Long> questionSubmissionIds);
     List<AnswerFileSubmission> findByQuestionSubmission_Question_QuestionId(Long questionId);
     AnswerFileSubmission findByAnswerFileSubmissionId(Long answerFileSubmissionId);
     boolean existsByQuestionSubmission_QuestionSubmissionIdAndAnswerFileSubmissionId(Long questionSubmissionId, Long answerFileSubmissionId);

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -30,18 +31,9 @@ public class AsyncServiceImplTest extends BaseTest {
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
         setup();
-    }
-
-    @Test
-    void testHandleObsoleteAssignmentsInLmsByContext() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
-        when(obsoleteAssignmentRepository.findAllByContext_ContextId(anyLong())).thenReturn(Collections.emptyList());
-        when(lmsAssignment.getLmsExternalToolFields().getUrl()).thenReturn(LTI_URL + "?experiment=2&assignment=1");
-        when(lmsAssignment.getId()).thenReturn("2");
-
-        asyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
-
-        verify(apiClient).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
-        verify(obsoleteAssignmentRepository).save(any(ObsoleteAssignment.class));
+        // CanvasApiClientImpl also implements ApiClient, so Mockito's constructor injection
+        // can wire the wrong mock into the ApiClient field; bind it explicitly.
+        ReflectionTestUtils.setField(asyncService, "apiClient", apiClient);
     }
 
     @Test

@@ -13,6 +13,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.dao.repository.LtiNonceRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.lti.Lti3Request;
@@ -47,6 +48,7 @@ public class LtiDataServiceImpl implements LtiDataService {
     private final ToolDeploymentRepository toolDeploymentRepository;
 
     @Getter private final PlatformDeploymentRepository platformDeploymentRepository;
+    @Getter private final LtiNonceRepository ltiNonceRepository;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -374,7 +376,7 @@ public class LtiDataServiceImpl implements LtiDataService {
 
         LtiMembershipEntity membership = lti.getMembership();
 
-        if (lti.getLtiRoles() != null && lti.getUserRoleNumber() != membership.getRole()) {
+        if (membership != null && lti.getLtiRoles() != null && lti.getUserRoleNumber() != membership.getRole()) {
             membership.setRole(lti.getUserRoleNumber());
             lti.setMembership(ltiMembershipRepository.save(membership));
             updates++;
@@ -406,6 +408,17 @@ public class LtiDataServiceImpl implements LtiDataService {
         }
 
         return lti.getLoadingUpdates();
+    }
+
+    @Override
+    @Transactional
+    // combines the above two calls in a single transaction: loadLTIDataFromDB's entities stay
+    // managed for upsertLTIDataInDB, instead of upsertLTIDataInDB having to re-merge each one
+    // after loadLTIDataFromDB's own transaction (when called separately) already closed.
+    public int loadAndUpsertLTIDataInDB(Lti3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException {
+        loadLTIDataFromDB(lti, link);
+
+        return upsertLTIDataInDB(lti, toolDeployment, link);
     }
 
     @Override

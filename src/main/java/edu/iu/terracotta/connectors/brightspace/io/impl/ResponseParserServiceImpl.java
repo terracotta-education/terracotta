@@ -18,6 +18,11 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class ResponseParserServiceImpl implements ResponseParserService {
 
+    // JsonMapper is thread-safe once built; reuse one shared instance per serializeNulls variant
+    // instead of building a fresh mapper on every single Brightspace API response parse.
+    private static final JsonMapper JSON_MAPPER_SERIALIZE_NULLS = buildJsonParser(true);
+    private static final JsonMapper JSON_MAPPER_OMIT_NULLS = buildJsonParser(false);
+
     @Override
     public <T> List<T> parseToList(TypeReference<List<T>> typeReference, Response response) {
         if (StringUtils.isBlank(response.getContent())) {
@@ -64,7 +69,7 @@ public class ResponseParserServiceImpl implements ResponseParserService {
         JsonMapper jsonMapper = getJsonParser(false);
 
         try {
-            return jsonMapper.readValue(response.getContent(), new TypeReference<Map<String, T>>() {});
+            return jsonMapper.readValue(response.getContent(), jsonMapper.getTypeFactory().constructMapType(Map.class, String.class, clazz));
         } catch (Exception e) {
             log.error("Error parsing response to map of type [{}]: {}", clazz, e);
             throw new RuntimeException(e);
@@ -72,6 +77,10 @@ public class ResponseParserServiceImpl implements ResponseParserService {
     }
 
     public static JsonMapper getJsonParser(boolean serializeNulls) {
+        return serializeNulls ? JSON_MAPPER_SERIALIZE_NULLS : JSON_MAPPER_OMIT_NULLS;
+    }
+
+    private static JsonMapper buildJsonParser(boolean serializeNulls) {
         return JsonMapper.builder()
             .configure(MapperFeature.DEFAULT_VIEW_INCLUSION, serializeNulls)
             .changeDefaultPropertyInclusion(incl -> serializeNulls ? incl.withValueInclusion(Include.ALWAYS) : incl.withValueInclusion(Include.NON_NULL))

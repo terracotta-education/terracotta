@@ -36,7 +36,7 @@ public class ExperimentImportSchedulerServiceImpl implements ExperimentImportSch
     @Value("${experiment.export.local.path.root}")
     private String experimentExportLocalPathRoot;
 
-    @Value("${assignment.file.archive.ttl.days:7}")
+    @Value("${experiment.import.ttl.days:7}")
     private int ttl;
 
     @Override

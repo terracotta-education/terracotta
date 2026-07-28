@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -21,6 +22,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.UnknownContentTypeException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -53,6 +55,11 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
     private final ApiTokenRepository apiTokenRepository;
     private final ApiOAuthSettingsRepository apiOAuthSettingsRepository;
     private final ApiScopeService apiScopeService;
+    private final Map<Long, Object> refreshLocks = new ConcurrentHashMap<>();
+
+    // RestTemplate is thread-safe once constructed; reuse a shared instance instead of
+    // allocating a new client (and request factory) on every outbound call.
+    private final RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
 
     @Value("${brightspace.api.lp.version:1.52}")
     private String brightspaceApiLpVersion;
@@ -93,7 +100,7 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
         map.add("code", code);
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
-        BrightspaceApiToken token = postToTokenURL(request, user);
+        BrightspaceApiToken token = postToTokenURL(request, apiOAuthSettings);
         BrightspaceApiUser brightspaceApiUser = postToWhoami(user, token);
         Optional<ApiTokenEntity> savedToken = apiTokenRepository.findByUser(user);
 
@@ -119,17 +126,28 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
 
     @Override
     public ApiTokenEntity getAccessToken(LtiUserEntity user) throws LmsOAuthException {
-        Optional<ApiTokenEntity> brightspaceApiTokenEntity = apiTokenRepository.findByUser(user);
+        ApiTokenEntity brightspaceApiTokenEntity = apiTokenRepository.findByUser(user)
+            .orElseThrow(() -> new LmsOAuthException(MessageFormat.format("User {0} does not have a Brightspace API access token nor refresh token!", user.getUserKey())));
 
-        if (brightspaceApiTokenEntity.isEmpty()) {
-            throw new LmsOAuthException(MessageFormat.format("User {0} does not have a Brightspace API access token nor refresh token!", user.getUserKey()));
+        if (isAccessTokenFresh(brightspaceApiTokenEntity)) {
+            return brightspaceApiTokenEntity;
         }
 
-        if (isAccessTokenFresh(brightspaceApiTokenEntity.get())) {
-            return brightspaceApiTokenEntity.get();
-        }
+        // synchronize per user so concurrent callers (e.g. a parallelStream over several assignments)
+        // don't each fire an OAuth refresh_token request for the same token; Brightspace rotates the
+        // refresh token on use, so a second concurrent refresh with the now-stale token would fail
+        Object lock = refreshLocks.computeIfAbsent(user.getUserId(), userId -> new Object());
 
-        return refreshAccessToken(brightspaceApiTokenEntity.get());
+        synchronized (lock) {
+            ApiTokenEntity current = apiTokenRepository.findByUser(user)
+                .orElseThrow(() -> new LmsOAuthException(MessageFormat.format("User {0} does not have a Brightspace API access token nor refresh token!", user.getUserKey())));
+
+            if (isAccessTokenFresh(current)) {
+                return current;
+            }
+
+            return refreshAccessToken(current);
+        }
     }
 
     @Override
@@ -179,7 +197,7 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
-        BrightspaceApiToken tokenResponse = postToTokenURL(request, brightspaceApiTokenEntity.getUser());
+        BrightspaceApiToken tokenResponse = postToTokenURL(request, brightspaceAPIOAuthSettings);
         brightspaceApiTokenEntity.setAccessToken(tokenResponse.getAccessToken());
         brightspaceApiTokenEntity.setRefreshToken(tokenResponse.getRefreshToken());
         brightspaceApiTokenEntity.setExpiresAt(new Timestamp(Instant.now().toEpochMilli() + tokenResponse.getExpiresIn() * 1000));
@@ -187,8 +205,7 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
         return apiTokenRepository.save(brightspaceApiTokenEntity);
     }
 
-    private BrightspaceApiToken postToTokenURL(HttpEntity<MultiValueMap<String, String>> request, LtiUserEntity user) throws LmsOAuthException {
-        ApiOAuthSettings apiOAuthSettings = getApiOAuthSettings(user.getPlatformDeployment());
+    private BrightspaceApiToken postToTokenURL(HttpEntity<MultiValueMap<String, String>> request, ApiOAuthSettings apiOAuthSettings) throws LmsOAuthException {
         RestTemplate restTemplate = createRestTemplate();
 
         try {
@@ -206,6 +223,13 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
 
                 URI location = unknownContentTypeException.getResponseHeaders().getLocation();
                 String queryParameters = location.getQuery();
+
+                if (queryParameters == null) {
+                    throw new LmsOAuthException(
+                            MessageFormat.format("Error getting access token: redirected to [{0}] with no query parameters", location),
+                            unknownContentTypeException);
+                }
+
                 Map<String, String> paramMap = new HashMap<>();
 
                 for (String queryParam : queryParameters.split("&")) {
@@ -221,12 +245,17 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
                 throw new LmsOAuthException(unknownContentTypeException.getResponseBodyAsString(),
                         unknownContentTypeException);
             }
+        } catch (HttpStatusCodeException httpStatusCodeException) {
+            throw new LmsOAuthException(httpStatusCodeException.getResponseBodyAsString(), httpStatusCodeException);
         }
 
-        throw new LmsOAuthException(MessageFormat.format("Could not fetch token for user {0}", user.getUserId()));
+        throw new LmsOAuthException(MessageFormat.format("Could not fetch token using OAuth settings for platform deployment key ID: {0}", apiOAuthSettings.getPlatformDeployment().getKeyId()));
     }
 
     private BrightspaceApiUser postToWhoami(LtiUserEntity user, BrightspaceApiToken token) throws LmsOAuthException {
+        // Deliberately NOT the shared restTemplate field: tests intercept this call by mocking
+        // RestTemplate's constructor (MockedConstruction), which only works if a fresh instance
+        // is actually constructed here.
         RestTemplate restTemplate = new RestTemplate();
 
         try {
@@ -253,6 +282,14 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
 
                 URI location = unknownContentTypeException.getResponseHeaders().getLocation();
                 String queryParameters = location.getQuery();
+
+                if (queryParameters == null) {
+                    throw new LmsOAuthException(
+                        MessageFormat.format("Error getting whoami user: redirected to [{0}] with no query parameters", location),
+                        unknownContentTypeException
+                    );
+                }
+
                 Map<String, String> paramMap = new HashMap<>();
 
                 for (String queryParam : queryParameters.split("&")) {
@@ -271,6 +308,8 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
             } else {
                 throw new LmsOAuthException(unknownContentTypeException.getResponseBodyAsString(), unknownContentTypeException);
             }
+        } catch (HttpStatusCodeException httpStatusCodeException) {
+            throw new LmsOAuthException(httpStatusCodeException.getResponseBodyAsString(), httpStatusCodeException);
         }
 
         throw new LmsOAuthException(MessageFormat.format("Could not fetch whoami for user {0}", user.getUserId()));
@@ -282,7 +321,7 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
 
     @Override
     public RestTemplate createRestTemplate() {
-        return new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        return restTemplate;
     }
 
     private boolean isAccessTokenFresh(ApiTokenEntity brightspaceApiTokenEntity) {

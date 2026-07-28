@@ -67,69 +67,37 @@ public class ApiScopeServiceImpl implements ApiScopeService {
 
     @Override
     public Set<String> getNecessaryScopes(long platformDeploymentKeyId) {
-        List<ApiScope> scopes = findScopesForPlatformDeploymentId(platformDeploymentKeyId);
-        Set<String> allNecessaryScopes = getDefaultScopes(platformDeploymentKeyId);
-
-        for (ApiScope scope : scopes) {
-            allNecessaryScopes.add(scope.getScope());
-        }
-
-        return allNecessaryScopes;
+        return computeNecessaryScopes(platformDeploymentKeyId);
     }
 
     @Override
     public String getNecessaryScopes(long platformDeploymentKeyId, String separator) {
-        List<ApiScope> scopes = findScopesForPlatformDeploymentId(platformDeploymentKeyId);
-        Set<String> allNecessaryScopes = getDefaultScopes(platformDeploymentKeyId);
+        return StringUtils.join(computeNecessaryScopes(platformDeploymentKeyId), separator);
+    }
 
-        for (ApiScope scope : scopes) {
-            allNecessaryScopes.add(scope.getScope());
-        }
-
-        return StringUtils.join(allNecessaryScopes, separator);
+    private Set<String> computeNecessaryScopes(long platformDeploymentKeyId) {
+        Set<String> all = getDefaultScopes(platformDeploymentKeyId);
+        findScopesForPlatformDeploymentId(platformDeploymentKeyId).forEach(scope -> all.add(scope.getScope()));
+        return all;
     }
 
     private Set<String> getDefaultScopes(long platformDeploymentKeyId) {
         PlatformDeployment platformDeployment = platformDeploymentRepository.findById(platformDeploymentKeyId)
             .orElseThrow(() -> new IllegalArgumentException(String.format("No Platform Deployment found for ID: [%s] ", platformDeploymentKeyId)));
-        List<ApiScope> scopes = getScopesForLmsConnector(platformDeployment.getLmsConnector());
 
-        return scopes.stream()
-            .filter(
-                scope ->
-                    scope.getFeatures().stream()
-                        .anyMatch(feature -> feature.getType() == FeatureType.DEFAULT))
+        return apiScopeRepository.findAllByLmsConnectorAndFeatures_Type(platformDeployment.getLmsConnector(), FeatureType.DEFAULT)
+            .stream()
             .map(ApiScope::getScope)
             .collect(Collectors.toCollection(HashSet::new));
     }
 
     @Override
     public List<ApiScope> getScopesForLmsConnector(LmsConnector lmsConnector) {
-        return apiScopeRepository.findAll().stream()
-            .filter(
-                scope -> lmsConnector == scope.getLmsConnector()
-            )
-            .toList();
+        return apiScopeRepository.findAllByLmsConnector(lmsConnector);
     }
 
     private List<ApiScope> findScopesForPlatformDeploymentId(long platformDeploymentKeyId) {
-        return apiScopeRepository.findAll().stream()
-        .filter(
-            scope ->
-                scope.getFeatures().stream()
-                    .filter(
-                        feature ->
-                            feature.getPlatformDeployments().stream()
-                                .filter(
-                                    platformDeployment -> platformDeployment.getKeyId() == platformDeploymentKeyId
-                                )
-                                .toList()
-                                .size() > 0
-                    )
-                    .toList()
-                    .size() > 0
-        )
-        .toList();
+        return apiScopeRepository.findDistinctByFeatures_PlatformDeployments_KeyId(platformDeploymentKeyId);
     }
 
 }

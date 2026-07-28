@@ -56,7 +56,7 @@ public class CaliperUtils {
 
     public String roleToString(int role) {
         switch (role) {
-            case 2:
+            case LtiStrings.ROLE_ADMIN:
                 return LtiStrings.LTI_ROLE_MEMBERSHIP_ADMIN;
             case LtiStrings.ROLE_INSTRUCTOR:
                 return LtiStrings.LTI_ROLE_MEMBERSHIP_INSTRUCTOR;

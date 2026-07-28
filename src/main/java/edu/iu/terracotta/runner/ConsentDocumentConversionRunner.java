@@ -55,13 +55,13 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
         Thread thread = new Thread(
             () ->
                 {
-                    // fix experiment started date; if has an assignment started, mark experiment started, else set to null
-                    List<ConsentDocument> consentDocuments = consentDocumentRepository.findAll();
+                    try {
+                        List<ConsentDocument> consentDocuments = consentDocumentRepository.findAll();
 
-                    log.info("Starting conversion of consent documents...");
-                    AtomicInteger processed = new AtomicInteger(0);
+                        log.info("Starting conversion of consent documents...");
+                        AtomicInteger processed = new AtomicInteger(0);
 
-                    CollectionUtils.emptyIfNull(consentDocuments).stream()
+                        CollectionUtils.emptyIfNull(consentDocuments).stream()
                         .filter(consentDocument -> consentDocument.getFilePointer() != null)
                         .filter(consentDocument -> consentDocument.getExperiment() != null)
                         .filter(consentDocument -> !consentDocument.isCompressed())
@@ -81,7 +81,7 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
                                     // assign random UUID as file name
                                     String filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
 
-                                    while (Files.exists(Paths.get(filePath))) {
+                                    while (Files.exists(Paths.get(String.format("%s/%s", consentFileLocalPathRoot, filePath)))) {
                                         // ensure no file name clashes
                                         filePath = String.format("%s/%s", path, UUID.randomUUID().toString());
                                     }
@@ -129,7 +129,10 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
                                 processed.incrementAndGet();
                         });
 
-                    log.info("Consent document conversion complete! {} consent documents processed.", processed);
+                        log.info("Consent document conversion complete! {} consent documents processed.", processed);
+                    } catch (Exception e) {
+                        log.error("Error occurred converting consent documents", e);
+                    }
                 }
         );
 

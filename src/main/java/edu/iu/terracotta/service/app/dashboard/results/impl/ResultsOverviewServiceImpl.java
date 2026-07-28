@@ -3,7 +3,6 @@ package edu.iu.terracotta.service.app.dashboard.results.impl;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -283,9 +282,11 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
                         .count() == 0
                 );
 
+                Map<Long, Float> scoresByParticipantId = submissionService.getScoresFromMultipleSubmissions(experimentConsentedParticipants, assessment);
+
                 experimentConsentedParticipants.forEach(
                     ecp -> {
-                        Float assignmentScore = submissionService.getScoreFromMultipleSubmissions(ecp, assessment);
+                        Float assignmentScore = scoresByParticipantId.get(ecp.getParticipantId());
 
                         if (assignmentScore == null) {
                             return;
@@ -347,11 +348,10 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
                     assessments
                         .forEach(
                             assessment -> {
+                                // experimentSubmissions is already filtered to consented, non-revoked participants
                                 submissionsCount.addAndGet(
-                                    // filter out non-consenting participant submissions
-                                    submissionRepository.findByAssessment_AssessmentId(assessment.getAssessmentId()).stream()
-                                        .filter(submission -> BooleanUtils.isTrue(submission.getParticipant().getConsent()))
-                                        .filter(submission -> submission.getParticipant().getDateRevoked() == null)
+                                    experimentSubmissions.stream()
+                                        .filter(submission -> submission.getAssessment().getAssessmentId().equals(assessment.getAssessmentId()))
                                         .count()
                                 );
                             }
@@ -490,24 +490,22 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
             .filter(participant -> BooleanUtils.isTrue(participant.getConsent()))
             .toList();
 
-        allAssessmentsByAssignment = new HashMap<>();
+        List<Long> experimentAssignmentIds = experimentAssignments.stream()
+            .map(Assignment::getAssignmentId)
+            .toList();
 
-        for (Assignment experimentAssignment : experimentAssignments) {
-            allAssessmentsByAssignment.put(
-                experimentAssignment.getAssignmentId(),
-                assessmentRepository.findByTreatment_Assignment_AssignmentId(experimentAssignment.getAssignmentId())
-            );
-        }
+        allAssessmentsByAssignment = assessmentRepository.findByTreatment_Assignment_AssignmentIdIn(experimentAssignmentIds).stream()
+            .collect(Collectors.groupingBy(assessment -> assessment.getTreatment().getAssignment().getAssignmentId()));
 
         experimentTreatments = treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(experiment.getExperimentId());
 
-        allTreatmentsByAssignment = new HashMap<>();
+        allTreatmentsByAssignment = treatmentRepository.findByAssignment_AssignmentIdInOrderByCondition_ConditionIdAsc(experimentAssignmentIds).stream()
+            .collect(Collectors.groupingBy(treatment -> treatment.getAssignment().getAssignmentId()));
 
-        for (Assignment assignment : experimentAssignments) {
-            allTreatmentsByAssignment.put(
-                assignment.getAssignmentId(),
-                treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(assignment.getAssignmentId())
-            );
+        // assignments with no assessments/treatments won't have an entry from groupingBy; keep prior "always present" contract
+        for (Long assignmentId : experimentAssignmentIds) {
+            allAssessmentsByAssignment.putIfAbsent(assignmentId, new ArrayList<>());
+            allTreatmentsByAssignment.putIfAbsent(assignmentId, new ArrayList<>());
         }
 
         experimentExposureGroupConditions = exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
@@ -16,7 +17,8 @@ import java.util.Optional;
 public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubmission, Long> {
 
     List<QuestionSubmission> findBySubmission_SubmissionId(Long submissionId);
-    List<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(Long experimentId);
+    @Query("SELECT qs FROM QuestionSubmission qs WHERE qs.submission.participant.experiment.experimentId = :experimentId")
+    List<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(@Param("experimentId") Long experimentId);
     Page<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(Long experimentId, Pageable pageable);
     QuestionSubmission findByQuestionSubmissionId(Long questionSubmissionId);
     Optional<QuestionSubmission> findByQuestion_QuestionIdAndSubmission_SubmissionId(long questionId, long submissionId);

@@ -114,6 +114,40 @@ public class OutcomeScoreController {
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
+    @PutMapping
+    public ResponseEntity<Void> updateOutcomeScores(@PathVariable long experimentId,
+                                                     @PathVariable long exposureId,
+                                                     @PathVariable long outcomeId,
+                                                     @RequestBody List<OutcomeScoreDto> outcomeScoreDtoList,
+                                                     HttpServletRequest req)
+            throws ExperimentNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException, InvalidParticipantException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
+        }
+
+        for (OutcomeScoreDto outcomeScoreDto : outcomeScoreDtoList) {
+            if (outcomeScoreDto.getOutcomeScoreId() != null) {
+                apijwtService.outcomeScoreAllowed(securedInfo, outcomeId, outcomeScoreDto.getOutcomeScoreId());
+            }
+
+            outcomeScoreDto.setOutcomeId(outcomeId);
+        }
+
+        try {
+            outcomeScoreService.updateOutcomeScores(outcomeScoreDtoList, experimentId);
+
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (InvalidParticipantException | DataServiceException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new DataServiceException("Error 105: There was an error updating the outcome score list. No outcome scores were updated.");
+        }
+    }
+
     @PutMapping("/{outcomeScoreId}")
     public ResponseEntity<Void> updateOutcomeScore(@PathVariable long experimentId,
                                               @PathVariable long exposureId,

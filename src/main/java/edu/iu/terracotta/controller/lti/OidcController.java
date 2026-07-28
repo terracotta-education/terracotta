@@ -5,26 +5,25 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.dto.LoginInitiationDto;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.dao.entity.LtiNonce;
+import edu.iu.terracotta.dao.repository.LtiNonceRepository;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.LtiOidcUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -38,10 +37,9 @@ import java.util.UUID;
  */
 @Slf4j
 @Controller
-@Scope("session")
 @RequiredArgsConstructor
 @RequestMapping("/oidc/login_initiations")
-@SuppressWarnings({"unchecked", "PMD.LooseCoupling"})
+@SuppressWarnings({"PMD.LooseCoupling"})
 public class OidcController {
 
     //Constants defined in the LTI standard
@@ -54,6 +52,7 @@ public class OidcController {
 
     private final PlatformDeploymentRepository platformDeploymentRepository;
     private final LtiDataService ltiDataService;
+    private final LtiNonceRepository ltiNonceRepository;
 
     @Value("${app.lti.data.verbose.logging.enabled:false}")
     private boolean ltiDataVerboseLoggingEnabled;
@@ -143,69 +142,17 @@ public class OidcController {
                 model.addAttribute("deployment_id_received", deploymentIdValue);
             }
 
-            // This can be implemented in different ways, on this case, we are storing the state and nonce in
-            // the httpsession, so we can compare later if they are valid states and nonces.
-            HttpSession session = req.getSession();
-            List<String> stateList;
-            List<String> nonceList;
-            String state = parameters.get("state");
-            String nonce = parameters.get("nonce");
+            // The state is a self-contained signed JWT (see LtiOidcUtils.generateState), so its own
+            // signature is enough to validate it later - no need to track issued states ourselves.
+            // The nonce isn't self-verifying, so it's persisted here and consumed exactly once
+            // (Lti3Request.checkNonce) instead of being tracked in a session.
+            ltiNonceRepository.save(LtiNonce.builder().nonce(parameters.get("nonce")).build());
 
-            // We will keep several states and nonces, and we should delete them once we use them.
-            if (session.getAttribute("lti_state") != null) {
-                List<String> ltiState = (List<String>) session.getAttribute("lti_state");
-
-                if (ltiState.isEmpty()) {  //If not old states... then just the one we have created
-                    stateList = new ArrayList<>();
-                    stateList.add(state);
-                } else if (ltiState.contains(state)) {  //if the state is already there... then the lti_state is the same. No need to add a duplicate
-                    stateList = ltiState;
-                } else { // if it is a different state and there are more... we add it with the to the string.
-                    ltiState.add(state);
-                    stateList = ltiState;
-                }
-            } else {
-                stateList = new ArrayList<>();
-                stateList.add(state);
-            }
-
-            session.setAttribute("lti_state", stateList);
-
-            if (session.getAttribute("lti_nonce") != null) {
-                List<String> ltiNonce = (List<String>) session.getAttribute("lti_nonce");
-
-                if (ltiNonce.isEmpty()) {  //If not old nonces... then just the one we have created
-                    nonceList = new ArrayList<>();
-                    nonceList.add(nonce);
-                } else {
-                    ltiNonce.add(nonce);
-                    nonceList = ltiNonce;
-                }
-            } else {
-                nonceList = new ArrayList<>();
-                nonceList.add(nonce);
-            }
-
-            session.setAttribute("lti_nonce", nonceList);
-
-            // Once all is added to the session, and we have the data ready for the html template, we redirect
+            // Once we have the data ready, we redirect straight to the platform's OIDC
+            // authorization endpoint - the launch doesn't depend on cookies, so there's no need
+            // to route through a storage-access check first.
             if (!ltiDataService.getDemoMode()) {
-                model.addAttribute("iss", loginInitiationDTO.getIss());
-                model.addAttribute("login_hint", loginInitiationDTO.getLoginHint());
-                model.addAttribute("client_id", loginInitiationDTO.getClientId());
-                model.addAttribute("lti_message_hint", loginInitiationDTO.getLtiMessageHint());
-                model.addAttribute("targetLinkUri", loginInitiationDTO.getTargetLinkUri());
-
-                if (loginInitiationDTO.getDeploymentId() != null) {
-                    model.addAttribute("lti_deployment_id", loginInitiationDTO.getDeploymentId());
-                }
-
-                // storageAccessCheck will immediately do the redirect to
-                // 'oicdEndpointComplete' unless the iframe doesn't have storage
-                // access to the cookies belonging to Terracotta's domain
-                model.addAttribute("oicdEndpointComplete", parameters.get("oicdEndpointComplete"));
-
-                return "storageAccessCheck";
+                return "redirect:" + parameters.get("oicdEndpointComplete");
             }
 
             return "oidcRedirect";

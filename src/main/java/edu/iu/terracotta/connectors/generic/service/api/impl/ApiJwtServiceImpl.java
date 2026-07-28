@@ -432,7 +432,12 @@ public class ApiJwtServiceImpl implements ApiJwtService {
             return null;
         }
 
-        return instance(claims).extractValues(token);
+        return instance(claims).extractValues(claims);
+    }
+
+    @Override
+    public SecuredInfo extractValues(Jws<Claims> claims) throws TerracottaConnectorException {
+        return instance(claims).extractValues(claims);
     }
 
     @Override

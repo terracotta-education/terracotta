@@ -2,6 +2,10 @@
 <div
   class="selection-method-container"
 >
+  <page-loading
+      :display="preparingParticipants"
+      message="We are tranferring students from your LMS course. Depending on the roster size, this may take a few moments."
+    />
   <v-alert
     v-if="displayConsentFileMissingAlert"
     type="warning"
@@ -58,9 +62,13 @@
 <script>
 import { mapActions, mapGetters } from "vuex";
 import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
+import PageLoading from "@/components/PageLoading.vue"
 
 export default {
   name: "ParticipationSelectionMethod",
+  components: {
+    PageLoading
+  },
   props: {
     experiment: {
       type: Object,
@@ -70,7 +78,8 @@ export default {
   data: () => ({
     loading: false,
     expanded: [0, 1, 2],
-    initialParticipationType: null
+    initialParticipationType: null,
+    preparingParticipants: false
   }),
   computed: {
     ...mapGetters({
@@ -145,8 +154,10 @@ export default {
         .then(
           async response => {
             if (typeof response?.status !== "undefined" && response?.status === 200) {
+              this.preparingParticipants = true;
               // report the current step
               await this.reportStep({experimentId, step});
+              this.preparingParticipants = false;
 
               // route based on participation type selection
               switch(e.participationType) {

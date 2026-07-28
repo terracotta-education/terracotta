@@ -80,7 +80,7 @@ public class AssignmentFileArchiveSchedulerServiceImpl implements AssignmentFile
                                     error = e.getMessage();
                                 }
 
-                                if (!deleted) {
+                                if (!deleted && StringUtils.isEmpty(error)) {
                                     error = "Failed to delete file";
                                 }
 

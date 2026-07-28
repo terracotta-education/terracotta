@@ -48,9 +48,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -231,8 +234,13 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
-    @Transactional
     public void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants) throws ApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
+        updateOutcomeGrades(outcomeId, securedInfo, refreshParticipants, null);
+    }
+
+    @Override
+    @Transactional
+    public void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants, Map<String, List<LmsSubmission>> submissionsByLmsAssignmentId) throws ApiException, IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
         Outcome outcome = findById(outcomeId)
             .orElseThrow(() -> new OutcomeNotMatchingException(TextConstants.OUTCOME_NOT_MATCHING));
 
@@ -242,13 +250,20 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
 
         if (refreshParticipants) {
-            participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId(), outcome.getExposure().getExperiment().getParticipants());
+            participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId());
         }
 
         List<OutcomeScore> newScores = new ArrayList<>();
-        String lmsCourseId = lmsUtils.parseCourseId(outcome.getExposure().getExperiment().getLtiContextEntity().getToolDeployment().getPlatformDeployment(), outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url());
-        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        List<LmsSubmission> submissions = apiClient.listSubmissions(instructorUser, outcome, lmsCourseId);
+        List<LmsSubmission> submissions;
+
+        if (submissionsByLmsAssignmentId != null) {
+            submissions = submissionsByLmsAssignmentId.getOrDefault(outcome.getLmsOutcomeId(), Collections.emptyList());
+        } else {
+            String lmsCourseId = lmsUtils.parseCourseId(outcome.getExposure().getExperiment().getLtiContextEntity().getToolDeployment().getPlatformDeployment(), outcome.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url());
+            LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+            submissions = apiClient.listSubmissions(instructorUser, outcome, lmsCourseId);
+        }
+
         List<Participant> participants = outcome.getExposure().getExperiment().getParticipants().stream()
             .filter(participant -> !participant.isTestStudent())
             .toList();
@@ -335,6 +350,27 @@ public class OutcomeServiceImpl implements OutcomeService {
         );
 
         // TODO what to do if the outcome score is there but the participant is dropped.
+    }
+
+    @Override
+    public Map<String, List<LmsSubmission>> fetchSubmissionsForOutcomes(List<Outcome> outcomes, SecuredInfo securedInfo) throws ApiException, IOException, TerracottaConnectorException {
+        List<Outcome> externalOutcomes = CollectionUtils.emptyIfNull(outcomes).stream()
+            .filter(outcome -> BooleanUtils.isTrue(outcome.getExternal()))
+            .toList();
+
+        if (CollectionUtils.isEmpty(externalOutcomes)) {
+            return Collections.emptyMap();
+        }
+
+        Experiment experiment = externalOutcomes.get(0).getExposure().getExperiment();
+        String lmsCourseId = lmsUtils.parseCourseId(experiment.getLtiContextEntity().getToolDeployment().getPlatformDeployment(), experiment.getLtiContextEntity().getContext_memberships_url());
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        List<String> lmsAssignmentIds = externalOutcomes.stream()
+            .map(Outcome::getLmsOutcomeId)
+            .toList();
+
+        return apiClient.listSubmissionsForMultipleAssignments(instructorUser, lmsCourseId, lmsAssignmentIds).stream()
+            .collect(Collectors.groupingBy(LmsSubmission::getAssignmentId));
     }
 
     @Override

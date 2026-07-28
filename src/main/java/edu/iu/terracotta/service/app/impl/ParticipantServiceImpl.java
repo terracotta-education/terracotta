@@ -1,18 +1,17 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
-import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUser;
-import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUsers;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -47,14 +46,19 @@ import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
 import edu.iu.terracotta.service.app.GroupParticipantService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.Strings;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,16 +66,17 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -83,6 +88,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final ConsentDocumentRepository consentDocumentRepository;
     private final ExperimentRepository experimentRepository;
     private final GroupRepository groupRepository;
+    private final LmsUserBatchRepository lmsUserBatchRepository;
     private final LtiUserRepository ltiUserRepository;
     private final ParticipantRepository participantRepository;
     private final SubmissionRepository submissionRepository;
@@ -92,7 +98,13 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final ApiJwtService apiJwtService;
     private final ApiClient apiClient;
     private final GroupParticipantService groupParticipantService;
+    private final LmsUserBatchAsyncService lmsUserBatchAsyncService;
     private final LtiDataService ltiDataService;
+
+    @PersistenceContext private EntityManager entityManager;
+
+    @Value("${app.participant.batch.size:500}")
+    private int batchSize;
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -100,21 +112,39 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public List<ParticipantDto> getParticipants(List<Participant> participants, long experimentId, String userId, boolean student, SecuredInfo securedInfo) {
+    @Transactional
+    public List<ParticipantDto> getParticipants(long experimentId, String userId, boolean student, SecuredInfo securedInfo, boolean refresh) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         // retrieve published assignment IDs from LMS
         List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
 
         if (!student) {
-            if (CollectionUtils.isEmpty(participants)) {
-                log.info("No participants passed in for exeriment ID: [{}]. Retrieving from database.", experimentId);
-                participants = findAllByExperimentId(experimentId);
+            if (refresh) {
+                refreshParticipants(experimentId);
             }
 
-            return participants.stream()
-                .filter(participant -> !participant.isTestStudent())
-                .map(participant -> toDto(participant, publishedExperimentAssignmentIds, securedInfo))
-                .toList();
+            int page = 0;
+            PageRequest pageRequest = PageRequest.of(page, batchSize);
+            List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+
+            List<ParticipantDto> participantDtos = new ArrayList<>();
+
+            while (CollectionUtils.isNotEmpty(participants)) {
+                participantDtos.addAll(
+                    participants.stream()
+                        .filter(participant -> !participant.isTestStudent())
+                        .map(participant -> toDto(participant, publishedExperimentAssignmentIds, securedInfo))
+                        .toList()
+                );
+
+                entityManager.flush();
+                entityManager.clear();
+
+                pageRequest = PageRequest.of(++page, batchSize);
+                participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+            }
+
+            return participantDtos;
         }
 
         try {
@@ -249,22 +279,12 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public List<Participant> refreshParticipants(long experimentId, List<Participant> currentParticipantList)
-            throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        long startTime = System.currentTimeMillis();
+    public void refreshParticipants(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        Instant startTime = Instant.now();
 
-        // We don't want to delete participants if they drop the course, so... we
-        // will keep the all participants But we will need to mark them as
-        // dropped if they are not in the course roster. So... a way to create a
-        // hash table of all current participants and remove them as we find them
-        // in the course roster. Any left over need to be marked as dropped.
-        Map<String, Participant> participantsToBeDropped = new HashMap<>();
-
-        for (Participant participant : currentParticipantList) {
-            participantsToBeDropped.put(participant.getLtiUserEntity().getUserKey(), participant);
-        }
-
-        List<Participant> newParticipantList = new ArrayList<>(currentParticipantList);
+        // We don't want to delete participants if they drop the course, so keep the all participants. But we will need to mark them as
+        // dropped if they are not in the course roster.
+        UUID batchId = UUID.randomUUID();
 
         try {
             Optional<Experiment> experiment = experimentRepository.findById(experimentId);
@@ -274,41 +294,56 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
 
             LtiToken ltiToken = advantageMembershipService.getToken(experiment.get().getPlatformDeployment());
-            CourseUsers courseUsers = advantageMembershipService.callMembershipService(ltiToken, experiment.get().getLtiContextEntity());
+            advantageMembershipService.callMembershipService(ltiToken, experiment.get().getLtiContextEntity(), batchId);
 
-            for (CourseUser courseUser : courseUsers.getCourseUserList()) {
-                if (courseUser.getRoles().contains(Roles.LEARNER) || courseUser.getRoles().contains(Roles.MEMBERSHIP_LEARNER)) {
-                    Participant participant = participantsToBeDropped.remove(courseUser.getUserId());
-                    if (participant != null) {
-                        resetParticipantConsentIfExperimentNotStarted(experiment.get(), participant);
+            int page = 0;
+            PageRequest pageRequest = PageRequest.of(page, batchSize);
+            List<LmsUserBatch> batchUsers = lmsUserBatchRepository.findByBatchId(batchId, pageRequest);
 
-                        // If participant is marked as dropped, mark it as not dropped
-                        if (BooleanUtils.isTrue(participant.getDropped())) {
-                            participant.setDropped(false);
-                            participantRepository.save(participant);
-                        }
-                    } else {
-                        Participant newParticipant = createNewParticipant(courseUser, experiment.get());
-                        newParticipantList.add(newParticipant);
+            // process batch
+            while (CollectionUtils.isNotEmpty(batchUsers)) {
+                // retrieve batch of participants; reset dropped value and will set to false later, if found in the course roster
+                List<Participant> participants = participantRepository.findAllByExperiment_ExperimentIdAndLtiUserEntity_UserKeyIn(
+                    experimentId,
+                    batchUsers.stream()
+                        .map(LmsUserBatch::getUserKey)
+                        .toList()
+                )
+                .stream()
+                .map(
+                    p -> {
+                        p.setDropped(true);
+                        return p;
                     }
+                )
+                .toList();
+
+                for (LmsUserBatch batchUser : batchUsers) {
+                    Participant participant = participants.stream()
+                        .filter(p -> Strings.CI.equals(p.getLtiUserEntity().getUserKey(), batchUser.getUserKey()))
+                        .findFirst()
+                        .orElseGet(() -> createNewParticipant(batchUser, experiment.get()));
+
+                    resetParticipantConsentIfExperimentNotStarted(experiment.get(), participant);
+
+                    participant.setDropped(false);
+                    participantRepository.save(participant);
                 }
+
+                entityManager.flush();
+                entityManager.clear();
+
+                pageRequest = PageRequest.of(++page, batchSize);
+                batchUsers = lmsUserBatchRepository.findByBatchId(batchId, pageRequest);
             }
 
-            // Mark as dropped any participants not found in course roster
-            for (Participant participantToDrop : participantsToBeDropped.values()) {
-                participantToDrop.setDropped(true);
-                participantRepository.save(participantToDrop);
-            }
+            lmsUserBatchAsyncService.success(batchId);
         } catch (ConnectionException | NoSuchElementException e) {
+            lmsUserBatchAsyncService.fail(batchId, e.getMessage());
             throw new ParticipantNotUpdatedException(e.getMessage());
         }
 
-        participantRepository.flush();
-
-        log.debug("Refreshing participants for experiment {} took {}s", experimentId,
-                (System.currentTimeMillis() - startTime) / 1000f);
-
-        return newParticipantList;
+        log.debug("Refreshing participants for experiment ID: [{}] took [{}]", experimentId, Duration.between(startTime, Instant.now()));
     }
 
     /**
@@ -395,24 +430,24 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
     }
 
-    private Participant createNewParticipant(CourseUser courseUser, Experiment experiment) {
-        LtiUserEntity ltiUserEntity = ltiDataService.findByUserKeyAndPlatformDeployment(courseUser.getUserId(),
-                experiment.getPlatformDeployment());
+    private Participant createNewParticipant(LmsUserBatch batchUser, Experiment experiment) {
+        LtiUserEntity ltiUserEntity = ltiDataService.findByUserKeyAndPlatformDeployment(
+            batchUser.getUserKey(),
+            experiment.getPlatformDeployment()
+        );
 
         if (ltiUserEntity == null) {
-            LtiUserEntity newLtiUserEntity = new LtiUserEntity(courseUser.getUserId(), null,
-                    experiment.getPlatformDeployment());
-            newLtiUserEntity.setEmail(courseUser.getEmail());
+            LtiUserEntity newLtiUserEntity = new LtiUserEntity(batchUser.getUserKey(), null, experiment.getPlatformDeployment());
+            newLtiUserEntity.setEmail(batchUser.getEmail());
             /*
                 TODO: We don't have a way here to get the userLmsId except calling the API
                 or waiting for the user to access. BUT we just need this to send the grades with the API...
                 so if the user never accessed... we can't send them until we use LTI.
             */
-            newLtiUserEntity.setDisplayName(courseUser.getName());
+            newLtiUserEntity.setDisplayName(batchUser.getName());
             // By default it adds a value in the constructor, but if we are generating it, it means that the user has never logged in
             newLtiUserEntity.setLoginAt(null);
             ltiUserEntity = ltiDataService.saveLtiUserEntity(newLtiUserEntity);
-
         }
 
         LtiMembershipEntity ltiMembershipEntity = ltiDataService.findByUserAndContext(ltiUserEntity, experiment.getLtiContextEntity());
@@ -439,7 +474,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 break;
             case AUTO:
                 newParticipant.setConsent(true);
-                newParticipant.setDateGiven(new Timestamp(System.currentTimeMillis()));
+                newParticipant.setDateGiven(Timestamp.from(Instant.now()));
                 break;
             default:
         }
@@ -450,8 +485,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        List<Participant> currentParticipantList = findAllByExperimentId(experimentId);
-        refreshParticipants(experimentId, currentParticipantList);
+        refreshParticipants(experimentId);
     }
 
     @Override
@@ -503,10 +537,10 @@ public class ParticipantServiceImpl implements ParticipantService {
                 participantToChange.setSource(experiment.getParticipationType());
             }
 
-            participants.add(participantRepository.save(participantToChange));
+            participants.add(participantToChange);
         }
 
-        return participants;
+        return participantRepository.saveAll(participants);
     }
 
     @Override
@@ -515,8 +549,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         Participant participant = participantRepository.findById(participantDto.getParticipantId())
             .orElseThrow(() -> new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING));
 
-        if (participant == null
-                || !Strings.CS.equals(participant.getLtiUserEntity().getUserKey(), securedInfo.getUserId())
+        if (!Strings.CS.equals(participant.getLtiUserEntity().getUserKey(), securedInfo.getUserId())
                 || securedInfo.getConsent() == null
                 || BooleanUtils.isFalse(securedInfo.getConsent())) {
             return participant;
@@ -560,11 +593,25 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public Participant findParticipant(List<Participant> participants, String userId) {
-        return participants.stream()
-            .filter(participant -> Strings.CS.equals(participant.getLtiUserEntity().getUserKey(), userId))
-            .findFirst()
-            .orElse(null);
+    public Participant findParticipant(long experimentId, String userId) {
+        int page = 0;
+        PageRequest pageRequest = PageRequest.of(page, batchSize);
+        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+        Participant found = null;
+
+        while (CollectionUtils.isNotEmpty(participants) && found == null) {
+            found = participants.stream()
+                .filter(participant -> Strings.CS.equals(participant.getLtiUserEntity().getUserKey(), userId))
+                .findFirst()
+                .orElse(null);
+
+            entityManager.flush();
+            entityManager.clear();
+            pageRequest = PageRequest.of(++page, batchSize);
+            participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+        }
+
+        return found;
     }
 
     /**
@@ -623,46 +670,45 @@ public class ParticipantServiceImpl implements ParticipantService {
         return headers;
     }
 
-    @Override
-    @Transactional
-    public void setAllToNull(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
-        refreshParticipants(experimentId, participants);
+    private void setConsentToAll(Boolean consent, Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        refreshParticipants(experimentId);
 
-        for (Participant participant : participants) {
-            participant.setConsent(null);
-            participant.setDateGiven(null);
+        int page = 0;
+        PageRequest pageRequest = PageRequest.of(page, batchSize);
+        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+
+        while (CollectionUtils.isNotEmpty(participants)) {
+            for (Participant participant : participants) {
+                participant.setConsent(consent);
+                participant.setDateGiven(consent == null ? null : Timestamp.from(Instant.now()));
+            }
+
+            participantRepository.saveAll(participants);
+
+            entityManager.flush();
+            entityManager.clear();
+
+            pageRequest = PageRequest.of(++page, batchSize);
+            participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
         }
-
-        participantRepository.saveAll(participants);
     }
 
     @Override
     @Transactional
-    public void setAllToTrue(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
-        refreshParticipants(experimentId, participants);
-
-        for (Participant participant : participants) {
-            participant.setConsent(true);
-            participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
-        }
-
-        participantRepository.saveAll(participants);
+    public void setAllToNull(Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        setConsentToAll(null, experimentId);
     }
 
     @Override
     @Transactional
-    public void setAllToFalse(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId);
-        refreshParticipants(experimentId, participants);
+    public void setAllToTrue(Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        setConsentToAll(true, experimentId);
+    }
 
-        for (Participant participant : participants) {
-            participant.setConsent(false);
-            participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
-        }
-
-        participantRepository.saveAll(participants);
+    @Override
+    @Transactional
+    public void setAllToFalse(Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        setConsentToAll(false, experimentId);
     }
 
     @Override
@@ -763,17 +809,24 @@ public class ParticipantServiceImpl implements ParticipantService {
                     ExperimentNotMatchingException, TerracottaConnectorException {
         Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experiment.getExperimentId(), securedInfo.getUserId());
 
-        // if participant record doesn't exist or if consenting participant
-        // isn't assigned to a group or if participant record does exist but it
-        // is marked as dropped, refresh the participant list
+        // if participant record doesn't exist, or if a consenting participant isn't assigned to a
+        // group, or if the participant is marked as dropped, refresh the participant list
         if (participant == null
                 || (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null)
                 || BooleanUtils.isTrue(participant.getDropped())) {
-            participant = findParticipant(refreshParticipants(experiment.getExperimentId(), experiment.getParticipants()), securedInfo.getUserId());
+            refreshParticipants(experiment.getExperimentId());
+            participant = findParticipant(experiment.getExperimentId(), securedInfo.getUserId());
+
+            if (participant == null) {
+                throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
+            }
+
+            // get managed entity
+            participant = participantRepository.findById(participant.getId()).get();
         }
 
-        if (participant == null) {
-            throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
+        if (BooleanUtils.isTrue(participant.getDropped())) {
+            participant.setDropped(false);
         }
 
         // 1. Check if the student has the consent signed. If not, set it as no participant

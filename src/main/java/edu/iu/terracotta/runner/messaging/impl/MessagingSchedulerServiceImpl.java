@@ -92,6 +92,7 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
                             messageReadyToSend.getPlatformDeployment().getKeyId(),
                             messageReadyToSend.getId()
                         );
+                        messageReadyToSend.getConfiguration().setStatus(MessageStatus.UNPUBLISHED);
                         messageReadyToSend.getContainer().getConfiguration().setStatus(MessageStatus.UNPUBLISHED);
                         messageContainerRepository.save(messageReadyToSend.getContainer());
 

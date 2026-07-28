@@ -29,6 +29,7 @@ public class BrightspaceException extends RuntimeException {
     }
 
     public BrightspaceException(String brightspaceErrorString, String url, Object error) {
+        super(String.format("Error from URL %s : %s", url, brightspaceErrorString));
         brightspaceErrorMessage = brightspaceErrorString;
         requestUrl = url;
         this.error = error;

@@ -3,11 +3,12 @@ package edu.iu.terracotta.service.app.dashboard.results.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.ResultsOutcomesDto;
 import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.enums.AlternateIdType;
@@ -103,7 +105,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
     @Test
     public void testOutcomesNoOutcomeForId() throws OutcomeNotMatchingException {
-        when(outcomeRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(outcomeRepository.findAllById(anyList())).thenReturn(Collections.emptyList());
 
         Exception exception = assertThrows(OutcomeNotMatchingException.class, () -> { resultsOutcomesService.outcomes(experiment, resultsOutcomesRequestDto); });
 
@@ -112,7 +114,9 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
     @Test
     public void testOutcomesOutcomeNotInExperiment() throws OutcomeNotMatchingException {
-        when(outcomeRepository.findById(anyLong())).thenReturn(Optional.empty());
+        Experiment otherExperiment = mock(Experiment.class);
+        when(otherExperiment.getExperimentId()).thenReturn(2L);
+        when(exposure.getExperiment()).thenReturn(otherExperiment);
 
         Exception exception = assertThrows(OutcomeNotMatchingException.class, () -> { resultsOutcomesService.outcomes(experiment, resultsOutcomesRequestDto); });
 

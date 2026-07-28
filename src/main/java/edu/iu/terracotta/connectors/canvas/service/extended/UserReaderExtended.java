@@ -1,14 +1,16 @@
 package edu.iu.terracotta.connectors.canvas.service.extended;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.UUID;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.UserExtended;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.ksu.canvas.exception.InvalidOauthTokenException;
 import edu.ksu.canvas.interfaces.CanvasReader;
 import edu.ksu.canvas.requestOptions.GetUsersInCourseOptions;
 
 public interface UserReaderExtended extends CanvasReader<UserExtended, UserReaderExtended> {
 
-    List<UserExtended> getUsersInCourse(GetUsersInCourseOptions getUsersInCourseOptions) throws IOException;
+    void getUsersInCourse(GetUsersInCourseOptions getUsersInCourseOptions, UUID batchId) throws IOException, InvalidOauthTokenException, TerracottaConnectorException;
 
 }

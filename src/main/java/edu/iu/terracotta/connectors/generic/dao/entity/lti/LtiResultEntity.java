@@ -91,8 +91,8 @@ public class LtiResultEntity extends BaseEntity {
         this.scoreGiven = scoreGiven;
         this.scoreMaximum = scoreMaximum;
         this.comment = comment;
-        this.comment = activityProgress;
-        this.comment = gradingProgress;
+        this.activityProgress = activityProgress;
+        this.gradingProgress = gradingProgress;
     }
 
 }

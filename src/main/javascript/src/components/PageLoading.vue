@@ -55,8 +55,9 @@ div.spinner-container {
   left: 50%;
   transform: translate(-50%, -50%);
   width: 600px;
-  height: 300px;
-  padding: 0;
+  height: fit-content;
+  z-index: 1000;
+  padding: 20px;
   border: thin solid rgba(0,0,0,.12) !important;
   border-radius: 10px !important;
   text-align: center;

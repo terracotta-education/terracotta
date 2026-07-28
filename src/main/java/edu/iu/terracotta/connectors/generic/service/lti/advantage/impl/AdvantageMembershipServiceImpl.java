@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.generic.service.lti.advantage.impl;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUsers;
@@ -10,6 +11,9 @@ import edu.iu.terracotta.connectors.generic.service.connector.ConnectorService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+import java.util.UUID;
 
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -36,8 +40,18 @@ public class AdvantageMembershipServiceImpl implements AdvantageMembershipServic
     }
 
     @Override
-    public CourseUsers callMembershipService(LtiToken ltiToken, LtiContextEntity ltiContextEntity) throws ConnectionException, TerracottaConnectorException {
-        return instance(ltiContextEntity).callMembershipService(ltiToken, ltiContextEntity);
+    public CourseUsers callMembershipService(LtiToken ltiToken, LtiContextEntity ltiContextEntity, UUID batchId) throws ConnectionException, TerracottaConnectorException {
+        return instance(ltiContextEntity).callMembershipService(ltiToken, ltiContextEntity, batchId);
+    }
+
+    @Override
+    public CourseUsers callMembershipService(LtiToken ltiToken, LtiContextEntity ltiContextEntity, UUID batchId, boolean onlyStudents) throws ConnectionException, TerracottaConnectorException {
+        return instance(ltiContextEntity).callMembershipService(ltiToken, ltiContextEntity, batchId, onlyStudents);
+    }
+
+    @Override
+    public List<LmsUserBatch> getAllLmsUsers(LtiToken ltiToken, LtiContextEntity ltiContextEntity) throws ConnectionException, TerracottaConnectorException {
+        return instance(ltiContextEntity).getAllLmsUsers(ltiToken, ltiContextEntity);
     }
 
 }

@@ -320,9 +320,9 @@ public class QuestionServiceImpl implements QuestionService {
         List<Question> questions = new ArrayList<>();
 
         for (Question originalQuestion : originalQuestions) {
-            entityManager.detach(originalQuestion);
             Long originalQuestionId = originalQuestion.getQuestionId();
-            Integration integration = originalQuestion.getIntegration();
+            Integration integration = originalQuestion.getIntegration(); // read before detach — lazy proxy needs an open session
+            entityManager.detach(originalQuestion);
             originalQuestion.setQuestionId(null);
             originalQuestion.setAssessment(newAssessment);
             originalQuestion.setIntegration(null);

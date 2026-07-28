@@ -121,6 +121,10 @@ public interface ApiJwtService {
     String extractJwtStringValue(HttpServletRequest request, boolean allowQueryParam);
     SecuredInfo extractValues(HttpServletRequest request, boolean allowQueryParam) throws NumberFormatException, TerracottaConnectorException;
     SecuredInfo extractValues(String token) throws NumberFormatException, TerracottaConnectorException;
+    // Same as extractValues(String), but skips re-validating the JWT signature when the caller
+    // has already validated it (e.g. ApiJwtServiceImpl.extractValues, which validates once before
+    // dispatching to the connector-specific implementation).
+    SecuredInfo extractValues(Jws<Claims> claims) throws TerracottaConnectorException;
     boolean isAdmin(SecuredInfo securedInfo);
     boolean isTerracottaAdmin(SecuredInfo securedInfo);
     boolean isInstructor(SecuredInfo securedInfo);

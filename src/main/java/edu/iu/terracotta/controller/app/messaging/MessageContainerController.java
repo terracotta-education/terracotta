@@ -168,7 +168,7 @@ public class MessageContainerController {
             return new ResponseEntity<>(messageContainerService.delete(messageContainer), HttpStatus.OK);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 

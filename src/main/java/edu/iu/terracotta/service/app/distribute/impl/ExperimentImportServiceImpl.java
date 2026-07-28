@@ -190,14 +190,16 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                 handleError(experimentImport, "Unspecified error occurred processing import.");
             }
 
-            experimentImport.setSourceTitle(export.get().getExperiment().getTitle());
-            experimentImport = experimentImportRepository.save(experimentImport);
-
             // ["component": ["imported id"]]
             Map<Class<? extends BaseEntity>, List<Long>> idMap = prepareIdMap(export.get());
 
             consentDocument(export.get(), experimentImport, export.get().getImportDirectory());
             experiment(export.get(), experimentImport);
+
+            // experiment() above guarantees export.get().getExperiment() is non-null before dereferencing it here
+            experimentImport.setSourceTitle(export.get().getExperiment().getTitle());
+            experimentImport = experimentImportRepository.save(experimentImport);
+
             conditions(export.get(), experimentImport, idMap);
             exposures(export.get(), experimentImport, idMap);
             groups(export.get(), experimentImport, idMap);
@@ -446,7 +448,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             .forEach(
                 assignment -> {
                     if (idMap.get(Exposure.class).stream().noneMatch(exposureId -> exposureId.equals(assignment.getExposureId()))) {
-                        log.error("Experiment import ID: [{}] exposure ID: [{}] not found for exposureGroupCondition ID: [{}]", experimentImport.getId(), assignment.getExposureId(), assignment.getId());
+                        log.error("Experiment import ID: [{}] exposure ID: [{}] not found for assignment ID: [{}]", experimentImport.getId(), assignment.getExposureId(), assignment.getId());
                         handleError(experimentImport, String.format("No exposure ID: [%s] found for assignment ID: [%s]", assignment.getExposureId(), assignment.getId()));
 
                         return;
@@ -578,8 +580,8 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             .forEach(
                 outcome -> {
                     if (idMap.get(Exposure.class).stream().noneMatch(exposureId -> exposureId.equals(outcome.getExposureId()))) {
-                        log.error("Experiment import ID: [{}] exposure ID: [{}] not found for exposureGroupCondition ID: [{}]", experimentImport.getId(), outcome.getExposureId(), outcome.getId());
-                        handleError(experimentImport, String.format("No exposure ID: [%s] found for exposureGroupCondition ID: [%s]", outcome.getExposureId(), outcome.getId()));
+                        log.error("Experiment import ID: [{}] exposure ID: [{}] not found for outcome ID: [{}]", experimentImport.getId(), outcome.getExposureId(), outcome.getId());
+                        handleError(experimentImport, String.format("No exposure ID: [%s] found for outcome ID: [%s]", outcome.getExposureId(), outcome.getId()));
                     }
                 }
             );

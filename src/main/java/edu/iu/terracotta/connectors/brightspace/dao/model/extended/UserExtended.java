@@ -20,8 +20,18 @@ public class UserExtended extends LmsUser {
     }
 
     @Override
+    public void setId(String id) {
+        classlistUser.setIdentifier(id);
+    }
+
+    @Override
     public String getEmail() {
         return classlistUser.getEmail();
+    }
+
+    @Override
+    public void setEmail(String email) {
+        classlistUser.setEmail(email);
     }
 
     @Override
