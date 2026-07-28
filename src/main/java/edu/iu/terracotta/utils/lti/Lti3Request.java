@@ -3,7 +3,6 @@ package edu.iu.terracotta.utils.lti;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.AsymmetricJWK;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKSet;
 import edu.iu.terracotta.config.ApplicationConfig;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiLinkEntity;
@@ -39,16 +38,13 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.util.ListUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.Key;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -73,7 +69,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Setter
-@SuppressWarnings({"PMD.GuardLogStatement", "ConstantConditions", "PMD.SingletonClassReturningNewInstance", "unchecked", "rawtypes", "PMD.LooseCoupling"})
+@SuppressWarnings({"PMD.GuardLogStatement", "ConstantConditions", "PMD.SingletonClassReturningNewInstance", "unchecked", "PMD.LooseCoupling"})
 public class Lti3Request {
 
     @Value("${app.lti.data.verbose.logging.enabled:false}")
@@ -268,7 +264,7 @@ public class Lti3Request {
         String jwt = httpServletRequest.getParameter("id_token");
         JwtParserBuilder parser = Jwts.parser();
         String[] jwtSections = StringUtils.isNotBlank(jwt) ? jwt.split("\\.") : null;
-        String jwtPayload = jwtSections != null && jwtSections.length >= 1 ? new String(Base64.getUrlDecoder().decode(jwtSections[1])) : null;
+        String jwtPayload = jwtSections != null && jwtSections.length >= 2 ? new String(Base64.getUrlDecoder().decode(jwtSections[1])) : null;
         Map<String, Object> jwtClaims = null;
 
         try {
@@ -282,7 +278,9 @@ public class Lti3Request {
             throw new IllegalStateException("Request is not a valid LTI3 request.", e);
         }
 
-        String audience = (String) jwtClaims.get(LtiStrings.AUD);
+        // per RFC 7519 4.1.3, aud may be a single string or an array of strings
+        Object audienceClaim = jwtClaims.get(LtiStrings.AUD);
+        String audience = audienceClaim instanceof List ? (String) ((List<?>) audienceClaim).get(0) : (String) audienceClaim;
         String issuer = (String) jwtClaims.get(LtiStrings.ISS);
 
         parser.keyLocator(
@@ -299,8 +297,7 @@ public class Lti3Request {
                         }
 
                         try {
-                            JWKSet publicKeys = JWKSet.load(new URI(platformDeployment.getJwksEndpoint()).toURL());
-                            JWK jwk = publicKeys.getKeyByKeyId(jwsHeader.getKeyId());
+                            JWK jwk = JwksCache.getKey(platformDeployment.getJwksEndpoint(), jwsHeader.getKeyId());
 
                             return ((AsymmetricJWK) jwk).toPublicKey();
                         } catch (JOSEException | ParseException | IOException | URISyntaxException ex) {
@@ -315,18 +312,6 @@ public class Lti3Request {
         );
 
         Jws<Claims> jws = parser.build().parseSignedClaims(jwt);
-        //This is just for logging.
-        if (ltiDataVerboseLoggingEnabled) {
-            Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
-            log.debug("----------------------BEFORE---------------------------------------------------------------------------------");
-
-            while (sessionAttributes.hasMoreElements()) {
-                String attName = sessionAttributes.nextElement();
-                log.debug("[{}] : [{}]", attName, httpServletRequest.getSession().getAttribute(attName));
-            }
-
-            log.debug("-------------------------------------------------------------------------------------------------------");
-        }
 
         //We check that the LTI request is a valid LTI Request and has the right type.
         String isLti3Request = isLti3Request(jws);
@@ -355,7 +340,9 @@ public class Lti3Request {
         }
 
         // Load data from DB related with this request and update it if needed with the new values.
-        ToolDeployment toolDeployment = ltiDataService.findOrCreateToolDeployment(this.iss, this.aud, this.ltiDeploymentId);
+        // processRequestParameters (called above) already resolved this with the same iss/aud/ltiDeploymentId;
+        // only re-query if that lookup didn't happen or failed.
+        ToolDeployment toolDeployment = this.toolDeployment != null ? this.toolDeployment : ltiDataService.findOrCreateToolDeployment(this.iss, this.aud, this.ltiDeploymentId);
 
         if (toolDeployment == null) {
             throw new IllegalStateException(
@@ -368,16 +355,18 @@ public class Lti3Request {
             );
         }
 
-        ltiDataService.loadLTIDataFromDB(this, linkId);
-
         if (!update) {
+            ltiDataService.loadLTIDataFromDB(this, linkId);
+
             return;
         }
 
+        // loads and upserts in a single transaction, so the entities the load resolves stay
+        // managed/attached for the upsert instead of needing to be re-merged
         if (Strings.CI.equals(isLti3Request, LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
-            ltiDataService.upsertLTIDataInDB(this, toolDeployment, linkId);
+            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, linkId);
         } else {
-            ltiDataService.upsertLTIDataInDB(this, toolDeployment, null);
+            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, null);
         }
     }
 
@@ -484,22 +473,13 @@ public class Lti3Request {
         deepLinkText = getStringFromLTIRequestMap(deepLinkingSettings, LtiStrings.DEEP_LINK_TEXT);
         deepLinkData = getStringFromLTIRequestMap(deepLinkingSettings, LtiStrings.DEEP_LINK_DATA);
 
-        // A sample that shows how we can store some of this in the session
-        HttpSession session = this.httpServletRequest.getSession();
-        session.setAttribute(LtiStrings.LTI_SESSION_USER_ID, sub);
-        session.setAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID, ltiContextId);
-
         try {
-            ToolDeployment toolDeployment = this.ltiDataService.findOrCreateToolDeployment(iss, aud, ltiDeploymentId);
-            session.setAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID, toolDeployment.getLtiDeploymentId());
+            // cached on the instance so the constructor's own findOrCreateToolDeployment lookup
+            // just below (same iss/aud/ltiDeploymentId) can reuse it instead of re-querying
+            this.toolDeployment = this.ltiDataService.findOrCreateToolDeployment(iss, aud, ltiDeploymentId);
         } catch (Exception e) {
             log.error("No deployment found");
         }
-
-        // Surely we need a more elaborated code here based in the huge amount of roles available.
-        // In any case, this is for the session... we still have the full list of roles in the ltiRoles list
-
-        session.setAttribute(LtiStrings.LTI_SESSION_USER_ROLE, getNormalizedRoleName());
 
         // And now we will check that all the mandatory fields are there and are correct
         String isComplete;
@@ -531,22 +511,6 @@ public class Lti3Request {
         }
 
         return isComplete + isCorrect;
-    }
-
-    private String getNormalizedRoleName() {
-        if (isRoleAdministrator()) {
-            return LtiStrings.LTI_ROLE_ADMIN;
-        }
-
-        if (isRoleInstructor()) {
-            return LtiStrings.LTI_ROLE_MEMBERSHIP_INSTRUCTOR;
-        }
-
-        if (isRoleLearner()) {
-            return LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER;
-        }
-
-        return LtiStrings.LTI_ROLE_GENERAL;
     }
 
     private String getStringFromLTIRequest(Jws<Claims> jws, String stringToGet) {
@@ -746,28 +710,18 @@ public class Lti3Request {
      * @return true if this is a valid LTI request
      */
     public String checkNonce(Jws<Claims> jws) {
-        // get all the nonces from the session, and compare.
-        List<String> ltiNonce = (List) httpServletRequest.getSession().getAttribute("lti_nonce");
-        List<String> ltiNonceNew = new ArrayList<>();
-        boolean found = false;
         String nonceToCheck = jws.getPayload().get(LtiStrings.LTI_NONCE, String.class);
 
-        if (nonceToCheck == null || ListUtils.isEmpty(ltiNonce)) {
-            return "Nonce = null in the JWT or in the session.";
+        if (nonceToCheck == null) {
+            return "Nonce = null in the JWT.";
         }
 
-        // send the hash of the nonce to the platform.
-        for (String nonceStored : ltiNonce) {
-            if (nonceToCheck.equals(nonceStored)) {
-                found = true;
-            } else {
-                // If not found, add it to another list... keep the unused nonces.
-                ltiNonceNew.add(nonceStored);
-            }
-        }
+        // the nonce was persisted at OIDC login-initiation time; deleting it here both checks that
+        // it is a nonce we actually issued and consumes it, so it can never be validated again,
+        // without depending on a session to track which nonces are still outstanding.
+        long deleted = ltiDataService.getLtiNonceRepository().deleteByNonce(nonceToCheck);
 
-        if (found) {
-            httpServletRequest.getSession().setAttribute("lti_nonce", ltiNonceNew);
+        if (deleted > 0) {
             return Boolean.TRUE.toString();
         }
 
@@ -827,7 +781,7 @@ public class Lti3Request {
     }
 
     public boolean isRoleLearner() {
-        return CollectionUtils.containsAny(ltiRoles, LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER);
+        return ltiRoles != null && CollectionUtils.containsAny(ltiRoles, LtiStrings.LTI_ROLE_MEMBERSHIP_LEARNER);
     }
 
     /**

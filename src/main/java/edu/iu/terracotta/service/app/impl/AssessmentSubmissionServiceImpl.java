@@ -1,6 +1,10 @@
 package edu.iu.terracotta.service.app.impl;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.springframework.stereotype.Service;
@@ -11,6 +15,7 @@ import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
 import edu.iu.terracotta.dao.entity.RegradeDetails;
 import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.dao.model.enums.RegradeOption;
 import edu.iu.terracotta.dao.repository.AnswerMcSubmissionRepository;
 import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
@@ -35,13 +40,23 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
         float automatic = 0f;
         float manual = 0f;
 
+        List<Long> mcQuestionSubmissionIds = submission.getQuestionSubmissions().stream()
+            .filter(questionSubmission -> QuestionTypes.MC == questionSubmission.getQuestion().getQuestionType())
+            .map(QuestionSubmission::getQuestionSubmissionId)
+            .toList();
+
+        Map<Long, List<AnswerMcSubmission>> answerMcSubmissionsByQuestionSubmissionId = answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(mcQuestionSubmissionIds).stream()
+            .collect(Collectors.groupingBy(answerMcSubmission -> answerMcSubmission.getQuestionSubmission().getQuestionSubmissionId()));
+
+        List<QuestionSubmission> questionSubmissionsToSave = new ArrayList<>();
+
         for (QuestionSubmission questionSubmission : submission.getQuestionSubmissions()) {
             // If multiple choice, we take the automatic score for automatic and the manual if any for manual, and if no manual, then the automatic for manual
             QuestionSubmission questionGraded = questionSubmission;
 
             switch (questionSubmission.getQuestion().getQuestionType()) {
                 case MC:
-                    List<AnswerMcSubmission> answerMcSubmissions = answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+                    List<AnswerMcSubmission> answerMcSubmissions = answerMcSubmissionsByQuestionSubmissionId.getOrDefault(questionSubmission.getQuestionSubmissionId(), Collections.emptyList());
 
                     if (answerMcSubmissions.size() == 1) {
                         switch (regradeDetails.getRegradeOption()) {
@@ -54,7 +69,8 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
                                 // set score to full max points
                                 questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
                                 questionSubmission.setAlteredGrade(null);
-                                questionGraded = questionSubmissionRepository.save(questionSubmission);
+                                questionGraded = questionSubmission;
+                                questionSubmissionsToSave.add(questionSubmission);
                                 break;
 
                             case BOTH:
@@ -71,7 +87,8 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
                                 }
 
                                 questionSubmission.setAlteredGrade(null);
-                                questionGraded = questionSubmissionRepository.save(questionSubmission);
+                                questionGraded = questionSubmission;
+                                questionSubmissionsToSave.add(questionSubmission);
                                 break;
 
                             case CURRENT:
@@ -90,7 +107,8 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
                                     // regrade FULL option previously selected; set score to full max points
                                     questionSubmission.setCalculatedPoints(questionSubmission.getQuestion().getPoints());
                                     questionSubmission.setAlteredGrade(null);
-                                    questionGraded = questionSubmissionRepository.save(questionSubmission);
+                                    questionGraded = questionSubmission;
+                                    questionSubmissionsToSave.add(questionSubmission);
                                     break;
                                 }
 
@@ -133,6 +151,8 @@ public class AssessmentSubmissionServiceImpl implements AssessmentSubmissionServ
             }
             // TODO: If open question, we take the manual score for both, because the automatic will be always 0
         }
+
+        questionSubmissionRepository.saveAll(questionSubmissionsToSave);
 
         submission.setCalculatedGrade(automatic);
         submission.setAlteredCalculatedGrade(manual);

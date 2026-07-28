@@ -199,7 +199,7 @@ public class SimpleRestClient implements RestClient {
         }
 
         for(NameValuePair param : params) {
-            entityBuilder.addTextBody(param.getName(), param.getValue());
+            entityBuilder.addTextBody(param.getName(), StringUtils.defaultString(param.getValue()));
         }
 
         httpPost.setEntity(entityBuilder.build());
@@ -372,6 +372,10 @@ public class SimpleRestClient implements RestClient {
      * @return The Brightspace human-readable error string or null if unable to extract it
      */
     private String extractErrorMessageFromResponse(HttpResponse response) {
+        if (response.getEntity() == null || response.getEntity().getContentType() == null) {
+            return null;
+        }
+
         String contentType = response.getEntity().getContentType().getValue();
         String message = null;
 

@@ -3,7 +3,6 @@ package edu.iu.terracotta.connectors.generic.service.lti.impl;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.AsymmetricJWK;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKSet;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Header;
@@ -17,12 +16,15 @@ import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
+import java.util.List;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
+import edu.iu.terracotta.utils.lti.JwksCache;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -30,7 +32,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
@@ -50,6 +51,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @SuppressWarnings({"PMD.LooseCoupling", "PMD.GuardLogStatement"})
 public class LtiJwtServiceImpl implements LtiJwtService {
+
+    // JsonMapper is thread-safe once built; reuse one shared instance instead of building a
+    // fresh mapper inside the key-locator lambda on every validateJWT() call.
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
     private final PlatformDeploymentRepository platformDeploymentRepository;
     private final LtiDataService ltiDataService;
@@ -121,8 +126,7 @@ public class LtiJwtServiceImpl implements LtiJwtService {
                             Map<String, Object> jwtClaims = null;
 
                             try {
-                                jwtClaims = JsonMapper.builder()
-                                    .build()
+                                jwtClaims = JSON_MAPPER
                                     .readValue(
                                         jwtPayload,
                                         new TypeReference<Map<String,Object>>() {}
@@ -132,17 +136,23 @@ public class LtiJwtServiceImpl implements LtiJwtService {
                             }
 
                             String issuer = (String) jwtClaims.get(LtiStrings.ISS);
-                            platformDeployment = platformDeploymentRepository.findByIssAndClientId(issuer, clientId).get(0);
-                        } catch (IndexOutOfBoundsException ex) {
-                            log.error("kid not found in header", ex);
+                            List<PlatformDeployment> deployments = platformDeploymentRepository.findByIssAndClientId(issuer, clientId);
+
+                            if (deployments.isEmpty()) {
+                                log.error("No PlatformDeployment found for issuer [{}] and clientId [{}]", issuer, clientId);
+                                return null;
+                            }
+
+                            platformDeployment = deployments.get(0);
+                        } catch (Exception ex) {
+                            log.error("Error resolving platform deployment from JWT header", ex);
                             return null;
                         }
 
                         // If the platform has a JWK Set endpoint... we try that.
                         if (StringUtils.isNoneEmpty(platformDeployment.getJwksEndpoint())) {
                             try {
-                                JWKSet publicKeys = JWKSet.load(new URI(platformDeployment.getJwksEndpoint()).toURL());
-                                JWK jwk = publicKeys.getKeyByKeyId(jwsHeader.getKeyId());
+                                JWK jwk = JwksCache.getKey(platformDeployment.getJwksEndpoint(), jwsHeader.getKeyId());
                                 return ((AsymmetricJWK) jwk).toPublicKey();
                             } catch (JOSEException | ParseException | IOException ex) {
                                 log.error("Error getting the iss public key", ex);

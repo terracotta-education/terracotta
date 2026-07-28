@@ -14,14 +14,14 @@ export const participantService = {
 /**
  * Get all Participants
  */
-function getAll(experimentId) {
+function getAll(experimentId, refresh = false) {
   const requestOptions = {
     method: 'GET',
     headers: authHeader(),
   }
 
   return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/participants`,
+    `${store.getters['api/aud']}/api/experiments/${experimentId}/participants?refresh=${refresh}`,
     requestOptions
   ).then(handleResponse)
 }

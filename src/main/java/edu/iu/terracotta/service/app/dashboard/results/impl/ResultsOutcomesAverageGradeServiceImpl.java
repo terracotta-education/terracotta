@@ -114,15 +114,10 @@ public class ResultsOutcomesAverageGradeServiceImpl implements ResultsOutcomesAv
         List<Double> scores = new ArrayList<>();
 
         for (Assessment assessment : assessments) {
-            for (Participant participant : experimentConsentedParticipants) {
-                Float score = submissionService.getScoreFromMultipleSubmissions(participant, assessment);
+            double maxScore = assessmentSubmissionService.calculateMaxScore(assessment);
 
-                if (score == null) {
-                    continue;
-                }
-
-                scores.add(score.doubleValue() / (double) assessmentSubmissionService.calculateMaxScore(assessment));
-            }
+            submissionService.getScoresFromMultipleSubmissions(experimentConsentedParticipants, assessment).values()
+                .forEach(score -> scores.add(score.doubleValue() / maxScore));
         }
 
         if (CollectionUtils.isEmpty(scores)) {
@@ -150,16 +145,11 @@ public class ResultsOutcomesAverageGradeServiceImpl implements ResultsOutcomesAv
             exposureId -> {
                 List<Double> scores = new ArrayList<>();
 
-                for (Participant participant : experimentConsentedParticipants) {
-                    for (Assessment assessment : findAssessmentsByExposureId(exposureId, experimentAssignments, allAssessmentsByAssignment)) {
-                        Float score = submissionService.getScoreFromMultipleSubmissions(participant, assessment);
+                for (Assessment assessment : findAssessmentsByExposureId(exposureId, experimentAssignments, allAssessmentsByAssignment)) {
+                    double maxScore = assessmentSubmissionService.calculateMaxScore(assessment);
 
-                        if (score == null) {
-                            continue;
-                        }
-
-                        scores.add(score.doubleValue() / (double) assessmentSubmissionService.calculateMaxScore(assessment));
-                    }
+                    submissionService.getScoresFromMultipleSubmissions(experimentConsentedParticipants, assessment).values()
+                        .forEach(score -> scores.add(score.doubleValue() / maxScore));
                 }
 
                 exposuresScores.putIfAbsent(findExposureTitleByExposureId(exposureId, experimentExposures), new ArrayList<>());

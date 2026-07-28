@@ -1,6 +1,7 @@
 package edu.iu.terracotta.connectors.generic.dao.model.lms.options;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -23,5 +24,7 @@ public class LmsGetUsersInCourseOptions {
     private String lmsCourseId;
     private List<EnrollmentState> enrollmentState;
     private List<EnrollmentType> enrollmentType;
+    private Integer batchSize;
+    private UUID batchId;
 
 }

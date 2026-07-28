@@ -47,7 +47,18 @@ public class BrightspaceAdvantageDeepLinkServiceImpl implements AdvantageDeepLin
         Date date = new Date();
         String lmsIssuer = idToken.getPayload().getIssuer();
         String terracottaClientId = Iterables.getOnlyElement(idToken.getPayload().getAudience());
-        PlatformDeployment platformDeployment = platformDeploymentRepository.findByIssAndClientId(lmsIssuer, terracottaClientId).get(0);
+        List<PlatformDeployment> deployments = platformDeploymentRepository.findByIssAndClientId(lmsIssuer, terracottaClientId);
+
+        if (deployments.isEmpty()) {
+            throw new TerracottaConnectorException(
+                String.format("No PlatformDeployment found for issuer [%s] and clientId [%s]", lmsIssuer, terracottaClientId)
+            );
+        }
+
+        PlatformDeployment platformDeployment = deployments.get(0);
+
+        Map<?, ?> deepLinkSettings = idToken.getPayload().get(LtiStrings.DEEP_LINKING_SETTINGS, Map.class);
+        Object deepLinkData = deepLinkSettings != null ? deepLinkSettings.get(LtiStrings.DEEP_LINK_DATA) : null;
 
         String jwt = Jwts.builder()
             .header()
@@ -72,10 +83,8 @@ public class BrightspaceAdvantageDeepLinkServiceImpl implements AdvantageDeepLin
                 )
             )
             .issuedAt(date)
-            .claim(
-                LtiStrings.AUD,
-                lmsIssuer
-            ) // Brightspace requires a string aud
+            // Brightspace requires a scalar string aud, not an array; single-element audience() serializes as string in JJWT 0.12+
+            .audience().add(lmsIssuer).and()
             .claim(
                 LtiStrings.LTI_NONCE,
                 idToken
@@ -108,13 +117,7 @@ public class BrightspaceAdvantageDeepLinkServiceImpl implements AdvantageDeepLin
             )
             .claim(
                 LtiStrings.LTI_DATA,
-                idToken
-                    .getPayload()
-                    .get(
-                        LtiStrings.DEEP_LINKING_SETTINGS,
-                        Map.class
-                    )
-                    .get(LtiStrings.DEEP_LINK_DATA))
+                deepLinkData)
             .claim(
                 LtiStrings.LTI_CONTENT_ITEMS,
                 List.of(

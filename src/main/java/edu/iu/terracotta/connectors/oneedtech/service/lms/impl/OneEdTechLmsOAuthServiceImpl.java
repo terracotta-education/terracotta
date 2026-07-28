@@ -18,6 +18,10 @@ import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 @TerracottaConnector(LmsConnector.ONE_ED_TECH)
 public class OneEdTechLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity> {
 
+    // RestTemplate is thread-safe once constructed; reuse one shared instance instead of
+    // allocating a new client (and request factory) on every call.
+    private final RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+
     @Override
     public boolean isConfigured(PlatformDeployment platformDeployment) {
         return false;
@@ -45,7 +49,7 @@ public class OneEdTechLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEnt
 
     @Override
     public RestTemplate createRestTemplate() {
-        return new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
+        return restTemplate;
     }
 
 }

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -75,7 +76,7 @@ public class Submission extends BaseEntity {
     )
     private List<SubmissionComment> submissionComments;
 
-    @OneToOne(mappedBy = "submission")
+    @OneToOne(mappedBy = "submission", fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private IntegrationToken integrationToken;
 

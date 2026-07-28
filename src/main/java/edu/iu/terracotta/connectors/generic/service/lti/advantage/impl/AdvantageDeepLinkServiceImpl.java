@@ -42,18 +42,19 @@ public class AdvantageDeepLinkServiceImpl implements AdvantageDeepLinkService {
 
     @Override
     public DeepLinkJwtDto generateDeepLinkJwt(List<String> deepLinkRequestIds, Jws<Claims> idToken, String returnUrl) throws GeneralSecurityException, IOException, TerracottaConnectorException {
-        return instance(
-            platformDeploymentRepository.findByIssAndClientId(
-                idToken.getPayload().getIssuer(),
-                Iterables.getOnlyElement(idToken.getPayload().getAudience())
-            )
-            .get(0)
-        )
-        .generateDeepLinkJwt(
-            deepLinkRequestIds,
-            idToken,
-            returnUrl
+        List<PlatformDeployment> deployments = platformDeploymentRepository.findByIssAndClientId(
+            idToken.getPayload().getIssuer(),
+            Iterables.getOnlyElement(idToken.getPayload().getAudience())
         );
+
+        if (deployments.isEmpty()) {
+            throw new TerracottaConnectorException(
+                String.format("No PlatformDeployment found for issuer [%s]", idToken.getPayload().getIssuer())
+            );
+        }
+
+        return instance(deployments.get(0))
+            .generateDeepLinkJwt(deepLinkRequestIds, idToken, returnUrl);
     }
 
     @Override

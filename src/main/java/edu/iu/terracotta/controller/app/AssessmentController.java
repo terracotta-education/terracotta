@@ -195,6 +195,7 @@ public class AssessmentController {
             assessmentService.deleteById(assessmentId);
         } catch (EmptyResultDataAccessException ex) {
             log.warn(ex.getMessage());
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);

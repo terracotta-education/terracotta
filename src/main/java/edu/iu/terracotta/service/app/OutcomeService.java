@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.Outcome;
@@ -19,6 +20,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public interface OutcomeService {
 
@@ -32,6 +34,10 @@ public interface OutcomeService {
     void deleteById(long id) throws EmptyResultDataAccessException;
     List<OutcomePotentialDto> potentialOutcomes(long experimentId, SecuredInfo securedInfo) throws DataServiceException, ApiException, TerracottaConnectorException;
     void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants) throws IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException;
+    // reuses submissions pre-fetched in bulk (see fetchSubmissionsForOutcomes) instead of one LMS call per outcome
+    void updateOutcomeGrades(long outcomeId, SecuredInfo securedInfo, boolean refreshParticipants, Map<String, List<LmsSubmission>> submissionsByLmsAssignmentId) throws IOException, ParticipantNotUpdatedException, ExperimentNotMatchingException, OutcomeNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException;
+    // one LMS call for all external outcomes' assignments instead of one call per outcome
+    Map<String, List<LmsSubmission>> fetchSubmissionsForOutcomes(List<Outcome> outcomes, SecuredInfo securedInfo) throws ApiException, IOException, TerracottaConnectorException;
     void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long outcomeId);
 

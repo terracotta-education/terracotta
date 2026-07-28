@@ -10,7 +10,6 @@ import io.jsonwebtoken.security.SecurityException;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.utils.lti.Lti3Request;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
@@ -19,22 +18,16 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.List;
 
 /**
  * LTI3 Redirect calls will be filtered on this class. Check if the JWT is valid and then extract all the needed data.
  */
 @Slf4j
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
-
-    @Value("${app.lti.data.verbose.logging.enabled:false}")
-    private boolean ltiDataVerboseLoggingEnabled;
 
     private LtiDataService ltiDataService;
     private LtiJwtService ltijwtService;
@@ -71,21 +64,7 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
         }
 
         try {
-            // This is just for logging.
             HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-            Enumeration<String> sessionAttributes = httpServletRequest.getSession().getAttributeNames();
-
-            if (ltiDataVerboseLoggingEnabled) {
-                log.debug("-------------------------------------------------------------------------------------------------------");
-
-                while (sessionAttributes.hasMoreElements()) {
-                    String attName = sessionAttributes.nextElement();
-                    log.debug(attName + " : " + httpServletRequest.getSession().getAttribute(attName));
-
-                }
-
-                log.debug("-------------------------------------------------------------------------------------------------------");
-            }
 
             // validate that the state is a good state.
 
@@ -93,20 +72,13 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
             String state = httpServletRequest.getParameter("state");
             String link = httpServletRequest.getParameter("link");
 
-            if (httpServletRequest.getSession().getAttribute("lti_state") == null) {
+            if (!StringUtils.hasText(state)) {
                 log.error("LTI request doesn't contain the expected state");
                 return;
             }
 
-            // as the state is something that we have created, it should be in our list of states
-            List<String> ltiState = (List<String>) httpServletRequest.getSession().getAttribute("lti_state");
-
-            if (!ltiState.contains(state)) {
-                log.error("LTI request doesn't contain the expected state");
-                return;
-            }
-
-            // validate the state to be sure that is correct
+            // validate the state to be sure that is correct; its signature is the sole source of
+            // truth for whether it is one we actually issued - no session-based tracking needed
             Jws<Claims> stateClaims = ltijwtService.validateState(state);
 
             /*
@@ -133,8 +105,6 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
                 }
             }
 
-            // Now that the user is authenticated, if this their first time, set the first-party-interaction cookie
-            createFirstPartyInteractionCookieIfMissing(servletResponse, httpServletRequest);
             filterChain.doFilter(servletRequest, servletResponse);
 
             this.resetAuthenticationAfterRequest();
@@ -148,29 +118,6 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         } catch (DataServiceException e) {
             log.error("Error in the Data Service", e);
-        }
-    }
-
-    private void createFirstPartyInteractionCookieIfMissing(ServletResponse servletResponse, HttpServletRequest httpServletRequest) {
-        boolean hasFirstPartyInteractionCookie = false;
-
-        if (httpServletRequest.getCookies() != null) {
-            for (Cookie cookie : httpServletRequest.getCookies()) {
-                if ("first-party-interaction".equals(cookie.getName())) {
-                    hasFirstPartyInteractionCookie = true;
-                    break;
-                }
-            }
-        }
-
-        if (!hasFirstPartyInteractionCookie) {
-            // A permanent first-party cookie is needed by Safari in order to be able to set cookies like the JSESSIONID in a third-party (iFrame) context
-            Cookie firstPartyInteractionCookie = new Cookie("first-party-interaction", "true");
-            firstPartyInteractionCookie.setHttpOnly(false);
-            firstPartyInteractionCookie.setSecure(true);
-            firstPartyInteractionCookie.setMaxAge(Integer.MAX_VALUE);
-            firstPartyInteractionCookie.setPath("/");
-            ((HttpServletResponse)servletResponse).addCookie(firstPartyInteractionCookie);
         }
     }
 

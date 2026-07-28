@@ -73,7 +73,7 @@ public class Experiment extends BaseEntity {
     )
     private PlatformDeployment platformDeployment;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "consent_document_consent_document_id")
     private ConsentDocument consentDocument;
 

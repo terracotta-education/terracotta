@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import edu.iu.terracotta.base.BaseTest;
@@ -23,6 +25,8 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
@@ -85,6 +89,36 @@ public class AdvantageConnectorHelperImplTest extends BaseTest {
     }
 
     @Test
+    public void testCreateTokenizedRequestEntityWithAccept() {
+        HttpEntity ret = advantageConnectorHelper.createTokenizedRequestEntityWithAccept(ltiToken, MediaType.APPLICATION_JSON_VALUE);
+        HttpHeaders headers = ret.getHeaders();
+
+        assertEquals(TextConstants.BEARER + ltiToken.getAccess_token(), headers.get(HttpHeaders.AUTHORIZATION).get(0));
+        assertEquals(MediaType.APPLICATION_JSON_VALUE, headers.get(HttpHeaders.ACCEPT).get(0));
+    }
+
+    @Test
+    public void testCreateTokenizedRequestEntityWithAcceptAndContentType() {
+        HttpEntity ret = advantageConnectorHelper.createTokenizedRequestEntityWithAcceptAndContentType(ltiToken, MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_JSON_VALUE);
+        HttpHeaders headers = ret.getHeaders();
+
+        assertEquals(TextConstants.BEARER + ltiToken.getAccess_token(), headers.get(HttpHeaders.AUTHORIZATION).get(0));
+        assertEquals(MediaType.APPLICATION_JSON_VALUE, headers.get(HttpHeaders.ACCEPT).get(0));
+        assertEquals(MediaType.APPLICATION_JSON_VALUE, headers.get(HttpHeaders.CONTENT_TYPE).get(0));
+    }
+
+    @Test
+    public void testCreateTokenizedRequestEntityWithAcceptAndContentTypeLineItem() {
+        HttpEntity<LineItem> ret = advantageConnectorHelper.createTokenizedRequestEntityWithAcceptAndContentType(ltiToken, lineItem, MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_JSON_VALUE);
+        HttpHeaders headers = ret.getHeaders();
+
+        assertEquals(TextConstants.BEARER + ltiToken.getAccess_token(), headers.get(HttpHeaders.AUTHORIZATION).get(0));
+        assertEquals(MediaType.APPLICATION_JSON_VALUE, headers.get(HttpHeaders.ACCEPT).get(0));
+        assertEquals(MediaType.APPLICATION_JSON_VALUE, headers.get(HttpHeaders.CONTENT_TYPE).get(0));
+        assertEquals(lineItem, ret.getBody());
+    }
+
+    @Test
     public void testGetTokenSuccess() throws ConnectionException, GeneralSecurityException, IOException {
         when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
         when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenReturn(ResponseEntity.ok(ltiToken));
@@ -96,11 +130,86 @@ public class AdvantageConnectorHelperImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetTokenNullResponseThrowsConnectionException() throws GeneralSecurityException, IOException {
+        when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenReturn(null);
+        doReturn(restTemplate).when(advantageConnectorHelper).createRestTemplate();
+
+        assertThrows(ConnectionException.class, () -> advantageConnectorHelper.getToken(platformDeployment, "scope"));
+    }
+
+    @Test
+    public void testGetTokenNonSuccessStatusThrowsConnectionException() throws GeneralSecurityException, IOException {
+        when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class)))
+            .thenReturn(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+        doReturn(restTemplate).when(advantageConnectorHelper).createRestTemplate();
+
+        assertThrows(ConnectionException.class, () -> advantageConnectorHelper.getToken(platformDeployment, "scope"));
+    }
+
+    @Test
     public void testGetTokenFailure() throws GeneralSecurityException, IOException {
         when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
         when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenThrow(new RuntimeException("Error"));
 
         assertThrows(ConnectionException.class, () -> advantageConnectorHelper.getToken(platformDeployment, "scope"));
+    }
+
+    @Test
+    public void testGetTokenCachesResultForSameScope() throws ConnectionException, GeneralSecurityException, IOException {
+        when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
+        when(ltiToken.getExpires_in()).thenReturn(3600);
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenReturn(ResponseEntity.ok(ltiToken));
+        doReturn(restTemplate).when(advantageConnectorHelper).createRestTemplate();
+
+        LtiToken first = advantageConnectorHelper.getToken(platformDeployment, "scope");
+        LtiToken second = advantageConnectorHelper.getToken(platformDeployment, "scope");
+
+        assertEquals(first, second);
+        verify(restTemplate, times(1)).postForEntity(anyString(), any(HttpEntity.class), any(Class.class));
+    }
+
+    @Test
+    public void testGetTokenDoesNotCacheAcrossDifferentScopes() throws ConnectionException, GeneralSecurityException, IOException {
+        when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
+        when(ltiToken.getExpires_in()).thenReturn(3600);
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenReturn(ResponseEntity.ok(ltiToken));
+        doReturn(restTemplate).when(advantageConnectorHelper).createRestTemplate();
+
+        advantageConnectorHelper.getToken(platformDeployment, "scope1");
+        advantageConnectorHelper.getToken(platformDeployment, "scope2");
+
+        verify(restTemplate, times(2)).postForEntity(anyString(), any(HttpEntity.class), any(Class.class));
+    }
+
+    @Test
+    public void testGetTokenRefetchesAfterExpiry() throws ConnectionException, GeneralSecurityException, IOException {
+        when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
+        // expires_in of 1 second, minus the 60 second safety buffer, is already in the past
+        when(ltiToken.getExpires_in()).thenReturn(1);
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenReturn(ResponseEntity.ok(ltiToken));
+        doReturn(restTemplate).when(advantageConnectorHelper).createRestTemplate();
+
+        advantageConnectorHelper.getToken(platformDeployment, "scope");
+        advantageConnectorHelper.getToken(platformDeployment, "scope");
+
+        verify(restTemplate, times(2)).postForEntity(anyString(), any(HttpEntity.class), any(Class.class));
+    }
+
+    @Test
+    public void testGetTokenFailureDoesNotCacheAnything() throws GeneralSecurityException, IOException {
+        when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenThrow(new RuntimeException("Error"));
+        doReturn(restTemplate).when(advantageConnectorHelper).createRestTemplate();
+
+        assertThrows(ConnectionException.class, () -> advantageConnectorHelper.getToken(platformDeployment, "scope"));
+        assertThrows(ConnectionException.class, () -> advantageConnectorHelper.getToken(platformDeployment, "scope"));
+
+        // each failed getToken() call retries once internally (form-encoded, then JSON), so two
+        // calls to getToken() mean four postForEntity() invocations - the point being neither
+        // failure gets cached, so both outer calls actually attempt the request from scratch
+        verify(restTemplate, times(4)).postForEntity(anyString(), any(HttpEntity.class), any(Class.class));
     }
 
     @Test
@@ -116,6 +225,14 @@ public class AdvantageConnectorHelperImplTest extends BaseTest {
     public void testNextPageNoNextPage() {
         HttpHeaders headers = new HttpHeaders();
         headers.put("link", Collections.singletonList("<https://example.com/page2>; rel=\"prev\""));
+        String ret = advantageConnectorHelper.nextPage(headers);
+
+        assertNull(ret);
+    }
+
+    @Test
+    public void testNextPageNoLinkHeader() {
+        HttpHeaders headers = new HttpHeaders();
         String ret = advantageConnectorHelper.nextPage(headers);
 
         assertNull(ret);

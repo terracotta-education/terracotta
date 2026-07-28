@@ -6,6 +6,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
+import edu.iu.terracotta.dao.repository.LtiNonceRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.utils.lti.Lti3Request;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +16,12 @@ public interface LtiDataService {
     @Transactional boolean loadLTIDataFromDB(Lti3Request lti, String link);
     @Transactional int upsertLTIDataInDB(Lti3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException;
 
+    // runs loadLTIDataFromDB and upsertLTIDataInDB in a single transaction, so the entities the
+    // load resolves stay managed/attached for the upsert instead of needing to be re-merged
+    @Transactional int loadAndUpsertLTIDataInDB(Lti3Request lti, ToolDeployment toolDeployment, String link) throws DataServiceException;
+
     PlatformDeploymentRepository getPlatformDeploymentRepository();
+    LtiNonceRepository getLtiNonceRepository();
     LtiUserEntity findByUserKeyAndPlatformDeployment(String userKey, PlatformDeployment platformDeployment);
     LtiUserEntity saveLtiUserEntity(LtiUserEntity ltiUserEntity);
     LtiMembershipEntity findByUserAndContext(LtiUserEntity ltiUserEntity, LtiContextEntity ltiContextEntity);

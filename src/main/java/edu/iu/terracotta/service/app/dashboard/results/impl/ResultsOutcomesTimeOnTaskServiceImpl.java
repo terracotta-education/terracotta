@@ -14,6 +14,7 @@ import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -113,28 +114,25 @@ public class ResultsOutcomesTimeOnTaskServiceImpl implements ResultsOutcomesTime
 
     private void conditionScores(OutcomesConditionBuilder outcomesCondition, List<Assessment> assessments, Experiment experiment, List<Participant> experimentConsentedParticipants) {
         List<Double> scores = new ArrayList<>();
+        Set<Long> consentedParticipantIds = experimentConsentedParticipants.stream()
+            .map(Participant::getParticipantId)
+            .collect(Collectors.toSet());
 
         for (Assessment assessment : assessments) {
-            for (Participant participant : experimentConsentedParticipants) {
-                try {
-                    List<SubmissionDto> submissions = submissionService.getSubmissions(
-                        experiment.getExperimentId(),
-                        participant.getLtiUserEntity().getUserKey(),
-                        assessment.getAssessmentId(),
-                        false
+            try {
+                // one query for all participants per assessment instead of one query per participant
+                List<SubmissionDto> submissions = submissionService.getSubmissions(experiment.getExperimentId(), null, assessment.getAssessmentId(), false);
+
+                submissions.stream()
+                    .filter(submission -> consentedParticipantIds.contains(submission.getParticipantId()))
+                    .filter(submission -> submission.getDateSubmitted() != null)
+                    .forEach(
+                        submission -> {
+                            scores.add((double) (submission.getDateSubmitted().getTime() - submission.getDateCreated().getTime()));
+                        }
                     );
-                    // filter non-submitted submissions for the participant
-                    submissions.stream()
-                        .filter(submission -> submission.getParticipantId().equals(participant.getParticipantId()))
-                        .filter(submission -> submission.getDateSubmitted() != null)
-                        .forEach(
-                            submission -> {
-                                scores.add((double) (submission.getDateSubmitted().getTime() - submission.getDateCreated().getTime()));
-                            }
-                        );
-                } catch (NoSubmissionsException e) {
-                    continue;
-                }
+            } catch (NoSubmissionsException e) {
+                continue;
             }
         }
 
@@ -158,27 +156,29 @@ public class ResultsOutcomesTimeOnTaskServiceImpl implements ResultsOutcomesTime
     @Override
     public OutcomesExposures exposures(Experiment experiment, List<Long> exposureIds, List<Assignment> experimentAssignments, Map<Long, List<Assessment>> allAssessmentsByAssignment, List<Participant> experimentConsentedParticipants, List<Exposure> experimentExposures) {
         Map<String, List<Double>> exposuresScores = new HashMap<>();
+        Set<Long> consentedParticipantIds = experimentConsentedParticipants.stream()
+            .map(Participant::getParticipantId)
+            .collect(Collectors.toSet());
 
         exposureIds.forEach(
             exposureId -> {
                 List<Double> scores = new ArrayList<>();
 
-                for (Participant participant : experimentConsentedParticipants) {
-                    for (Assessment assessment : findAssessmentsByExposureId(exposureId, experimentAssignments, allAssessmentsByAssignment)) {
-                        try {
-                            List<SubmissionDto> submissions = submissionService.getSubmissions(experiment.getExperimentId(), participant.getLtiUserEntity().getUserKey(), assessment.getAssessmentId(), false);
-                            // filter non-submitted submissions for the participant
-                            submissions.stream()
-                                .filter(submission -> submission.getParticipantId().equals(participant.getParticipantId()))
-                                .filter(submission -> submission.getDateSubmitted() != null)
-                                .forEach(
-                                    submission -> {
-                                        scores.add((double) (submission.getDateSubmitted().getTime() - submission.getDateCreated().getTime()));
-                                    }
-                                );
-                        } catch (NoSubmissionsException e) {
-                            continue;
-                        }
+                for (Assessment assessment : findAssessmentsByExposureId(exposureId, experimentAssignments, allAssessmentsByAssignment)) {
+                    try {
+                        // one query for all participants per assessment instead of one query per participant
+                        List<SubmissionDto> submissions = submissionService.getSubmissions(experiment.getExperimentId(), null, assessment.getAssessmentId(), false);
+
+                        submissions.stream()
+                            .filter(submission -> consentedParticipantIds.contains(submission.getParticipantId()))
+                            .filter(submission -> submission.getDateSubmitted() != null)
+                            .forEach(
+                                submission -> {
+                                    scores.add((double) (submission.getDateSubmitted().getTime() - submission.getDateCreated().getTime()));
+                                }
+                            );
+                    } catch (NoSubmissionsException e) {
+                        continue;
                     }
                 }
 

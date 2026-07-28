@@ -88,6 +88,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -419,7 +421,7 @@ public class BrightspaceApiClientImpl implements ApiClient {
     public Optional<LmsAssignment> listAssignment(LtiUserEntity apiUser, String lmsCourseId, Assignment assignment) throws ApiException, TerracottaConnectorException {
         Optional<LmsAssignment> lmsAssignment = listAssignment(apiUser, lmsCourseId, assignment.getLmsAssignmentId());
 
-        if (!lmsAssignment.get().isPublished()) {
+        if (lmsAssignment.isEmpty() || !lmsAssignment.get().isPublished()) {
             return lmsAssignment;
         }
 
@@ -444,7 +446,7 @@ public class BrightspaceApiClientImpl implements ApiClient {
             Optional<ContentObjectModule> contentObjectModule = getReader(apiUser, ContentObjectModuleReaderService.class)
                 .get(lmsCourseId, brightspaceAssignmentMetadata.getContentModuleId());
 
-            if (contentObjectModule.get().getIsHidden()) {
+            if (contentObjectModule.isEmpty() || contentObjectModule.get().getIsHidden()) {
                 lmsAssignment.get().setPublished(false);
 
                 return lmsAssignment;
@@ -465,7 +467,7 @@ public class BrightspaceApiClientImpl implements ApiClient {
             Optional<ContentObjectTopic> contentObjectTopic = getReader(apiUser, ContentObjectTopicReaderService.class)
                 .get(lmsCourseId, brightspaceAssignmentMetadata.getContentTopicId());
 
-            if (contentObjectTopic.get().getIsHidden()) {
+            if (contentObjectTopic.isEmpty() || contentObjectTopic.get().getIsHidden()) {
                 lmsAssignment.get().setPublished(false);
 
                 return lmsAssignment;
@@ -740,19 +742,16 @@ public class BrightspaceApiClientImpl implements ApiClient {
 
     @Override
     public List<LmsSubmission> listSubmissionsForMultipleAssignments(LtiUserEntity apiUser, String lmsCourseId, List<String> lmsAssignmentIds) throws ApiException, IOException, TerracottaConnectorException {
-        List<LmsSubmission> submissions = new ArrayList<>();
-        CollectionUtils.emptyIfNull(lmsAssignmentIds).stream()
-            .forEach(
-                lmsAssignmentId -> {
-                    try {
-                        submissions.addAll(listSubmissions(apiUser, lmsAssignmentId, lmsCourseId));
-                    } catch (Exception e) {
-                        log.error("Error retrieving submissions for LMS assignment ID: [{}] in LMS course ID: [{}]", lmsAssignmentId, lmsCourseId, e);
-                    }
+        return CollectionUtils.emptyIfNull(lmsAssignmentIds).stream()
+            .flatMap((String lmsAssignmentId) -> {
+                try {
+                    return listSubmissions(apiUser, lmsAssignmentId, lmsCourseId).stream();
+                } catch (Exception e) {
+                    log.error("Error retrieving submissions for LMS assignment ID: [{}] in LMS course ID: [{}]", lmsAssignmentId, lmsCourseId, e);
+                    return Stream.<LmsSubmission>empty();
                 }
-            );
-
-        return submissions;
+            })
+            .collect(Collectors.toList());
     }
 
     @Override
@@ -939,6 +938,10 @@ public class BrightspaceApiClientImpl implements ApiClient {
     }
 
     private <T> Optional<T> castOptional(Optional<? extends LmsEntity<T>> extended) {
+        if (extended.isEmpty()) {
+            return Optional.empty();
+        }
+
         try {
             return Optional.of(extended.get().from());
         } catch (Exception e) {
@@ -975,7 +978,7 @@ public class BrightspaceApiClientImpl implements ApiClient {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(AssignmentExtended.DATE_FORMAT);
 
-        return formatter.format(date.toInstant().atZone(ZoneId.systemDefault()));
+        return formatter.format(date.toInstant().atZone(ZoneId.of("UTC")));
     }
 
 }

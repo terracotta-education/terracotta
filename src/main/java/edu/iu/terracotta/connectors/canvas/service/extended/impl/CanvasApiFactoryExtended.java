@@ -106,7 +106,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-@SuppressWarnings({"PMD.GuardLogStatement", "rawtypes", "unchecked"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling", "rawtypes", "unchecked"})
 public class CanvasApiFactoryExtended {
 
     public static final Integer CANVAS_API_VERSION = 1;
@@ -116,11 +116,21 @@ public class CanvasApiFactoryExtended {
     private String canvasBaseUrl;
     private int connectTimeout;
     private int readTimeout;
+    private Integer paginationPageSize;
 
     public CanvasApiFactoryExtended(String canvasBaseUrl) {
         this.canvasBaseUrl = canvasBaseUrl;
         connectTimeout = 5000;
         readTimeout = 120000;
+        paginationPageSize = 100;
+        setupClassMap();
+    }
+
+    public CanvasApiFactoryExtended(String canvasBaseUrl, int batchSize) {
+        this.canvasBaseUrl = canvasBaseUrl;
+        connectTimeout = 5000;
+        readTimeout = 120000;
+        paginationPageSize = batchSize;
         setupClassMap();
     }
 
@@ -128,11 +138,12 @@ public class CanvasApiFactoryExtended {
         this.canvasBaseUrl = canvasBaseUrl;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
+        this.paginationPageSize = 100;
         setupClassMap();
     }
 
     public <T extends CanvasReader> T getReader(Class<T> type, OauthToken oauthToken) {
-        return getReader(type, oauthToken, (Integer) null);
+        return getReader(type, oauthToken, paginationPageSize);
     }
 
     public <T extends CanvasReader> T getReader(Class<T> type, OauthToken oauthToken, Integer paginationPageSize) {

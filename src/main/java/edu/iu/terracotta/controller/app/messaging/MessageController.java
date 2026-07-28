@@ -91,7 +91,7 @@ public class MessageController {
     }
 
     @GetMapping("/assignments")
-    public ResponseEntity<List<MessageRuleAssignmentDto>> getAssignments(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable long containerUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<List<MessageRuleAssignmentDto>> getAssignments(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {

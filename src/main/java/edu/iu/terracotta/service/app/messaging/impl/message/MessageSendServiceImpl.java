@@ -4,12 +4,14 @@ package edu.iu.terracotta.service.app.messaging.impl.message;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -20,14 +22,17 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
-import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsUser;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentState;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentType;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -47,6 +52,8 @@ import edu.iu.terracotta.dao.repository.messaging.piped.PipedTextItemRepository;
 import edu.iu.terracotta.exceptions.messaging.MessageBodyParseException;
 import edu.iu.terracotta.service.app.messaging.MessageRuleComparisonService;
 import edu.iu.terracotta.service.app.messaging.MessageSendService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,6 +63,7 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class MessageSendServiceImpl implements MessageSendService {
 
+    private final LmsUserBatchRepository lmsUserBatchRepository;
     private final LtiUserRepository ltiUserRepository;
     private final MessageConditionalTextRepository conditionalTextRepository;
     private final ParticipantRepository participantRepository;
@@ -64,29 +72,25 @@ public class MessageSendServiceImpl implements MessageSendService {
     private final ApiClient apiClient;
     private final LmsUtils lmsUtils;
 
+    @PersistenceContext private EntityManager entityManager;
+
+    @Value("${app.participant.batch.size:500}")
+    private int batchSize;
+
     @Override
     public List<LtiUserEntity> getRecipients(Message message) throws ApiException, IOException, TerracottaConnectorException {
-        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(message.getExperimentId());
+        UUID batchId = UUID.randomUUID();
 
-        if (CollectionUtils.isEmpty(participants)) {
-            log.info("No participants found for the experiment with ID: [{}]", message.getExperimentId());
-            return List.of();
-        }
-
-        List<LmsUser> students = apiClient
-            .listUsersForCourse(
-                LmsGetUsersInCourseOptions.builder()
-                    .lmsCourseId(lmsUtils.parseCourseId(message.getPlatformDeployment(), message.getExperiment().getLtiContextEntity().getContext_memberships_url()))
-                    .enrollmentState(Arrays.asList(EnrollmentState.ACTIVE, EnrollmentState.INVITED))
-                    .enrollmentType(Arrays.asList(EnrollmentType.STUDENT))
-                    .build(),
-                message.getOwner()
-            );
-
-        if (CollectionUtils.isEmpty(students)) {
-            log.info("No students found for the course with ID: [{}] in the platform deployment with key ID: [{}]", message.getExperiment().getLtiContextEntity().getContext_memberships_url(), message.getPlatformDeployment().getKeyId());
-            return List.of();
-        }
+        apiClient.listUsersForCourse(
+            LmsGetUsersInCourseOptions.builder()
+                .batchId(batchId)
+                .batchSize(batchSize)
+                .enrollmentState(Arrays.asList(EnrollmentState.ACTIVE, EnrollmentState.INVITED))
+                .enrollmentType(Arrays.asList(EnrollmentType.STUDENT))
+                .lmsCourseId(lmsUtils.parseCourseId(message.getPlatformDeployment(), message.getExperiment().getLtiContextEntity().getContext_memberships_url()))
+                .build(),
+            message.getOwner()
+        );
 
         Map<String, List<LmsSubmission>> lmsSubmissions;
 
@@ -96,86 +100,127 @@ public class MessageSendServiceImpl implements MessageSendService {
             throw new ApiException(String.format("Error retrieving LMS submissions for message ID: [%s]", message.getId()), e);
         }
 
-        return students.stream()
-            .map(
-                student -> {
-                    // user's LMS user ID is not always available in the database; try with email and deployment key ID
-                    LtiUserEntity ltiUserEntity = ltiUserRepository.findFirstByEmailAndPlatformDeployment_KeyId(student.getEmail(), message.getPlatformDeployment().getKeyId());
 
-                    if (ltiUserEntity == null || (ltiUserEntity.getLmsUserId() != null && !Strings.CI.equals(student.getId(), ltiUserEntity.getLmsUserId()))) {
-                        // wrong LMS user found; don't add message log
-                        log.info(
-                            "No Terracotta user found with email: [{}] and platform deployment key ID: [{}]. Cannot add to recipients list.",
-                            student.getEmail(),
-                            message.getPlatformDeployment().getKeyId());
-                        return null;
-                    }
+        List<LtiUserEntity> recipients = new ArrayList<>();
 
-                    if (ltiUserEntity.getLmsUserId() == null) {
-                        // set LMS user ID for the user; needed for LMS create conversation request
-                        log.info("Setting LMS user ID: [{}] to Terracotta user ID: [{}]", student.getId(), ltiUserEntity.getUserId());
-                        ltiUserEntity.setLmsUserId(student.getId());
-                        ltiUserEntity = ltiUserRepository.save(ltiUserEntity);
-                    }
+        int participantsPage = 0;
+        PageRequest participantsPageRequest = PageRequest.of(participantsPage, batchSize);
 
-                    long userId = ltiUserEntity.getUserId();
+        AtomicReference<List<Participant>> participants = new AtomicReference<>(participantRepository.findByExperiment_ExperimentId(message.getExperimentId(), participantsPageRequest));
 
-                    Optional<Participant> participant = participants.stream()
-                        .filter(p -> p.getLtiUserEntity().getUserId() == userId)
-                        .findFirst();
+        if (CollectionUtils.isEmpty(participants.get())) {
+            log.info("No participants found for the experiment with ID: [{}]", message.getExperimentId());
+            return List.of();
+        }
 
-                    if (participant.isEmpty()) {
-                        // no participant found for user; don't add to recipient list
-                        return null;
-                    }
+        while (CollectionUtils.isNotEmpty(participants.get())) {
+            List<LmsUserBatchEmailProjection> batchEmails = lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailIn(
+                batchId,
+                participants.get().stream()
+                    .map(p -> p.getLtiUserEntity().getEmail())
+                    .toList(),
+                PageRequest.of(0, batchSize)
+            );
 
-                    participant.get().setLtiUserEntity(ltiUserEntity);
+            // user's LMS user ID is not always available in the database; try with email and deployment key ID
+            Map<String, LtiUserEntity> ltiUserEntitiesByEmail = ltiUserRepository.findAllByEmailInAndPlatformDeployment_KeyId(
+                    batchEmails.stream().map(LmsUserBatchEmailProjection::getEmail).toList(),
+                    message.getPlatformDeployment().getKeyId()
+                ).stream()
+                .collect(Collectors.toMap(LtiUserEntity::getEmail, ltiUserEntity -> ltiUserEntity, (first, second) -> first));
 
-                    if (message.isToConsentedOnly() && BooleanUtils.isNotTrue(participant.get().getConsent())) {
-                        // is send to consented only and user has not consented; don't add to recipients list
-                        return null;
-                    }
+            recipients.addAll(
+                batchEmails.stream()
+                    .map(
+                        batchEmail -> {
+                            LtiUserEntity ltiUserEntity = ltiUserEntitiesByEmail.get(batchEmail.getEmail());
 
-                    if (!message.getContainer().isSingleVersion()) {
-                        // this is not a single-version message; check group
-                        if (participant.get().getGroup() == null && !message.isDefaultMessage()) {
-                            // no group assigned to participant and is not a default condition message; don't add to recipient list
-                            return null;
+                            if (ltiUserEntity == null || (ltiUserEntity.getLmsUserId() != null && !Strings.CI.equals(batchEmail.getLmsUserId(), ltiUserEntity.getLmsUserId()))) {
+                                // wrong LMS user found; don't add message log
+                                log.info(
+                                    "No Terracotta user found with email: [{}] and platform deployment key ID: [{}]. Cannot add to recipients list.",
+                                    batchEmail.getEmail(),
+                                    message.getPlatformDeployment().getKeyId());
+                                return null;
+                            }
+
+                            if (ltiUserEntity.getLmsUserId() == null) {
+                                // set LMS user ID for the user; needed for LMS create conversation request
+                                log.info("Setting LMS user ID: [{}] to Terracotta user ID: [{}]", batchEmail.getLmsUserId(), ltiUserEntity.getUserId());
+                                ltiUserEntity.setLmsUserId(batchEmail.getLmsUserId());
+                                ltiUserEntity = ltiUserRepository.save(ltiUserEntity);
+                            }
+
+                            long userId = ltiUserEntity.getUserId();
+
+                            Optional<Participant> participant = participants.get().stream()
+                                .filter(p -> p.getLtiUserEntity().getUserId() == userId)
+                                .findFirst();
+
+                            if (participant.isEmpty()) {
+                                // no participant found for user; don't add to recipient list
+                                return null;
+                            }
+
+                            participant.get().setLtiUserEntity(ltiUserEntity);
+
+                            if (message.isToConsentedOnly() && BooleanUtils.isNotTrue(participant.get().getConsent())) {
+                                // is send to consented only and user has not consented; don't add to recipients list
+                                return null;
+                            }
+
+                            if (!message.getContainer().isSingleVersion()) {
+                                // this is not a single-version message; check group
+                                if (participant.get().getGroup() == null && !message.isDefaultMessage()) {
+                                    // no group assigned to participant and is not a default condition message; don't add to recipient list
+                                    return null;
+                                }
+
+                                if (participant.get().getGroup() != null && !participant.get().getGroup().getGroupId().equals(message.getExposureGroupCondition().getGroup().getGroupId())) {
+                                    // group assigned to participant does not match message's exposure group condition; don't add to recipient list
+                                    return null;
+                                }
+                            }
+
+                            // find all submissions for this recipient
+                            Map<String, List<LmsSubmission>> participantSubmissions = lmsSubmissions.entrySet().stream()
+                                .collect(
+                                    Collectors.toMap(
+                                        Map.Entry::getKey,
+                                        entry -> entry.getValue().stream()
+                                            .filter(lmsSubmission -> Strings.CI.equals(lmsSubmission.getUserId(), participant.get().getLtiUserEntity().getLmsUserId()))
+                                            .toList()
+                                    )
+                                );
+
+                            if (MessageRecipientMatchType.EXCLUDE == message.getConfiguration().getRecipientMatchType() && ruleComparisonService.recipientRuleSetsMatch(message.getRuleSets(), participantSubmissions)) {
+                                // recipient rule sets match but recipient match type is exclude; don't add to recipient list
+                                return null;
+                            }
+
+                            if (MessageRecipientMatchType.INCLUDE == message.getConfiguration().getRecipientMatchType() && !ruleComparisonService.recipientRuleSetsMatch(message.getRuleSets(), participantSubmissions)) {
+                                // recipient rule sets do not match and recipient match type is include; don't add to recipient list
+                                return null;
+                            }
+
+                            // all checks passed; add recipient to the list
+                            return ltiUserEntity;
                         }
+                    )
+                    .filter(Objects::nonNull)
+                    .toList()
+            );
 
-                        if (participant.get().getGroup() != null && !participant.get().getGroup().getGroupId().equals(message.getExposureGroupCondition().getGroup().getGroupId())) {
-                            // group assigned to participant does not match message's exposure group condition; don't add to recipient list
-                            return null;
-                        }
-                    }
+            // flush and clear for this batch
+            entityManager.flush();
+            entityManager.clear();
 
-                    // find all submissions for this recipient
-                    Map<String, List<LmsSubmission>> participantSubmissions = lmsSubmissions.entrySet().stream()
-                        .collect(
-                            Collectors.toMap(
-                                Map.Entry::getKey,
-                                entry -> entry.getValue().stream()
-                                    .filter(lmsSubmission -> Strings.CI.equals(lmsSubmission.getUserId(), participant.get().getLtiUserEntity().getLmsUserId()))
-                                    .toList()
-                            )
-                        );
+            // get next batch of participants
+            participantsPageRequest = PageRequest.of(++participantsPage, batchSize);
+            participants.set(participantRepository.findByExperiment_ExperimentId(message.getExperimentId(), participantsPageRequest));
+        }
 
-                    if (MessageRecipientMatchType.EXCLUDE == message.getConfiguration().getRecipientMatchType() && ruleComparisonService.recipientRuleSetsMatch(message.getRuleSets(), participantSubmissions)) {
-                        // recipient rule sets match but recipient match type is exclude; don't add to recipient list
-                        return null;
-                    }
-
-                    if (MessageRecipientMatchType.INCLUDE == message.getConfiguration().getRecipientMatchType() && !ruleComparisonService.recipientRuleSetsMatch(message.getRuleSets(), participantSubmissions)) {
-                        // recipient rule sets do not match and recipient match type is include; don't add to recipient list
-                        return null;
-                    }
-
-                    // all checks passed; add recipient to the list
-                    return ltiUserEntity;
-                }
-            )
-            .filter(Objects::nonNull)
-            .toList();
+        return recipients;
     }
 
     @Override
@@ -185,6 +230,12 @@ public class MessageSendServiceImpl implements MessageSendService {
 
     @Override
     public String parseMessageBody(Message message, LtiUserEntity recipient, Map<String, List<LmsSubmission>> lmsSubmissions, boolean isPreview) throws MessageBodyParseException {
+        return parseMessageBody(message, recipient, lmsSubmissions, isPreview, new HashMap<>(), new HashMap<>());
+    }
+
+    @Override
+    public String parseMessageBody(Message message, LtiUserEntity recipient, Map<String, List<LmsSubmission>> lmsSubmissions, boolean isPreview,
+            Map<String, MessageConditionalText> conditionalTextCache, Map<String, MessagePipedTextItem> pipedTextItemCache) throws MessageBodyParseException {
         Document document = Jsoup.parse(message.getContent().getHtml());
         List<Element> conditionalTextElements = document.getElementsByTag(MessageContentBodyHtmlElement.TAG_CONDITIONAL_TEXT.getValue());
         AtomicBoolean hasParseError = new AtomicBoolean(false);
@@ -203,12 +254,18 @@ public class MessageSendServiceImpl implements MessageSendService {
                         .findFirst()
                         .orElseThrow(() -> new MessageBodyParseException(String.format("Conditional text with UUID: [%s] not found", dataId)));
                 } else {
-                    conditionalText = conditionalTextRepository.findByUuidAndContent_UuidAndContent_Message_Container_Owner_LmsUserId(
-                        UUID.fromString(dataId),
-                        message.getContent().getUuid(),
-                        message.getOwner().getLmsUserId()
-                    )
-                    .orElseThrow(() -> new MessageBodyParseException(String.format("Conditional text with UUID: [%s] not found", dataId)));
+                    conditionalText = conditionalTextCache.get(dataId);
+
+                    if (conditionalText == null) {
+                        conditionalText = conditionalTextRepository.findByUuidAndContent_UuidAndContent_Message_Container_Owner_LmsUserId(
+                            UUID.fromString(dataId),
+                            message.getContent().getUuid(),
+                            message.getOwner().getLmsUserId()
+                        )
+                        .orElseThrow(() -> new MessageBodyParseException(String.format("Conditional text with UUID: [%s] not found", dataId)));
+
+                        conditionalTextCache.put(dataId, conditionalText);
+                    }
                 }
             } catch (Exception e) {
                 log.error("Error parsing conditional text with data-id [{}]", dataId, e);
@@ -249,13 +306,19 @@ public class MessageSendServiceImpl implements MessageSendService {
                         .findFirst()
                         .orElseThrow(() -> new MessageBodyParseException(String.format("Piped text item with UUID: [%s] not found", dataId)));
                 } else {
-                    pipedTextItem = pipedTextItemRepository.findByUuidAndPipedText_UuidAndPipedText_Content_UuidAndPipedText_Content_Message_Container_Owner_LmsUserId(
-                        UUID.fromString(dataId),
-                        message.getContent().getPipedText().getUuid(),
-                        message.getContent().getUuid(),
-                        message.getOwner().getLmsUserId()
-                    )
-                    .orElseThrow(() -> new MessageBodyParseException(String.format("Piped text with UUID: [%s] not found", dataId)));
+                    pipedTextItem = pipedTextItemCache.get(dataId);
+
+                    if (pipedTextItem == null) {
+                        pipedTextItem = pipedTextItemRepository.findByUuidAndPipedText_UuidAndPipedText_Content_UuidAndPipedText_Content_Message_Container_Owner_LmsUserId(
+                            UUID.fromString(dataId),
+                            message.getContent().getPipedText().getUuid(),
+                            message.getContent().getUuid(),
+                            message.getOwner().getLmsUserId()
+                        )
+                        .orElseThrow(() -> new MessageBodyParseException(String.format("Piped text with UUID: [%s] not found", dataId)));
+
+                        pipedTextItemCache.put(dataId, pipedTextItem);
+                    }
                 }
             } catch (Exception e) {
                 log.error("Error parsing piped text with data-id [{}]", dataId, e);

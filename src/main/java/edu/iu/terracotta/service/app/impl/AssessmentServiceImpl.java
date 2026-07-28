@@ -832,10 +832,14 @@ public class AssessmentServiceImpl implements AssessmentService {
         List<Submission> submissions = submissionRepository.findByAssessment_AssessmentId(assessmentId);
 
         // regrade option selected; perform regrade
+        List<Submission> gradedSubmissions = new ArrayList<>();
+
         for (Submission submission : submissions) {
-            Submission gradedSubmission = assessmentSubmissionService.gradeSubmission(submission, regradeDetails);
-            submissionService.sendSubmissionGradeToLmsWithLti(gradedSubmission, false);
+            gradedSubmissions.add(assessmentSubmissionService.gradeSubmission(submission, regradeDetails));
         }
+
+        // fetches AGS tokens once instead of once per submission
+        submissionService.sendSubmissionGradesToLmsWithLti(gradedSubmissions, false);
 
         updateRegradedQuestionStatus(regradeDetails);
         log.info("Regrading complete for assessment ID: [{}]", assessmentId);

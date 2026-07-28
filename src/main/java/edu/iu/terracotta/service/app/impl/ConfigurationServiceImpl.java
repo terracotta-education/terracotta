@@ -25,6 +25,12 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Value("${app.help.url:https://terracotta-education.atlassian.net/wiki/x/xwDjCw}")
     private String helpUrl;
 
+    @Value("${app.external.file.ics.url:https://readmebucket.s3.us-east-1.amazonaws.com/Terracotta_ICS_template.docx}")
+    private String icsTemplateUrl;
+
+    @Value("${app.external.file.parental.permission.url:https://readmebucket.s3.us-east-1.amazonaws.com/Terracotta_ParentalPermission_template.docx}")
+    private String parentalPermissionTemplateUrl;
+
     @Override
     public ConfigurationDto getConfigurations(SecuredInfo securedInfo) {
         PlatformDeployment platformDeployment = platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId())
@@ -33,9 +39,11 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         return ConfigurationDto.builder()
             .experimentExportEnabled(experimentExportEnabled)
             .helpUrl(helpUrl)
+            .icsTemplateUrl(icsTemplateUrl)
             .lms(platformDeployment.getLmsConnector())
             .lmsTitle(platformDeployment.getLmsConnector().title())
             .messagingEnabled(featureService.isFeatureEnabled(FeatureType.MESSAGING, securedInfo.getPlatformDeploymentId()))
+            .parentalPermissionTemplateUrl(parentalPermissionTemplateUrl)
             .build();
     }
 

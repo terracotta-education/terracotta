@@ -4,14 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -56,7 +60,7 @@ public class AssessmentSubmissionServiceImplTest extends BaseTest {
     public void testRegradeFull() throws DataServiceException {
         assessmentSubmissionService.gradeSubmission(submission, regradeDetails);
 
-        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
+        verify(questionSubmissionRepository).saveAll(Collections.singletonList(questionSubmission));
         verify(submissionRepository).save(submission);
     }
 
@@ -76,7 +80,7 @@ public class AssessmentSubmissionServiceImplTest extends BaseTest {
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
         assessmentSubmissionService.gradeSubmission(submission, regradeDetails);
 
-        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
+        verify(questionSubmissionRepository).saveAll(Collections.singletonList(questionSubmission));
         verify(submissionRepository).save(submission);
     }
 
@@ -99,7 +103,7 @@ public class AssessmentSubmissionServiceImplTest extends BaseTest {
 
         verify(questionSubmission, never()).setCalculatedPoints(anyFloat());
         verify(questionSubmission).setAlteredGrade(null);
-        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
+        verify(questionSubmissionRepository).saveAll(Collections.singletonList(questionSubmission));
         verify(submissionRepository).save(submission);
     }
 
@@ -150,7 +154,7 @@ public class AssessmentSubmissionServiceImplTest extends BaseTest {
 
         assessmentSubmissionService.gradeSubmission(submission, regradeDetails);
 
-        verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
+        verify(questionSubmissionRepository).saveAll(Collections.singletonList(questionSubmission));
         verify(questionSubmissionService, never()).automaticGradingMC(any(QuestionSubmission.class), any(AnswerMcSubmission.class));
         verify(submissionRepository).save(submission);
     }
@@ -173,6 +177,27 @@ public class AssessmentSubmissionServiceImplTest extends BaseTest {
         Submission retVal = assessmentSubmissionService.gradeSubmission(submission, regradeDetails);
 
         assertNotNull(retVal);
+    }
+
+    @Test
+    public void testGradeSubmissionBatchesAnswerMcSubmissionLookup() throws DataServiceException {
+        QuestionSubmission secondQuestionSubmission = mock(QuestionSubmission.class);
+        when(secondQuestionSubmission.getQuestion()).thenReturn(question);
+        when(secondQuestionSubmission.getQuestionSubmissionId()).thenReturn(2L);
+        when(secondQuestionSubmission.getCalculatedPoints()).thenReturn(1F);
+        when(secondQuestionSubmission.getAlteredGrade()).thenReturn(1F);
+        when(submission.getQuestionSubmissions()).thenReturn(Arrays.asList(questionSubmission, secondQuestionSubmission));
+
+        AnswerMcSubmission secondAnswerMcSubmission = mock(AnswerMcSubmission.class);
+        when(secondAnswerMcSubmission.getQuestionSubmission()).thenReturn(secondQuestionSubmission);
+        when(secondAnswerMcSubmission.getAnswerMc()).thenReturn(answerMc);
+        when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(anyList())).thenReturn(Arrays.asList(answerMcSubmission, secondAnswerMcSubmission));
+
+        assessmentSubmissionService.gradeSubmission(submission, regradeDetails);
+
+        // one batched lookup for both question submissions instead of one lookup per question submission
+        verify(answerMcSubmissionRepository).findByQuestionSubmission_QuestionSubmissionIdIn(List.of(1L, 2L));
+        verify(answerMcSubmissionRepository, never()).findByQuestionSubmission_QuestionSubmissionId(anyLong());
     }
 
     @Test

@@ -3,7 +3,6 @@ package edu.iu.terracotta.service.app.impl;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -13,6 +12,7 @@ import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
 import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.entity.projection.GroupParticipantCount;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.model.enums.DistributionTypes;
@@ -49,21 +49,15 @@ public class GroupParticipantServiceImpl implements GroupParticipantService {
 
     @Override
     public Group nextGroup(Experiment experiment) {
-        AtomicLong totalParticipants = new AtomicLong(0);
-
         Map<Long, Long> count = CollectionUtils.emptyIfNull(groupRepository.findByExperiment_ExperimentId(experiment.getExperimentId()))
             .stream()
-            .collect(
-                Collectors.toMap(
-                    Group::getGroupId,
-                    group -> {
-                        long groupCount = participantRepository.countByGroup_GroupId(group.getGroupId());
-                        totalParticipants.addAndGet(groupCount);
+            .collect(Collectors.toMap(Group::getGroupId, group -> 0L));
 
-                        return groupCount;
-                    }
-                )
-            );
+        for (GroupParticipantCount groupParticipantCount : participantRepository.countByExperiment_ExperimentIdGroupByGroup(experiment.getExperimentId())) {
+            count.put(groupParticipantCount.getGroupId(), groupParticipantCount.getParticipantCount());
+        }
+
+        long totalParticipants = count.values().stream().mapToLong(Long::longValue).sum();
 
         /**
          *  If the experiment has just one exposure, we look at the groups/Exposures/etc to see the group assigned to the condition.
@@ -81,14 +75,14 @@ public class GroupParticipantServiceImpl implements GroupParticipantService {
                     if (DistributionTypes.EVEN.equals(experiment.getDistributionType())) {
                         float evenPercent = 100f / experiment.getConditions().size();
 
-                        if (totalParticipants.get() != 0) {
-                            groupUnbalancement = evenPercent - (100 * (countGroup / (float) totalParticipants.get()));
+                        if (totalParticipants != 0) {
+                            groupUnbalancement = evenPercent - (100 * (countGroup / (float) totalParticipants));
                         } else {
                             groupUnbalancement = evenPercent;
                         }
                     } else {
-                        if (totalParticipants.get() != 0) {
-                            groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct() - (100 * (countGroup / (float) totalParticipants.get()));
+                        if (totalParticipants != 0) {
+                            groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct() - (100 * (countGroup / (float) totalParticipants));
                         } else {
                             groupUnbalancement = exposureGroupCondition.getCondition().getDistributionPct();
                         }

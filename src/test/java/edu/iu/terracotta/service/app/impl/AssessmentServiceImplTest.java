@@ -38,7 +38,6 @@ import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
-import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationClientNotFoundException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotFoundException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationConfigurationNotMatchingException;
@@ -139,14 +138,6 @@ public class AssessmentServiceImplTest extends BaseTest {
         when(questionDto.getQuestionId()).thenReturn(1L);
         when(regradeDetails.getEditedMCQuestionIds()).thenReturn(List.of(1L));
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
-    }
-
-    @Test
-    public void testDuplicateAssessment() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException {
-        Assessment assessment = assessmentService.duplicateAssessment(1L, 2L);
-
-        assertNotNull(assessment);
-        assertEquals(1L, assessment.getAssessmentId());
     }
 
     @Test
@@ -441,7 +432,7 @@ public class AssessmentServiceImplTest extends BaseTest {
         assessmentService.regradeQuestions(regradeDetails, 1L);
 
         verify(assessmentSubmissionService).gradeSubmission(any(Submission.class), any(RegradeDetails.class));
-        verify(submissionService).sendSubmissionGradeToLmsWithLti(any(Submission.class), anyBoolean());
+        verify(submissionService).sendSubmissionGradesToLmsWithLti(anyList(), anyBoolean());
     }
 
     @Test

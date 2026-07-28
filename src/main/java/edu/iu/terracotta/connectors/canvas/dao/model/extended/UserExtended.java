@@ -7,9 +7,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 
 @Getter
 @Setter
+@Jacksonized
 @SuperBuilder
 @CanvasObject(postKey = "user")
 public class UserExtended extends LmsUser {
@@ -22,8 +24,22 @@ public class UserExtended extends LmsUser {
     }
 
     @Override
+    public void setId(String id) {
+        if (id == null) {
+            return;
+        }
+
+        user.setId(Long.parseLong(id));
+    }
+
+    @Override
     public String getEmail() {
         return user.getEmail();
+    }
+
+    @Override
+    public void setEmail(String email) {
+        user.setEmail(email);
     }
 
     @Override

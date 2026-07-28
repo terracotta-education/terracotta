@@ -10,6 +10,6 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 
 public interface ParticipantAsyncService {
 
-    void updateParticipantData(long experimentId, SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
+    void updateParticipantData(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
 
 }

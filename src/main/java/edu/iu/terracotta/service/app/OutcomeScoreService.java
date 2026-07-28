@@ -19,6 +19,8 @@ public interface OutcomeScoreService {
     OutcomeScoreDto toDto(OutcomeScore outcomeScore);
     OutcomeScore fromDto(OutcomeScoreDto outcomeScoreDto) throws DataServiceException;
     void updateOutcomeScore(Long outcomeId, OutcomeScoreDto outcomeScoreDto);
+    // upserts: entries with an outcomeScoreId are updated, entries without one are created; batched into a single saveAll
+    void updateOutcomeScores(List<OutcomeScoreDto> outcomeScoreDtoList, long experimentId) throws DataServiceException, InvalidParticipantException;
     void deleteById(Long id);
     void validateParticipant(Long participantId, Long experimentId) throws InvalidParticipantException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId, Long outcomeScoreId);
