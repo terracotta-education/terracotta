@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.canvas.service.extended.impl;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -20,24 +21,19 @@ import org.springframework.context.ApplicationContext;
 
 import edu.iu.terracotta.config.ContextProvider;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
+import edu.ksu.canvas.exception.InvalidOauthTokenException;
 import edu.ksu.canvas.net.Response;
 import edu.ksu.canvas.net.RestClient;
 import edu.ksu.canvas.oauth.OauthToken;
 import edu.ksu.canvas.requestOptions.GetUsersInCourseOptions;
-
-import jakarta.persistence.EntityManager;
 
 public class UserExtendedImplTest {
 
     @Mock private ApplicationContext applicationContext;
     @Mock private RestClient restClient;
     @Mock private OauthToken oauthToken;
-    @Mock private EntityManager entityManager;
-    @Mock private LmsUserBatchRepository lmsUserBatchRepository;
-    @Mock private LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
+    @Mock private LmsUserBatchWriteService lmsUserBatchWriteService;
 
     private UserExtendedImpl userExtended;
 
@@ -48,13 +44,25 @@ public class UserExtendedImplTest {
         ContextProvider contextProvider = new ContextProvider();
         contextProvider.setApplicationContext(applicationContext);
 
-        when(applicationContext.getBean(EntityManager.class)).thenReturn(entityManager);
-        when(applicationContext.getBean(LmsUserBatchRepository.class)).thenReturn(lmsUserBatchRepository);
-        when(applicationContext.getBean(LmsUserBatchProcessingRepository.class)).thenReturn(lmsUserBatchProcessingRepository);
-        when(lmsUserBatchProcessingRepository.saveAndFlush(any(LmsUserBatchProcessing.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(applicationContext.getBean(LmsUserBatchWriteService.class)).thenReturn(lmsUserBatchWriteService);
 
         userExtended = new UserExtendedImpl("https://canvas.example.com", 1, oauthToken, restClient, 1000, 1000, 100, false);
+    }
+
+    @Test
+    public void testGetUsersInCourseStartsBatchBeforeFetching() throws Exception {
+        Response response = new Response();
+        response.setErrorHappened(false);
+        response.setResponseCode(200);
+        response.setContent("[]");
+        response.setNextLink(null);
+
+        when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
+
+        UUID batchId = UUID.randomUUID();
+        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId);
+
+        verify(lmsUserBatchWriteService).startBatch(batchId);
     }
 
     @Test
@@ -69,9 +77,8 @@ public class UserExtendedImplTest {
 
         userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID());
 
-        // all users from the page are saved in a single saveAll() call, never one at a time
-        verify(lmsUserBatchRepository, times(1)).saveAll(any());
-        verify(lmsUserBatchRepository, never()).save(any(LmsUserBatch.class));
+        // all users from the page are saved in a single saveUsers() call, never one at a time
+        verify(lmsUserBatchWriteService, times(1)).saveUsers(any());
     }
 
     @Test
@@ -94,11 +101,8 @@ public class UserExtendedImplTest {
 
         userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID());
 
-        // one saveAll() per page fetched, still never a per-user save()
-        verify(lmsUserBatchRepository, times(2)).saveAll(any());
-        verify(lmsUserBatchRepository, never()).save(any(LmsUserBatch.class));
-        verify(entityManager, times(2)).flush();
-        verify(entityManager, times(2)).clear();
+        // one saveUsers() per page fetched, committed independently of the caller's transaction
+        verify(lmsUserBatchWriteService, times(2)).saveUsers(any());
     }
 
     @Test
@@ -110,17 +114,32 @@ public class UserExtendedImplTest {
         when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
 
         UUID batchId = UUID.randomUUID();
-        LmsUserBatchProcessing processing = LmsUserBatchProcessing.builder().batchId(batchId).build();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(java.util.Optional.of(processing));
-
         userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId);
 
-        verify(lmsUserBatchRepository, never()).saveAll(any());
-        verify(lmsUserBatchRepository, never()).save(any(LmsUserBatch.class));
+        verify(lmsUserBatchWriteService).markFailed(eq(batchId), any());
+        verify(lmsUserBatchWriteService, never()).saveUsers(any());
+    }
+
+    // A thrown exception (e.g. an OAuth failure that outlives the token's lifetime mid-fetch)
+    // must also durably mark the batch failed - not just a non-exceptional bad HTTP response -
+    // and must still propagate so the caller's own error handling is unaffected.
+    @Test
+    public void testGetUsersInCourseThrownExceptionMarksBatchProcessingFailedAndPropagates() throws Exception {
+        when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt()))
+            .thenThrow(new InvalidOauthTokenException());
+
+        UUID batchId = UUID.randomUUID();
+
+        assertThrows(
+            InvalidOauthTokenException.class,
+            () -> userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId)
+        );
+
+        verify(lmsUserBatchWriteService).markFailed(eq(batchId), any());
     }
 
     @Test
-    public void testGetUsersInCourseNoUsersDoesNotCallSaveAll() throws Exception {
+    public void testGetUsersInCourseNoUsersStillCallsSaveUsers() throws Exception {
         Response response = new Response();
         response.setErrorHappened(false);
         response.setResponseCode(200);
@@ -131,7 +150,7 @@ public class UserExtendedImplTest {
 
         userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID());
 
-        verify(lmsUserBatchRepository, times(1)).saveAll(List.of());
+        verify(lmsUserBatchWriteService, times(1)).saveUsers(List.<LmsUserBatch>of());
     }
 
 }
