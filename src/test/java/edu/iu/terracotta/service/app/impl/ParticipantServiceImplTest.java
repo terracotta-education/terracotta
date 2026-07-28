@@ -235,6 +235,51 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(participantService).refreshParticipants(experiment.getExperimentId());
     }
 
+    // Test ensureParticipantExists when the participant already exists: it should do nothing.
+    @Test
+    public void testEnsureParticipantExistsWhenAlreadyPresent() throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
+
+        participantService.ensureParticipantExists(experiment.getExperimentId(), securedInfo);
+
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(ltiDataService, never()).findByUserKeyAndPlatformDeployment(anyString(), any());
+        verify(participantRepository, never()).save(any(Participant.class));
+    }
+
+    // Test ensureParticipantExists when no participant exists yet: it should create one
+    // directly from the current LTI launch instead of syncing the entire course roster.
+    @Test
+    public void testEnsureParticipantExistsCreatesFromLaunch() throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(USER_ID, platformDeployment)).thenReturn(ltiUserEntity);
+        when(ltiDataService.findByUserAndContext(ltiUserEntity, ltiContextEntity)).thenReturn(ltiMembershipEntity);
+
+        participantService.ensureParticipantExists(experiment.getExperimentId(), securedInfo);
+
+        verify(participantService, never()).refreshParticipants(anyLong());
+
+        ArgumentCaptor<Participant> captor = ArgumentCaptor.forClass(Participant.class);
+        verify(participantRepository).save(captor.capture());
+
+        assertEquals(ltiUserEntity, captor.getValue().getLtiUserEntity());
+        assertEquals(ltiMembershipEntity, captor.getValue().getLtiMembershipEntity());
+    }
+
+    // Test ensureParticipantExists when no participant exists yet and the launch's
+    // LtiUserEntity can't be resolved (shouldn't normally happen): it should fall back to a
+    // full roster refresh rather than fail outright.
+    @Test
+    public void testEnsureParticipantExistsFallsBackToRefreshWhenLaunchUserNotFound() throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(USER_ID, platformDeployment)).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        participantService.ensureParticipantExists(experiment.getExperimentId(), securedInfo);
+
+        verify(participantService).refreshParticipants(experiment.getExperimentId());
+    }
+
     @Test
     public void testGetParticipant() throws InvalidUserException, ParticipantNotMatchingException {
         Participant retVal = participantService.getParticipant(1l, 1l, USER_ID, false);

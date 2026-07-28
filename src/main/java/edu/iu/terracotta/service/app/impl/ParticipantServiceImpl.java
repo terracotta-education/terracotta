@@ -508,6 +508,32 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
+    public void ensureParticipantExists(long experimentId, SecuredInfo securedInfo) throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
+        Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
+
+        if (participant != null) {
+            return;
+        }
+
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+
+        if (experiment == null) {
+            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+        }
+
+        // brand-new participant: create directly from the current LTI launch instead of
+        // syncing the entire course roster just to add one record
+        if (createParticipantFromLaunch(experiment, securedInfo) != null) {
+            return;
+        }
+
+        // launch's LtiUserEntity couldn't be resolved (shouldn't normally happen): fall back
+        // to a full roster refresh
+        refreshParticipants(experimentId);
+    }
+
+    @Override
+    @Transactional
     public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         refreshParticipants(experimentId);
     }
