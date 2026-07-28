@@ -74,6 +74,13 @@ public class BrightspaceAdvantageAgsServiceImpl implements AdvantageAgsService {
 
             while (nextPage != null) {
                 ResponseEntity<LineItem[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET, request, LineItem[].class);
+
+                if (!responseForNextPage.getStatusCode().is2xxSuccessful()) {
+                    String exceptionMsg = "Can't get the AGS";
+                    log.error(exceptionMsg);
+                    throw new ConnectionException(exceptionMsg);
+                }
+
                 LineItem[] nextLineItemsList = responseForNextPage.getBody();
                 lineItemsList.addAll(Arrays.asList(nextLineItemsList));
                 nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());

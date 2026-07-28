@@ -42,13 +42,18 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -82,6 +87,11 @@ public class ExperimentServiceImpl implements ExperimentService {
     private final ParticipantAsyncService participantAsyncService;
     private final ParticipantService participantService;
 
+    @PersistenceContext private EntityManager entityManager;
+
+    @Value("${app.participant.batch.size:500}")
+    private int batchSize;
+
     @Override
     public List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms) throws ConnectionException, TerracottaConnectorException {
         List<Experiment> experiments = experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(securedInfo.getPlatformDeploymentId(), securedInfo.getContextId());
@@ -98,7 +108,7 @@ public class ExperimentServiceImpl implements ExperimentService {
                 assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
 
                 if (CollectionUtils.isNotEmpty(experiments)) {
-                    participantAsyncService.updateParticipantData(experiments.get(0).getExperimentId(), securedInfo);
+                    participantAsyncService.updateParticipantData(securedInfo);
                 }
             } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
                 log.error("Error syncing data with LMS. Context ID: '{}'", securedInfo.getContextId(), e);
@@ -130,7 +140,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
         try {
             log.info("Starting data sync in LMS.");
-            participantAsyncService.updateParticipantData(experiment.getExperimentId(), securedInfo);
+            participantAsyncService.updateParticipantData(securedInfo);
         } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
             log.error("Error syncing data with LMS. Experiment ID: '{}'", experiment.getExperimentId(), e);
         }
@@ -215,7 +225,7 @@ public class ExperimentServiceImpl implements ExperimentService {
                     }
                 }
 
-                changeParticipantionType(experimentDto.getParticipationType(),experimentId, securedInfo);
+                changeParticipantionType(experimentDto.getParticipationType(), experimentId);
                 experimentToChange.setParticipationType(EnumUtils.getEnum(ParticipationTypes.class, experimentDto.getParticipationType()));
             }
         }
@@ -225,17 +235,17 @@ public class ExperimentServiceImpl implements ExperimentService {
         save(experimentToChange);
     }
 
-    private void changeParticipantionType(String toPT, Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+    private void changeParticipantionType(String toPT, Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         switch (EnumUtils.getEnum(ParticipationTypes.class, toPT)) {
             case CONSENT:
             case NOSET:
-                participantService.setAllToNull(experimentId, securedInfo);
+                participantService.setAllToNull(experimentId);
                 break;
             case AUTO:
-                participantService.setAllToTrue(experimentId, securedInfo);
+                participantService.setAllToTrue(experimentId);
                 break;
             case MANUAL:
-                participantService.setAllToFalse(experimentId, securedInfo);
+                participantService.setAllToFalse(experimentId);
                 break;
             default:
                 break;
@@ -301,26 +311,34 @@ public class ExperimentServiceImpl implements ExperimentService {
         int countAccepted = 0;
         int countRejected = 0;
 
-        List<Participant> participantsList = CollectionUtils.emptyIfNull(experiment.getParticipants()).stream()
+        int page = 0;
+        PageRequest pageRequest = PageRequest.of(page, batchSize);
+        List<Participant> participantsList = participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId(), pageRequest).stream()
             .filter(participant -> !participant.getLtiUserEntity().isTestStudent())
             .toList();
+        int participantCount = participantsList.size();
 
-        if (CollectionUtils.isNotEmpty(participantsList)) {
-            experimentDto.setPotentialParticipants(participantsList.size());
-
+        while (CollectionUtils.isNotEmpty(participantsList)) {
             for (Participant participant : participantsList) {
                 if (participant.getDateGiven() != null || participant.getDateRevoked() != null) {
                     countAnswered++;
 
-                    if (participant.getConsent()) {
+                    if (BooleanUtils.isTrue(participant.getConsent())) {
                         countAccepted++;
                     } else {
                         countRejected++;
                     }
                 }
             }
+
+            pageRequest = PageRequest.of(++page, batchSize);
+            participantsList = participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId(), pageRequest).stream()
+                .filter(participant -> !participant.getLtiUserEntity().isTestStudent())
+                .toList();
+            participantCount += participantsList.size();
         }
 
+        experimentDto.setPotentialParticipants(participantCount);
         experimentDto.setAcceptedParticipants(countAccepted);
         experimentDto.setRejectedParticipants(countRejected);
 

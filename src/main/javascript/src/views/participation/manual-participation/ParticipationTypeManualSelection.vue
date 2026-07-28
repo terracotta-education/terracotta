@@ -201,7 +201,10 @@ export default {
     }
   },
   async created() {
-    await this.fetchParticipants(this.experiment.experimentId);
+    await this.fetchParticipants([
+      this.experiment.experimentId,
+      true
+    ]);
   },
   mounted() {
     deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
@@ -209,7 +212,7 @@ export default {
   beforeRouteUpdate(to, from, next) {
     // don't load new data after participant selection screen
     return store
-      .dispatch("participants/fetchParticipants", to.params.experimentId)
+      .dispatch("participants/fetchParticipants", [to.params.experimentId])
       .then(next, next);
   },
 };

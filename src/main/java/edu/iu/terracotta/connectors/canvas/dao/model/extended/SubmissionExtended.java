@@ -31,7 +31,7 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public void setAssignmentId(String assignmentId) {
-        if (submission == null) {
+        if (submission == null || StringUtils.isBlank(assignmentId)) {
             return;
         }
 
@@ -62,6 +62,10 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public boolean isGradeMatchesCurrentSubmission() {
+        if (submission == null) {
+            return false;
+        }
+
         return BooleanUtils.isTrue(submission.getGradeMatchesCurrentSubmission());
     }
 
@@ -156,7 +160,7 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public String getUserLoginId() {
-        if (submission.getUser() == null) {
+        if (submission == null || submission.getUser() == null) {
             return null;
         }
 
@@ -165,7 +169,7 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public void setUserLoginId(String userLoginId) {
-        if (submission.getUser() == null) {
+        if (submission == null || submission.getUser() == null) {
             return;
         }
 
@@ -174,7 +178,7 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public String getUserName() {
-        if (submission.getUser() == null) {
+        if (submission == null || submission.getUser() == null) {
             return null;
         }
 
@@ -183,7 +187,7 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public void setUserName(String userName) {
-        if (submission.getUser() == null) {
+        if (submission == null || submission.getUser() == null) {
             return;
         }
 

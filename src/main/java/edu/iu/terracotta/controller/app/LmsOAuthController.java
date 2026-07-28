@@ -33,8 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.AvoidCatchingThrowable"})
 public class LmsOAuthController {
 
-    public static final String SESSION_LMS_OAUTH2_STATE = "lms_oauth2_state";
-
     private final LtiUserRepository ltiUserRepository;
     private final LmsOAuthServiceManager lmsOAuthServiceManager;
     private final ApiJwtService apijwtService;
@@ -44,7 +42,8 @@ public class LmsOAuthController {
         String code = req.getParameter("code");
         log.debug("/oauth_response: code={}", code);
 
-        // Verify that state parameter matches session state
+        // The state is a self-contained signed JWT (see ApiJwtService#generateStateForAPITokenRequest), so its own
+        // signature - validated just below - is enough to confirm it is one we actually issued; no session needed.
         String state = req.getParameter("state");
         log.debug("/oauth_response: state={}", state);
 
@@ -52,13 +51,6 @@ public class LmsOAuthController {
 
         if (error != null) {
             model.addAttribute(TextConstants.ERROR, MessageFormat.format("Error getting LMS API access token: {0}", error));
-            return TextConstants.OAUTH2_ERROR;
-        }
-
-        String sessionState = (String) req.getSession().getAttribute(SESSION_LMS_OAUTH2_STATE);
-
-        if (sessionState == null || !sessionState.equals(state)) {
-            model.addAttribute(TextConstants.ERROR, "Error getting LMS API access token: OAuth2 request doesn't contain the expected state");
             return TextConstants.OAUTH2_ERROR;
         }
 

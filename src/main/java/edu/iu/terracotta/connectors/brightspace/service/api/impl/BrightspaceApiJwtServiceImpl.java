@@ -520,6 +520,11 @@ public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
             return null;
         }
 
+        return extractValues(claims);
+    }
+
+    @Override
+    public SecuredInfo extractValues(Jws<Claims> claims) {
         return SecuredInfo.builder()
             .allowedAttempts(claims.getPayload().get(JwtClaim.ALLOWED_ATTEMPTS.key(), Integer.class))
             .consent((Boolean) claims.getPayload().get(JwtClaim.CONSENT.key()))
@@ -563,6 +568,11 @@ public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
     @Override
     public ResponseEntity<String> getTimedToken(String token) throws NumberFormatException, TerracottaConnectorException {
         Jws<Claims> claims = validateToken(token);
+
+        if (claims == null) {
+            log.warn("JWS claims is null. Token: [{}]", token);
+            return null;
+        }
 
         if ((Boolean) claims.getPayload().get(JwtClaim.ONE_USE.key())) {
             try {

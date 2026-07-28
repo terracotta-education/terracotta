@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class AssignmentExtended extends LmsAssignment {
 
-    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.fffZ";
+    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
     @Builder.Default private Assignment assignment = Assignment.builder().build();
 
@@ -127,6 +127,7 @@ public class AssignmentExtended extends LmsAssignment {
     public void setPointsPossible(Float pointsPossible) {
         if (pointsPossible == null) {
             assignment.getLineItem().setScoreMaximum(0F);
+            return;
         }
 
         assignment.getLineItem().setScoreMaximum(pointsPossible);
@@ -279,7 +280,7 @@ public class AssignmentExtended extends LmsAssignment {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
-        return formatter.format(date.toInstant().atZone(ZoneId.systemDefault()));
+        return formatter.format(date.toInstant().atZone(ZoneId.of("UTC")));
     }
 
 }

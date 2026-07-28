@@ -88,10 +88,11 @@ public class RegistrationController {
         model.addAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-        Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
-        model.addAttribute("own_redirect_post_endpoint", platformDeployment.get().getLocalUrl() + "/registration/");
 
         try {
+            Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
+            model.addAttribute("own_redirect_post_endpoint", platformDeployment.get().getLocalUrl() + "/registration/");
+
             // We are going to create the call the openidconfiguration endpoint,
             RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
 
@@ -161,10 +162,10 @@ public class RegistrationController {
      *
      * @param platformRegistrationDto
      * @return
-          * @throws TerracottaConnectorException
-          * @throws NumberFormatException
-          */
-         private ToolRegistrationDto generateToolConfiguration(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+     * @throws TerracottaConnectorException
+     * @throws NumberFormatException
+     */
+    private ToolRegistrationDto generateToolConfiguration(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         Optional<PlatformDeployment> platformDeployment = platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId());
         ToolRegistrationDto toolRegistrationDto = new ToolRegistrationDto();

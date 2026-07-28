@@ -86,6 +86,7 @@ import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationToken;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationTokenLog;
+import edu.iu.terracotta.dao.entity.projection.GroupParticipantCount;
 import edu.iu.terracotta.dao.model.distribute.export.Export;
 import edu.iu.terracotta.dao.model.dto.AnswerDto;
 import edu.iu.terracotta.dao.model.dto.AnswerSubmissionDto;
@@ -188,6 +189,7 @@ public class BaseModelTest {
     @Mock protected Feature feature;
     @Mock protected File file;
     @Mock protected Group group;
+    @Mock protected GroupParticipantCount groupParticipantCount;
     @Mock protected HttpEntity<?> httpEntity;
     @Mock protected HttpEntity<LineItem> lineItemHttpEntity;
     @Mock protected HttpEntity<LineItems> lineItemsHttpEntity;
@@ -267,6 +269,7 @@ public class BaseModelTest {
             when(answerMc.getCorrect()).thenReturn(true);
             when(answerMc.getQuestion()).thenReturn(questionMc);
             when(answerMcSubmission.getAnswerMc()).thenReturn(answerMc);
+            when(answerMcSubmission.getQuestionSubmission()).thenReturn(questionSubmission);
             when(answerMcSubmissionOption.getAnswerMc()).thenReturn(answerMc);
             when(answerMcSubmissionOption.getAnswerOrder()).thenReturn(0);
             when(apiOAuthSettings.getPlatformDeployment()).thenReturn(platformDeployment);
@@ -331,6 +334,8 @@ public class BaseModelTest {
             when(feature.getPlatformDeployments()).thenReturn(Collections.singletonList(platformDeployment));
             when(feature.getType()).thenReturn(FeatureType.DEFAULT);
             when(group.getGroupId()).thenReturn(1L);
+            when(groupParticipantCount.getGroupId()).thenReturn(1L);
+            when(groupParticipantCount.getParticipantCount()).thenReturn(1L);
             when(httpServletRequest.getRequestURL()).thenReturn(new StringBuffer());
             when(httpServletRequest.getQueryString()).thenReturn("a=b");
             when(integration.getConfiguration()).thenReturn(integrationConfiguration);
@@ -445,6 +450,7 @@ public class BaseModelTest {
             when(questionSubmission.getQuestion()).thenReturn(question);
             when(questionSubmission.getQuestionSubmissionId()).thenReturn(1L);
             when(questionSubmission.getSubmission()).thenReturn(submission);
+            when(questionSubmissionComment.getQuestionSubmission()).thenReturn(questionSubmission);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.PUT), any(HttpEntity.class), eq(LineItem.class))).thenReturn(lineItemResponseEntity);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(LineItem.class))).thenReturn(lineItemResponseEntity);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(LineItems.class))).thenReturn(lineItemsResponseEntity);

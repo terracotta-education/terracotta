@@ -3,6 +3,11 @@ package edu.iu.terracotta.service.app.dashboard.results.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -63,7 +68,7 @@ public class ResultsOutcomesAverageGradeServiceImplTest extends BaseTest {
 
     @Test
     void testConditionsNoScores() {
-        when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(null);
+        when(submissionService.getScoresFromMultipleSubmissions(anyList(), any(Assessment.class))).thenReturn(Collections.emptyMap());
 
         OutcomesConditions ret = resultsOutcomesAverageGradeService.conditions(experiment, exposureIds, experimentAssignments, allAssessmentsByAssignment, experimentConsentedParticipants, allTreatmentsByAssignment, experimentTreatments);
 
@@ -81,12 +86,35 @@ public class ResultsOutcomesAverageGradeServiceImplTest extends BaseTest {
 
     @Test
     void testExposuresNoScores() {
-        when(submissionService.getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class))).thenReturn(null);
+        when(submissionService.getScoresFromMultipleSubmissions(anyList(), any(Assessment.class))).thenReturn(Collections.emptyMap());
 
         OutcomesExposures ret = resultsOutcomesAverageGradeService.exposures(exposureIds, experimentAssignments, allAssessmentsByAssignment, experimentConsentedParticipants, experimentExposures);
 
         assertNotNull(ret);
         assertEquals(2, ret.getRows().size());
+    }
+
+    @Test
+    void testConditionsUsesBatchedScoringInsteadOfPerParticipant() {
+        List<Participant> multipleParticipants = Arrays.asList(participant, mock(Participant.class));
+
+        OutcomesConditions ret = resultsOutcomesAverageGradeService.conditions(experiment, exposureIds, experimentAssignments, allAssessmentsByAssignment, multipleParticipants, allTreatmentsByAssignment, experimentTreatments);
+
+        assertNotNull(ret);
+        // scores are fetched once per assessment for all participants instead of once per (participant, assessment) pair
+        verify(submissionService, never()).getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class));
+        verify(submissionService, atLeastOnce()).getScoresFromMultipleSubmissions(multipleParticipants, assessment);
+    }
+
+    @Test
+    void testExposuresUsesBatchedScoringInsteadOfPerParticipant() {
+        List<Participant> multipleParticipants = Arrays.asList(participant, mock(Participant.class));
+
+        OutcomesExposures ret = resultsOutcomesAverageGradeService.exposures(exposureIds, experimentAssignments, allAssessmentsByAssignment, multipleParticipants, experimentExposures);
+
+        assertNotNull(ret);
+        verify(submissionService, never()).getScoreFromMultipleSubmissions(any(Participant.class), any(Assessment.class));
+        verify(submissionService, atLeastOnce()).getScoresFromMultipleSubmissions(multipleParticipants, assessment);
     }
 
 }

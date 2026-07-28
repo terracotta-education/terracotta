@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.messaging.impl.conversation;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,8 +17,10 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 import edu.iu.terracotta.dao.entity.messaging.attachment.MessageContentAttachment;
+import edu.iu.terracotta.dao.entity.messaging.conditional.MessageConditionalText;
 import edu.iu.terracotta.dao.entity.messaging.log.MessageLog;
 import edu.iu.terracotta.dao.entity.messaging.message.Message;
+import edu.iu.terracotta.dao.entity.messaging.piped.MessagePipedTextItem;
 import edu.iu.terracotta.dao.model.enums.messaging.MessageProcessingStatus;
 import edu.iu.terracotta.dao.repository.messaging.log.MessageLogRepository;
 import edu.iu.terracotta.exceptions.messaging.MessageBodyParseException;
@@ -67,6 +70,9 @@ public class MessageConversationServiceImpl implements MessageConversationServic
                 throw new MessageBodyParseException(String.format("Error retrieving LMS submissions for message ID: [%s]", message.getId()), e);
             }
 
+            Map<String, MessageConditionalText> conditionalTextCache = new HashMap<>();
+            Map<String, MessagePipedTextItem> pipedTextItemCache = new HashMap<>();
+
             for (LtiUserEntity recipient : recipients) {
                 log.info("Sending conversation message ID: [{}] to terracotta user ID: [{}]", message.getId(), recipient.getUserId());
 
@@ -103,7 +109,10 @@ public class MessageConversationServiceImpl implements MessageConversationServic
                 body = messageSendService.parseMessageBody(
                     message,
                     recipient,
-                    participantSubmissions
+                    participantSubmissions,
+                    false,
+                    conditionalTextCache,
+                    pipedTextItemCache
                 );
 
                 // send to LMS

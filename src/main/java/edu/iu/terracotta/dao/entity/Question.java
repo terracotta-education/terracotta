@@ -15,6 +15,7 @@ import lombok.Setter;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -54,7 +55,7 @@ public class Question extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private RegradeOption regradeOption;
 
-    @OneToOne(mappedBy = "question")
+    @OneToOne(mappedBy = "question", fetch = FetchType.LAZY)
     private Integration integration;
 
     @ManyToOne

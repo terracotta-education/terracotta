@@ -211,6 +211,7 @@ public class QuestionController {
             questionService.deleteById(questionId);
         } catch (EmptyResultDataAccessException e) {
             log.warn(e.getMessage(), e);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);

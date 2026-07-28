@@ -393,7 +393,7 @@ public class RestResponseEntityExceptionHandler
         String bodyOfResponse = ex.getMessage();
         log.warn(bodyOfResponse);
 
-        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.ALREADY_REPORTED, request);
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
     @ExceptionHandler({NegativePointsException.class})

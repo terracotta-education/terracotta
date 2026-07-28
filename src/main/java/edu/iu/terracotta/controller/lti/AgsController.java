@@ -58,9 +58,9 @@ public class AgsController {
 
         if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) == null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, true);
+        } else {
+            model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
         }
-
-        model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
         Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
         String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
         //We find the right deployment:
@@ -96,9 +96,9 @@ public class AgsController {
 
         if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) == null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, true);
+        } else {
+            model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
         }
-
-        model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
         Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
         String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
         //We find the right deployment:
@@ -134,9 +134,9 @@ public class AgsController {
 
         if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) == null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, true);
+        } else {
+            model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
         }
-
-        model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
         Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
         String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
         //We find the right deployment:
@@ -172,9 +172,9 @@ public class AgsController {
 
         if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) == null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, true);
-        }
-
+        } else {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
+        }
             Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
             String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
             //We find the right deployment:
@@ -213,9 +213,9 @@ public class AgsController {
 
         if (session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID) == null) {
             model.addAttribute(TextConstants.NO_SESSION_VALUES, true);
+        } else {
+            model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
         }
-
-        model.addAttribute(TextConstants.NO_SESSION_VALUES, false);
         Long toolDeploymentId = (Long) session.getAttribute(LtiStrings.LTI_SESSION_TOOL_DEPLOYMENT_ID);
         String contextId = (String) session.getAttribute(LtiStrings.LTI_SESSION_CONTEXT_ID);
         //We find the right deployment:

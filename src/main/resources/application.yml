@@ -1,0 +1,340 @@
+#----------------------------------------
+# CORE PROPERTIES
+# ----------------------------------------
+server:
+  port: 443
+  # If behind apache proxy:
+  # server.use-forward-headers=true
+  # server.tomcat.internal-proxies=.*
+  ssl:
+    key-store: YOURPATHTO/keystore.p12
+    key-store-password: YOURPASSWORD
+    keyStoreType: PKCS12
+    # server.ssl.keyAlias=tomcatORWHATEVERRYOUCALLEDIT
+  tomcat:
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+
+# if true, it will display the LTI messages and never jump to the app part. Set to false for prod.
+lti13:
+  demoMode: true
+
+spring:
+  ## thymeleaf base settings
+  thymeleaf:
+    mode: HTML5
+    # spring.thymeleaf.encoding=UTF-8
+    cache: false
+  ## Database connection
+  # spring.jpa.generate-ddl=true
+  # spring.jpa.show-sql=true
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: true
+  datasource:
+    url: jdbc:mysql://localhost:3306/YOURDATABASEUSER
+    driverClassName: com.mysql.cj.jdbc.Driver
+    username: YOURDATABASEUSERNAME
+    password: YOURDATABASEUSERPASSWORD
+  liquibase:
+    change-log: classpath:/db/changelog/changelog-master.xml
+  ## MULTIPART (MultipartProperties)
+  servlet:
+    multipart:
+      # Enable multipart uploads
+      enabled: true
+      # Threshold after which files are written to disk
+      file-size-threshold: 2KB
+      # Max file size
+      # Note: this size is also validated on the frontend, see FileDropZone.vue
+      max-file-size: 10MB
+      # Max request size
+      max-request-size: 20MB
+  # Explicit equivalents of spring.jackson.use-jackson2-defaults=true (a deprecated
+  # Jackson2/Jackson3 migration shim), so the app doesn't depend on that flag.
+  jackson:
+    deserialization:
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+      FAIL_ON_NULL_FOR_PRIMITIVES: false
+      FAIL_ON_TRAILING_TOKENS: false
+    datatype:
+      datetime:
+        ONE_BASED_MONTHS: false
+        WRITE_UTC_AS_OFFSET: true
+      enum:
+        READ_ENUMS_USING_TO_STRING: false
+        WRITE_ENUMS_USING_TO_STRING: false
+      json-node:
+        STRIP_TRAILING_BIGDECIMAL_ZEROES: true
+    mapper:
+      ALLOW_FINAL_FIELDS_AS_MUTATORS: true
+      DETECT_PARAMETER_NAMES: false
+      FIX_FIELD_NAME_UPPER_CASE_PREFIX: false
+      SORT_PROPERTIES_ALPHABETICALLY: false
+      USE_GETTERS_AS_SETTERS: true
+    serialization:
+      FAIL_ON_EMPTY_BEANS: true
+    default-property-inclusion: always
+
+## Logging settings
+## log4j2 is used for logging. See src/main/resources/log4j2.xml for the default
+## logging configuration. You can specify a custom configuration file with the
+## logging.config property.
+# logging.config=./log4j2-dev.xml
+
+### Settings for development ONLY
+http:
+  mappers:
+    json-pretty-print: true
+    json-sort-keys: true
+
+# logging.level.org.springframework.security=DEBUG
+# spring.jpa.show-sql=true
+# Uncomment to disable the one-use token logic, helpful for grabbing a token and using locally
+# api.oauth.provider.processing.filter.enabled=false
+
+# TO USE TOMCAT DIRECTLY WITH SSL (No apache proxy)
+# http://www.heydari.be/home/2016/05/14/Spring-Boot-Application-Secured-by-Lets-Encrypt-Certificate.html
+security:
+  require-ssl: true
+  headers:
+    frame: false
+
+# You can generate an RSA keypair using the following instructions:
+# openssl genrsa -out keypair.pem 2048
+# openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in keypair.pem -out pkcs8.key
+oicd:
+  privatekey: "-----BEGIN PRIVATE KEY-----HERE THE RSA PRIVATE KEY-----END PRIVATE KEY-----"
+  # openssl rsa -in keypair.pem -pubout -out publickey.crt
+  publickey: "-----BEGIN PUBLIC KEY-----HERE THE RSA PUBLIC KEY-----END PUBLIC KEY-----"
+
+# Your domain here:
+application:
+  url: https://example.unicon.net
+  name: Unicon LTI 1.3 Demo
+  description: The Unicon tool to learn about LTI 1.3 in java
+
+## if the password is not set, a random one is generated and displayed on start in the log.
+terracotta:
+  admin:
+    user: admin
+    # terracotta.admin.password = setyourpassowrdfortheadminuser
+
+## File storage properties
+# All files uploaded through the REST API will be stored in this directory
+# upload.path=/terracotta_files
+
+##Crons
+#scheduled.restoredeletedassignments.cron=*/50 * * * * *
+#scheduled.deleteoldtokens.cron=*/50 * * * * *
+
+caliper:
+  sensor-id: 123
+  client-id: 1231
+  api-key: 1234
+  connection-timeout: 10000
+  content-type: application/json
+  host: https://example.org
+  socket-timeout: 10000
+  send: false
+  store-db: false
+
+aws:
+  enabled: true
+  # aws.region=us-east-1
+  region: us-east-1
+  bucket-name: readmebucket
+  object-key: README.md
+  ses:
+    # aws.ses.region=us-east-2
+    region: us-east-2
+
+app:
+  # fix legacy assignment start dates
+  assignments:
+    fix:
+      start:
+        dates:
+          enabled: false
+          batchsize: 100
+  export:
+    # export batch processing page size
+    batch:
+      size: 100
+    enable:
+      # allow the exporting of events (may be very large)
+      events:
+        output: true
+    # allow exporting of events for class participants less than this property (inclusive)
+    events:
+      output:
+        participant:
+          threshold: 400
+  # convert consent files to secure encryption and storage
+  consent:
+    documents:
+      conversion:
+        enabled: false
+  # fix experiment start dates
+  experiments:
+    fix:
+      start:
+        dates:
+          enabled: false
+  # display the request token in the logs?
+  token:
+    logging:
+      enabled: false
+  # display verbode LTI data in the logs?
+  lti:
+    data:
+      verbose:
+        logging:
+          enabled: false
+  # external integrations
+  integrations:
+    # token TTL (default 3600 seconds)
+    token:
+      ttl: 86400
+      # warning period before token expiration in seconds (default 14400 seconds)
+      warning:
+        period: 14400
+      # interval to check for token expiration in seconds (default 60 seconds)
+      expiration:
+        check:
+          interval: 60
+    # how-to page to explain iframe rendering errors
+    iframe:
+      info:
+        url: https://terracotta-education.atlassian.net/wiki/spaces/TC/pages/634519553/How+to+Fix+Error+Rendering+Content
+  # app messaging scheduler
+  messaging:
+    scheduler:
+      check:
+        interval:
+          minutes: 1
+      enabled: true
+    # messaging
+    email:
+      from: no-reply@mail.terracotta.education
+      batch:
+        size: 14
+      interval:
+        seconds: 1
+      test:
+        subject: Test message from Terracotta
+        body: Congratulations! You have successfully sent a test message.
+  # Help link
+  help:
+    url: https://terracotta-education.atlassian.net/wiki/x/xwDjCw
+  # LTI User Participant batch handling
+  participant:
+    batch:
+      size: 500
+  # external files
+  external:
+    file:
+      ics:
+        url: https://readmebucket.s3.us-east-1.amazonaws.com/Terracotta_ICS_template.docx
+      parental:
+        permission:
+          url: https://readmebucket.s3.us-east-1.amazonaws.com/Terracotta_ParentalPermission_template.docx
+
+# consent file storage
+consent:
+  file:
+    local:
+      path: consent
+      path.root: ${upload.path}/${consent.file.local.path}
+
+# assignment file submissions
+upload:
+  submissions:
+    local:
+      path: assignment_submissions
+      path.root: ${upload.path}/${upload.submissions.local.path}
+
+# db-scheduler properties
+db-scheduler:
+  enabled: true
+  immediate-execution-enabled: false
+  scheduler-name: ""
+  threads: 10
+  polling-strategy: fetch
+  polling-strategy-lower-limit-fraction-of-threads: 0.5
+  polling-strategy-upper-limit-fraction-of-threads: 3.0
+  shutdown-max-wait: 30m
+  delay-startup-until-context-ready: true
+
+# assignment file archive
+assignment:
+  file:
+    archive:
+      local:
+        path: assignment_file_archive
+        path.root: ${upload.path}/${assignment.file.archive.local.path}
+      scheduler:
+        check:
+          interval:
+            minutes: 60
+        enabled: true
+      ttl:
+        days: 7
+
+experiment:
+  # experiment data export
+  data:
+    export:
+      local:
+        path: experiment_data_export
+        path.root: ${upload.path}/${experiment.data.export.local.path}
+      scheduler:
+        check:
+          interval:
+            minutes: 60
+        enabled: true
+      ttl:
+        days: 7
+      processing:
+        ttl:
+          seconds: 600
+  # experiment import scheduler
+  export:
+    local:
+      path: experiment_export
+      path.root: ${upload.path}/${experiment.export.local.path}
+    enabled: true
+  import:
+    scheduler:
+      check:
+        interval:
+          minutes: 60
+      enabled: true
+    ttl:
+      days: 7
+
+# D2L Brightspace configuration
+brightspace:
+  api:
+    le:
+      version: "1.87"
+    lp:
+      version: "1.52"
+    request:
+      log:
+        enabled: true
+
+# API Token cleaner scheduler
+api:
+  token:
+    cleaner:
+      scheduler:
+        enabled: true
+        check:
+          interval:
+            minutes: 60
+        expiration:
+          ttl:
+            days: 30

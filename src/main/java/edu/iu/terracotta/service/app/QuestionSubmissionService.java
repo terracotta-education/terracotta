@@ -3,8 +3,11 @@ package edu.iu.terracotta.service.app;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.AnswerEssaySubmission;
+import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.QuestionSubmissionComment;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -36,6 +39,12 @@ public interface QuestionSubmissionService {
     List<QuestionSubmissionDto> postQuestionSubmissions(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws DataServiceException, IdInPostException, InvalidUserException, DuplicateQuestionException, IdMissingException, TypeNotSupportedException;
     void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, QuestionSubmissionNotMatchingException, IdMissingException;
     QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) throws IOException;
+    // caches let callers rendering many question submissions at once reuse comment/answer lookups instead of re-querying per question submission
+    QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments,
+        Map<Long, List<QuestionSubmissionComment>> commentsCache,
+        Map<Long, List<AnswerMcSubmission>> mcAnswersCache,
+        Map<Long, List<AnswerEssaySubmission>> essayAnswersCache,
+        Map<Long, List<AnswerFileSubmission>> fileAnswersCache) throws IOException;
     QuestionSubmission fromDto(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
     void deleteById(Long id) throws EmptyResultDataAccessException;
     QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission);

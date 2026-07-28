@@ -17,8 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -107,6 +109,26 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
         OutcomeScore outcomeScore = getOutcomeScore(outcomeScoreId);
         outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
         outcomeScoreRepository.saveAndFlush(outcomeScore);
+    }
+
+    @Override
+    @Transactional
+    public void updateOutcomeScores(List<OutcomeScoreDto> outcomeScoreDtoList, long experimentId) throws DataServiceException, InvalidParticipantException {
+        List<OutcomeScore> outcomeScoresToSave = new ArrayList<>();
+
+        for (OutcomeScoreDto outcomeScoreDto : outcomeScoreDtoList) {
+            if (outcomeScoreDto.getOutcomeScoreId() != null) {
+                OutcomeScore outcomeScore = getOutcomeScore(outcomeScoreDto.getOutcomeScoreId());
+                outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
+                outcomeScoresToSave.add(outcomeScore);
+                continue;
+            }
+
+            validateParticipant(outcomeScoreDto.getParticipantId(), experimentId);
+            outcomeScoresToSave.add(fromDto(outcomeScoreDto));
+        }
+
+        outcomeScoreRepository.saveAll(outcomeScoresToSave);
     }
 
     @Override

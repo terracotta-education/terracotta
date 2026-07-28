@@ -81,16 +81,16 @@ public class ExperimentController {
 
     /**
      * To show the an specific experiment.
-          * @throws TerracottaConnectorException
-          * @throws NumberFormatException
-          */
-         @GetMapping("/{id}")
-         public ResponseEntity<ExperimentDto> getExperiment(@PathVariable long id,
-                                                            @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
-                                                            @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
-                                                            @RequestParam(name = "participants", defaultValue = "false") boolean participants,
-                                                            HttpServletRequest req)
-                 throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+     * @throws TerracottaConnectorException
+     * @throws NumberFormatException
+    */
+    @GetMapping("/{id}")
+    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable long id,
+                                                    @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
+                                                    @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
+                                                    @RequestParam(name = "participants", defaultValue = "false") boolean participants,
+                                                    HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
 
@@ -178,6 +178,7 @@ public class ExperimentController {
             experimentService.deleteById(id, securedInfo);
         } catch (EmptyResultDataAccessException ex) {
             log.warn(ex.getMessage());
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         return new ResponseEntity<>(HttpStatus.OK);

@@ -27,7 +27,7 @@ public class ConversationExtended extends LmsConversation {
 
     @Override
     public void setId(String id) {
-        if (conversation == null) {
+        if (conversation == null || id == null) {
             return;
         }
 

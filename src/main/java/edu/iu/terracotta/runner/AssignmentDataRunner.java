@@ -41,33 +41,37 @@ public class AssignmentDataRunner implements ApplicationListener<ApplicationRead
         Thread thread = new Thread(
             () ->
                 {
-                    // fix legacy assignment started date
-                    int page = 0;
-                    Page<Assignment> assignments = assignmentRepository.findAll(PageRequest.of(page++, batchSize));
+                    try {
+                        // fix legacy assignment started date
+                        int page = 0;
+                        Page<Assignment> assignments = assignmentRepository.findAll(PageRequest.of(page++, batchSize));
 
-                    log.info("Starting assignment start date fix...");
-                    int processed = 0;
+                        log.info("Starting assignment start date fix...");
+                        int processed = 0;
 
-                    while (CollectionUtils.isNotEmpty(assignments.getContent())) {
-                        processed += assignments.getContent().size();
-                        assignments.getContent().stream()
-                            .filter(assignment -> !assignment.isStarted())
-                            .forEach(
-                                assignment -> {
-                                    long submissionsCount = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
+                        while (CollectionUtils.isNotEmpty(assignments.getContent())) {
+                            processed += assignments.getContent().size();
+                            assignments.getContent().stream()
+                                .filter(assignment -> !assignment.isStarted())
+                                .forEach(
+                                    assignment -> {
+                                        long submissionsCount = submissionRepository.countByAssessment_Treatment_Assignment_AssignmentId(assignment.getAssignmentId());
 
-                                    if (submissionsCount > 0) {
-                                        assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
-                                        assignmentRepository.save(assignment);
+                                        if (submissionsCount > 0) {
+                                            assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
+                                            assignmentRepository.save(assignment);
+                                        }
                                     }
-                                }
-                            );
+                                );
 
-                        log.info("Processed {} assignment records...", processed);
-                        assignments = assignmentRepository.findAll(PageRequest.of(page++, batchSize));
+                            log.info("Processed {} assignment records...", processed);
+                            assignments = assignmentRepository.findAll(PageRequest.of(page++, batchSize));
+                        }
+
+                        log.info("Assignment start date fix complete! {} assignment records processed.", processed);
+                    } catch (Exception e) {
+                        log.error("Error occurred fixing assignment start dates", e);
                     }
-
-                    log.info("Assignment start date fix complete! {} assignment records processed.", processed);
                 }
         );
 

@@ -318,7 +318,9 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
                     boolean randomizeAnswers = false;
 
                     if (question.isMC()) {
-                        randomizeAnswers = questionMcRepository.findByQuestionId(question.getQuestionId()).get().isRandomizeAnswers();
+                        randomizeAnswers = questionMcRepository.findByQuestionId(question.getQuestionId())
+                            .map(qmc -> qmc.isRandomizeAnswers())
+                            .orElse(false);
                     }
 
                     return QuestionExport.builder()

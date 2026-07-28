@@ -23,5 +23,7 @@ public class ConfigurationDto {
     private String helpUrl;
     private LmsConnector lms;
     private String lmsTitle;
+    private String icsTemplateUrl;
+    private String parentalPermissionTemplateUrl;
 
 }

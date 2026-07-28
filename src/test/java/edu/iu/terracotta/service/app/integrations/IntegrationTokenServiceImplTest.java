@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -97,6 +98,41 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     }
 
     @Test
+    void testCreateBuildsNewTokenWhenNoneExists() throws IntegrationTokenNotFoundException {
+        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(submission.getIntegrationToken()).thenReturn(null);
+
+        integrationTokenService.create(submission, securedInfo);
+
+        verify(integrationTokenRepository).save(any(IntegrationToken.class));
+        verify(submission).setIntegrationToken(any(IntegrationToken.class));
+    }
+
+    @Test
+    void testCreateSaveFailsThenFindsExistingToken() throws IntegrationTokenNotFoundException {
+        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(integrationTokenRepository.save(any(IntegrationToken.class)))
+            .thenThrow(new IllegalStateException("db error"))
+            .thenReturn(integrationToken);
+        when(integrationTokenRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Optional.of(integrationToken));
+
+        integrationTokenService.create(submission, securedInfo);
+
+        verify(integrationTokenRepository, times(2)).save(any(IntegrationToken.class));
+        verify(integrationTokenRepository).findBySubmission_SubmissionId(1L);
+        verify(submission).setIntegrationToken(integrationToken);
+    }
+
+    @Test
+    void testCreateSaveFailsAndNoExistingTokenFoundThrows() {
+        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(integrationTokenRepository.save(any(IntegrationToken.class))).thenThrow(new IllegalStateException("db error"));
+        when(integrationTokenRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Optional.empty());
+
+        assertThrows(IntegrationTokenNotFoundException.class, () -> { integrationTokenService.create(submission, securedInfo); });
+    }
+
+    @Test
     void testFindByToken() throws IntegrationTokenNotFoundException {
         IntegrationToken ret = integrationTokenService.findByToken("token");
 
@@ -132,19 +168,19 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testredeemTokenIntegrationTokenExpiredException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
-        when(integrationToken.isExpired(anyInt())).thenReturn(true);
+    public void testredeemTokenIntegrationTokenAlreadyRedeemedException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
+        when(integrationToken.isAlreadyRedeemed()).thenReturn(true);
 
-        assertThrows(IntegrationTokenExpiredException.class, () -> { integrationTokenService.redeemToken("token"); });
+        assertThrows(IntegrationTokenAlreadyRedeemedException.class, () -> { integrationTokenService.redeemToken("token"); });
         verify(integrationToken).setRedeemedAt(any(Timestamp.class));
         verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
     }
 
     @Test
-    public void testredeemTokenIntegrationTokenAlreadyRedeemedException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
-        when(integrationToken.isAlreadyRedeemed()).thenReturn(true);
+    public void testRedeemTokenIntegrationTokenExpiredException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
+        when(integrationToken.isExpired(anyLong())).thenReturn(true);
 
-        assertThrows(IntegrationTokenAlreadyRedeemedException.class, () -> { integrationTokenService.redeemToken("token"); });
+        assertThrows(IntegrationTokenExpiredException.class, () -> { integrationTokenService.redeemToken("token"); });
         verify(integrationToken).setRedeemedAt(any(Timestamp.class));
         verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
     }

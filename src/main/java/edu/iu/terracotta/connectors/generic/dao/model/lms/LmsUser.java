@@ -6,9 +6,11 @@ import edu.iu.terracotta.connectors.generic.dao.model.lms.base.BaseLmsUser;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 
 @Getter
 @Setter
+@Jacksonized
 @SuperBuilder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LmsUser implements BaseLmsUser {

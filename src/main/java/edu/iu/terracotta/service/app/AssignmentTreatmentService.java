@@ -29,5 +29,7 @@ public interface AssignmentTreatmentService {
     AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
     List<AssignmentDto> toAssignmentDto(List<Assignment> assignments, boolean submissions, boolean addTreatmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
     void setAssignmentDtoAttrs(Assignment assignment, String lmsCourseId, LtiUserEntity instructorUser) throws NumberFormatException, ApiException, TerracottaConnectorException;
+    // one LMS call for all assignments instead of one call per assignment
+    void setAssignmentDtoAttrs(List<Assignment> assignments, LtiUserEntity instructorUser) throws ApiException, TerracottaConnectorException;
 
 }

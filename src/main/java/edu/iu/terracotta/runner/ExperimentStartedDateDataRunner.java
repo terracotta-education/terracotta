@@ -39,36 +39,40 @@ public class ExperimentStartedDateDataRunner implements ApplicationListener<Appl
         Thread thread = new Thread(
             () ->
                 {
-                    // fix experiment started date; if has an assignment started, mark experiment started, else set to null
-                    List<Assignment> assignments = assignmentRepository.findAll();
-                    List<Experiment> experiments = experimentRepository.findAll();
+                    try {
+                        // fix experiment started date; if has an assignment started, mark experiment started, else set to null
+                        List<Assignment> assignments = assignmentRepository.findAll();
+                        List<Experiment> experiments = experimentRepository.findAll();
 
-                    log.info("Starting experiment start date fix...");
+                        log.info("Starting experiment start date fix...");
 
-                    CollectionUtils.emptyIfNull(experiments).stream()
-                        .forEach(
-                            experiment -> {
-                                Optional<Assignment> startedAssignment = CollectionUtils.emptyIfNull(assignments).stream()
-                                    .filter(assignment -> assignment.getExposure().getExperiment().getExperimentId().equals(experiment.getExperimentId()))
-                                    .filter(assignment -> assignment.isStarted())
-                                    .sorted(Comparator.comparing(Assignment::getStarted))
-                                    .findFirst();
+                        CollectionUtils.emptyIfNull(experiments).stream()
+                            .forEach(
+                                experiment -> {
+                                    Optional<Assignment> startedAssignment = CollectionUtils.emptyIfNull(assignments).stream()
+                                        .filter(assignment -> assignment.getExposure().getExperiment().getExperimentId().equals(experiment.getExperimentId()))
+                                        .filter(assignment -> assignment.isStarted())
+                                        .sorted(Comparator.comparing(Assignment::getStarted))
+                                        .findFirst();
 
-                                if (startedAssignment.isEmpty() && experiment.isStarted()) {
-                                    // no started assignment and experiment is marked as started, set experiment started date to null
-                                    experiment.setStarted(null);
-                                    experimentRepository.save(experiment);
-                                    return;
-                                }
+                                    if (startedAssignment.isEmpty() && experiment.isStarted()) {
+                                        // no started assignment and experiment is marked as started, set experiment started date to null
+                                        experiment.setStarted(null);
+                                        experimentRepository.save(experiment);
+                                        return;
+                                    }
 
-                                if (startedAssignment.isPresent() && !experiment.isStarted()) {
-                                    // has an assignment started, but no start date for experiment; set the experiment start date to the assignment start date
-                                    experiment.setStarted(startedAssignment.get().getStarted());
-                                    experimentRepository.save(experiment);
-                                }
-                        });
+                                    if (startedAssignment.isPresent() && !experiment.isStarted()) {
+                                        // has an assignment started, but no start date for experiment; set the experiment start date to the assignment start date
+                                        experiment.setStarted(startedAssignment.get().getStarted());
+                                        experimentRepository.save(experiment);
+                                    }
+                            });
 
-                    log.info("Experiment start date fix complete! {} experiment records processed.", experiments.size());
+                        log.info("Experiment start date fix complete! {} experiment records processed.", CollectionUtils.size(experiments));
+                    } catch (Exception e) {
+                        log.error("Error occurred fixing experiment start dates", e);
+                    }
                 }
             );
 

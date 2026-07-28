@@ -24,11 +24,19 @@ public class AssignmentExtended extends LmsAssignment {
 
     @Override
     public String getId() {
+        if (assignment.getId() == null) {
+            return null;
+        }
+
         return Long.toString(assignment.getId());
     }
 
     @Override
     public void setId(String id) {
+        if (id == null) {
+            return;
+        }
+
         assignment.setId(Long.parseLong(id));
     }
 
@@ -83,6 +91,11 @@ public class AssignmentExtended extends LmsAssignment {
 
     @Override
     public void setPointsPossible(Float pointsPossible) {
+        if (pointsPossible == null) {
+            assignment.setPointsPossible(null);
+            return;
+        }
+
         assignment.setPointsPossible(pointsPossible.doubleValue());
     }
 
@@ -142,6 +155,11 @@ public class AssignmentExtended extends LmsAssignment {
     }
 
     @Override
+    public void setGradingType(String gradingType) {
+        assignment.setGradingType(gradingType);
+    }
+
+    @Override
     public LmsExternalToolFields getLmsExternalToolFields() {
         ExternalToolTagAttribute externalToolTagAttribute = assignment.getExternalToolTagAttributes();
 
@@ -196,12 +214,14 @@ public class AssignmentExtended extends LmsAssignment {
         assignmentExtended.setSubmissionTypes(lmsAssignment.getSubmissionTypes());
         assignmentExtended.setUnlockAt(lmsAssignment.getUnlockAt());
 
-        if (assignmentExtended.getAssignment().getExternalToolTagAttributes() == null) {
-            assignmentExtended.getAssignment().setExternalToolTagAttributes(assignmentExtended.getAssignment().new ExternalToolTagAttribute());
-        }
+        if (lmsAssignment.getLmsExternalToolFields() != null) {
+            if (assignmentExtended.getAssignment().getExternalToolTagAttributes() == null) {
+                assignmentExtended.getAssignment().setExternalToolTagAttributes(assignmentExtended.getAssignment().new ExternalToolTagAttribute());
+            }
 
-        assignmentExtended.getAssignment().getExternalToolTagAttributes().setUrl(lmsAssignment.getLmsExternalToolFields().getUrl());
-        assignmentExtended.getAssignment().getExternalToolTagAttributes().setResourceLinkId(lmsAssignment.getLmsExternalToolFields().getResourceLinkId());
+            assignmentExtended.getAssignment().getExternalToolTagAttributes().setUrl(lmsAssignment.getLmsExternalToolFields().getUrl());
+            assignmentExtended.getAssignment().getExternalToolTagAttributes().setResourceLinkId(lmsAssignment.getLmsExternalToolFields().getResourceLinkId());
+        }
 
         return assignmentExtended;
     }

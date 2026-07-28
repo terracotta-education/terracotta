@@ -40,6 +40,8 @@ public interface SubmissionService {
     void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student) throws DataServiceException, IOException, AssignmentDatesException, ConnectionException, ApiException, TerracottaConnectorException;
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
     void sendSubmissionGradeToLmsWithLti(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException, IOException, ApiException, TerracottaConnectorException;
+    // fetches AGS tokens once per platform deployment instead of once per submission
+    void sendSubmissionGradesToLmsWithLti(List<Submission> submissions, boolean studentSubmission) throws ConnectionException, DataServiceException, IOException, ApiException, TerracottaConnectorException;
     boolean datesAllowed(Long experimentId, Long treatmentId, SecuredInfo securedInfo);
     Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException;
     void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException;
@@ -47,6 +49,8 @@ public interface SubmissionService {
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId);
     void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException;
     Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);
+    // one query for all participants instead of one query per participant; keyed by participant ID
+    Map<Long, Float> getScoresFromMultipleSubmissions(List<Participant> participants, Assessment assessment);
     Float getSubmissionScore(Submission submission);
     boolean isManualGradingNeeded(Submission submission);
     Map<String, List<LmsSubmission>> getAllSubmissionsForMultipleAssignments(LtiUserEntity ltiUserEntity, String lmsCourseId, List<String> lmsAssignmentIds) throws ApiException, TerracottaConnectorException, IOException;

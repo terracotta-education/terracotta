@@ -63,7 +63,13 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Override
     public List<AnswerSubmissionDto> getAnswerSubmissions(long questionSubmissionId, String answerType) throws DataServiceException, IOException {
-        switch (EnumUtils.getEnum(SubmissionType.class, answerType)) {
+        SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, answerType);
+
+        if (submissionType == null) {
+            throw new DataServiceException("Error 103: Answer type not supported.");
+        }
+
+        switch (submissionType) {
             case MC:
                 return getAnswerMcSubmissions(questionSubmissionId);
             case ESSAY:
@@ -77,7 +83,13 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Override
     public AnswerSubmissionDto getAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException, IOException {
-        switch (EnumUtils.getEnum(SubmissionType.class, answerType)) {
+        SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, answerType);
+
+        if (submissionType == null) {
+            throw new DataServiceException("Error 103: Answer type not supported.");
+        }
+
+        switch (submissionType) {
             case MC:
                 return toDtoMC(getAnswerMcSubmission(answerSubmissionId));
             case ESSAY:
@@ -97,7 +109,13 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
         answerSubmissionDto.setQuestionSubmissionId(questionSubmissionId);
 
-        switch (EnumUtils.getEnum(SubmissionType.class, getAnswerType(questionSubmissionId))) {
+        SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, getAnswerType(questionSubmissionId));
+
+        if (submissionType == null) {
+            throw new TypeNotSupportedException("Error 103: Answer type not supported.");
+        }
+
+        switch (submissionType) {
             case MC:
                 AnswerMcSubmission answerMcSubmission;
 
@@ -163,7 +181,13 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     private boolean existsByQuestionSubmissionId(Long questionSubmissionId) throws TypeNotSupportedException {
-        switch (EnumUtils.getEnum(SubmissionType.class, getAnswerType(questionSubmissionId))) {
+        SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, getAnswerType(questionSubmissionId));
+
+        if (submissionType == null) {
+            throw new TypeNotSupportedException("Error 103: Answer type not supported.");
+        }
+
+        switch (submissionType) {
             case MC:
                 return CollectionUtils.isNotEmpty(findByQuestionSubmissionIdMC(questionSubmissionId));
             case ESSAY:
@@ -179,7 +203,13 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Override
     public void updateAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long answerSubmissionId, String answerType) throws AnswerNotMatchingException, DataServiceException {
-        switch (EnumUtils.getEnum(SubmissionType.class, answerType)) {
+        SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, answerType);
+
+        if (submissionType == null) {
+            throw new DataServiceException("Error 103: Answer type not supported.");
+        }
+
+        switch (submissionType) {
             case MC:
                 updateAnswerMcSubmission(answerSubmissionId, answerSubmissionDto);
                 break;
@@ -197,7 +227,13 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     @Override
     public void deleteAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException {
-        switch (EnumUtils.getEnum(SubmissionType.class, answerType)) {
+        SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, answerType);
+
+        if (submissionType == null) {
+            throw new DataServiceException("Error 103: Answer type not supported.");
+        }
+
+        switch (submissionType) {
             case MC:
                 answerMcSubmissionRepository.deleteByAnswerMcSubId(answerSubmissionId);
                 break;

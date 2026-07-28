@@ -99,25 +99,11 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
 
         if (CollectionUtils.isNotEmpty(resultsOutcomesRequestDto.getOutcomeIds())) {
             // this is a standard outcome calculation
-            List<Outcome> outcomes = resultsOutcomesRequestDto.getOutcomeIds().stream()
-                .map(
-                    outcomeId -> {
-                        Optional<Outcome> outcome = outcomeRepository.findById(Long.valueOf(outcomeId));
-
-                        if (outcome.isEmpty()) {
-                            // no outcome exists for this ID
-                            return null;
-                        }
-
-                        if (!experiment.getExperimentId().equals(outcome.get().getExposure().getExperiment().getExperimentId())) {
-                            // outcome is not in the experiment
-                            return null;
-                        }
-
-                        return outcome.get();
-                    }
-                )
-                .filter(outcome -> outcome != null)
+            List<Long> outcomeIds = resultsOutcomesRequestDto.getOutcomeIds().stream()
+                .map(Long::valueOf)
+                .toList();
+            List<Outcome> outcomes = outcomeRepository.findAllById(outcomeIds).stream()
+                .filter(outcome -> experiment.getExperimentId().equals(outcome.getExposure().getExperiment().getExperimentId()))
                 .toList();
 
             if (resultsOutcomesRequestDto.getOutcomeIds().size() != outcomes.size()) {
@@ -239,8 +225,10 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                                     if (BooleanUtils.isNotFalse(outcome.getExternal())) {
                                         // is external outcome; get assignment scores
                                         for (Assessment assessment : findAssessmentsByConditionIdAndExposureId(condition.getConditionId(), outcome.getExposure().getExposureId(), experimentAssignments, allAssessmentsByAssignment)) {
+                                            Map<Long, Float> scoresByParticipantId = submissionService.getScoresFromMultipleSubmissions(experimentConsentedParticipants, assessment);
+
                                             for (Participant participant : experimentConsentedParticipants) {
-                                                Float score = submissionService.getScoreFromMultipleSubmissions(participant, assessment);
+                                                Float score = scoresByParticipantId.get(participant.getParticipantId());
 
                                                 if (score == null) {
                                                     continue;
@@ -306,8 +294,10 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                 if (BooleanUtils.isNotFalse(outcome.getExternal())) {
                     // is external outcome; get assignment scores
                     for (Assessment assessment : findAssessmentsByExposureId(outcome.getExposure().getExposureId(), experimentAssignments, allAssessmentsByAssignment)) {
+                        Map<Long, Float> scoresByParticipantId = submissionService.getScoresFromMultipleSubmissions(experimentConsentedParticipants, assessment);
+
                         for (Participant participant : experimentConsentedParticipants) {
-                            Float score = submissionService.getScoreFromMultipleSubmissions(participant, assessment);
+                            Float score = scoresByParticipantId.get(participant.getParticipantId());
 
                             if (score == null) {
                                 continue;
@@ -409,14 +399,12 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
     private void prepareData(Experiment experiment) {
         experimentAssignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experiment.getExperimentId());
 
-        allAssessmentsByAssignment = new HashMap<>();
+        List<Long> experimentAssignmentIds = experimentAssignments.stream()
+            .map(Assignment::getAssignmentId)
+            .toList();
 
-        for (Assignment experimentAssignment : experimentAssignments) {
-            allAssessmentsByAssignment.put(
-                experimentAssignment.getAssignmentId(),
-                assessmentRepository.findByTreatment_Assignment_AssignmentId(experimentAssignment.getAssignmentId())
-            );
-        }
+        allAssessmentsByAssignment = assessmentRepository.findByTreatment_Assignment_AssignmentIdIn(experimentAssignmentIds).stream()
+            .collect(Collectors.groupingBy(assessment -> assessment.getTreatment().getAssignment().getAssignmentId()));
 
         experimentConsentedParticipants = participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId()).stream()
             .filter(participant -> !participant.isTestStudent())
@@ -428,13 +416,13 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
 
         experimentTreatments = treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(experiment.getExperimentId());
 
-        allTreatmentsByAssignment = new HashMap<>();
+        allTreatmentsByAssignment = treatmentRepository.findByAssignment_AssignmentIdInOrderByCondition_ConditionIdAsc(experimentAssignmentIds).stream()
+            .collect(Collectors.groupingBy(treatment -> treatment.getAssignment().getAssignmentId()));
 
-        for (Assignment assignment : experimentAssignments) {
-            allTreatmentsByAssignment.put(
-                assignment.getAssignmentId(),
-                treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(assignment.getAssignmentId())
-            );
+        // assignments with no assessments/treatments won't have an entry from groupingBy; keep prior "always present" contract
+        for (Long assignmentId : experimentAssignmentIds) {
+            allAssessmentsByAssignment.putIfAbsent(assignmentId, new ArrayList<>());
+            allTreatmentsByAssignment.putIfAbsent(assignmentId, new ArrayList<>());
         }
     }
 

@@ -37,6 +37,10 @@ import tools.jackson.databind.json.JsonMapper;
 @TerracottaConnector(LmsConnector.ONE_ED_TECH)
 public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
 
+    // JsonMapper is thread-safe once built; reuse one shared instance instead of building a
+    // fresh mapper on every postLineItem()/postScore() call.
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
+
     private final AdvantageConnectorHelper advantageConnectorHelper;
     private final ExceptionMessageGenerator exceptionMessageGenerator;
 
@@ -75,13 +79,13 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
                 throw new ConnectionException(exceptionMsg);
             }
 
-            log.info(
-                "POST lineItem to: [{}] response: [{}]",
-                context.getLineitems(),
-                JsonMapper.builder()
-                    .build()
-                    .writeValueAsString(response.getBody())
-            );
+            if (log.isInfoEnabled()) {
+                log.info(
+                    "POST lineItem to: [{}] response: [{}]",
+                    context.getLineitems(),
+                    JSON_MAPPER.writeValueAsString(response.getBody())
+                );
+            }
 
             return response.getBody();
         } catch (Exception e) {
@@ -113,6 +117,13 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
 
             while (nextPage != null) {
                 ResponseEntity<LineItem[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET, request, LineItem[].class);
+
+                if (!responseForNextPage.getStatusCode().is2xxSuccessful()) {
+                    String exceptionMsg = "Can't get the AGS";
+                    log.error(exceptionMsg);
+                    throw new ConnectionException(exceptionMsg);
+                }
+
                 LineItem[] nextLineItemsList = responseForNextPage.getBody();
                 lineItemsList.addAll(Arrays.asList(nextLineItemsList));
                 nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
@@ -164,9 +175,7 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
                 HttpMethod.POST,
                 advantageConnectorHelper.createTokenizedRequestEntity(
                     ltiTokenScores,
-                    JsonMapper.builder()
-                        .build()
-                        .writeValueAsString(score)
+                    JSON_MAPPER.writeValueAsString(score)
                 ),
                 Void.class
             );

@@ -5,8 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +21,7 @@ import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.entity.projection.GroupParticipantCount;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.model.enums.DistributionTypes;
@@ -71,6 +77,30 @@ public class GroupParticipantServiceImplTest extends BaseTest {
         Group retVal = groupParticipantService.nextGroup(experiment);
 
         assertNotNull(retVal);
+    }
+
+    @Test
+    public void testNextGroupUsesSingleBatchedCountQueryInsteadOfOnePerGroup() {
+        Group secondGroup = mock(Group.class);
+        when(secondGroup.getGroupId()).thenReturn(2L);
+
+        GroupParticipantCount firstGroupCount = mock(GroupParticipantCount.class);
+        when(firstGroupCount.getGroupId()).thenReturn(1L);
+        when(firstGroupCount.getParticipantCount()).thenReturn(3L);
+
+        GroupParticipantCount secondGroupCount = mock(GroupParticipantCount.class);
+        when(secondGroupCount.getGroupId()).thenReturn(2L);
+        when(secondGroupCount.getParticipantCount()).thenReturn(7L);
+
+        when(groupRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Arrays.asList(group, secondGroup));
+        when(participantRepository.countByExperiment_ExperimentIdGroupByGroup(anyLong())).thenReturn(Arrays.asList(firstGroupCount, secondGroupCount));
+
+        Group retVal = groupParticipantService.nextGroup(experiment);
+
+        assertNotNull(retVal);
+        // one grouped query for all groups instead of one countByGroup_GroupId call per group
+        verify(participantRepository, times(1)).countByExperiment_ExperimentIdGroupByGroup(anyLong());
+        verify(participantRepository, never()).countByGroup_GroupId(anyLong());
     }
 
 }

@@ -56,7 +56,7 @@ public class ParticipantController {
 
     @GetMapping
     public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable long experimentId,
-                                                                            @RequestParam(name = "refresh", defaultValue = "true") boolean refresh,
+                                                                            @RequestParam(defaultValue = "false") boolean refresh,
                                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotUpdatedException, NumberFormatException, TerracottaConnectorException {
 
@@ -67,17 +67,19 @@ public class ParticipantController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        List<Participant> currentParticipantList = participantService.findAllByExperimentId(experimentId);
+        List<ParticipantDto> participantDtos = participantService.getParticipants(
+            experimentId,
+            securedInfo.getUserId(),
+            !apijwtService.isInstructorOrHigher(securedInfo),
+            securedInfo,
+            apijwtService.isInstructorOrHigher(securedInfo) && refresh
+        );
 
-        if (apijwtService.isInstructorOrHigher(securedInfo) && refresh) {
-            currentParticipantList = participantService.refreshParticipants(experimentId, currentParticipantList);
-        }
-
-        if (currentParticipantList.isEmpty()) {
+        if (participantDtos.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
-        return new ResponseEntity<>(participantService.getParticipants(currentParticipantList, experimentId, securedInfo.getUserId(), !apijwtService.isInstructorOrHigher(securedInfo), securedInfo), HttpStatus.OK);
+        return new ResponseEntity<>(participantDtos, HttpStatus.OK);
     }
 
     @GetMapping("/{participantId}")
