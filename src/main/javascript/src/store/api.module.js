@@ -1,177 +1,138 @@
-import {apiService} from '@/services'
-import jwt_decode from 'jwt-decode'
-import { userInfo } from '../helpers'
+import { defineStore } from "pinia";
+import jwtDecode from "jwt-decode";
 
-const state = {
-  lti_token: '',
-  api_token: '',
-  aud: '',
-  userInfo: '',
-  experimentId: '',
-  assignmentId: '',
-  consent: '',
-  userId: '',
-  lmsApiOAuthURL: '',
-}
+import { apiService } from "@/services";
+import { userInfo } from "../helpers";
 
-const actions = {
-  setLtiToken: ({commit, dispatch}, token) => {
-    // decode token to get the aud (api base url)
-    const decodedToken = jwt_decode(token)
-    commit('setLtiToken', token)
-    commit('setAud', decodedToken.aud)
-    commit('setExperimentId', decodedToken.experimentId)
-    commit('setConsent', decodedToken.consent)
-    commit('setAssignmentId', decodedToken.lmsAssignmentId)
-    commit('setUserId', decodedToken.userId)
-    commit('setUserInfo', userInfo(decodedToken.roles))
-    return dispatch('setApiToken', token)
+export const api = defineStore("api", {
+  state: () => ({
+    ltiToken: "",
+    apiToken: "",
+    aud: "",
+    userInfo: "",
+    experimentId: "",
+    assignmentId: "",
+    consent: "",
+    userId: "",
+    lmsApiOAuthURL: ""
+  }),
+
+  getters: {
+    lti_token: state => state.ltiToken,
+    api_token: state => state.apiToken,
+
+    hasTokens: state =>
+      state.ltiToken.length > 0 &&
+      state.apiToken.length > 0
   },
-  setApiToken: ({commit}, token) => {
-    // send a token to the API to receive an API token for the bearer auth header
-    return apiService.getApiToken(token)
-      .then(data => {
-        if (typeof data === 'string') {
-          const decodedToken = jwt_decode(data)
-          commit('setApiToken', data)
-          commit('setAud', decodedToken.aud)
-          commit('setExperimentId', decodedToken.experimentId)
-          commit('setAssignmentId', decodedToken.lmsAssignmentId)
-          commit('setConsent', decodedToken.consent)
-          commit('setUserId', decodedToken.userId)
-          commit('setUserInfo', userInfo(decodedToken.roles))
+
+  actions: {
+    applyDecodedToken(decodedToken) {
+      this.aud = decodedToken.aud || "";
+      this.experimentId = decodedToken.experimentId || "";
+      this.assignmentId = decodedToken.lmsAssignmentId || "";
+      this.consent = decodedToken.consent || "";
+      this.userId = decodedToken.userId || "";
+      this.userInfo = userInfo(decodedToken.roles || []);
+    },
+
+    async setLtiToken(token) {
+      this.ltiToken = token || "";
+
+      if (token) {
+        const decodedToken = jwtDecode(token);
+        this.applyDecodedToken(decodedToken);
+      }
+
+      return this.setApiToken(token);
+    },
+
+    async setApiToken(token) {
+      try {
+        const data = await apiService.getApiToken(token);
+
+        if (typeof data === "string") {
+          const decodedToken = jwtDecode(data);
+
+          this.apiToken = data;
+          this.applyDecodedToken(decodedToken);
         }
-      })
-      .catch(response => {
-        console.error('setApiToken | catch', {response})
-      })
-  },
-  refreshToken: ({commit}, token) => {
-    // send a refresh to the API and receive an API token for the bearer auth header
-    return apiService.refreshToken(token)
-      .then(data => {
-        if (typeof data === 'string') {
-          const decodedToken = jwt_decode(data)
-          commit('setAud', decodedToken.aud)
-          commit('setApiToken', data)
-          commit('setExperimentId', decodedToken.experimentId)
-          commit('setAssignmentId', decodedToken.lmsAssignmentId)
-          commit('setConsent', decodedToken.consent)
-          commit('setUserId', decodedToken.userId)
-          commit('setUserInfo', userInfo(decodedToken.roles))
+
+        return data;
+      } catch (error) {
+        console.error("api/setApiToken | catch", error);
+        return null;
+      }
+    },
+
+    async refreshToken() {
+      try {
+        const data = await apiService.refreshToken();
+
+        if (typeof data === "string") {
+          const decodedToken = jwtDecode(data);
+
+          this.apiToken = data;
+          this.applyDecodedToken(decodedToken);
         }
-      })
-      .catch(response => {
-        console.error('refreshToken | catch', {response})
-      })
-  },
-  async reportStep({state}, {experimentId, step, parameters = null, preferLmsChecks = false}) {
-    // report the current step to the server to do some magic
-    // used for exposure_type, participation_type, and distribution_type selection steps
-    return await apiService.reportStep(experimentId, step, parameters, preferLmsChecks)
-      .then(data => {
-        return data
-      })
-      .catch(response => {
-        console.error('reportStep | catch', {response, state})
-        return response
-      })
-  },
-  async getStepStatus({state}, {experimentId, batchId}) {
-    // check on the status of an async step batch (e.g. a participation-type roster prep) started by reportStep
-    return await apiService.getStepStatus(experimentId, batchId)
-      .then(data => {
-        return data
-      })
-      .catch(response => {
-        console.error('getStepStatus | catch', {response, state})
-        return null
-      })
-  },
-  async deepLinkJwt({state}, id) {
-    // get a deeplink jwt from the server
-    return await apiService.deepLinkJwt(id)
-      .then(data => {
-        return JSON.parse(data);
-      })
-      .catch(response => {
-        console.error('deepLinkJwt | catch', {response, state})
-        return response;
-      })
-  },
-  setLmsApiOAuthURL({commit}, url) {
-    commit('setLmsApiOAuthURL', url);
-  }
-}
 
-const mutations = {
-  setLtiToken(state, data) {
-    state.lti_token = data
-  },
-  setApiToken(state, data) {
-    state.api_token = data
-  },
-  setAud(state, data) {
-    state.aud = data
-  },
-  setUserInfo(state, data) {
-    state.userInfo = data
-  },
-  setExperimentId(state, data) {
-    state.experimentId = data
-  },
-  setAssignmentId(state, data) {
-    state.assignmentId = data
-  },
-  setConsent(state, data) {
-    state.consent = data
-  },
-  setUserId(state, data) {
-    state.userId = data
-  },
-  setLmsApiOAuthURL(state, data) {
-    state.lmsApiOAuthURL = data;
-  }
-}
+        return data;
+      } catch (error) {
+        console.error("api/refreshToken | catch", error);
+        return null;
+      }
+    },
 
-const getters = {
-  lti_token(state) {
-    return state.lti_token
-  },
-  api_token(state) {
-    return state.api_token
-  },
-  aud(state) {
-    return state.aud
-  },
-  hasTokens(state) {
-    // check if both tokens are set in the state
-    return state.lti_token.length > 0 && state.api_token.length > 0
-  },
-  userInfo(state) {
-    return state.userInfo
-  },
-  experimentId(state) {
-    return state.experimentId
-  },
-  assignmentId(state) {
-    return state.assignmentId
-  },
-  consent(state) {
-    return state.consent
-  },
-  userId(state) {
-    return state.userId
-  },
-  lmsApiOAuthURL(state) {
-    return state.lmsApiOAuthURL;
-  }
-}
+    async reportStep({
+      experimentId,
+      step,
+      parameters = null,
+      preferLmsChecks = false
+    }) {
+      try {
+        return await apiService.reportStep(
+          experimentId,
+          step,
+          parameters,
+          preferLmsChecks
+        );
+      } catch (error) {
+        console.error("api/reportStep | catch", error);
+        return null;
+      }
+    },
 
-export const api = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+    async deepLinkJwt(id) {
+      try {
+        const data = await apiService.deepLinkJwt(id);
+
+        return typeof data === "string"
+          ? JSON.parse(data)
+          : data;
+      } catch (error) {
+        console.error("api/deepLinkJwt | catch", error);
+        return null;
+      }
+    },
+
+    setLmsApiOAuthURL(url) {
+      this.lmsApiOAuthURL = url || "";
+    },
+
+    reset() {
+      this.ltiToken = "";
+      this.apiToken = "";
+      this.aud = "";
+      this.userInfo = "";
+      this.experimentId = "";
+      this.assignmentId = "";
+      this.consent = "";
+      this.userId = "";
+      this.lmsApiOAuthURL = "";
+    }
+  },
+
+  persist: {
+    key: "terracotta-api"
+  }
+});

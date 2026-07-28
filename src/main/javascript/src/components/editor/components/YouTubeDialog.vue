@@ -1,130 +1,164 @@
 <template>
-<v-dialog
-  :value="dialog"
-  max-width="500px"
->
-  <v-card>
-    <v-card-title>
-      <span
-        class="headline"
-      >
-        Youtube Embed
-      </span>
-      <v-spacer />
-      <v-btn
-        @click="close"
-        icon
-      >
-        <v-icon>
-          mdi-close
-        </v-icon>
-      </v-btn>
-    </v-card-title>
-    <v-card-text>
-      <v-textarea
-        v-model="embedCode"
-        hint="Paste the Youtube embed code above"
-        placeholder="Youtube embed code"
-        class="input-embed-code"
-      ></v-textarea>
-    </v-card-text>
-    <v-card-actions>
-      <v-btn
-        @click="close"
-        text
-      >
-        Close
-      </v-btn>
-      <v-btn
-        :disabled="isDisabled"
-        @click="add"
-        text
-      >
-        Add
-      </v-btn>
-    </v-card-actions>
-  </v-card>
-</v-dialog>
+  <v-dialog
+    v-model="dialog"
+    max-width="500px"
+  >
+    <v-card>
+      <v-card-title>
+        <span class="text-title-large">
+          YouTube Embed
+        </span>
+
+        <v-spacer />
+
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          @click="close"
+        />
+      </v-card-title>
+
+      <v-card-text>
+        <v-textarea
+          v-model="embedCode"
+          hint="Paste the YouTube embed code above"
+          placeholder="YouTube embed code"
+          class="input-embed-code"
+          variant="outlined"
+        />
+      </v-card-text>
+
+      <v-card-actions>
+        <v-btn
+          variant="text"
+          @click="close"
+        >
+          Close
+        </v-btn>
+
+        <v-btn
+          :disabled="isDisabled"
+          variant="text"
+          @click="add"
+        >
+          Add
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
-<script>
-import { parseIframeEmbed, youtubeParser } from "../util/YouTubeUtils";
+<script setup>
+import {
+  ref,
+  computed,
+  watch
+} from "vue";
 
-export default {
-  props: {
-    editor: {
-      type: Object,
-      required: true,
-    }
+import {
+  parseIframeEmbed,
+  youtubeParser
+} from "../util/YouTubeUtils";
+
+defineOptions({
+  name: "YouTubeDialog"
+});
+
+const props = defineProps({
+  editor: {
+    type: Object,
+    required: true
   },
-  data: () => ({
-    dialog: false,
-    embedCode: null,
-    resolve: null
-  }),
-  computed: {
-    iframe() {
-      return parseIframeEmbed(this.embedCode);
-    },
-    height() {
-      if (this.iframe && this.iframe.height && parseInt(this.iframe.height)) {
-        return parseInt(this.iframe.height);
-      }
-
-      return 315;
-    },
-    width() {
-      if (this.iframe && this.iframe.width && parseInt(this.iframe.width)) {
-        return parseInt(this.iframe.width);
-      }
-
-      return 560;
-    },
-    youtubeId() {
-      // Supports pasting in the iframe embed code, or the short url
-      const url = this.iframe ? this.iframe.src : this.embedCode;
-      const youtubeId = url ? youtubeParser(url) : null;
-
-      return youtubeId ? youtubeId : null;
-    },
-    isDisabled() {
-      return !this.embedCode;
-    }
-  },
-  methods: {
-    openDialog() {
-      this.dialog = true;
-      return new Promise(
-        (resolve) => {
-          this.resolve = resolve;
-        }
-      );
-    },
-    add() {
-      const src = this.youtubeId ? `https://youtu.be/${this.youtubeId}` : this.embedCode;
-      const height = this.height;
-      const width = this.width;
-      this.resolve(
-        {
-          src,
-          height,
-          width
-        }
-      );
-      this.dialog = false;
-    },
-    close() {
-      this.dialog = false;
-    }
+  embedCode: {
+    type: String,
+    default: ""
   }
-}
+});
+
+const emit = defineEmits([
+  "submit",
+  "close"
+]);
+
+const dialog = ref(true);
+const embedCode = ref(props.embedCode || "");
+
+const iframe = computed(() => {
+  return parseIframeEmbed(embedCode.value);
+});
+
+const height = computed(() => {
+  const parsedHeight = Number.parseInt(
+    iframe.value?.height,
+    10
+  );
+
+  return Number.isNaN(parsedHeight)
+    ? 315
+    : parsedHeight;
+});
+
+const width = computed(() => {
+  const parsedWidth = Number.parseInt(
+    iframe.value?.width,
+    10
+  );
+
+  return Number.isNaN(parsedWidth)
+    ? 560
+    : parsedWidth;
+});
+
+const youtubeId = computed(() => {
+  const url = iframe.value
+    ? iframe.value.src
+    : embedCode.value;
+
+  return url
+    ? youtubeParser(url) || null
+    : null;
+});
+
+const isDisabled = computed(() => {
+  return !embedCode.value;
+});
+
+watch(
+  () => props.embedCode,
+  value => {
+    embedCode.value = value || "";
+  }
+);
+
+watch(dialog, isOpen => {
+  if (!isOpen) {
+    emit("close");
+  }
+});
+
+const add = () => {
+  const src = youtubeId.value
+    ? `https://youtu.be/${youtubeId.value}`
+    : embedCode.value;
+
+  emit("submit", {
+    src,
+    height: height.value,
+    width: width.value
+  });
+
+  dialog.value = false;
+};
+
+const close = () => {
+  emit("close");
+  dialog.value = false;
+};
 </script>
 
 <style scoped>
-.input-embed-code {
-  & .v-text-field__slot > label {
-    left: 0px !important;
-    right: auto !important;
-  }
+.input-embed-code :deep(.v-field-label) {
+  left: 0 !important;
+  right: auto !important;
 }
 </style>

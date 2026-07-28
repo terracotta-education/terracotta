@@ -1,187 +1,219 @@
 <template>
-<div>
-  <h1>Select the default condition for your experiment</h1>
-  <p>This is the condition students will receive if they do not consent to participate in the experiment or you mark them to be excluded.</p>
+  <div>
+    <h1>Select the default condition for your experiment</h1>
 
-  <form
-    v-if="experiment"
-    @submit.prevent="saveConditions"
-    class="my-5"
-  >
-    <fieldset
-      v-if="experiment.conditions"
-      class="rounded-lg p-5 mb-7"
-    >
-      <label
-        v-for="condition in experiment.conditions"
-        :key="condition.conditionId"
-        :for="`condition-${condition.conditionId}`"
-      >
-        <span>{{ condition.name }}</span>
-        <span
-          class="radio-check"
-        >
-          <input
-            v-model="selectedDefault"
-            :value="condition.conditionId"
-            :id="`condition-${condition.conditionId}`"
-            @change="saveConditions"
-            type="radio"
-            name="selectedDefault"
-            class="radio-default-condition"
-            required
-          />
-          <span
-            :class="{
-              'is-selected-default': selectedDefault === condition.conditionId
-            }"
-            class="rounded-pill px-3 py-1"
-          >
-            <v-icon
-              v-show="selectedDefault === condition.conditionId"
-            >
-              mdi-check
-            </v-icon>
-            <span>Default</span>
-          </span>
-        </span>
-      </label>
-    </fieldset>
-    <v-btn
-      v-if="!editMode"
-      :disabled="!selectedDefault"
-      :to="{
-        name: this.getNextPage,
-        params:{
-          experiment: experiment.experimentId
-        }
-      }"
-      elevation="0"
-      color="primary"
-      class="mr-4"
-    >
-      Next
-    </v-btn>
-  </form>
-
-  <v-card
-  class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-  outlined
-  >
     <p>
-      <strong>Note:</strong> It's important to specify a default condition so
-      that we know which version of components students not participating in
-      the experiment should receive. This condition should be the one closest to
-      the sort of component students would complete during the normal conduct
-      of the course.
+      This is the condition students will receive if they do not consent to
+      participate in the experiment or you mark them to be excluded.
     </p>
-  </v-card>
-</div>
+
+    <form
+      v-if="experiment"
+      class="my-5"
+      @submit.prevent="saveConditions"
+    >
+      <fieldset
+        v-if="experiment.conditions"
+        class="rounded-lg p-5 mb-7"
+      >
+        <label
+          v-for="condition in experiment.conditions"
+          :key="condition.conditionId"
+          :for="`condition-${condition.conditionId}`"
+        >
+          <span>{{ condition.name }}</span>
+
+          <span class="radio-check">
+            <input
+              :id="`condition-${condition.conditionId}`"
+              v-model="selectedDefault"
+              :value="condition.conditionId"
+              type="radio"
+              name="selectedDefault"
+              class="radio-default-condition"
+              required
+              @change="saveConditions"
+            />
+
+            <span
+              class="rounded-pill px-3 py-1"
+              :class="{
+                'is-selected-default':
+                  selectedDefault === condition.conditionId
+              }"
+            >
+              <v-icon
+                v-show="selectedDefault === condition.conditionId"
+              >
+                mdi-check
+              </v-icon>
+
+              <span>Default</span>
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
+      <v-btn
+        v-if="!editMode"
+        :disabled="!selectedDefault"
+        :to="{
+          name: getNextPage,
+          params: {
+            experiment: experiment.experimentId
+          }
+        }"
+        elevation="0"
+        color="primary"
+        class="mr-4"
+      >
+        Next
+      </v-btn>
+    </form>
+
+    <v-card
+      class="mt-15 pt-5 px-5 mx-auto bg-blue-lighten-5 rounded-lg"
+      variant="outlined"
+    >
+      <p>
+        <strong>Note:</strong>
+        It's important to specify a default condition so that we know which
+        version of components students not participating in the experiment
+        should receive. This condition should be the one closest to the sort of
+        component students would complete during the normal conduct of the
+        course.
+      </p>
+    </v-card>
+  </div>
 </template>
 
-<script>
-import {mapActions, mapGetters} from "vuex";
+<script setup>
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
 
-export default {
-  name: "DefaultCondition",
-  props: {
-    experiment: {
-      type: Object,
-      required: true
-    }
-  },
-  data: () => ({
-    inputConditionId: null
-  }),
-  computed: {
-    ...mapGetters({
-      editMode: "navigation/editMode"
-    }),
-    selectedDefault: {
-      get() {
-        const defaultCondition = this.experiment?.conditions.find(condition => condition.defaultCondition === true);
+import { condition as conditionModule } from "@/store/condition.module";
+import { navigation as navigationModule } from "@/store/navigation.module";
 
-        if (this.inputConditionId !== null) {
-          return this.inputConditionId;
-        } else if (defaultCondition) {
-          return defaultCondition.conditionId;
-        } else {
-          return false;
-        }
-      },
-      set(val) {
-        this.inputConditionId = val;
-      },
-    },
-    getNextPage() {
-      return this.editMode?.callerPage?.name || "ExperimentDesignSummary";
-    },
-    getSaveExitPage() {
-      return this.editMode?.callerPage?.name || "Home";
-    }
-  },
-  methods: {
-    ...mapActions({
-      setDefaultCondition: "condition/setDefaultCondition",
-    }),
-    async saveConditions() {
-      const conditions = this.experiment.conditions
-      const defaultConditionId = this.selectedDefault;
+defineOptions({
+  name: "DefaultCondition"
+});
 
-      await this.setDefaultCondition({conditions, defaultConditionId})
-        .catch(response => {
-          console.log("catch", {response});
-        });
-    },
-    async saveExit() {
-      await this.saveConditions();
-      this.$router.push({
-        name: this.getSaveExitPage,
-        params: {
-          experiment: this.experiment.experimentId
-        }
-      });
-    }
+const props = defineProps({
+  experiment: {
+    type: Object,
+    required: true
   }
-}
+});
+
+const router = useRouter();
+
+const conditionStore = conditionModule();
+const navigationStore = navigationModule();
+
+const inputConditionId = ref(null);
+
+const editMode = computed(() => {
+  return navigationStore.editMode;
+});
+
+const selectedDefault = computed({
+  get() {
+    const defaultCondition = props.experiment?.conditions.find(
+      condition => condition.defaultCondition === true
+    );
+
+    if (inputConditionId.value !== null) {
+      return inputConditionId.value;
+    }
+
+    if (defaultCondition) {
+      return defaultCondition.conditionId;
+    }
+
+    return false;
+  },
+
+  set(value) {
+    inputConditionId.value = value;
+  }
+});
+
+const getNextPage = computed(() => {
+  return editMode.value?.callerPage?.name || "ExperimentDesignSummary";
+});
+
+const getSaveExitPage = computed(() => {
+  return editMode.value?.callerPage?.name || "Home";
+});
+
+const saveConditions = async () => {
+  const conditions = props.experiment.conditions;
+  const defaultConditionId = selectedDefault.value;
+
+  await conditionStore.setDefaultCondition({
+    conditions,
+    defaultConditionId
+  });
+};
+
+const saveExit = async () => {
+  await saveConditions();
+
+  router.push({
+    name: getSaveExitPage.value,
+    params: {
+      experiment: props.experiment.experimentId
+    }
+  });
+};
+
+defineExpose({
+  saveExit
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~@/styles/variables";
-
 fieldset {
   padding: 10px 15px 10px 20px;
-  border: 1px solid map-get($grey, "lighten-2");
+  border: 1px solid map.get($grey, "lighter");
+
   > label {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     font-size: 16px;
+
     &:not(:last-child) {
-      border-bottom: 1px solid map-get($grey, "lighten-2");
+      border-bottom: 1px solid map.get($grey, "lighter");
     }
+
     > span {
       display: block;
       padding: 15px 0;
     }
   }
 }
+
 .radio-check {
   font-size: 14px;
   cursor: pointer;
+
   input[type="radio"] {
     opacity: 0;
     filter: alpha(opacity=0);
     position: absolute;
+
     + span {
       display: block;
-      background-color: map-get($grey, "lighten-2");
+      background-color: map.get($grey, "lighter");
       padding: 15px 0;
     }
+
     &:checked {
       + span {
-        background-color: map-get($light-blue, "base");
+        background-color: map.get($blue, "base");
         color: white;
+
         .v-icon {
           color: white;
           margin-right: 5px;
@@ -190,14 +222,16 @@ fieldset {
         }
       }
     }
+
     &:focus-visible {
       + span {
         border: 1px solid orangered;
       }
     }
   }
+
   & .is-selected-default {
-    background-color: map-get($blue, "primary") !important;
+    background-color: map.get($blue, "primary") !important;
   }
 }
 </style>

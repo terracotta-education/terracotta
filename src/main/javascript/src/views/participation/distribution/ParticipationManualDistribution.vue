@@ -1,233 +1,400 @@
 <template>
-<div
-  class="participation-manual-distribution-container"
->
-  <h1
-    class="mb-5"
-  >
-    Select which students you would like for each condition.
-  </h1>
-  <!-- Conditions Section -->
-  <p>Conditions</p>
-  <v-expansion-panels
-    class="v-expansion-panels--icon"
-    flat
-  >
-    <v-expansion-panel
-      v-for="(condition, index) in this.conditions"
-      :key="condition.conditionId"
-      @click="panelExpansion"
+  <div class="participation-manual-distribution-container">
+    <h1 class="mb-5">
+      Select which students you would like for each condition.
+    </h1>
+
+    <div
+      class="w-50 mx-auto my-0"
     >
-      <v-expansion-panel-header>
-        {{ condition.name }} ({{ arrayDataProxy[index] ? arrayDataProxy[index].length : 0 }})
-      </v-expansion-panel-header>
-      <v-expansion-panel-content>
-        <ListParticipants
-          :listOfParticipants="arrayDataProxy[index] ? arrayDataProxy[index] : []"
-          :moveToOptions="getConditionNames"
-          :moveToHandler="moveToHandler"
-          :selectedOption="'' + index"
-        />
-      </v-expansion-panel-content>
-    </v-expansion-panel>
-  </v-expansion-panels>
-  <!-- Unassigned -->
-  <ListParticipants
-    :listOfParticipants="arrayDataProxy[this.getConditionNames.length - 1] ? arrayDataProxy[this.getConditionNames.length - 1] : []"
-    :moveToOptions="getConditionNames"
-    :moveToHandler="moveToHandler"
-    :selectedOption="'' + (this.getConditionNames.length - 1)"
-  />
-  <v-btn
-    @click="submitDistribution('ParticipationSummary')"
-    elevation="0"
-    class="mt-10"
-    color="primary"
-  >
-    Continue
-  </v-btn>
-</div>
+      <p>Conditions</p>
+
+      <v-expansion-panels
+        class="v-expansion-panels--icon"
+      >
+        <v-expansion-panel
+          v-for="(condition, index) in conditions"
+          :key="condition.conditionId"
+          @click="panelExpansion"
+        >
+          <v-expansion-panel-title>
+            {{ condition.name }}
+            ({{ arrayDataProxy[index]?.length || 0 }})
+          </v-expansion-panel-title>
+
+          <v-expansion-panel-text>
+            <ListParticipants
+              :list-of-participants="
+                arrayDataProxy[index] || []
+              "
+              :move-to-options="conditionNames"
+              :move-to-handler="moveToHandler"
+              :selected-option="String(index)"
+            />
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+
+      <ListParticipants
+        :list-of-participants="
+          arrayDataProxy[
+            conditionNames.length - 1
+          ] || []
+        "
+        :move-to-options="conditionNames"
+        :move-to-handler="moveToHandler"
+        :selected-option="
+          String(conditionNames.length - 1)
+        "
+      />
+
+      <v-btn
+        elevation="0"
+        color="primary"
+        class="mt-10"
+        @click="
+          submitDistribution(
+            'ParticipationSummary'
+          )
+        "
+      >
+        Continue
+      </v-btn>
+    </div>
+  </div>
 </template>
 
-<script>
-import { mapGetters, mapActions } from "vuex";
+<script setup>
+import {
+  ref,
+  computed,
+  watch,
+  onMounted
+} from "vue";
+
+import {
+  useRouter,
+  onBeforeRouteUpdate
+} from "vue-router";
+
+import Swal from "sweetalert2";
+
+import ListParticipants from "@/components/ListParticipants.vue";
+
 import { participantService } from "@/services";
 import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
-import ListParticipants from "@/components/ListParticipants.vue";
-import store from "@/store";
 
-export default {
-  name: "ParticipationManualDistribution",
-  props: {
-    experiment: {
-      type: Object,
-      required: true
+import { participants as participantsModule } from "@/store/participants.module";
+import { exposures as exposuresModule } from "@/store/exposures.module";
+import { navigation as navigationModule } from "@/store/navigation.module";
+
+defineOptions({
+  name: "ParticipationManualDistribution"
+});
+
+const props = defineProps({
+  experiment: {
+    type: Object,
+    required: true
+  }
+});
+
+const router = useRouter();
+
+const participantsStore =
+  participantsModule();
+
+const exposuresStore =
+  exposuresModule();
+
+const navigationStore =
+  navigationModule();
+
+const arrayDataProxy = ref([]);
+
+/*
+ * Stores
+ */
+const participants = computed(() => {
+  return (
+    participantsStore.participants || []
+  );
+});
+
+const exposures = computed(() => {
+  return exposuresStore.exposures || [];
+});
+
+const editMode = computed(() => {
+  return navigationStore.editMode;
+});
+
+/*
+ * Computed
+ */
+const getSaveExitPage = computed(() => {
+  return (
+    editMode.value?.callerPage?.name ||
+    "Home"
+  );
+});
+
+const conditions = computed(() => {
+  return (
+    props.experiment.conditions || []
+  );
+});
+
+const conditionNames = computed(() => {
+  return [
+    ...conditions.value.map(
+      condition => condition.name
+    ),
+    "Unassigned"
+  ];
+});
+
+const arrayData = computed({
+  get() {
+    const newArray = [];
+
+    for (
+      let i = 0;
+      i < conditions.value.length;
+      i++
+    ) {
+      newArray.push([]);
     }
-  },
-  components: {
-    ListParticipants,
-  },
-  data: () => ({
-    arrayDataProxy: []
-  }),
-  watch: {
-    participants: {
-      handler() {
-        // All the participant will go to 'Unparticipate' section
-        const participatingStudents = this.participants.filter(({consent}) => consent === true);
-        const conditionGroupIDMap = this.getConditionGroupIDMap();
 
-        // This will only required when the page is loaded
-        const newArray = [];
+    newArray.push(
+      participants.value
+    );
 
-        for (let i = 0; i < this.conditions.length; i++) {
-          const studentsAssignedToCondition = participatingStudents.filter((student) => student.groupId === conditionGroupIDMap[i]);
-          newArray.push(studentsAssignedToCondition);
+    return newArray;
+  },
+
+  set(value) {
+    arrayDataProxy.value = value;
+  }
+});
+
+/*
+ * Watchers
+ */
+watch(
+  participants,
+  () => {
+    const participatingStudents =
+      participants.value.filter(
+        ({ consent }) =>
+          consent === true
+      );
+
+    const conditionGroupIDMap =
+      getConditionGroupIDMap();
+
+    const newArray = [];
+
+    for (
+      let i = 0;
+      i < conditions.value.length;
+      i++
+    ) {
+      const assigned =
+        participatingStudents.filter(
+          student =>
+            student.groupId ===
+            conditionGroupIDMap[i]
+        );
+
+      newArray.push(assigned);
+    }
+
+    const unassigned =
+      participatingStudents.filter(
+        student =>
+          student.groupId === null
+      );
+
+    newArray.push(unassigned);
+
+    arrayData.value = newArray;
+  },
+  { deep: true }
+);
+
+/*
+ * Methods
+ */
+const getConditionGroupIDMap = () => {
+  const map = {};
+
+  const firstExposureId =
+    exposures.value
+      .map(
+        exposure =>
+          exposure.exposureId
+      )
+      .sort((a, b) => a - b)[0];
+
+  const firstExposure =
+    exposures.value.find(
+      exposure =>
+        exposure.exposureId ===
+        firstExposureId
+    );
+
+  firstExposure?.groupConditionList?.forEach(
+    ({ groupId }, index) => {
+      map[index] = groupId;
+    }
+  );
+
+  return map;
+};
+
+const submitDistribution = async path => {
+  const requestBody = [];
+
+  const conditionGroupIDMap =
+    getConditionGroupIDMap();
+
+  arrayDataProxy.value.forEach(
+    (participantList, index) => {
+      participantList.forEach(
+        participant => {
+          requestBody.push({
+            participantId:
+              participant.participantId,
+            consent:
+              participant.consent,
+            dropped:
+              participant.dropped,
+            groupId:
+              conditionGroupIDMap[
+                index
+              ] || null
+          });
         }
-
-        const unAssignedStudents = participatingStudents.filter((student) => student.groupId === null);
-        newArray.push(unAssignedStudents);
-        this.arrayData = newArray;
-      },
-      deep: true
+      );
     }
-  },
-  computed: {
-    ...mapGetters({
-      participants: "participants/participants",
-      exposures: "exposures/exposures",
-      editMode: "navigation/editMode"
-    }),
-    getSaveExitPage() {
-      return this.editMode?.callerPage?.name || "Home";
-    },
-    conditions() {
-      return this.experiment.conditions;
-    },
-    getConditionNames() {
-      return [
-        ...this.experiment.conditions.map((condition) => condition.name),
-        "Unassigned",
-      ];
-    },
-    arrayData: {
-      get: function() {
-        const newArray = [];
+  );
 
-        for (let i = 0; i < this.conditions.length; i++) {
-          newArray.push([]);
+  try {
+    const response =
+      await participantService.updateParticipants(
+        props.experiment
+          .experimentId,
+        requestBody
+      );
+
+    if (response?.status === 200) {
+      router.push({
+        name: path,
+        params: {
+          experiment:
+            props.experiment
+              .experimentId
         }
+      });
 
-        // All the participant will go to 'Unparticipate' section
-        newArray.push(this.participants);
-        return newArray;
-      },
-      set: function(newValue) {
-        this.arrayDataProxy = newValue;
-      },
-    },
-  },
-  methods: {
-    ...mapActions({
-      fetchExposures: "exposures/fetchExposures",
-      fetchParticipants: "participants/fetchParticipants"
-    }),
-    getExposure() {
-      this.fetchExposures(this.experiment.experimentId);
-    },
-    getConditionGroupIDMap() {
-      const conditionGroupIDMap = {};
-
-      const firstExposureId = this.exposures
-        .map((expo) => expo.exposureId)
-        .sort((a, b) => a - b)[0];
-
-      const firstExposure = this.exposures.filter(
-        (expo) => expo.exposureId === firstExposureId
-      )[0];
-
-      firstExposure.groupConditionList.map(
-        ({ groupId }, index) => (conditionGroupIDMap[index] = groupId)
-      );
-
-      return conditionGroupIDMap;
-    },
-    submitDistribution(path) {
-      const requestBody = [];
-      const conditionGroupIDMap = this.getConditionGroupIDMap();
-
-      this.arrayDataProxy.map((arrData, index) =>
-        arrData.map((participant) => {
-          const temp = {
-            participantId: participant.participantId,
-            consent: participant.consent,
-            dropped: participant.dropped,
-            groupId: conditionGroupIDMap[index] ? conditionGroupIDMap[index] : null,
-          }
-          requestBody.push(temp)
-        })
-      );
-
-      participantService
-        .updateParticipants(this.experiment.experimentId, requestBody)
-        .then((response) => {
-          if (response?.status === 200) {
-            this.$router.push({
-              name: path,
-              params: { experiment: this.experiment.experimentId },
-            });
-          } else {
-            this.$swal(response.error)
-          }
-        })
-        .catch((response) => {
-          console.log("submitParticipants | catch", { response });
-        })
-    },
-    moveToHandler(option, tempSelected) {
-      const selectedParticipantIDs = tempSelected.map(
-        (participant) => participant.participantId
-      );
-
-      const filteredParticipants = this.arrayDataProxy.map(
-        (conditionParticipantMap) =>
-          conditionParticipantMap.filter(
-            (participant) =>
-              !selectedParticipantIDs.includes(participant.participantId)
-          )
-      );
-
-      const idx = this.getConditionNames.indexOf(option);
-      filteredParticipants[idx] = [
-        ...filteredParticipants[idx],
-        ...tempSelected,
-      ];
-
-      this.arrayData = filteredParticipants;
-    },
-    saveExit() {
-      this.submitDistribution(this.getSaveExitPage);
-    },
-    panelExpansion() {
-      setTimeout(() => {
-        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
-      }, 1000);
+      return;
     }
-  },
-  async created() {
-    await this.fetchExposures(this.experiment.experimentId);
-    await this.fetchParticipants(this.experiment.experimentId);
-  },
-  mounted() {
-    deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
-  },
-  beforeRouteUpdate(to, from, next) {
-    //  load participant data before selection screen
-    return (
-      store
-        .dispatch("participants/fetchParticipants", to.params.experimentId)
-        .then(next, next)
+
+    await Swal.fire(
+      response?.error ||
+        "Error updating participants"
+    );
+  } catch (error) {
+    console.error(
+      "submitDistribution | catch",
+      error
     );
   }
 };
+
+const moveToHandler = (
+  option,
+  tempSelected
+) => {
+  const selectedIds =
+    tempSelected.map(
+      participant =>
+        participant.participantId
+    );
+
+  const filtered =
+    arrayDataProxy.value.map(
+      conditionParticipants =>
+        conditionParticipants.filter(
+          participant =>
+            !selectedIds.includes(
+              participant.participantId
+            )
+        )
+    );
+
+  const targetIndex =
+    conditionNames.value.indexOf(
+      option
+    );
+
+  filtered[targetIndex] = [
+    ...filtered[targetIndex],
+    ...tempSelected
+  ];
+
+  arrayData.value = filtered;
+};
+
+const saveExit = () => {
+  submitDistribution(
+    getSaveExitPage.value
+  );
+};
+
+const panelExpansion = () => {
+  setTimeout(() => {
+    deleteAttributesFromElement(
+      ".v-expansion-panel",
+      ["aria-expanded"]
+    );
+  }, 1000);
+};
+
+/*
+ * Lifecycle
+ */
+onMounted(async () => {
+  await exposuresStore.fetchExposures(
+    props.experiment.experimentId
+  );
+
+  await participantsStore.fetchParticipants([
+    props.experiment.experimentId
+  ]);
+
+  deleteAttributesFromElement(
+    ".v-expansion-panel",
+    ["aria-expanded"]
+  );
+});
+
+onBeforeRouteUpdate(
+  async (to, from, next) => {
+    try {
+      await participantsStore.fetchParticipants([
+        to.params.experimentId
+      ]);
+
+      next();
+    } catch {
+      next();
+    }
+  }
+);
+
+defineExpose({
+  saveExit
+});
 </script>

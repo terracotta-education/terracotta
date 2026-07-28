@@ -1,31 +1,42 @@
 <template>
-<div
-  v-if="experiment && assignment"
->
+<div>
   <div
-    v-if="showFileRequestAlert"
-    class="pb-2"
+    v-if="isLoading"
+    class="pa-4"
   >
-    <v-alert
-      v-model="showFileRequestAlert"
-      :type="fileRequestAlert.type"
-      @input="handleFileRequestAlertDismiss"
-      class="alert-file-request"
-      elevation="0"
-      dismissible
-      outlined
-      text
-    >
-      {{ fileRequestAlert.text }}
-      <a
-        v-if="fileRequestAlert.showDownloadLink"
-        @click="handleAlertFileRequest()"
-      >
-        <b><i>Click here to download</i></b>.
-      </a>
+    <v-progress-circular indeterminate color="primary" />
+  </div>
+  <div
+    v-else-if="!experiment || !assignment?.assignmentId"
+    class="pa-4"
+  >
+    <v-alert type="error" variant="outlined">
+      Unable to load assignment data.
     </v-alert>
   </div>
-  <template>
+  <div v-else>
+    <div
+      v-if="showFileRequestAlert"
+      class="pb-2"
+    >
+      <v-alert
+        v-model="showFileRequestAlert"
+        :type="fileRequestAlert.type"
+        @click:close="handleFileRequestAlertDismiss"
+        class="alert-file-request"
+        elevation="0"
+        closable
+        variant="outlined"
+      >
+        {{ fileRequestAlert.text }}
+        <a
+          v-if="fileRequestAlert.showDownloadLink"
+          @click="handleAlertFileRequest()"
+        >
+          <b><i>Click here to download</i></b>.
+        </a>
+      </v-alert>
+    </div>
     <div
       class="header-row w-100 mb-2"
     >
@@ -46,7 +57,7 @@
             @click="handleFileRequest()"
             color="primary"
             class="btn-download-file"
-            outlined
+            variant="outlined"
           >
             Retrieve File Submissions
           </v-btn>
@@ -70,411 +81,309 @@
       class="mt-6"
     >
       <h3>
-        {{ selectedTreatment.assessmentDto.title }}
+        {{ selectedTreatment.assessmentDto?.title }}
       </h3>
       <form
         @submit.prevent="saveExit"
       >
-        <v-simple-table
+        <v-table
           class="mb-9 v-data-table--light-header"
         >
-          <template
-            v-slot:default
-          >
-            <thead>
-              <tr>
-                <th
-                  class="text-left"
-                >
-                  Student Name
-                </th>
-                <th
-                  class="text-left"
-                  style="width:250px;"
-                >
-                  Score (out of {{ selectedTreatment.assessmentDto.maxPoints }})
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <template
-                v-for="(participant, pidx) in getParticipantWithSubmission(participants, selectedTreatment)"
+          <thead>
+            <tr>
+              <th
+                class="text-left"
               >
-                <template
-                  v-if="participant.submission"
-                >
-                  <tr
-                    :key="pidx"
+                Student Name
+              </th>
+              <th
+                class="text-left"
+                style="width:250px;"
+              >
+                Score (out of {{ selectedTreatment.assessmentDto?.maxPoints }})
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <template
+              v-for="(participant, pidx) in participantsWithSubmissionsByTreatmentId.get(selectedTreatment.treatmentId)"
+              :key="pidx"
+            >
+              <tr v-if="participant.submission">
+                <td>
+                  <router-link
+                    :to="{
+                      name: 'StudentSubmissionGrading',
+                      params: {
+                        experimentId: experimentId,
+                        exposureId: exposureId,
+                        assignmentId: assignmentId,
+                        assessmentId: participant.submission.assessmentId,
+                        conditionId: participant.submission.conditionId,
+                        treatmentId: participant.submission.treatmentId,
+                        participantId: participant.participantId,
+                      },
+                    }"
+                    class="link-student-name"
                   >
-                    <td>
-                      <router-link
-                        :to="{
-                          name: 'StudentSubmissionGrading',
-                          params: {
-                            experimentId: experimentId,
-                            exposureId: exposureId,
-                            assignmentId: assignmentId,
-                            assessmentId: participant.submission.assessmentId,
-                            conditionId: participant.submission.conditionId,
-                            treatmentId: participant.submission.treatmentId,
-                            participantId: participant.participantId,
-                          },
-                        }"
-                      >
-                        {{ participant.user.displayName }}
-                      </router-link>
-                    </td>
-                    <td>
-                      <span>{{ participant.scoreToDisplay }}</span>
-                    </td>
-                  </tr>
-                </template>
-              </template>
-            </tbody>
-          </template>
-        </v-simple-table>
+                    {{ participant.user.displayName }}
+                  </router-link>
+                </td>
+                <td>
+                  <span>{{ participant.scoreToDisplay }}</span>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </v-table>
       </form>
-      <template
-        v-if="index !== selectedAssignmentTreatments.length - 1"
-      >
-        <hr />
-      </template>
+      <hr v-if="index !== selectedAssignmentTreatments.length - 1" />
     </div>
-  </template>
+  </div>
 </div>
 </template>
 
-<script>
-import { mapActions, mapGetters } from "vuex";
+<script setup>
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
-export default {
-  name: "AssignmentScores",
-  data: () => ({
-    fileRequestPollingId: null,
-    fileRequestPolling: false,
-    fileDownloadLinkClicked: false,
-    showFileRequestAlert: false
-  }),
-  watch: {
-    fileRequestPolling: {
-      handler: function (enabled) {
-        if (enabled) {
-          // create file request polling scheduler
-          this.fileRequestPollingId = window.setInterval(() => {
-            this.handleFileRequestPolling()
-          }, 5000);
-        } else {
-          // clear file request polling scheduler
-          this.fileRequestPollingId = window.clearInterval(this.fileRequestPollingId);
-        }
-      },
-      immediate: false
-    }
-  },
-  computed: {
-    ...mapGetters({
-      experiment: "experiment/experiment",
-      assignment: "assignment/assignment",
-      participants: "participants/participants",
-      editMode: "navigation/editMode",
-      fileRequest: "assignmentfilearchive/fileRequest"
-    }),
-    assignmentId() {
-      return parseInt(this.$route.params.assignmentId);
-    },
-    exposureId() {
-      return parseInt(this.$route.params.exposureId);
-    },
-    experimentId() {
-      return parseInt(this.$route.params.experimentId);
-    },
-    selectedAssignmentTreatments() {
-      return this.assignment.treatments;
-    },
-    getSaveExitPage() {
-      return this.editMode?.callerPage?.name || "ExperimentSummaryStatus";
-    },
-    hasFileSubmissionQuestions() {
-      return this.assignment?.treatments?.some(
-        treatment => {
-          if (treatment.assessmentDto.questions.some(question => question.questionType === "FILE")) {
-            return true;
-          }
-        }
-      );
-    },
-    hasFileSubmissions() {
-      return this.assignment?.treatments?.filter(
-        treatment => {
-          if (treatment.assessmentDto.questions.some(question => question.questionType === "FILE")) {
-            return true;
-          }
-        }
-      )
-      .some(treatment => treatment.assessmentDto.submissions.length > 0);
-    },
-    fileArchiveAvailable() {
-      return this.fileRequest?.ready;
-    },
-    fileArchive() {
-      if (this.fileRequest?.ready || this.fileRequest?.downloaded) {
-        return {
-          status: "Files ready to download",
-          color: "success",
-          icon: "mdi-check",
-          showStatus: this.showFileRequestStatus
-        }
-      }
+import { experiment as experimentModule } from "@/store/experiment.module";
+import { assignment as assignmentModule } from "@/store/assignment.module";
+import { participants as participantsModule } from "@/store/participants.module";
+import { assignmentFileArchive as assignmentFileArchiveModule } from "@/store/assignment-file-archive.module";
 
-      if (this.fileRequest?.processing || this.fileRequest?.reprocessing) {
-        return {
-          status: "Files are being processed",
-          color: "info",
-          icon: "mdi-clock",
-          showStatus: this.showFileRequestStatus
-        }
-      }
+defineOptions({ name: "AssignmentScores" });
 
-      if (this.fileRequest?.error) {
-        return {
-          status: "File processing error",
-          color: "error",
-          icon: "mdi-exclamation",
-          showStatus: this.showFileRequestStatus
-        }
-      }
+const experimentStore = experimentModule();
+const assignmentStore = assignmentModule();
+const participantsStore = participantsModule();
+const assignmentFileArchiveStore = assignmentFileArchiveModule();
 
-      return {
-        show: false
-      }
-    },
-    showFileRequestStatus() {
-      return !this.showFileRequestAlert &&
-        [
-          this.fileRequest?.processing,
-          this.fileRequest?.reprocessing,
-          this.fileRequest?.ready,
-          this.fileRequest?.downloaded
-        ].some(e => e === true);
-    },
-    fileRequestAlert() {
-      if (this.fileRequest?.ready) {
-        return {
-          showDownloadLink: true,
-          text: "Your files are ready.",
-          type: "success"
-        }
-      }
+const route = useRoute();
+const router = useRouter();
 
-      if (this.fileRequest?.processing || this.fileRequest?.reprocessing) {
-        return {
-          showDownloadLink: false,
-          text: "Your files are being processed. Please do not navigate away from this page.",
-          type: "info"
-        }
-      }
+// ---------------- ROUTE PARAMS ----------------
+const experimentId = computed(() => parseInt(route.params.experimentId));
+const exposureId = computed(() => parseInt(route.params.exposureId));
+const assignmentId = computed(() => parseInt(route.params.assignmentId));
 
-      if (this.fileRequest?.error) {
-        return {
-          showDownloadLink: false,
-          text: "There was an error processing the requested assignment submission files. Please try again or contact support.",
-          type: "error"
-        }
-      }
+// ---------------- STORE ----------------
+const experiment = computed(() => experimentStore.experiment);
+const assignment = computed(() => assignmentStore.assignment);
+const participants = computed(() => participantsStore.participants);
+const fileRequest = computed(() => assignmentFileArchiveStore.fileRequest);
 
-      return {};
-    }
-  },
-  methods: {
-    ...mapActions({
-      fetchParticipants: "participants/fetchParticipants",
-      fetchAssignment: "assignment/fetchAssignment",
-      retrieveFileRequest: "assignmentfilearchive/retrieve",
-      prepareFileRequest: "assignmentfilearchive/prepare",
-      resetFileRequest: "assignmentfilearchive/reset",
-      pollFileRequest: "assignmentfilearchive/poll",
-      fileRequestErrorAcknowledge: "assignmentfilearchive/acknowledgeError"
-    }),
-    getParticipantWithSubmission(participants, treatment) {
-      return participants.map(p => {
-        const subs = treatment.assessmentDto.submissions;
-        const psubs = subs.filter(s => s.participantId === p.participantId);
-        const scoreToDisplay = this.calculateScore(psubs, treatment.assessmentDto.multipleSubmissionScoringScheme);
-        const latest = this.getLatestSubmissionFromSet(psubs);
-        return {
-          ...p,
-          submission: latest,
-          scoreToDisplay: scoreToDisplay
-        }
-      });
-    },
-    getLatestSubmissionFromSet(subs) {
-      if (!subs.length) {
-        return null;
-      }
-      if (subs.length < 2) {
-        return subs[0];
-      }
-      return [...subs].sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse()[0];
-    },
-    getParticipantName(participantId) {
-      return this.participants?.filter((participant) => participant.participantId === participantId)[0]?.user.displayName;
-    },
-    async saveExit() {
-      try {
-        this.$router.push({
-          name: this.$router.currentRoute.meta.previousStep,
-        });
-      } catch (error) {
-        this.$swal("There was a problem saving assignment scores.");
-      }
-    },
-    calculateScore(participantSubmissions, scheme) {
-      // scores sorted by date descending
-      const scores = participantSubmissions
-        .sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse()
-        .map((ps) => ps.gradeOverridden ? ps.totalAlteredGrade : ps.alteredCalculatedGrade);
+// ---------------- SCORES ----------------
+const round = n => (n % 1 ? n.toFixed(2) : n);
 
-      if (!scores.length) {
-        return "N/A";
-      }
+const calculateScore = (subs, scheme) => {
+  const scoreList = [...subs]
+    .sort((a, b) => a.dateSubmitted - b.dateSubmitted)
+    .reverse()
+    .map(s => s.gradeOverridden ? s.totalAlteredGrade : s.alteredCalculatedGrade);
 
-      switch(scheme) {
-        case "AVERAGE":
-          return this.round((scores.reduce((a, b) => a + b, 0)) / scores.length);
-        case "HIGHEST":
-          return Math.max(...scores);
-        case "MOST_RECENT":
-        default:
-          // latest score is first in array
-          return scores[0];
-      }
-    },
-    round(n) {
-      return n % 1 ? n.toFixed(2) : n;
-    },
-    async loadData() {
-      this.resetFileRequest();
-      await this.fetchAssignment([
-        this.experimentId,
-        this.exposureId,
-        this.assignmentId,
-        true,
-      ]);
-      await this.fetchParticipants(this.experimentId);
-      await this.pollFileRequest([
-        this.experimentId,
-        this.exposureId,
-        this.assignmentId,
-        false
-      ]);
-      this.showFileRequestAlert = this.fileRequest ? (this.fileRequest.ready || this.fileRequest.processing || this.fileRequest.reprocessing || this.fileRequest.error) : false;
-    },
-    async handleAlertFileRequest() {
-      this.fileDownloadLinkClicked = true;
-      await this.handleFileRequest();
-    },
-    async handleFileRequest() {
-      await this.pollFileRequest([
-        this.experimentId,
-        this.exposureId,
-        this.assignmentId,
-        this.fileRequest ? (this.fileRequest.ready || this.fileRequest.downloaded) : false
-      ]);
+  if (!scoreList.length) return "N/A";
 
-      if (this.fileRequest?.ready || this.fileRequest?.downloaded) {
-        // retrieve file
-        await this.retrieveFileRequest([
-          this.experimentId,
-          this.exposureId,
-          this.assignmentId,
-          this.fileRequest
-        ]);
-
-        if (this.fileRequest?.ready || this.fileRequest?.downloaded) {
-          // file has been delivered
-          return;
-        }
-      }
-
-      if (this.fileRequest?.processing) {
-        this.$swal({
-          icon: "info",
-          text: `Assignment files are still being processed. You will be notified when the files are ready for download.
-            Please do not navigate away from this page.`,
-          confirmButtonText: "OK"
-        });
-        return;
-      }
-
-      if (this.fileRequest?.reprocessing) {
-        this.$swal({
-          icon: "info",
-          text: `New submissons have occurred since the requested set of assignment files were processed. A new set is being created.
-            You will be notified when the files are ready for download. Please do not navigate away from this page.`,
-          confirmButtonText: "OK"
-        });
-        return;
-      }
-
-      const fileRequestConfirm = await this.$swal({
-        icon: "info",
-        text: `Depending on the number of submissions, it could take several minutes to retrieve your files.
-          You will see an alert when the files are ready to download. After you click “ok”, please stay on this page until your download is ready.`,
-        showCancelButton: true,
-        confirmButtonText: "OK"
-      });
-
-      if (fileRequestConfirm.isConfirmed) {
-        await this.prepareFileRequest([
-          this.experimentId,
-          this.exposureId,
-          this.assignmentId
-        ]);
-      }
-
-      this.fileRequestPolling = this.fileRequest?.processing || this.fileRequest?.reprocessing;
-      this.showFileRequestAlert = this.fileRequestPolling;
-    },
-    async handleFileRequestPolling() {
-      await this.pollFileRequest([
-        this.experimentId,
-        this.exposureId,
-        this.assignmentId,
-        false
-      ]);
-
-      this.fileRequestPolling = this.fileRequest.processing || this.fileRequest.reprocessing;
-      this.showFileRequestAlert = this.fileRequest.ready || this.fileRequest.error || this.fileRequestPolling;
-    },
-    async handleFileRequestAlertDismiss() {
-      this.showFileRequestAlert = false;
-      this.fileDownloadLinkClicked = false;
-      this.fileRequestPolling = false;
-
-      if (this.fileRequest?.error) {
-        this.fileRequestErrorAcknowledge([
-          this.experimentId,
-          this.exposureId,
-          this.assignmentId,
-          this.fileRequest.id
-        ]);
-      }
-    }
-  },
-  beforeRouteUpdate() {
-    this.loadData();
-  },
-  async mounted() {
-    this.loadData();
-  },
-  beforeDestroy() {
-    // clear file request polling scheduler
-    if (this.fileRequestPollingId !== null) {
-      window.clearInterval(this.fileRequestPollingId);
-    }
+  switch (scheme) {
+    case "AVERAGE":
+      return round(scoreList.reduce((a, b) => a + b, 0) / scoreList.length);
+    case "HIGHEST":
+      return Math.max(...scoreList);
+    default:
+      return scoreList[0];
   }
 };
+
+const getLatestSubmission = subs => {
+  if (!subs.length) return null;
+  return [...subs].sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse()[0];
+};
+
+const getParticipantWithSubmission = (participantList, treatment) => {
+  const submissionsByParticipantId = new Map();
+
+  (treatment.assessmentDto?.submissions || []).forEach(s => {
+    const list = submissionsByParticipantId.get(s.participantId) || [];
+    list.push(s);
+    submissionsByParticipantId.set(s.participantId, list);
+  });
+
+  return participantList.map(p => {
+    const subs = submissionsByParticipantId.get(p.participantId) || [];
+    return {
+      ...p,
+      submission: getLatestSubmission(subs),
+      scoreToDisplay: calculateScore(subs, treatment.assessmentDto.multipleSubmissionScoringScheme)
+    };
+  });
+};
+
+// memoized per treatment; only recomputes when participants or the assignment's treatments actually change,
+// instead of on every re-render (e.g. the 5s file-request poll)
+const participantsWithSubmissionsByTreatmentId = computed(() => {
+  const map = new Map();
+
+  selectedAssignmentTreatments.value.forEach(treatment => {
+    map.set(
+      treatment.treatmentId,
+      getParticipantWithSubmission(participants.value, treatment)
+    );
+  });
+
+  return map;
+});
+
+// ---------------- LOADING ----------------
+const isLoading = ref(true);
+
+// ---------------- FILE REQUEST ----------------
+const showFileRequestAlert = ref(false);
+const fileRequestPolling = ref(false);
+let intervalId = null;
+
+const fileArchive = computed(() => {
+  const fr = fileRequest.value;
+  if (fr?.ready) return { showStatus: true, color: "success", icon: "mdi-check-circle", status: "File archive ready" };
+  if (fr?.processing || fr?.reprocessing) return { showStatus: true, color: "info", icon: "mdi-loading mdi-spin", status: "Processing…" };
+  if (fr?.error) return { showStatus: true, color: "error", icon: "mdi-alert-circle", status: "Error preparing archive" };
+  return { showStatus: false };
+});
+
+const fileRequestAlert = computed(() => {
+  const fr = fileRequest.value;
+  if (fr?.ready) return { type: "success", text: "Your file archive is ready.", showDownloadLink: true };
+  if (fr?.processing || fr?.reprocessing) return { type: "info", text: "Your file archive is being prepared. Please wait.", showDownloadLink: false };
+  if (fr?.error) return { type: "error", text: "There was an error preparing your file archive.", showDownloadLink: false };
+  return { type: "info", text: "", showDownloadLink: false };
+});
+
+const handleFileRequestAlertDismiss = () => {
+  showFileRequestAlert.value = false;
+};
+
+const handleAlertFileRequest = async () => {
+  if (fileRequest.value?.ready) {
+    await assignmentFileArchiveStore.retrieve([
+      experimentId.value,
+      exposureId.value,
+      assignmentId.value,
+      fileRequest.value
+    ]);
+    showFileRequestAlert.value = false;
+  }
+};
+
+const poll = async () => {
+  await assignmentFileArchiveStore.poll([
+    experimentId.value,
+    exposureId.value,
+    assignmentId.value,
+    false
+  ]);
+};
+
+const startPolling = fn => { intervalId = setInterval(fn, 5000); };
+const stopPolling = () => { if (intervalId) clearInterval(intervalId); };
+
+const handleFileRequestPolling = async () => {
+  await poll();
+  fileRequestPolling.value = fileRequest.value?.processing || fileRequest.value?.reprocessing;
+  showFileRequestAlert.value = fileRequest.value?.ready || fileRequest.value?.error || fileRequestPolling.value;
+};
+
+const handleFileRequest = async () => {
+  await poll();
+  if (fileRequest.value?.ready) {
+    await assignmentFileArchiveStore.retrieve([
+      experimentId.value,
+      exposureId.value,
+      assignmentId.value,
+      fileRequest.value
+    ]);
+    return;
+  }
+  await assignmentFileArchiveStore.prepare([
+    experimentId.value,
+    exposureId.value,
+    assignmentId.value
+  ]);
+  fileRequestPolling.value = true;
+  showFileRequestAlert.value = true;
+};
+
+// ---------------- DATA ----------------
+const loadData = async () => {
+  isLoading.value = true;
+  assignmentFileArchiveStore.reset();
+
+  await Promise.all([
+    assignmentStore.fetchAssignment([
+      experimentId.value,
+      exposureId.value,
+      assignmentId.value,
+      true
+    ]),
+    participantsStore.fetchParticipants([experimentId.value])
+  ]);
+
+  if (hasFileSubmissionQuestions.value) {
+    await assignmentFileArchiveStore.poll([
+      experimentId.value,
+      exposureId.value,
+      assignmentId.value,
+      false
+    ]);
+
+    showFileRequestAlert.value =
+      fileRequest.value?.ready ||
+      fileRequest.value?.processing ||
+      fileRequest.value?.error;
+  }
+
+  isLoading.value = false;
+};
+
+// ---------------- COMPUTED ----------------
+const selectedAssignmentTreatments = computed(() => {
+  return assignment.value?.treatments || [];
+});
+
+const hasFileSubmissionQuestions = computed(() => {
+  return assignment.value?.treatments?.some(t =>
+    t.assessmentDto?.questions?.some(q => q.questionType === "FILE")
+  );
+});
+
+const hasFileSubmissions = computed(() => {
+  return assignment.value?.treatments
+    ?.filter(t =>
+      t.assessmentDto?.questions?.some(q => q.questionType === "FILE")
+    )
+    .some(t => (t.assessmentDto?.submissions?.length ?? 0) > 0);
+});
+
+// ---------------- NAV ----------------
+const saveExit = () => {
+  router.push({
+    name: router.currentRoute.value.meta.previousStep
+  });
+};
+
+// ---------------- WATCH ----------------
+watch(fileRequestPolling, enabled => {
+  if (enabled) {
+    startPolling(handleFileRequestPolling);
+  } else {
+    stopPolling();
+  }
+});
+
+// ---------------- LIFECYCLE ----------------
+onMounted(loadData);
+
+onBeforeUnmount(stopPolling);
+
+defineExpose({ saveExit });
 </script>
 
 <style lang="scss" scoped>
@@ -510,5 +419,8 @@ export default {
   & a {
     color: white;
   }
+}
+a.link-student-name {
+  color: unset !important;
 }
 </style>

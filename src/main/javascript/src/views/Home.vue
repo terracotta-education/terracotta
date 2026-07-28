@@ -4,6 +4,10 @@
       :display="!isLoaded"
       message="Loading experiments. Please wait."
     />
+    <page-loading
+      :display="isDeletingExperiment"
+      message="Please wait..."
+    />
     <zero-state
       v-show="isLoaded && !hasExperiments"
       :experimentExportEnabled="experimentExportEnabled"
@@ -11,25 +15,29 @@
       :importRequestAlerts="importRequestAlerts"
       @handleImportExperiment="handleImportExperiment"
       @handleImportRequestAlertDismiss="handleImportRequestAlertDismiss"
+      @handleImportRequestAlertVisibilityChange="handleImportRequestAlertVisibilityChange"
       @startExperiment="startExperiment"
     />
     <v-container
       v-show="isLoaded && hasExperiments"
+      class="container px-12 py-3"
+      fluid
     >
       <v-row
         class="mb-5"
         justify="space-between"
       >
-        <v-col cols="6">
+        <v-col
+          class="d-flex align-center"
+        >
           <v-img
-            src="@/assets/terracotta_logo.svg"
+            :src="terracottaLogo"
             alt="Terracotta Logo"
             max-width="138"
           />
         </v-col>
         <v-col
-          cols="6"
-          class="text-right"
+          class="right-side text-right"
         >
           <v-btn
             v-if="experimentExportEnabled"
@@ -62,15 +70,13 @@
         >
           <v-alert
             v-model="experimentDataExportRequests[dataExportRequestAlert.experimentId].showAlert"
-            @input="handleDataExportRequestAlertDismiss(dataExportRequestAlert.experimentId)"
+            @click:close="handleDataExportRequestAlertDismiss(dataExportRequestAlert.experimentId)"
             :aria-label="`data export request alert for experiment ${dataExportRequestAlert.experimentId}`"
             :type="dataExportRequestAlert.type"
-            :color="dataExportRequestAlert.color"
             elevation="0"
             role="alert"
-            dismissible
-            outlined
-            text
+            closable
+            variant="outlined"
           >
             {{ dataExportRequestAlert.text }}
             <a
@@ -102,13 +108,12 @@
           <v-alert
             v-if="experimentImportRequests[importRequestAlert.id]"
             v-model="experimentImportRequests[importRequestAlert.id].showAlert"
-            @input="handleImportRequestAlertDismiss(importRequestAlert.id)"
+            @click:close="handleImportRequestAlertDismiss(importRequestAlert.id)"
             :type="importRequestAlert.type"
             elevation="0"
             role="alert"
-            dismissible
-            outlined
-            text
+            closable
+            variant="outlined"
           >
             {{ importRequestAlert.text }}
             <ul
@@ -157,7 +162,9 @@
           <v-data-table
             :headers="headers"
             :items="experiments || []"
-            class="table-experiments"
+            class="table-experiments v-data-table-alt"
+            density="comfortable"
+            hover
           >
             <template
               v-slot:item.title="{ item }"
@@ -185,92 +192,50 @@
               <span
                 v-if="item.createdAt"
               >
-                {{ item.createdAt | formatDate }}
+                {{ formatDate(item.createdAt) }}
               </span>
             </template>
             <template
               v-slot:item.actions="{ item }"
             >
-              <v-menu
-                offset-y
-              >
-                <template
-                  v-slot:activator="{ on, attrs }"
-                >
+              <v-menu>
+                <template #activator="{ props }">
                   <v-icon
                     color="black"
-                    v-bind="attrs"
-                    v-on="on"
+                    v-bind="props"
                     :aria-label="`actions for experiment ${item.title}`"
                   >
                     mdi-dots-horizontal
                   </v-icon>
                 </template>
-                <v-list
-                  dense
-                >
+                <v-list density="compact">
                   <v-list-item
                     v-if="experimentExportEnabled"
                     @click="handleExportExperiment(item)"
                     :disabled="isExportingExperiment"
                     :aria-label="`export experiment ${item.title}`"
-                  >
-                    <v-list-item-icon
-                      class="mr-3"
-                    >
-                      <v-icon
-                        color="black"
-                      >
-                        mdi-briefcase-download
-                      </v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-content>
-                      <v-list-item-title>Export Experiment</v-list-item-title>
-                    </v-list-item-content>
-                  </v-list-item>
+                    prepend-icon="mdi-briefcase-download"
+                    title="Export Experiment"
+                  />
                   <v-list-item
                     @click="handleDataExportRequest(item.experimentId)"
                     :aria-label="`export experiment results ${item.title}`"
-                  >
-                    <v-list-item-icon
-                      class="mr-3"
-                    >
-                      <v-icon
-                        color="black"
-                      >
-                        mdi-download
-                      </v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-content>
-                      <v-list-item-title>Export Results</v-list-item-title>
-                    </v-list-item-content>
-                  </v-list-item>
+                    prepend-icon="mdi-download"
+                    title="Export Results"
+                  />
                   <v-tooltip
                     :disabled="!item.started"
-                    top
+                    location="top"
                   >
-                    <template
-                      #activator="{ on }"
-                    >
-                      <span v-on="on">
+                    <template #activator="{ props: tooltipProps }">
+                      <span v-bind="tooltipProps">
                         <v-list-item
                           @click="handleDelete(item)"
                           :aria-label="`delete experiment ${item.title}`"
                           :disabled="item.started"
-                        >
-                          <v-list-item-icon
-                            class="mr-3"
-                          >
-                            <v-icon
-                              :color="item.started ? 'grey' : 'black'"
-                            >
-                              mdi-delete
-                            </v-icon>
-                          </v-list-item-icon>
-                          <v-list-item-content>
-                            <v-list-item-title>Delete</v-list-item-title>
-                          </v-list-item-content>
-                        </v-list-item>
+                          prepend-icon="mdi-delete"
+                          title="Delete"
+                        />
                       </span>
                     </template>
                     <span>You cannot delete this experiment because at least one student has completed an assignment.</span>
@@ -285,743 +250,786 @@
   </div>
 </template>
 
-<script>
-import {mapActions, mapGetters} from "vuex";
-import { getColor, deleteAttributesFromElement, addAttributesToElement, getAttributeFromElement } from "@/helpers/ui-utils.js";
+<script setup>
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  nextTick
+} from "vue";
+
+import { useRouter, onBeforeRouteLeave } from "vue-router";
+import dayjs from "@/plugins/dayjs";
+import Swal from "sweetalert2";
+import terracottaLogo from "@/assets/terracotta_logo.svg";
+
+import {
+  getColor,
+  deleteAttributesFromElement,
+  addAttributesToElement,
+  getAttributeFromElement
+} from "@/helpers/ui-utils.js";
+
 import Help from "@/components/Help.vue";
-import moment from "moment";
-import PageLoading from "@/components/PageLoading";
+import PageLoading from "@/components/PageLoading.vue";
 import ZeroState from "@/views/ZeroState.vue";
 
-export default {
-  name: "Home",
-  components: {
-    Help,
-    PageLoading,
-    ZeroState
-  },
-  data: () => ({
-    headers: [
-      {text: "Experiment name", value: "title"},
-      {text: "Created", value: "createdAt"},
-      {text: "Actions", value: "actions", sortable: false},
-    ],
-    isLoaded: false,
-    experimentDataExportRequests: {
-      downloadLinkClicked: false
-      // experimentId: {showAlert, polling: {active, id}}
-    },
-    experimentImportRequests: {
-      // id: {showAlert, polling: {active, id}}
-    },
-    isExportingExperiment: false
-  }),
-  filters: {
-    formatDate: function (date) {
-      return moment(date).fromNow();
+import { experiment as experimentModule } from "@/store/experiment.module";
+import { dataExportRequest as dataExportRequestModule } from "@/store/experiment-data-export.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
+import { consent as consentModule } from "@/store/consent.module";
+import { assessment as assessmentModule } from "@/store/assessment.module";
+import { assignment as assignmentModule } from "@/store/assignment.module";
+import { condition as conditionModule } from "@/store/condition.module";
+import { exposures as exposuresModule } from "@/store/exposures.module";
+import { outcome as outcomeModule } from "@/store/outcome.module";
+import { participants as participantsModule } from "@/store/participants.module";
+import { resultsDashboard as resultsDashboardModule } from "@/store/dashboard/results.module";
+import { submission as submissionModule } from "@/store/submission.module";
+import { treatment as treatmentModule } from "@/store/treatment.module";
+import { navigation as navigationModule } from "@/store/navigation.module";
+import { container as messagingContainerModule } from "@/store/messaging/container.module";
+import { conditionaltext as messagingConditionalTextModule } from "@/store/messaging/conditionaltext.module";
+
+defineOptions({
+  name: "HomePage"
+});
+
+const router = useRouter();
+
+const experimentStore = experimentModule();
+const dataExportRequestStore = dataExportRequestModule();
+const configurationStore = configurationModule();
+const consentStore = consentModule();
+const assessmentStore = assessmentModule();
+const assignmentStore = assignmentModule();
+const conditionStore = conditionModule();
+const exposuresStore = exposuresModule();
+const outcomeStore = outcomeModule();
+const participantsStore = participantsModule();
+const resultsDashboardStore = resultsDashboardModule();
+const submissionStore = submissionModule();
+const treatmentStore = treatmentModule();
+const navigationStore = navigationModule();
+const messagingContainerStore = messagingContainerModule();
+const messagingConditionalTextStore = messagingConditionalTextModule();
+
+const headers = [
+  { title: "Experiment name", key: "title" },
+  { title: "Created", key: "createdAt" },
+  { title: "Actions", key: "actions", sortable: false }
+];
+
+const isLoaded = ref(false);
+const isExportingExperiment = ref(false);
+const isDeletingExperiment = ref(false);
+
+const experimentDataExportRequests = ref({
+  downloadLinkClicked: false
+});
+
+const experimentImportRequests = ref({});
+
+const experiments = computed(() => experimentStore.experiments);
+const dataExportRequests = computed(() => dataExportRequestStore.dataExportRequests);
+const importRequests = computed(() => experimentStore.importRequests);
+const configurations = computed(() => configurationStore.get);
+
+const hasExperiments = computed(() => {
+  return experiments.value && experiments.value.length > 0;
+});
+
+const experimentExportEnabled = computed(() => {
+  return configurations.value?.experimentExportEnabled;
+});
+
+const isExperimentImporting = computed(() => {
+  return Object.values(experimentImportRequests.value).some(
+    request => request.polling.active
+  );
+});
+
+const dataExportRequestAlerts = computed(() => {
+  const experimentsToShow = [];
+
+  for (const experimentId in experimentDataExportRequests.value) {
+    if (!experimentDataExportRequests.value[experimentId].showAlert) {
+      continue;
     }
-  },
-  watch: {
-    // this is necessary, as vuejs doesn't allow tabbing + keyboard selection of column sorting
-    hasExperiments: {
-      handler() {
-        if (!this.hasExperiments) {
-          this.isLoaded = true;
-          return;
-        }
 
-        const table = this.$el.querySelector(".table-experiments");
+    const request = dataExportRequest(experimentId);
 
-        if (!table) {
-          this.isLoaded = true;
-          return;
-        }
-
-        const sortableColumns = table.querySelectorAll("th.sortable > span:not(.v-icon)");
-
-        sortableColumns.forEach(
-          col => {
-            col.setAttribute("tabindex", "0");
-            col.addEventListener(
-              "keyup",
-              (event) => {
-                if (event.key !== "Enter") {
-                  return;
-                }
-
-                event.target.click();
-              }
-            );
-          }
-        )
-      }
-    },
-    experimentDataExportRequests: {
-      handler: function (newExperimentDataExportRequests) {
-        for (const experimentId in newExperimentDataExportRequests) {
-          if (!newExperimentDataExportRequests[experimentId].polling) {
-            continue;
-          }
-          if (newExperimentDataExportRequests[experimentId].polling.active && !newExperimentDataExportRequests[experimentId].polling.id) {
-            // create export data request polling scheduler
-            this.experimentDataExportRequests[experimentId].polling.id = window.setInterval(() => {
-                this.handleDataExportRequestPolling(experimentId)
-              }, 5000);
-          } else if (!newExperimentDataExportRequests[experimentId].polling.active && newExperimentDataExportRequests[experimentId].polling.id) {
-            // clear export data request polling scheduler
-            this.experimentDataExportRequests[experimentId].polling.id = window.clearInterval(newExperimentDataExportRequests[experimentId].polling.id);
-          }
-        }
-      },
-      immediate: false
-    },
-    experimentImportRequests: {
-      handler: function (newExperimentImportRequests) {
-        for (const experimentImportRequestId in newExperimentImportRequests) {
-          if (newExperimentImportRequests[experimentImportRequestId].polling.active && newExperimentImportRequests[experimentImportRequestId].polling.id === null) {
-            // create import request polling scheduler
-            this.experimentImportRequests[experimentImportRequestId].polling.id = window.setInterval(() => {
-              this.handleImportRequestPolling(experimentImportRequestId)
-            }, 5000);
-          } else if (!newExperimentImportRequests[experimentImportRequestId].polling.active && newExperimentImportRequests[experimentImportRequestId].polling.id !== null) {
-            // clear import request polling scheduler
-            this.experimentImportRequests[experimentImportRequestId].polling.id = window.clearInterval(newExperimentImportRequests[experimentImportRequestId].polling.id);
-          }
-        }
-      },
-      immediate: false
-    },
-    experiments: {
-      handler() {
-        // ensure aria-controls is added to the correct footer select element after loading
-        const ariaOwnsId = getAttributeFromElement(".v-data-footer__select .v-select .v-input__slot:first-of-type", "aria-owns");
-        deleteAttributesFromElement(".v-data-footer__select .v-select .v-input__slot", ["role"]);
-        addAttributesToElement(".v-data-footer__select .v-select .v-input__slot", [
-          { name: "role", value: "combobox" },
-          { name: "aria-controls", value: ariaOwnsId }
-        ]);
-      },
-      immediate: true
-    }
-  },
-  computed: {
-    ...mapGetters({
-      experiments: "experiment/experiments",
-      dataExportRequests: "dataexportrequest/dataExportRequests",
-      importRequests: "experiment/importRequests",
-      configurations: "configuration/get"
-    }),
-    hasExperiments() {
-      return this.experiments && this.experiments.length > 0;
-    },
-    experimentExportEnabled() {
-      return this.configurations?.experimentExportEnabled;
-    },
-    showDataExportRequestStatus() {
-      let experimentsToShow = [];
-
-      for (const experimentId in this.experimentDataExportRequests) {
-        if (this.experimentDataExportRequests[experimentId].showAlert) {
-          const dataExportRequest = this.dataExportRequest(experimentId);
-
-          if ([
-              dataExportRequest?.processing,
-              dataExportRequest?.reprocessing,
-              dataExportRequest?.ready,
-              dataExportRequest?.downloaded,
-              dataExportRequest?.outdated
-            ].some(e => e === true)
-          ) {
-            experimentsToShow.push(experimentId);
-          }
-        }
-      }
-      return experimentsToShow;
-    },
-    dataExportRequestAlerts() {
-      let experimentsToShow = [];
-
-      for (const experimentId in this.experimentDataExportRequests) {
-        if (this.experimentDataExportRequests[experimentId].showAlert) {
-          const dataExportRequest = this.dataExportRequest(experimentId);
-
-          if (dataExportRequest?.ready) {
-            experimentsToShow.push(
-              {
-                experimentId: dataExportRequest.experimentId,
-                showDownloadLink: true,
-                showRecreateLink: false,
-                text: `Your data export for experiment "${dataExportRequest.experimentTitle}" is ready.`,
-                type: "success",
-                color: getColor("--green-base")
-              }
-            );
-            continue;
-          }
-
-          if (dataExportRequest?.processing || dataExportRequest?.reprocessing) {
-            experimentsToShow.push(
-              {
-                experimentId: dataExportRequest.experimentId,
-                showDownloadLink: false,
-                showRecreateLink: false,
-                text: `The data export for experiment "${dataExportRequest.experimentTitle}" is being processed. Please do not navigate away from this page.`,
-                type: "info",
-                color: getColor("--blue-primary")
-              }
-            );
-            continue;
-          }
-
-          if (dataExportRequest?.outdated) {
-            experimentsToShow.push(
-              {
-                experimentId: dataExportRequest.experimentId,
-                showDownloadLink: false,
-                showRecreateLink: true,
-                text: `There have been updates since the last requested data export for experiment "${dataExportRequest.experimentTitle}".`,
-                type: "warning"
-              }
-            );
-            continue;
-          }
-
-          if (dataExportRequest?.error) {
-            experimentsToShow.push(
-              {
-                experimentId: dataExportRequest.experimentId,
-                showDownloadLink: false,
-                showRecreateLink: false,
-                text: `There was an error processing the requested data export for experiment "${dataExportRequest.experimentTitle}". Please try again or contact support.`,
-                type: "error",
-                color: getColor("--red-base")
-              }
-            );
-            continue;
-          }
-        }
-      }
-
-      return experimentsToShow;
-    },
-    importRequestAlerts() {
-      let experimentsToShow = [];
-
-      for (const experimentImportRequestId in this.experimentImportRequests) {
-        const importRequest = this.importRequest(experimentImportRequestId);
-
-        if (importRequest?.complete) {
-          experimentsToShow.push(
-            {
-              id: experimentImportRequestId,
-              showAlert: true,
-              text: `Your import of experiment "${importRequest.sourceTitle}" is complete. The new title is "${importRequest.importedTitle}".`,
-              type: "success",
-              showErrors: false
-            }
-          );
-          continue;
-        }
-
-        if (importRequest?.processing) {
-          experimentsToShow.push(
-            {
-              id: experimentImportRequestId,
-              showAlert: true,
-              text: `Your import of experiment "${importRequest.sourceTitle}" is being processed. Please do not navigate away from this page.`,
-              type: "info",
-              showErrors: false
-            }
-          );
-          continue;
-        }
-
-        if (importRequest?.error) {
-          const errorMessages = importRequest.errorMessages || [];
-
-          experimentsToShow.push(
-            {
-              id: experimentImportRequestId,
-              showAlert: true,
-              text: `There were errors in processing the import of experiment "${importRequest.sourceTitle}". Please try again or contact support. ${errorMessages.length > 0 ? "Errors: " : ""}`,
-              type: "error",
-              errors: errorMessages.toSpliced(3).map(em => em.text),
-              showErrors: errorMessages.length > 0
-            }
-          );
-        }
-      }
-
-      return experimentsToShow;
-    },
-    isExperimentImporting() {
-      return Object.values(this.experimentImportRequests).some(eir => eir.polling.active);
-    }
-  },
-  methods: {
-    ...mapActions({
-      fetchExperiments: "experiment/fetchExperiments",
-      createExperiment: "experiment/createExperiment",
-      deleteExperiment: "experiment/deleteExperiment",
-      exportExperiment: "experiment/exportExperiment",
-      importExperiment: "experiment/importExperiment",
-      resetConsent: "consent/resetConsent",
-      resetAssessments: "assessments/resetAssessments",
-      resetAssignment: "assignments/resetAssignment",
-      resetAssignments: "assignments/resetAssignments",
-      resetConditions: "conditions/resetConditions",
-      resetExportData: "exportData/resetExportData",
-      resetExposures: "exposures/resetExposures",
-      resetOutcome: "outcomes/resetOutcome",
-      resetOutcomePotentials: "outcomes/resetOutcomePotentials",
-      resetParticipants: "participants/resetParticipants",
-      resetResultsDashboard: "resultsDashboard/resetResultsDashboard",
-      resetSubmissions: "submissions/resetSubmissions",
-      resetTreatments: "treatments/resetTreatments",
-      deleteEditMode: "navigation/deleteEditMode",
-      retrieveDataExportRequest: "dataexportrequest/retrieve",
-      prepareDataExportRequest: "dataexportrequest/prepare",
-      resetDataExportRequest: "dataexportrequest/reset",
-      pollDataExportRequest: "dataexportrequest/poll",
-      pollDataExportRequests: "dataexportrequest/pollList",
-      dataExportRequestAcknowledge: "dataexportrequest/acknowledge",
-      pollImport: "experiment/pollImport",
-      pollImports: "experiment/pollImports",
-      resetImportRequests: "experiment/resetImportRequests",
-      acknowledgeImport: "experiment/acknowledgeImport",
-      resetMessageContainers: "messagingMessageContainer/reset",
-      resetConditionalTexts: "messagingConditionalText/reset"
-    }),
-    async handleExportExperiment(item) {
-      this.isExportingExperiment = true;
-      await this.exportExperiment(item.experimentId);
-      this.isExportingExperiment = false;
-    },
-    async handleImportExperiment() {
-      const { value: file } = await this.$swal({
-        title: "Import experiment from file",
-        text: "Please select the experiment file to import",
-        input: "file",
-        inputAttributes: {
-          accept: ".zip"
-        },
-        showCancelButton: true,
-        confirmButtonText: "Import",
-        cancelButtonText: "Cancel"
+    if (request?.ready) {
+      experimentsToShow.push({
+        experimentId: request.experimentId,
+        showDownloadLink: true,
+        showRecreateLink: false,
+        text: `Your data export for experiment "${request.experimentTitle}" is ready.`,
+        type: "success"
       });
+      continue;
+    }
 
-      if (file) {
-        const newImport = await this.importExperiment(file);
-        const importRequest = this.importRequest(newImport.id);
-        this.experimentImportRequests = {
-          ...this.experimentImportRequests,
-          [newImport.id]: {
-            showAlert: true,
-            polling: {
-              active: importRequest.processing,
-              id: null
-            }
-          }
-        };
-      }
+    if (request?.processing || request?.reprocessing) {
+      experimentsToShow.push({
+        experimentId: request.experimentId,
+        showDownloadLink: false,
+        showRecreateLink: false,
+        text: `The data export for experiment "${request.experimentTitle}" is being processed. Please do not navigate away from this page.`,
+        type: "info"
+      });
+      continue;
+    }
+
+    if (request?.outdated) {
+      experimentsToShow.push({
+        experimentId: request.experimentId,
+        showDownloadLink: false,
+        showRecreateLink: true,
+        text: `There have been updates since the last requested data export for experiment "${request.experimentTitle}".`,
+        type: "warning"
+      });
+      continue;
+    }
+
+    if (request?.error) {
+      experimentsToShow.push({
+        experimentId: request.experimentId,
+        showDownloadLink: false,
+        showRecreateLink: false,
+        text: `There was an error processing the requested data export for experiment "${request.experimentTitle}". Please try again or contact support.`,
+        type: "error"
+      });
+    }
+  }
+
+  return experimentsToShow;
+});
+
+const importRequestAlerts = computed(() => {
+  const experimentsToShow = [];
+
+  for (const id in experimentImportRequests.value) {
+    const request = importRequest(id);
+
+    if (request?.complete) {
+      experimentsToShow.push({
+        id,
+        showAlert: true,
+        text: `Your import of experiment "${request.sourceTitle}" is complete. The new title is "${request.importedTitle}".`,
+        type: "success",
+        showErrors: false
+      });
+      continue;
+    }
+
+    if (request?.processing) {
+      experimentsToShow.push({
+        id,
+        showAlert: true,
+        text: `Your import of experiment "${request.sourceTitle}" is being processed. Please do not navigate away from this page.`,
+        type: "info",
+        showErrors: false
+      });
+      continue;
+    }
+
+    if (request?.error) {
+      const errorMessages = request.errorMessages || [];
+
+      experimentsToShow.push({
+        id,
+        showAlert: true,
+        text: `There were errors in processing the import of experiment "${request.sourceTitle}". Please try again or contact support. ${errorMessages.length > 0 ? "Errors: " : ""}`,
+        type: "error",
+        errors: errorMessages.slice(0, 3).map(errorMessage => errorMessage.text),
+        showErrors: errorMessages.length > 0
+      });
+    }
+  }
+
+  return experimentsToShow;
+});
+
+const formatDate = date => {
+  return date ? dayjs(date).fromNow() : "";
+};
+
+const dataExportRequest = experimentId => {
+  return dataExportRequests.value?.find(
+    request => request.experimentId === parseInt(experimentId)
+  );
+};
+
+const importRequest = id => {
+  return importRequests.value.find(request => request.id === id);
+};
+
+const experimentImportRequest = id => {
+  return experimentImportRequests.value[id];
+};
+
+const handleNavigate = experimentId => {
+  const selectedExperiment = experiments.value.find(
+    experiment => experiment.experimentId === experimentId
+  );
+
+  const {
+    exposureType,
+    participationType,
+    distributionType
+  } = selectedExperiment;
+
+  const isExperimentIncomplete = [
+    exposureType,
+    participationType,
+    distributionType
+  ].some(value => value === "NOSET");
+
+  router.push({
+    name: isExperimentIncomplete
+      ? "ExperimentDesignIntro"
+      : "ExperimentSummary",
+    params: {
+      experimentId: experimentId
+    }
+  });
+};
+
+const startExperiment = async () => {
+  try {
+    const response = await experimentStore.createExperiment();
+
+    if (response?.data?.experimentId) {
+      router.push({
+        name: "ExperimentDesignIntro",
+        params: {
+          experimentId: response.data.experimentId
+        }
+      });
+      return;
+    }
+
+    await Swal.fire({
+      text: `Error Status: ${response?.status} - There was an issue creating an experiment`,
+      icon: "error"
+    });
+  } catch (error) {
+    console.log("startExperiment -> createExperiment | catch", { error });
+  }
+};
+
+const handleExportExperiment = async item => {
+  isExportingExperiment.value = true;
+
+  try {
+    await experimentStore.exportExperiment(item.experimentId);
+  } finally {
+    isExportingExperiment.value = false;
+  }
+};
+
+const handleImportExperiment = async () => {
+  const { value: file } = await Swal.fire({
+    title: "Import experiment from file",
+    text: "Please select the experiment file to import",
+    input: "file",
+    inputAttributes: {
+      accept: ".zip"
     },
-    async handleDelete(e) {
-      if (e?.experimentId) {
-        const reallyDelete = await this.$swal({
-          icon: "question",
-          text: `Do you really want to delete "${e.title}"?`,
-          showCancelButton: true,
-          confirmButtonText: "Yes, delete it",
-          cancelButtonText: "No, cancel",
-          cancelButtonColor: getColor("--swal-cancel"),
-        });
-        // if confirmed, delete experiment
-        if (reallyDelete.isConfirmed) {
-          try {
-            this.deleteExperiment(e.experimentId);
-          } catch (error) {
-            this.$swal({
-              text: "Could not delete experiment.",
-              icon: "error"
-            });
-          }
+    showCancelButton: true,
+    confirmButtonText: "Import",
+    cancelButtonText: "Cancel"
+  });
+
+  if (!file) {
+    return;
+  }
+
+  const newImport = await experimentStore.importExperiment(file);
+  const request = importRequest(newImport.id);
+
+  experimentImportRequests.value = {
+    ...experimentImportRequests.value,
+    [newImport.id]: {
+      showAlert: true,
+      polling: {
+        active: request.processing,
+        id: null
+      }
+    }
+  };
+};
+
+const handleDelete = async experiment => {
+  if (!experiment?.experimentId) {
+    return;
+  }
+
+  const reallyDelete = await Swal.fire({
+    icon: "question",
+    text: `Do you really want to delete "${experiment.title}"?`,
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "No, cancel",
+    cancelButtonColor: getColor("--swal-cancel")
+  });
+
+  if (!reallyDelete.isConfirmed) {
+    return;
+  }
+
+  isDeletingExperiment.value = true;
+
+  try {
+    await experimentStore.deleteExperiment(experiment.experimentId);
+  } catch {
+    await Swal.fire({
+      text: "Could not delete experiment.",
+      icon: "error"
+    });
+  } finally {
+    isDeletingExperiment.value = false;
+  }
+};
+
+const handleAlertDataExportDownloadRequest = async experimentId => {
+  experimentDataExportRequests.value.downloadLinkClicked = true;
+  await handleDataExportRequest(experimentId);
+};
+
+const handleDataExportRequest = async experimentId => {
+  let request = dataExportRequest(experimentId);
+
+  await dataExportRequestStore.poll([
+    experimentId,
+    request
+      ? request.ready || request?.readyAcknowledged || request.downloaded
+      : false
+  ]);
+
+  request = dataExportRequest(experimentId);
+
+  if (request?.ready || request?.readyAcknowledged || request?.downloaded) {
+    await dataExportRequestStore.retrieve([
+      experimentId,
+      request
+    ]);
+
+    if (request?.ready || request?.readyAcknowledged || request?.downloaded) {
+      return;
+    }
+  }
+
+  if (request?.processing) {
+    await Swal.fire({
+      icon: "info",
+      text: `The data export for experiment "${request.experimentTitle}" is still being processed. You will be notified when the export is ready for download.
+        Please do not navigate away from this page.`,
+      confirmButtonText: "OK"
+    });
+    return;
+  }
+
+  if (request?.reprocessing) {
+    await Swal.fire({
+      icon: "info",
+      text: `New submissons have occurred since the requested set of exported data for experiment "${request.experimentTitle}" was processed. A new export is being created.
+        You will be notified when the export is ready for download. Please do not navigate away from this page.`,
+      confirmButtonText: "OK"
+    });
+    return;
+  }
+
+  const confirmation = await Swal.fire({
+    icon: "info",
+    text: `Depending on its size, it could take several minutes to retrieve your data export.
+      You will see an alert when the export is ready to download. After you click "ok," please stay on this page until your download is ready.`,
+    showCancelButton: true,
+    confirmButtonText: "OK"
+  });
+
+  if (!confirmation.isConfirmed) {
+    return;
+  }
+
+  await dataExportRequestStore.prepare([experimentId]);
+
+  request = dataExportRequest(experimentId);
+
+  experimentDataExportRequests.value = {
+    ...experimentDataExportRequests.value,
+    [experimentId]: {
+      showAlert: request?.processing || request?.reprocessing,
+      polling: {
+        active: true,
+        id: null
+      }
+    }
+  };
+};
+
+const handleDataExportRequestPolling = async experimentId => {
+  await dataExportRequestStore.poll([
+    experimentId,
+    false
+  ]);
+
+  const request = dataExportRequest(experimentId);
+
+  experimentDataExportRequests.value = {
+    ...experimentDataExportRequests.value,
+    [experimentId]: {
+      showAlert:
+        request.ready ||
+        request.error ||
+        request.processing ||
+        request.reprocessing ||
+        request.outdated,
+      polling: {
+        ...experimentDataExportRequests.value[experimentId].polling,
+        active: request.processing || request.reprocessing
+      }
+    }
+  };
+};
+
+const handleDataExportRequestAlertDismiss = async experimentId => {
+  let request = dataExportRequest(experimentId);
+
+  if (request?.processing || request?.reprocessing) {
+    experimentDataExportRequests.value = {
+      ...experimentDataExportRequests.value,
+      [experimentId]: {
+        showAlert: false,
+        polling: {
+          active: experimentDataExportRequests.value[experimentId].polling.active,
+          id: experimentDataExportRequests.value[experimentId].polling.id
         }
       }
-    },
-    handleNavigate(experimentId) {
-      const selectedExperiment =  this.experiments.filter((experiment) => experiment.experimentId === experimentId);
-      const {exposureType, participationType, distributionType} = selectedExperiment[0];
-      const isExperimentIncomplete = [exposureType, participationType, distributionType].some((value) => value === "NOSET");
+    };
+    return;
+  }
 
-      if (isExperimentIncomplete) {
-        this.$router.push({
-          name: "ExperimentDesignIntro",
-          params: {
-            experimentId: experimentId
-          }
-        });
-      } else {
-        this.$router.push({
-          name: "ExperimentSummary",
-          params: {
-            experimentId: experimentId
-          }
-        });
+  experimentDataExportRequests.value = {
+    ...experimentDataExportRequests.value,
+    [experimentId]: {
+      showAlert: false,
+      polling: {
+        active: false,
+        id: experimentDataExportRequests.value[experimentId].polling.id
       }
-    },
-    startExperiment() {
-      const _this = this;
-      this.createExperiment()
-        .then(response => {
-          if (response?.data?.experimentId) {
-            _this.$router.push({
-              name: "ExperimentDesignIntro",
-              params: {
-                experimentId: response.data.experimentId
-              }
-            });
-          } else {
-            this.$swal({
-              text: `Error Status: ${response?.status} - There was an issue creating an experiment`,
-              icon: "error"
-            })
-          }
-        }).catch(response => {
-          console.log("startExperiment -> createExperiment | catch", {response})
-        })
-    },
-    async handleAlertDataExportDownloadRequest(experimentId) {
-      this.experimentDataExportRequests.downloadLinkClicked = true;
-      await this.handleDataExportRequest(experimentId);
-    },
-    async handleDataExportRequest(experimentId) {
-      let dataExportRequest = this.dataExportRequest(experimentId);
-      await this.pollDataExportRequest([
-        experimentId,
-        dataExportRequest ? (dataExportRequest.ready || dataExportRequest?.readyAcknowledged || dataExportRequest.downloaded) : false
-      ]);
+    }
+  };
 
-      if (dataExportRequest?.ready || dataExportRequest?.readyAcknowledged || dataExportRequest?.downloaded) {
-        // retrieve file
-        await this.retrieveDataExportRequest([
-          experimentId,
-          dataExportRequest
-        ]);
+  experimentDataExportRequests.value.downloadLinkClicked = false;
+  request = dataExportRequest(experimentId);
 
-        if (dataExportRequest?.ready || dataExportRequest?.readyAcknowledged || dataExportRequest?.downloaded) {
-          // file has been delivered
+  if (request?.error) {
+    dataExportRequestStore.acknowledge([
+      experimentId,
+      request.id,
+      "ERROR_ACKNOWLEDGED"
+    ]);
+  }
+
+  if (request?.ready) {
+    dataExportRequestStore.acknowledge([
+      experimentId,
+      request.id,
+      "READY_ACKNOWLEDGED"
+    ]);
+  }
+
+  if (request?.outdated) {
+    dataExportRequestStore.acknowledge([
+      experimentId,
+      request.id,
+      "OUTDATED_ACKNOWLEDGED"
+    ]);
+  }
+};
+
+const handleImportRequestPolling = async id => {
+  await experimentStore.pollImport([id]);
+
+  const request = importRequest(id);
+  const currentRequest = experimentImportRequest(id);
+
+  experimentImportRequests.value = {
+    ...experimentImportRequests.value,
+    [id]: {
+      ...currentRequest,
+      showAlert: request.complete || request.error || request.processing,
+      polling: {
+        ...currentRequest.polling,
+        active: request.processing
+      }
+    }
+  };
+
+  if (request?.complete) {
+    await experimentStore.fetchExperiments();
+  }
+};
+
+const handleImportRequestAlertDismiss = async id => {
+  const request = importRequest(id);
+
+  if (request?.processing) {
+    return;
+  }
+
+  if (request?.complete) {
+    await experimentStore.acknowledgeImport([
+      id,
+      "COMPLETE_ACKNOWLEDGED"
+    ]);
+  }
+
+  if (request?.error) {
+    await experimentStore.acknowledgeImport([
+      id,
+      "ERROR_ACKNOWLEDGED"
+    ]);
+  }
+
+  const updatedRequests = { ...experimentImportRequests.value };
+  delete updatedRequests[id];
+  experimentImportRequests.value = updatedRequests;
+};
+
+const handleImportRequestAlertVisibilityChange = (id, showAlert) => {
+  if (!experimentImportRequests.value[id]) {
+    return;
+  }
+
+  experimentImportRequests.value = {
+    ...experimentImportRequests.value,
+    [id]: {
+      ...experimentImportRequests.value[id],
+      showAlert
+    }
+  };
+};
+
+watch(
+  hasExperiments,
+  async () => {
+    await nextTick();
+
+    if (!hasExperiments.value) {
+      isLoaded.value = true;
+      return;
+    }
+
+    const table = document.querySelector(".table-experiments");
+
+    if (!table) {
+      isLoaded.value = true;
+      return;
+    }
+
+    const sortableColumns = table.querySelectorAll("th.sortable > span:not(.v-icon)");
+
+    sortableColumns.forEach(column => {
+      column.setAttribute("tabindex", "0");
+      column.addEventListener("keyup", event => {
+        if (event.key !== "Enter") {
           return;
         }
-      }
 
-      if (dataExportRequest?.processing) {
-        this.$swal({
-          icon: "info",
-          text: `The data export for experiment "${dataExportRequest.experimentTitle}" is still being processed. You will be notified when the export is ready for download.
-            Please do not navigate away from this page.`,
-          confirmButtonText: "OK"
-        });
-        return;
-      }
-
-      if (dataExportRequest?.reprocessing) {
-        this.$swal({
-          icon: "info",
-          text: `New submissons have occurred since the requested set of exported data for experiment "${dataExportRequest.experimentTitle}" was processed. A new export is being created.
-            You will be notified when the export is ready for download. Please do not navigate away from this page.`,
-          confirmButtonText: "OK"
-        });
-        return;
-      }
-
-      const dataExportRequestConfirm = await this.$swal({
-        icon: "info",
-        text: `Depending on its size, it could take several minutes to retrieve your data export.
-          You will see an alert when the export is ready to download. After you click "ok," please stay on this page until your download is ready.`,
-        showCancelButton: true,
-        confirmButtonText: "OK"
+        event.target.click();
       });
+    });
+  }
+);
 
-      if (dataExportRequestConfirm.isConfirmed) {
-        await this.prepareDataExportRequest([
-          experimentId
-        ]);
+watch(
+  experimentDataExportRequests,
+  requests => {
+    for (const experimentId in requests) {
+      const request = requests[experimentId];
 
-        dataExportRequest = this.dataExportRequest(experimentId);
-        this.experimentDataExportRequests = {
-          ...this.experimentDataExportRequests,
-          [experimentId]: {
-            showAlert: dataExportRequest?.processing || dataExportRequest?.reprocessing,
-            polling: {
-              active: true,
-              id: null
-            }
-          }
-        };
-      }
-    },
-    async handleDataExportRequestPolling(experimentId) {
-      await this.pollDataExportRequest([
-        experimentId,
-        false
-      ]);
-      const dataExportRequest = this.dataExportRequest(experimentId);
-      this.experimentDataExportRequests = {
-        ...this.experimentDataExportRequests,
-        [experimentId]: {
-          showAlert: dataExportRequest.ready || dataExportRequest.error || dataExportRequest.processing || dataExportRequest.reprocessing || dataExportRequest.outdated,
-          polling: {
-            ...this.experimentDataExportRequests[experimentId].polling,
-            active: dataExportRequest.processing || dataExportRequest.reprocessing
-          }
-        }
-      };
-    },
-    async handleDataExportRequestAlertDismiss(experimentId) {
-      let dataExportRequest = this.dataExportRequest(experimentId);
-
-      if (dataExportRequest?.processing || dataExportRequest?.reprocessing) {
-        // data export is still being processed; just dismiss alert
-        this.experimentDataExportRequests = {
-          ...this.experimentDataExportRequests,
-          [experimentId]: {
-            showAlert: false,
-            polling: {
-              active: this.experimentDataExportRequests[experimentId].polling.active,
-              id: this.experimentDataExportRequests[experimentId].polling.id
-            }
-          }
-        };
-        return;
-      }
-
-      this.experimentDataExportRequests = {
-        ...this.experimentDataExportRequests,
-        [experimentId]: {
-          showAlert: false,
-          polling: {
-            active: false,
-            id: this.experimentDataExportRequests[experimentId].polling.id
-          }
-        }
-      };
-      this.experimentDataExportRequests.downloadLinkClicked = false;
-      dataExportRequest = this.dataExportRequest(experimentId);
-
-      if (dataExportRequest?.error) {
-        this.dataExportRequestAcknowledge([
-          experimentId,
-          dataExportRequest.id,
-          "ERROR_ACKNOWLEDGED"
-        ]);
-      }
-
-      if (dataExportRequest?.ready) {
-        this.dataExportRequestAcknowledge([
-          experimentId,
-          dataExportRequest.id,
-          "READY_ACKNOWLEDGED"
-        ]);
-      }
-
-      if (dataExportRequest?.outdated) {
-        this.dataExportRequestAcknowledge([
-          experimentId,
-          dataExportRequest.id,
-          "OUTDATED_ACKNOWLEDGED"
-        ]);
-      }
-    },
-    dataExportRequest(experimentId) {
-      return this.dataExportRequests?.find(dataExportRequest => dataExportRequest.experimentId === parseInt(experimentId));
-    },
-    async handleImportRequestPolling(id) {
-      await this.pollImport([
-        id
-      ]);
-
-      const importRequest = this.importRequest(id);
-      const currentExperimentImportRequest = this.experimentImportRequest(id);
-      this.experimentImportRequests = {
-        ...this.experimentImportRequests,
-        [id]: {
-          ...currentExperimentImportRequest,
-          showAlert: importRequest.complete || importRequest.error || importRequest.processing,
-          polling: {
-            ...currentExperimentImportRequest.polling,
-            active: importRequest.processing
-          }
-        }
-      }
-
-      if (importRequest?.complete) {
-        // import complete; refresh experiments list
-        await this.fetchExperiments();
-      }
-    },
-    async handleImportRequestAlertDismiss(id) {
-      const importRequest = this.importRequest(id);
-
-      if (importRequest?.processing) {
-        // in-progress; don't acknowledge
-        return;
-      }
-
-      if (importRequest?.complete) {
-        await this.acknowledgeImport([
-          id,
-          "COMPLETE_ACKNOWLEDGED"
-        ]);
-      }
-
-      if (importRequest?.error) {
-        await this.acknowledgeImport([
-          id,
-          "ERROR_ACKNOWLEDGED"
-        ]);
-      }
-
-      delete this.experimentImportRequests[id];
-          },
-    importRequest(id) {
-      return this.importRequests.find((ir) => ir.id === id);
-    },
-    experimentImportRequest(id) {
-      return this.experimentImportRequests[id];
-    }
-  },
-  async created() {
-    // reset consent data when loading the dashboard
-    await this.resetConsent();
-
-    // reset data in state
-    this.resetAssessments();
-    this.resetAssignments();
-    this.resetAssignment();
-    this.resetConditions();
-    this.resetExportData();
-    this.resetExposures();
-    this.resetOutcome();
-    this.resetOutcomePotentials();
-    this.resetParticipants();
-    this.resetResultsDashboard();
-    this.resetSubmissions();
-    this.resetTreatments();
-    this.deleteEditMode();
-    this.resetDataExportRequest();
-    this.resetImportRequests();
-    this.resetMessageContainers();
-
-    // get experiments list
-    await this.fetchExperiments();
-
-    // get existing data export requests
-    if (this.experiments && this.experiments.length > 0) {
-      await this.pollDataExportRequests([
-        this.experiments.map(experiment => experiment.experimentId),
-        false
-      ]);
-
-      // set up data export request alerts
-      this.experiments.forEach(
-        experiment => {
-          const experimentId = experiment.experimentId;
-          const dataExportRequest = this.dataExportRequest(experimentId);
-          this.experimentDataExportRequests = {
-            ...this.experimentDataExportRequests,
-            [experimentId]: {
-              showAlert: dataExportRequest ? (
-                dataExportRequest.ready ||
-                dataExportRequest.processing ||
-                dataExportRequest.reprocessing ||
-                dataExportRequest.outdated ||
-                dataExportRequest.error
-              ) : false,
-              polling: {
-                active: false,
-                id: null
-              }
-            }
-          }
-        }
-      );
-    }
-
-    // poll for any in-progress experiment imports
-    await this.pollImports();
-    this.importRequests.forEach(
-      importRequest => {
-        this.experimentImportRequests = {
-          ...this.experimentImportRequests,
-          [importRequest.id]: {
-            showAlert: true,
-            polling: {
-              active: importRequest.processing,
-              id: null
-            }
-          }
-        }
-      }
-    );
-
-    this.isLoaded = true;
-  },
-  beforeDestroy() {
-    // clear data export request polling schedulers
-    for (const experimentId in this.experimentDataExportRequests) {
-      if (!this.experimentDataExportRequests[experimentId].polling) {
+      if (!request.polling) {
         continue;
       }
-      if (this.experimentDataExportRequests[experimentId].polling.id) {
-        window.clearInterval(this.experimentDataExportRequests[experimentId].polling.id);
+
+      if (request.polling.active && !request.polling.id) {
+        request.polling.id = window.setInterval(() => {
+          handleDataExportRequestPolling(experimentId);
+        }, 5000);
+      } else if (!request.polling.active && request.polling.id) {
+        request.polling.id = window.clearInterval(request.polling.id);
       }
     }
   },
-  beforeRouteLeave(to, from, next) {
-    // clear import request polling scheduler(s)
-    for (const experimentImportRequestId in this.experimentImportRequests) {
-      if (this.experimentImportRequests[experimentImportRequestId].polling.id !== null) {
-        window.clearInterval(this.experimentImportRequests[experimentImportRequestId].polling.id);
+  { deep: true }
+);
+
+watch(
+  experimentImportRequests,
+  requests => {
+    for (const id in requests) {
+      const request = requests[id];
+
+      if (request.polling.active && request.polling.id === null) {
+        request.polling.id = window.setInterval(() => {
+          handleImportRequestPolling(id);
+        }, 5000);
+      } else if (!request.polling.active && request.polling.id !== null) {
+        request.polling.id = window.clearInterval(request.polling.id);
       }
     }
+  },
+  { deep: true }
+);
 
-    // Proceed with navigation
-    next();
+watch(
+  experiments,
+  () => {
+    const ariaOwnsId = getAttributeFromElement(
+      ".v-data-table-footer__items-per-page .v-select .v-field:first-of-type",
+      "aria-owns"
+    );
+
+    deleteAttributesFromElement(
+      ".v-data-table-footer__items-per-page .v-select .v-field",
+      ["role"]
+    );
+
+    addAttributesToElement(
+      ".v-data-table-footer__items-per-page .v-select .v-field",
+      [
+        { name: "role", value: "combobox" },
+        { name: "aria-controls", value: ariaOwnsId }
+      ]
+    );
+  },
+  { immediate: true }
+);
+
+onMounted(async () => {
+  await consentStore.resetConsent();
+
+  assessmentStore.resetAssessments();
+  assignmentStore.resetAssignments();
+  assignmentStore.resetAssignment();
+  conditionStore.resetConditions();
+  dataExportRequestStore.resetExportData?.();
+  exposuresStore.resetExposures();
+  outcomeStore.resetOutcome();
+  outcomeStore.resetOutcomePotentials();
+  participantsStore.resetParticipants();
+  resultsDashboardStore.resetResultsDashboard();
+  submissionStore.resetSubmissions();
+  treatmentStore.resetTreatments();
+  navigationStore.deleteEditMode();
+  dataExportRequestStore.reset();
+  experimentStore.resetImportRequests();
+  messagingContainerStore.reset();
+  messagingConditionalTextStore.reset();
+
+  await experimentStore.fetchExperiments();
+
+  if (experiments.value && experiments.value.length > 0) {
+    await dataExportRequestStore.pollList([
+      experiments.value.map(experiment => experiment.experimentId),
+      false
+    ]);
+
+    experiments.value.forEach(experiment => {
+      const experimentId = experiment.experimentId;
+      const request = dataExportRequest(experimentId);
+
+      experimentDataExportRequests.value = {
+        ...experimentDataExportRequests.value,
+        [experimentId]: {
+          showAlert: request
+            ? request.ready ||
+              request.processing ||
+              request.reprocessing ||
+              request.outdated ||
+              request.error
+            : false,
+          polling: {
+            active: false,
+            id: null
+          }
+        }
+      };
+    });
   }
-}
+
+  await experimentStore.pollImports();
+
+  importRequests.value.forEach(request => {
+    experimentImportRequests.value = {
+      ...experimentImportRequests.value,
+      [request.id]: {
+        showAlert: true,
+        polling: {
+          active: request.processing,
+          id: null
+        }
+      }
+    };
+  });
+
+  isLoaded.value = true;
+});
+
+onBeforeUnmount(() => {
+  for (const experimentId in experimentDataExportRequests.value) {
+    const request = experimentDataExportRequests.value[experimentId];
+
+    if (request?.polling?.id) {
+      window.clearInterval(request.polling.id);
+    }
+  }
+});
+
+onBeforeRouteLeave((to, from, next) => {
+  for (const id in experimentImportRequests.value) {
+    const request = experimentImportRequests.value[id];
+
+    if (request.polling.id !== null) {
+      window.clearInterval(request.polling.id);
+    }
+  }
+
+  next();
+});
 </script>
 
 <style lang="scss">
-@import "~@/styles/variables";
-
 .v-data-table {
-  * {
-    color: black !important;
-  }
   *:not(.v-icon) {
+    color: black !important;
     font-size: 16px !important;
-  }
-  &__wrapper {
-    border: 1px solid map-get($grey, "lighter") !important;
-    border-radius: 10px;
   }
   &__link {
     text-decoration: none;
+    background-color: transparent;
+    border-style: none;
     &:focus,
     &:hover {
       text-decoration: underline;
     }
   }
-  .v-data-footer {
+  .v-data-table-footer {
     border-top: none !important;
   }
 }
-div.v-tooltip__content {
+.v-tooltip > .v-overlay__content {
   max-width: 400px;
   opacity: 1.0 !important;
   background-color: rgba(55,61,63, 1.0) !important;
+  color: #fff !important;
   a {
-    color: map-get($blue, "light");
+    color: map.get($blue, "light");
   }
 }
 .alert-request {
@@ -1031,6 +1039,7 @@ div.v-tooltip__content {
     margin: 0 auto;
     & a {
       color: inherit !important;
+      cursor: pointer;
     }
   }
 }
@@ -1038,5 +1047,13 @@ a {
   &.user-help-link {
     color: rgba(0, 0, 0, .87) !important;
   }
+}
+.table-experiments {
+  > hr.v-divider {
+    display: none;
+  }
+}
+.right-side {
+  min-width: fit-content;
 }
 </style>

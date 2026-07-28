@@ -1,130 +1,130 @@
 <template>
-<v-col>
-  <v-row
+<div
+  class="summary-data"
+>
+  <div
     class="header-row"
   >
-    <h4>{{ headerTitle }}</h4>
+    <h3>{{ headerTitle }}</h3>
     <v-img
       v-if="headerIcon"
       :style="dynamicStyles"
       :src="headerIcon"
+      width="32"
+      height="32"
       class="header-icon"
-    >
-    </v-img>
-  </v-row>
-  <v-row
-    class="count-row pt-4"
+    />
+  </div>
+  <div
+    class="count-row"
   >
     <span
       :style="valueStyle"
       class="summary-count"
-    >
-      {{ count }}
-      <tool-tip
-        v-if="displayTooltip"
-        :header="headerTitle"
-        :content="tooltip"
-        :activatorType="tooltipActivator.type"
-        :icon="tooltipActivator.text"
-        :aria-label="`${headerTitle} tooltip`"
-      />
-    </span>
-  </v-row>
-</v-col>
+    >{{ count }}</span>
+    <tool-tip
+      v-if="displayTooltip"
+      :header="headerTitle"
+      :content="tooltip"
+      :activatorType="tooltipActivator.type"
+      :icon="tooltipActivator.text"
+      :aria-label="`${headerTitle} tooltip`"
+    />
+  </div>
+</div>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
+
 import ToolTip from "@/components/ToolTip.vue";
 
-export default {
-  name: "SummaryCount",
-  components: {
-    ToolTip
+defineOptions({
+  name: "SummaryCount"
+});
+
+const props = defineProps({
+  title: {
+    type: String,
+    required: false
   },
-  props: {
-    title: {
-      type: String,
-      required: false
-    },
-    value: {
-      type: [Number, String],
-      required: false
-    },
-    message: {
-      type: String,
-      required: false
-    },
-    icon: {
-      type: String,
-      required: false
-    },
-    iconBgColor: {
-      type: String,
-      required: false
-    },
-    valueFontSize: {
-      type: String,
-      required: false
-    },
-    showTooltip: {
-      type: Boolean,
-      required: false
-    }
+  value: {
+    type: [Number, String],
+    required: false
   },
-  computed: {
-    headerTitle() {
-      return this.title || "N/A";
-    },
-    headerIcon() {
-      return this.icon || null;
-    },
-    count() {
-      return this.value || 0;
-    },
-    tooltip() {
-      return this.message || "N/A";
-    },
-    displayTooltip() {
-      return this.showTooltip || false;
-    },
-    tooltipActivator() {
-      return {"type": "icon", "text": "mdi-information-outline"};
-    },
-    valueStyle() {
-      return {
-        fontSize: this.valueFontSize || "2em"
-      }
-    },
-    dynamicStyles() {
-      return {
-        "--header-icon-bg-color": (this.iconBgColor || 'transparent')
-      };
-    }
+  message: {
+    type: String,
+    required: false
+  },
+  icon: {
+    type: String,
+    required: false
+  },
+  iconBgColor: {
+    type: String,
+    required: false
+  },
+  valueFontSize: {
+    type: String,
+    required: false
+  },
+  showTooltip: {
+    type: Boolean,
+    required: false
   }
-}
+});
+
+const headerTitle = computed(() => props.title || "N/A");
+const headerIcon = computed(() => props.icon || null);
+const count = computed(() => props.value || 0);
+const tooltip = computed(() => props.message || "N/A");
+const displayTooltip = computed(() => props.showTooltip || false);
+
+const tooltipActivator = {
+  type: "icon",
+  text: "mdi-information-outline"
+};
+
+const valueStyle = computed(() => ({
+  fontSize: props.valueFontSize || "2em"
+}));
+
+const dynamicStyles = computed(() => ({
+  "--header-icon-bg-color": props.iconBgColor || "transparent"
+}));
 </script>
 
 <style scoped>
+div.summary-data {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 12px;
+}
 div.header-row {
+  display: flex;
   justify-content: space-between;
-  > h3,
-  > .header-icon {
+  align-items: center;
+  > h3 {
     max-width: fit-content;
     border-radius: 4px;
-  }
-  > h3 {
     padding-bottom: 0 !important;
     word-break: break-all;
   }
   > .header-icon {
-    > .v-image__image {
-      background-color: var(--header-icon-bg-color);
-    }
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    background-color: var(--header-icon-bg-color);
   }
 }
 div.count-row {
+  padding-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   > span.summary-count {
-    max-width: fit-content;
     font-size: 2em;
     font-weight: bold;
   }

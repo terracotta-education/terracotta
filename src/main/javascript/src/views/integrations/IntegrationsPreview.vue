@@ -1,23 +1,24 @@
 <template>
-<iframe
-  :src="previewUrl"
-></iframe>
+  <iframe :src="previewUrl" />
 </template>
 
-<script>
-export default {
-  props: {
-    url:{
-      type: String,
-      required: true
-    }
-  },
-  computed: {
-    previewUrl() {
-      return atob(this.url);
-    }
+<script setup>
+import { computed } from "vue";
+
+defineOptions({
+  name: "IntegrationPreview"
+});
+
+const props = defineProps({
+  url: {
+    type: String,
+    required: true
   }
-}
+});
+
+const previewUrl = computed(() => {
+  return window.atob(props.url);
+});
 </script>
 
 <style lang="scss" scoped>

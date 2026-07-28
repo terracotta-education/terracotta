@@ -5,7 +5,7 @@
  */
 
 Qualtrics.SurveyEngine.addOnReady(function() {
-  const resizeObserver = new ResizeObserver((target) => {
+  const resizeObserver = new ResizeObserver(() => {
     // Calculate the height of the survey content and post the message to Terracotta parent window
     parent.postMessage(
     {

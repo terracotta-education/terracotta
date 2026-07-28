@@ -25,72 +25,66 @@
 </v-row>
 </template>
 
-<script>
-  import { mapGetters } from "vuex";
-  import Assignments from "./Assignments.vue";
-  import Conditions from "./Conditions.vue";
-  import Exposures from "./Exposures.vue";
-  import Participants from "./Participants.vue";
+<script setup>
+import { computed } from "vue";
 
-export default {
-  name: "ResultsOverviewSummary",
-  components: {
-    Assignments,
-    Conditions,
-    Exposures,
-    Participants
-  },
-  computed: {
-    ...mapGetters({
-      overview: "resultsDashboard/overview"
-    }),
-    resultsOverviewExposures() {
-      return {
-        exposureType: this.resultsOverviewConditionsExposureType
-      }
-    },
-    resultsOverview() {
-      return this.overview || {} ;
-    },
-    resultsOverviewParticipants() {
-      return this.resultsOverview.participants || {};
-    },
-    resultsOverviewExposureType() {
-      return this.resultsOverviewConditions.exposureType;
-    },
-    resultsOverviewSummaryAssignmentsCount() {
-      return this.resultsOverviewParticipants.assignmentCount || 0;
-    },
-    resultsOverviewConditions() {
-      return this.resultsOverview.conditions || {};
-    },
-    resultsOverviewConditionsRows() {
-      return this.resultsOverviewConditions.rows || [];
-    },
-    resultsOverviewSummaryConditionsCount() {
-        return this.resultsOverviewNamedConditions.length || 0;
-    },
-    resultsOverviewNamedConditions() {
-      return this.resultsOverview.conditions.rows.filter(r => r.title !== "Components with only one version");
-    },
-  }
-}
+import Assignments from "./Assignments.vue";
+import Conditions from "./Conditions.vue";
+import Exposures from "./Exposures.vue";
+import Participants from "./Participants.vue";
+import { resultsDashboard as useResultsDashboardStore } from "@/store/dashboard/results.module";
+
+defineOptions({
+  name: "ResultsOverviewSummary"
+});
+
+
+const resultsDashboardStore = useResultsDashboardStore();
+const overview = computed(() => resultsDashboardStore.overview);
+
+const resultsOverview = computed(() => {
+  return overview.value || {};
+});
+
+const resultsOverviewParticipants = computed(() => {
+  return resultsOverview.value.participants || {};
+});
+
+const resultsOverviewConditions = computed(() => {
+  return resultsOverview.value.conditions || {};
+});
+
+const resultsOverviewExposureType = computed(() => {
+  return resultsOverviewConditions.value.exposureType;
+});
+
+const resultsOverviewSummaryAssignmentsCount = computed(() => {
+  return resultsOverviewParticipants.value.assignmentCount || 0;
+});
+
+const resultsOverviewNamedConditions = computed(() => {
+  return (resultsOverviewConditions.value.rows || []).filter(
+    row => row.title !== "Components with only one version"
+  );
+});
+
+const resultsOverviewSummaryConditionsCount = computed(() => {
+  return resultsOverviewNamedConditions.value.length || 0;
+});
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/variables";
-
 div.row-summary {
   justify-content: space-between;
-  > div.col {
+  > .v-col {
     max-width: 24%;
-    border: thin solid map-get($grey, "lighter");
+    border: thin solid map.get($grey, "lighter");
     border-radius: 10px;
     > .container-summary {
       display: flex;
       flex-direction: column;
       justify-content: space-evenly;
-      align-items: center;
+      align-items: stretch;
       font-size: 1.05em;
     }
   }

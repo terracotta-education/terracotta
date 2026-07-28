@@ -1,369 +1,403 @@
 <template>
-<div>
-  <template
-    v-if="!readonly"
-  >
-    <response-row>
-      <v-card
-        v-if="isIdle && !file"
-        :class="{ 'grey lighten-2': dragover }"
-        @drop.prevent="onDrop($event)"
-        @dragover.prevent="dragover = true"
-        @dragenter.prevent="dragover = true"
-        @dragleave.prevent="dragover = false"
-        elevation="0"
-        width="100%"
-        height="100%"
-      >
-        <v-card-actions
-          class="d-flex flex-column btn-upload-card-action"
-          align="center"
-          justify="center"
-          dense
+  <div>
+    <template v-if="!readonly">
+      <ResponseRow>
+        <v-card
+          v-if="isIdle && !file"
+          :class="{ 'bg-grey-lighten-3': dragover }"
+          elevation="0"
+          width="100%"
+          height="100%"
+          @drop.prevent="onDrop"
+          @dragover.prevent="dragover = true"
+          @dragenter.prevent="dragover = true"
+          @dragleave.prevent="dragover = false"
         >
-          <v-row
-            class="d-flex flex-column"
-            align="center"
-            justify="center"
-            dense
+          <v-card-actions
+            class="d-flex flex-column btn-upload-card-action"
           >
-            <v-btn
-              :loading="isSelecting"
-              @click="handleFileImport"
-              color="primary"
-              class="upload-button"
+            <v-row
+              class="d-flex flex-column"
               align="center"
-              dark
+              justify="center"
             >
-              Upload File
-            </v-btn>
-          </v-row>
-          <input
-            @change="onFileChanged"
-            ref="uploader"
-            class="d-none"
-            type="file"
-          />
-          <v-spacer></v-spacer>
-        </v-card-actions>
-        <v-card-text
-          class="drag-drop-card-text"
+              <v-btn
+                :loading="isSelecting"
+                color="primary"
+                class="upload-button"
+                @click="handleFileImport"
+              >
+                Upload File
+              </v-btn>
+            </v-row>
+
+            <input
+              ref="uploader"
+              class="d-none"
+              type="file"
+              @change="onFileChanged"
+            />
+
+            <v-spacer />
+          </v-card-actions>
+
+          <v-card-text class="drag-drop-card-text">
+            <v-row
+              class="d-flex flex-column"
+              align="center"
+              justify="center"
+            >
+              <p class="drag-drop-text">
+                or drag and drop here
+              </p>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
+        <v-card
+          v-if="!isIdle || file"
+          width="100%"
+          height="100%"
         >
-          <v-row
-            class="d-flex flex-column"
-            align="center"
-            justify="center"
-            dense
-          >
-            <p
-              class="drag-drop-text"
+          <v-card-text>
+            <v-row
+              class="d-flex flex-column"
+              align="center"
+              justify="center"
             >
-              or drag and drop here
-            </p>
-          </v-row>
-        </v-card-text>
-      </v-card>
-      <v-card
-        v-if="!isIdle || file"
-        width="100%"
-        height="100%"
-      >
-        <v-card-text>
-          <v-row
-            class="d-flex flex-column"
-            align="center"
-            justify="center"
-            dense
-          >
-            <h2
-              v-if="isUploading"
-            >
-              {{ isUploading ? "Uploading..." : "Select file:" }}
-            </h2>
-            <div
-              v-if="isUploading"
-            >
-              <v-progress-linear
-                v-model="uploadBarProgress"
-                height="5"
+              <h2 v-if="isUploading">
+                Uploading...
+              </h2>
+
+              <div v-if="isUploading">
+                <v-progress-linear
+                  v-model="uploadBarProgress"
+                  height="5"
+                />
+
+                <ToolTip
+                  content="Cancel upload"
+                  activator-type="button"
+                  activator-class="btn-uploaded-file"
+                  activator-icon-class="btn-uploaded-file-icon"
+                  icon="mdi-close-outline"
+                  alignment="top"
+                  @clicked="deleteFile"
+                />
+              </div>
+
+              <div
+                v-if="!isUploading"
+                class="v-btn uploaded-file-row"
               >
-              </v-progress-linear>
-              <tool-tip
-                @clicked="deleteFile"
-                content="Cancel upload"
-                activatorType="button"
-                activatorClass="btn-uploaded-file"
-                activatorIconClass="btn-uploaded-file-icon"
-                icon="mdi-close-outline"
-                alignment="top"
-              />
-            </div>
-            <div
-              v-if="!isUploading"
-              class="v-btn uploaded-file-row"
-              outlined
-            >
-              {{ file.name }}
-              <tool-tip
-                @clicked="deleteFile"
-                content="Delete file"
-                activatorType="button"
-                activatorClass="btn-uploaded-file"
-                activatorIconClass="btn-uploaded-file-icon"
-                icon="mdi-trash-can-outline"
-                alignment="top"
-              />
-            </div>
-          </v-row>
-        </v-card-text>
-      </v-card>
-    </response-row>
-    <v-row
-      v-if="isIdle && !file"
-      class="d-flex flex-column"
-      align="center"
-      justify="center"
-      dense
-    >
-      <p>Uploaded files cannot be larger than 10MB</p>
-    </v-row>
-  </template>
-  <template
-    v-if="readonly"
-  >
-    <response-row>
-      <v-card
-        class="uploaded-file-card"
+                {{ file?.name }}
+
+                <ToolTip
+                  content="Delete file"
+                  activator-type="button"
+                  activator-class="btn-uploaded-file"
+                  activator-icon-class="btn-uploaded-file-icon"
+                  icon="mdi-trash-can-outline"
+                  alignment="top"
+                  @clicked="deleteFile"
+                />
+              </div>
+            </v-row>
+          </v-card-text>
+        </v-card>
+      </ResponseRow>
+
+      <v-row
+        v-if="isIdle && !file"
+        class="d-flex flex-column"
+        align="center"
+        justify="center"
       >
-        <v-card-text>
-          <v-row
-            class="d-flex flex-column"
-            align="center"
-            justify="center"
-            dense
-          >
-            <h2>File submitted:</h2>
-            <div
-              v-for="fileResponse in fileResponses"
-              :key="fileResponse.answerSubmissionId"
-              class="v-btn uploaded-file-row"
-              outlined
+        <p>
+          Uploaded files cannot be larger than 10MB
+        </p>
+      </v-row>
+    </template>
+
+    <template v-else>
+      <ResponseRow>
+        <v-card class="uploaded-file-card">
+          <v-card-text>
+            <v-row
+              class="d-flex flex-column"
+              align="center"
+              justify="center"
             >
-              {{ fileResponse.fileName }}
-              <tool-tip
-                v-if="!isDownloading"
-                @clicked="handleFileDownload(fileResponse)"
-                activatorType="button"
-                activatorClass="btn-uploaded-file"
-                activatorIconClass="btn-uploaded-file-icon"
-                content="Download file"
-                icon="mdi-file-download-outline"
-                alignment="top"
-              />
-              <span
-                v-if="isDownloading"
+              <h2>
+                File submitted:
+              </h2>
+
+              <div
+                v-for="fileResponse in fileResponses"
+                :key="fileResponse.answerSubmissionId"
+                class="v-btn uploaded-file-row"
               >
-                <spinner />
-              </span>
-            </div>
-          </v-row>
-        </v-card-text>
-      </v-card>
-    </response-row>
-  </template>
-</div>
+                {{ fileResponse.fileName }}
+
+                <ToolTip
+                  v-if="!isDownloading"
+                  content="Download file"
+                  activator-type="button"
+                  activator-class="btn-uploaded-file"
+                  activator-icon-class="btn-uploaded-file-icon"
+                  icon="mdi-file-download-outline"
+                  alignment="top"
+                  @clicked="handleFileDownload(fileResponse)"
+                />
+
+                <span v-else>
+                  <Spinner />
+                </span>
+              </div>
+            </v-row>
+          </v-card-text>
+        </v-card>
+      </ResponseRow>
+    </template>
+  </div>
 </template>
 
-<script>
-import { mapGetters, mapActions } from "vuex";
-import ResponseRow from "./ResponseRow.vue";
-import Spinner from "@/components/Spinner";
+<script setup>
+import {
+  ref,
+  computed,
+  watch
+} from "vue";
+
+import ResponseRow from "@/views/student/ResponseRow.vue";
+import Spinner from "@/components/Spinner.vue";
 import ToolTip from "@/components/ToolTip.vue";
 
-export default {
-  components: {
-    ResponseRow,
-    Spinner,
-    ToolTip
+import { submission as submissionModule } from "@/store/submission.module";
+
+defineOptions({
+  name: "FileResponseEditor"
+});
+
+const props = defineProps({
+  modelValue: {
+    type: Object,
+    default: null
   },
-  props: {
-    value: {
-      type: Object
-    },
-    readonly: {
-      type: Boolean,
-      default: false
-    },
-    fileResponses: {
-      type: Array
-    },
-    selectedSubmission: {
-      type: Object
-    },
-    selectedDownloadId: {
-      type: Number
-    },
-    submissionId: {
-      type: Number
-    },
-    questionId: {
-      type: Number
-    }
+  readonly: {
+    type: Boolean,
+    default: false
   },
-  data: () => ({
-    response: null,
-    isSelecting: false,
-    selectedFile: null,
-    dragover: false,
-    uploading: false,
-    uploadBarProgress: 10,
-    uploaded: false
-  }),
-  watch: {
-    value() {
-      this.response = this.value;
-    }
+  fileResponses: {
+    type: Array,
+    default: () => []
   },
-  computed: {
-    ...mapGetters({
-      files: "submissions/files"
-    }),
-    isUploading: function () {
-      return (this.uploading && !this.uploaded);
-    },
-    isIdle: function () {
-      return (!this.uploading && !this.uploaded);
-    },
-    isUploaded: function () {
-      return (!this.uploading && this.uploaded);
-    },
-    isDownloading() {
-      return this.selectedDownloadId == this.fileResponses[0].answerSubmissionId;
-    },
-    file() {
-      return this.files.find(file => file.questionId === this.questionId && file.submissionId === this.submissionId);
-    }
+  selectedSubmission: {
+    type: Object,
+    default: null
   },
-  methods: {
-    ...mapActions({
-      addFile: "submissions/addFile",
-      clearFile: "submissions/clearFile"
-    }),
-    onInput() {
-      this.emitValueChanged();
-    },
-    emitValueChanged() {
-      this.$emit("input", this.response);
-    },
-    handleFileImport() {
-      this.isSelecting = true;
-      // After obtaining the focus when closing the FilePicker, return the button state to normal
-      window.addEventListener("focus", () => {
-        this.isSelecting = false
-      }, {once: true});
-      // Trigger click on the FileInput
-      this.$refs.uploader.click();
-    },
-    onDrop(e) {
-      this.dragover = false;
-      this.uploading = true;
-      this.clearFile(
-        {
-          questionId: this.questionId,
-          submissionId: this.submissionId
-        }
-      );
-      if (e.dataTransfer.files.length > 1) {
-        this.$store.dispatch("addNotification", {
-          message: "Only one file may be uploaded at a time.",
-          colour: "error"
-        });
-      } else
-        e.dataTransfer.files.forEach(element => {
-            this.addFile({
-              file: element,
-              name: element.name,
-              questionId: this.questionId,
-              submissionId: this.submissionId
-            });
-            this.loadFile(element);
-          }
-        );
-    },
-    onFileChanged(e) {
-      if (e.target.files.length) {
-        this.clearFile(
-          {
-            questionId: this.questionId,
-            submissionId: this.submissionId
-          }
-        );
-        this.uploading = true;
-        this.addFile({
-          file: e.target.files[0],
-          name: e.target.files[0].name,
-          questionId: this.questionId,
-          submissionId: this.submissionId
-        });
-        this.loadFile(e.target.files[0]);
-      }
-    },
-    loadFile(file) {
-      this.uploadBarProgress = 50;
-      if (file.size > 10 * 1024 * 1024) {
-        this.clearFile(
-          {
-            questionId: this.questionId,
-            submissionId: this.submissionId
-          }
-        );
-        this.uploading = false;
-        this.uploaded = false;
-        this.response = null;
-        alert("File cannot exceed 10MB");
-      } else {
-        this.uploadBarProgress = 50;
-        this.uploading = false;
-        this.uploaded = true;
-        this.response = file;
-        this.emitValueChanged();
-      }
-    },
-    deleteFile() {
-      this.clearFile(
-        {
-          questionId: this.questionId,
-          submissionId: this.submissionId
-        }
-      );
-      this.uploadBarProgress = 0;
-      this.uploading = false
-      this.uploaded = false
-      this.response = null;
-      this.emitValueChanged();
-    },
-    fileMimeType(fileResponse) {
-      return fileResponse.mimeType;
-    },
-    fileName(fileResponse) {
-      return fileResponse.fileName;
-    },
-    handleFileDownload(fileResponse) {
-     this.$emit(
-        "download-file-response",
-        {
-          conditionId: this.selectedSubmission.conditionId,
-          treatmentId: this.selectedSubmission.treatmentId,
-          assessmentId: this.selectedSubmission.assessmentId,
-          submissionId: this.selectedSubmission.submissionId,
-          questionSubmissionId: fileResponse.questionSubmissionId,
-          answerSubmissionId: fileResponse.answerSubmissionId,
-          mimeType: fileResponse.mimeType,
-          fileName: fileResponse.fileName
-        }
-      );
-    },
+  selectedDownloadId: {
+    type: Number,
+    default: null
+  },
+  submissionId: {
+    type: Number,
+    required: true
+  },
+  questionId: {
+    type: Number,
+    required: true
   }
+});
+
+const emit = defineEmits([
+  "update:modelValue",
+  "download-file-response"
+]);
+
+const submissionStore = submissionModule();
+
+const response = ref(props.modelValue);
+const isSelecting = ref(false);
+const dragover = ref(false);
+const uploading = ref(false);
+const uploadBarProgress = ref(10);
+const uploaded = ref(false);
+const uploader = ref(null);
+
+watch(
+  () => props.modelValue,
+  value => {
+    response.value = value;
+  }
+);
+
+const files = computed(() => {
+  return submissionStore.files;
+});
+
+const isUploading = computed(() => {
+  return uploading.value && !uploaded.value;
+});
+
+const isIdle = computed(() => {
+  return !uploading.value && !uploaded.value;
+});
+
+const isDownloading = computed(() => {
+  return (
+    props.fileResponses?.[0] &&
+    props.selectedDownloadId ===
+      props.fileResponses[0].answerSubmissionId
+  );
+});
+
+const file = computed(() => {
+  return files.value.find(
+    file =>
+      file.questionId === props.questionId &&
+      file.submissionId === props.submissionId
+  );
+});
+
+const emitValueChanged = () => {
+  emit(
+    "update:modelValue",
+    response.value
+  );
+};
+
+const handleFileImport = () => {
+  isSelecting.value = true;
+
+  window.addEventListener(
+    "focus",
+    () => {
+      isSelecting.value = false;
+    },
+    { once: true }
+  );
+
+  uploader.value?.click();
+};
+
+const onDrop = event => {
+  dragover.value = false;
+  uploading.value = true;
+
+  submissionStore.clearFile({
+    questionId: props.questionId,
+    submissionId: props.submissionId
+  });
+
+  if (event.dataTransfer.files.length > 1) {
+    // preserve existing behavior
+    alert(
+      "Only one file may be uploaded at a time."
+    );
+    return;
+  }
+
+  Array.from(
+    event.dataTransfer.files
+  ).forEach(file => {
+    submissionStore.addFile({
+      file,
+      name: file.name,
+      questionId: props.questionId,
+      submissionId: props.submissionId
+    });
+
+    loadFile(file);
+  });
+};
+
+const onFileChanged = event => {
+  const selectedFile =
+    event.target.files?.[0];
+
+  if (!selectedFile) {
+    return;
+  }
+
+  submissionStore.clearFile({
+    questionId: props.questionId,
+    submissionId: props.submissionId
+  });
+
+  uploading.value = true;
+
+  submissionStore.addFile({
+    file: selectedFile,
+    name: selectedFile.name,
+    questionId: props.questionId,
+    submissionId: props.submissionId
+  });
+
+  loadFile(selectedFile);
+};
+
+const loadFile = file => {
+  uploadBarProgress.value = 50;
+
+  if (file.size > 10 * 1024 * 1024) {
+    submissionStore.clearFile({
+      questionId: props.questionId,
+      submissionId: props.submissionId
+    });
+
+    uploading.value = false;
+    uploaded.value = false;
+    response.value = null;
+
+    alert("File cannot exceed 10MB");
+    return;
+  }
+
+  uploadBarProgress.value = 50;
+  uploading.value = false;
+  uploaded.value = true;
+  response.value = file;
+
+  emitValueChanged();
+};
+
+const deleteFile = () => {
+  submissionStore.clearFile({
+    questionId: props.questionId,
+    submissionId: props.submissionId
+  });
+
+  uploadBarProgress.value = 0;
+  uploading.value = false;
+  uploaded.value = false;
+  response.value = null;
+
+  emitValueChanged();
+};
+
+const handleFileDownload = fileResponse => {
+  emit(
+    "download-file-response",
+    {
+      conditionId:
+        props.selectedSubmission.conditionId,
+      treatmentId:
+        props.selectedSubmission.treatmentId,
+      assessmentId:
+        props.selectedSubmission.assessmentId,
+      submissionId:
+        props.selectedSubmission.submissionId,
+      questionSubmissionId:
+        fileResponse.questionSubmissionId,
+      answerSubmissionId:
+        fileResponse.answerSubmissionId,
+      mimeType:
+        fileResponse.mimeType,
+      fileName:
+        fileResponse.fileName
+    }
+  );
 };
 </script>
 
@@ -374,6 +408,7 @@ iframe {
   min-width: 600px;
   border: none;
 }
+
 .uploaded-file-row {
   min-width: 200px !important;
   min-height: 42px !important;
@@ -384,6 +419,7 @@ iframe {
   border: 1px solid lightgrey;
   justify-content: space-between;
 }
+
 .btn-uploaded-file {
   padding: 0 !important;
   margin-left: 20px;
@@ -392,19 +428,24 @@ iframe {
   border-color: lightgrey;
   background-color: transparent !important;
 }
+
 .btn-uploaded-file-icon {
-  color: rgba(0,0,0,.54) !important;
+  color: rgba(0, 0, 0, 0.54) !important;
 }
+
 .btn-upload-card-action {
   padding-top: 16px;
 }
+
 .drag-drop-card-text {
   padding-bottom: 0;
-  line-height: .5rem;
+  line-height: 0.5rem;
 }
+
 p.drag-drop-text {
   margin-bottom: 0;
 }
+
 .uploaded-file-card {
   width: 100%;
   height: 100%;

@@ -19,56 +19,46 @@
 </svg>
 </template>
 
-<script>
-export default {
-  name: "Spinner",
-  props: {
-    width: {
-      type: String,
-      required: false
-    },
-    height: {
-      type: String,
-      required: false
-    },
-    viewBox: {
-      type: String,
-      required: false
-    },
-    cx: {
-      type: String,
-      required: false
-    },
-    cy: {
-      type: String,
-      required: false
-    },
-    r: {
-      type: String,
-      required: false
-    }
+<script setup>
+import { computed } from "vue";
+
+defineOptions({
+  name: "LoadingSpinner"
+});
+
+const props = defineProps({
+  width: {
+    type: String,
+    default: "28px"
   },
-  computed: {
-    getWidth() {
-      return this.width || "28px";
-    },
-    getHeight() {
-      return this.height || "28px";
-    },
-    getViewBox() {
-      return this.viewBox || "0 0 66 66";
-    },
-    getCx() {
-      return this.cx || "33";
-    },
-    getCy() {
-      return this.cy || "33";
-    },
-    getR() {
-      return this.r || "30";
-    }
+  height: {
+    type: String,
+    default: "28px"
+  },
+  viewBox: {
+    type: String,
+    default: "0 0 66 66"
+  },
+  cx: {
+    type: String,
+    default: "33"
+  },
+  cy: {
+    type: String,
+    default: "33"
+  },
+  r: {
+    type: String,
+    default: "30"
   }
-}
+});
+
+const getWidth = computed(() => props.width);
+const getHeight = computed(() => props.height);
+const getViewBox = computed(() => props.viewBox);
+const getCx = computed(() => props.cx);
+const getCy = computed(() => props.cy);
+const getR = computed(() => props.r);
 </script>
 
 <style lang="scss" scoped>
@@ -98,7 +88,7 @@ $duration: 0.75s;
     stroke-dashoffset: $offset;
   }
   50% {
-    stroke-dashoffset: $offset/4;
+    stroke-dashoffset: math.div($offset, 4);
     transform:rotate(135deg);
   }
   100% {

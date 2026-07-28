@@ -13,13 +13,13 @@
     >
       <v-alert
         v-if="experimentImportRequests[importRequestAlert.id]"
-        v-model="experimentImportRequests[importRequestAlert.id].showAlert"
-        @input="handleImportRequestAlertDismiss(importRequestAlert.id)"
+        :model-value="experimentImportRequests[importRequestAlert.id].showAlert"
+        @update:model-value="value => handleImportRequestAlertVisibilityChange(importRequestAlert.id, value)"
+        @click:close="handleImportRequestAlertDismiss(importRequestAlert.id)"
         :type="importRequestAlert.type"
         elevation="0"
-        dismissible
-        outlined
-        text
+        closable
+        variant="outlined"
       >
         {{ importRequestAlert.text }}
         <ul
@@ -43,7 +43,7 @@
     class="text-center"
   >
     <v-col
-      col="8"
+      cols="8"
       class="mt-15"
     >
       <div
@@ -52,7 +52,7 @@
         <help />
       </div>
       <v-img
-        src="@/assets/terracotta_logo_vertical.svg"
+        :src="terracottaLogoVertical"
         alt="Terracotta Logo"
         class="terrcotta-logo mb-13 mx-auto"
         max-height="127"
@@ -84,7 +84,7 @@
           @click="handleImportExperiment"
           class="experiment-btn"
           color="primary"
-          text
+          variant="text"
         >
           OR IMPORT AN EXPERIMENT
         </v-btn>
@@ -112,45 +112,53 @@
 </v-container>
 </template>
 
-<script>
+<script setup>
 import Help from "@/components/Help.vue";
+import terracottaLogoVertical from "@/assets/terracotta_logo_vertical.svg";
 
-export default {
-  components: {
-    Help
+defineProps({
+  experimentExportEnabled: {
+    type: Boolean,
+    required: true
   },
-  props: {
-    experimentExportEnabled: {
-      type: Boolean,
-      required: true
-    },
-    experimentImportRequests: {
-      type: Object,
-      required: true
-    },
-    importRequestAlerts: {
-      type: Array,
-      required: true
-    }
+  experimentImportRequests: {
+    type: Object,
+    required: true
   },
-  methods: {
-    handleImportRequestAlertDismiss(id) {
-      this.$emit("handleImportRequestAlertDismiss", id);
-    },
-    startExperiment() {
-      this.$emit("startExperiment");
-    },
-    handleImportExperiment() {
-      this.$emit("handleImportExperiment");
-    }
-  },
-}
+  importRequestAlerts: {
+    type: Array,
+    required: true
+  }
+});
+
+const emit = defineEmits([
+  "handleImportRequestAlertDismiss",
+  "handleImportRequestAlertVisibilityChange",
+  "startExperiment",
+  "handleImportExperiment"
+]);
+
+const handleImportRequestAlertDismiss = (id) => {
+  emit("handleImportRequestAlertDismiss", id);
+};
+
+const handleImportRequestAlertVisibilityChange = (id, showAlert) => {
+  emit("handleImportRequestAlertVisibilityChange", id, showAlert);
+};
+
+const startExperiment = () => {
+  emit("startExperiment");
+};
+
+const handleImportExperiment = () => {
+  emit("handleImportExperiment");
+};
 </script>
 
 <style lang="scss">
 .zero-state {
   & .terracotta-appbg {
-    background: url("~@/assets/terracotta_appbg.jpg") no-repeat center center;
+    background: url("@/assets/terracotta_appbg.jpg") no-repeat center center;
     background-size: cover;
     height: 100%;
     width: 100%;
@@ -162,10 +170,11 @@ export default {
   & .terracotta-appbg + * {
     position: relative; /*place the content above the terracotta-appbg*/
   }
-  & div.v-tooltip__content {
+  & .v-tooltip > .v-overlay__content {
     max-width: 400px;
     opacity: 1.0 !important;
     background-color: rgba(55,61,63, 1.0) !important;
+    color: #fff !important;
     a {
       color: #afdcff;
     }

@@ -1,153 +1,227 @@
 <template>
-<div>
-  <v-row>
-  <div
-    class="col-6"
-  >
-      <v-text-field
-          v-model="assignment.title"
+  <div>
+    <v-row>
+      <v-col cols="6">
+        <v-text-field
+          v-model="title"
           label="Component name"
-          outlined
-      ></v-text-field>
-  </div>
-  </v-row>
-  <p>This will create an unpublished component shell in {{ lmsTitle }} and will be the way Terracotta will deliver treatments to students.</p>
-  <v-divider />
-  <v-tabs
-    v-model="tab"
-    class="tabs"
-  >
-    <v-tab>Settings</v-tab>
-  </v-tabs>
-  <v-divider />
-  <v-tabs-items
-    v-model="tab"
-  >
-      <v-tab-item
+          variant="outlined"
+        />
+      </v-col>
+    </v-row>
+
+    <p>
+      This will create an unpublished component shell in {{ lmsTitle }} and will
+      be the way Terracotta will deliver treatments to students.
+    </p>
+
+    <v-divider />
+
+    <v-tabs
+      v-model="tab"
+      class="tabs"
+    >
+      <v-tab value="settings">
+        Settings
+      </v-tab>
+    </v-tabs>
+
+    <v-divider />
+
+    <v-window v-model="tab">
+      <v-window-item
+        value="settings"
         class="my-5"
       >
-        <assignment-settings />
-      </v-tab-item>
-  </v-tabs-items>
-  <v-btn
-    v-if="!this.editMode"
-    :disabled="contDisabled"
-    @click="saveNext('AssignmentYourAssignments')"
-    elevation="0"
-    color="primary"
-    class="mr-4"
-  >
-    Continue
-  </v-btn>
-</div>
+        <AssignmentSettings />
+      </v-window-item>
+    </v-window>
+
+    <v-btn
+      v-if="!editMode"
+      :disabled="contDisabled"
+      elevation="0"
+      color="primary"
+      class="mr-4"
+      @click="saveNext('AssignmentYourAssignments')"
+    >
+      Continue
+    </v-btn>
+  </div>
 </template>
 
-<script>
-import { mapGetters, mapActions } from "vuex";
-import { statusAlert } from "@/helpers/ui-utils";
-import AssignmentSettings from "./AssignmentSettings.vue";
+<script setup>
+import {
+  ref,
+  computed,
+  onMounted
+} from "vue";
 
-export default {
-  name: "AssignmentEditor",
-  components: {
-    AssignmentSettings
-  },
-  props: {
-    experiment: {
-      type: Object,
-      required: true
-    }
-  },
-  data: () => ({
-    tab: null
-  }),
-  computed: {
-    ...mapGetters({
-      assignment: "assignment/assignment",
-      editMode: "navigation/editMode",
-      configurations: "configuration/get",
-      alertStatuses: "alert/statuses"
-    }),
-    experimentId() {
-      return parseInt(this.$route.params.experimentId);
-    },
-    assignmentId() {
-      return parseInt(this.$route.params.assignmentId);
-    },
-    exposureId() {
-      return parseInt(this.$route.params.exposureId);
-    },
-    contDisabled() {
-      return (
-        !this.assignment.title
-      );
-    },
-    getSaveExitPage() {
-      return this.editMode?.callerPage?.name || "Home";
-    },
-    lmsTitle() {
-      return this.configurations?.lmsTitle || "LMS";
-    }
-  },
-  methods: {
-    async saveExit() {
-      if (!this.contDisabled) {
-        const savedAssignment = await this.handleSaveAssignment();
-        if (savedAssignment) {
-          this.$router.push({
-            name: this.getSaveExitPage,
-            params: {
-              experiment: this.experiment.experimentId,
-              ...statusAlert(this.alertStatuses.success, "Assignment saved successfully.")
-            }
-          });
-        }
-      }
-    },
-    ...mapActions({
-      updateAssignment: "assignment/updateAssignment",
-      fetchAssignment: "assignment/fetchAssignment"
-    }),
-    async saveNext(routeName) {
-      const savedAssignment = await this.handleSaveAssignment();
+import {
+  useRoute,
+  useRouter
+} from "vue-router";
 
-      if (savedAssignment) {
-        this.$router.push({
-          name: routeName,
-          params: {
-            experiment: this.experiment.experimentId,
-            exposureId: isNaN(this.exposureId) ? this.$route.params.exposureId : this.exposureId,
-            ...statusAlert(this.alertStatuses.success, "Assignment saved successfully.")
-          }
-        });
-      }
-    },
-    async handleSaveAssignment() {
-      // PUT ASSESSMENT TITLE & HTML (description) & SETTINGS
-      const response = await this.updateAssignment([
-        this.experimentId,
-        this.exposureId,
-        this.assignmentId,
-        {
-          ...this.assignment
-        }
-      ]);
+import Swal from "sweetalert2";
 
-      if (response.status === 400) {
-        this.$swal(response.data);
+import { statusAlert, createStatusAlert } from "@/helpers/ui-utils";
 
-        return false;
-      }
+import AssignmentSettings from "@/views/assignment/AssignmentSettings.vue";
 
-      return response;
-    }
-  },
-  async created() {
-    await this.fetchAssignment([
-      this.experiment.experimentId,
-      this.exposureId,
-      this.assignmentId,
-    ]);
+import { assignment as assignmentModule } from "@/store/assignment.module";
+import { navigation as navigationModule } from "@/store/navigation.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
+import { alert as alertModule } from "@/store/alert.module";
+
+defineOptions({
+  name: "AssignmentEditor"
+});
+
+const props = defineProps({
+  experiment: {
+    type: Object,
+    required: true
   }
-}
+});
+
+const route = useRoute();
+const router = useRouter();
+
+const assignmentStore = assignmentModule();
+const navigationStore = navigationModule();
+const configurationStore = configurationModule();
+const alertStore = alertModule();
+
+const tab = ref("settings");
+
+const assignment = computed(() => {
+  return assignmentStore.assignment;
+});
+
+const title = computed({
+  get: () => assignment.value?.title || "",
+
+  set: newTitle => {
+    if (!assignment.value) {
+      return;
+    }
+
+    assignment.value.title = newTitle;
+  }
+});
+
+const editMode = computed(() => {
+  return navigationStore.editMode;
+});
+
+const configurations = computed(() => {
+  return configurationStore.configurations;
+});
+
+const alertStatuses = computed(() => {
+  return alertStore.statuses;
+});
+
+const experimentId = computed(() => {
+  return Number.parseInt(route.params.experimentId, 10);
+});
+
+const assignmentId = computed(() => {
+  return Number.parseInt(route.params.assignmentId, 10);
+});
+
+const exposureId = computed(() => {
+  return Number.parseInt(route.params.exposureId, 10);
+});
+
+const resolvedExposureId = computed(() => {
+  return Number.isNaN(exposureId.value)
+    ? route.params.exposureId
+    : exposureId.value;
+});
+
+const contDisabled = computed(() => {
+  return !assignment.value?.title;
+});
+
+const getSaveExitPage = computed(() => {
+  return editMode.value?.callerPage?.name || "Home";
+});
+
+const lmsTitle = computed(() => {
+  return configurations.value?.lmsTitle || "LMS";
+});
+
+const handleSaveAssignment = async () => {
+  const response = await assignmentStore.updateAssignment([
+    experimentId.value,
+    exposureId.value,
+    assignmentId.value,
+    {
+      ...assignment.value
+    }
+  ]);
+
+  if (response?.status === 400) {
+    await Swal.fire(response.data);
+    return false;
+  }
+
+  return response;
+};
+
+const saveExit = async () => {
+  if (contDisabled.value) {
+    return;
+  }
+
+  const savedAssignment = await handleSaveAssignment();
+
+  if (!savedAssignment) {
+    return;
+  }
+
+  createStatusAlert(
+    statusAlert(alertStatuses.value.success, "Assignment saved successfully.")
+  );
+
+  router.push({
+    name: getSaveExitPage.value,
+    params: {
+      experiment: props.experiment.experimentId
+    }
+  });
+};
+
+const saveNext = async routeName => {
+  const savedAssignment = await handleSaveAssignment();
+
+  if (!savedAssignment) {
+    return;
+  }
+
+  createStatusAlert(
+    statusAlert(alertStatuses.value.success, "Assignment saved successfully.")
+  );
+
+  router.push({
+    name: routeName,
+    params: {
+      experiment: props.experiment.experimentId,
+      exposureId: resolvedExposureId.value
+    }
+  });
+};
+
+onMounted(async () => {
+  await assignmentStore.fetchAssignment([
+    props.experiment.experimentId,
+    exposureId.value,
+    assignmentId.value
+  ]);
+});
+
+defineExpose({
+  saveExit
+});
 </script>

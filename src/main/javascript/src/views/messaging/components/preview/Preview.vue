@@ -1,257 +1,323 @@
 <template>
-<v-expansion-panels
-  v-if="loaded"
-  class="mt-6"
-  flat
->
-  <v-expansion-panel
-    @click="panelExpansion"
+  <v-expansion-panels
+    v-if="loaded"
+    class="mt-6"
   >
-    <v-expansion-panel-header
-      class="preview-header"
-    >
-      <v-icon>mdi-message-text-outline</v-icon>
-      <span
-        class="ml-4"
-      >
-        Preview Message
-      </span>
-    </v-expansion-panel-header>
-    <v-expansion-panel-content>
-      <div
-        class="preview-message-container"
-      >
-        <fieldset
-          class="preview-message"
-        >
-          <legend>Message</legend>
-          <div
-            v-html="previewMessageBody"
-            :class="{ 'preview-message-conversation-body': type === 'CONVERSATION' }"
-            class="preview-message-body"
-          ></div>
-          <v-overlay
-            :absolute="true"
-            :value="!isFetching && showRefreshButton"
-            :opacity="0.75"
-          >
-            <v-btn
-              @click="handlePreview(selectedParticipant)"
-              color="primary"
+    <v-expansion-panel elevation="0" @click="panelExpansion">
+      <v-expansion-panel-title class="preview-header">
+        <v-icon>mdi-message-text-outline</v-icon>
+
+        <span class="ml-4">
+          Preview Message
+        </span>
+      </v-expansion-panel-title>
+
+      <v-expansion-panel-text>
+        <div class="preview-message-container">
+          <fieldset class="preview-message">
+            <legend>Message</legend>
+
+            <div
+              v-html="previewMessageBody"
+              :class="{
+                'preview-message-conversation-body': type === 'CONVERSATION'
+              }"
+              class="preview-message-body"
+            />
+
+            <v-overlay
+              v-model="showRefreshOverlay"
+              contained
+              :opacity="0.75"
+              class="d-flex align-center justify-center"
             >
-              Refresh
-            </v-btn>
-          </v-overlay>
-          <v-overlay
-            :absolute="true"
-            :value="isFetching"
-            :opacity="0.75"
-          >
-            <v-progress-circular
-              indeterminate
-              size="64"
-            ></v-progress-circular>
-          </v-overlay>
-        </fieldset>
-        <fieldset
-          class="preview-participant-list"
-          outlined
-        >
-          <legend>Preview As</legend>
-            <v-list-item-group
-              v-model="selectedParticipant"
-              aria-label="Select a student to prevfiew a message as"
+              <v-btn
+                color="primary"
+                @click="handlePreview(selectedParticipant)"
+              >
+                Refresh
+              </v-btn>
+            </v-overlay>
+
+            <v-overlay
+              v-model="isFetching"
+              contained
+              :opacity="0.75"
+              class="d-flex align-center justify-center"
+            >
+              <v-progress-circular
+                indeterminate
+                size="64"
+              />
+            </v-overlay>
+          </fieldset>
+
+          <fieldset class="preview-participant-list">
+            <legend>Preview As</legend>
+
+            <v-list
+              v-model:selected="selectedParticipantList"
+              aria-label="Select a student to preview a message as"
             >
               <v-list-item
-                v-for="(participant) in availableParticipants"
+                v-for="participant in availableParticipants"
                 :key="participant.id"
                 :value="participant.id"
-                @click="handlePreview(participant.id)"
                 active-class="selected-participant"
                 class="preview-participant"
                 link
+                @click="handlePreview(participant.id)"
               >
                 {{ participant.user.displayName }}
               </v-list-item>
-            </v-list-item-group>
-        </fieldset>
-      </div>
-    </v-expansion-panel-content>
-  </v-expansion-panel>
-</v-expansion-panels>
+            </v-list>
+          </fieldset>
+        </div>
+      </v-expansion-panel-text>
+    </v-expansion-panel>
+  </v-expansion-panels>
 </template>
 
-<script>
-import { mapGetters, mapActions, mapMutations } from "vuex";
+<script setup>
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted
+} from "vue";
+
 import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 
-export default {
-  props: {
-    experimentId: {
-      type: Number,
-      required: true
-    },
-    exposureId: {
-      type: String,
-      required: true
-    },
-    containerId: {
-      type: String,
-      required: true
-    },
-    messageId: {
-      type: String,
-      required: true
-    },
-    contentId: {
-      type: String,
-      required: true
-    }
-  },
-  data: () => ({
-    selectedParticipant: null,
-    loaded: false,
-    isFetching: false,
-    showRefreshButton: false
-  }),
-  watch: {
-    body: {
-      handler() {
-        if (this.selectedParticipant) {
-          this.showRefreshButton = true;
-        }
-      },
-      immediate: true
-    }
-  },
-  computed: {
-    ...mapGetters({
-      allMessageContainers: "messagingMessageContainer/messageContainers",
-      allConditionalTexts: "messagingConditionalText/messageConditionalTexts",
-      conditionalText: "messagingConditionalText/messageConditionalText",
-      exposures: "exposures/exposures",
-      participants: "participants/participants",
-      previewMessage: "messagingMessage/preview",
-    }),
-    container() {
-      return this.allMessageContainers.find(messageContainer => messageContainer.id === this.containerId);
-    },
-    message() {
-      return this.container.messages.find(message => message.id === this.messageId);
-    },
-    configuration() {
-      return this.message.configuration;
-    },
-    content() {
-      return this.message.content;
-    },
-    body() {
-      return this.content?.html || "";
-    },
-    type() {
-      return this.configuration?.type || "";
-    },
-    exposure() {
-      return this.exposures.find(exposure => exposure.exposureId === this.exposureId);
-    },
-    ruleSets() {
-      return this.message?.ruleSets || [];
-    },
-    conditionalTexts() {
-      return this.content?.conditionalTexts || [];
-    },
-    pipedText() {
-      return this.content?.pipedText || null;
-    },
-    availableParticipants() {
-      return this.participants.toSorted((a,b) => (a.user.displayName > b.user.displayName) ? 1 : ((b.user.displayName > a.user.displayName) ? -1 : 0));
-    },
-    previewMessageBody() {
-      return this.previewMessage?.body || "<p>Please select a user to preview their message.</p>";
-    },
-  },
-  methods: {
-    ...mapActions({
-      fetchPreview: "messagingMessage/fetchPreview",
-      fetchParticipants: "participants/fetchParticipants"
-    }),
-    ...mapMutations({
-      setPreview: "messagingMessage/setPreview",
-      setParticipants: "participants/setParticipants",
-    }),
-    async handlePreview(participantId) {
-      this.selectedParticipant = participantId;
-      this.isFetching = true;
+import { container as messagingMessageContainerModule } from "@/store/messaging/container.module";
+import { conditionaltext as messagingConditionalTextModule } from "@/store/messaging/conditionaltext.module";
+import { participants as participantsModule } from "@/store/participants.module";
+import { message as messagingMessageModule } from "@/store/messaging/message.module";
 
-      await this.fetchPreview([
-        this.experimentId,
-        this.exposureId,
-        this.containerId,
-        this.messageId,
-        {
-          id: participantId,
-          body: this.body,
-          ruleSets: this.ruleSets,
-          conditionalTexts: this.conditionalTexts,
-          pipedText: this.pipedText
-        }
-      ]);
+defineOptions({
+  name: "MessagePreview"
+});
 
-      this.showRefreshButton = false;
-      this.isFetching = false;
-    },
-    async initialize() {
-      this.setPreview(null);
-      await this.fetchParticipants(this.experimentId);
-      // strip participantId
-      this.setParticipants(
-        this.participants.map(
-          participant => {
-            return {
-              ...participant,
-              participantId: null
-            };
-          }
-        )
-      );
-    },
-    panelExpansion() {
-      setTimeout(() => {
-        deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
-      }, 1000);
-    }
+const props = defineProps({
+  experimentId: {
+    type: Number,
+    required: true
   },
-  async mounted() {
-    await this.initialize();
-    this.loaded = true;
-    this.$nextTick(() => {
-      deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
-    });
+  exposureId: {
+    type: String,
+    required: true
+  },
+  containerId: {
+    type: String,
+    required: true
+  },
+  messageId: {
+    type: String,
+    required: true
+  },
+  contentId: {
+    type: String,
+    required: true
   }
-}
+});
+
+const messagingMessageContainerStore = messagingMessageContainerModule();
+const messagingConditionalTextStore = messagingConditionalTextModule();
+const participantsStore = participantsModule();
+const messagingMessageStore = messagingMessageModule();
+
+const selectedParticipant = ref(null);
+const loaded = ref(false);
+const isFetching = ref(false);
+const showRefreshButton = ref(false);
+
+const allMessageContainers = computed(() => {
+  return messagingMessageContainerStore.messageContainers || [];
+});
+
+const allConditionalTexts = computed(() => {
+  return messagingConditionalTextStore.messageConditionalTexts || [];
+});
+
+const participants = computed(() => {
+  return participantsStore.participants || [];
+});
+
+const previewMessage = computed(() => {
+  return messagingMessageStore.preview;
+});
+
+const container = computed(() => {
+  return allMessageContainers.value.find(
+    messageContainer => messageContainer.id === props.containerId
+  );
+});
+
+const message = computed(() => {
+  return container.value?.messages.find(
+    currentMessage => currentMessage.id === props.messageId
+  );
+});
+
+const configuration = computed(() => {
+  return message.value?.configuration || {};
+});
+
+const content = computed(() => {
+  return message.value?.content || {};
+});
+
+const body = computed(() => {
+  return content.value?.html || "";
+});
+
+const type = computed(() => {
+  return configuration.value?.type || "";
+});
+
+const ruleSets = computed(() => {
+  return message.value?.ruleSets || [];
+});
+
+const pipedText = computed(() => {
+  return content.value?.pipedText || null;
+});
+
+const availableParticipants = computed(() => {
+  return [...participants.value].sort((a, b) => {
+    return a.user.displayName.localeCompare(
+      b.user.displayName
+    );
+  });
+});
+
+const previewMessageBody = computed(() => {
+  return previewMessage.value?.body ||
+    "<p>Please select a user to preview their message.</p>";
+});
+
+const selectedParticipantList = computed({
+  get() {
+    return selectedParticipant.value
+      ? [selectedParticipant.value]
+      : [];
+  },
+
+  set(value) {
+    selectedParticipant.value = value?.[0] || null;
+  }
+});
+
+const showRefreshOverlay = computed({
+  get() {
+    return !isFetching.value && showRefreshButton.value;
+  },
+
+  set(value) {
+    showRefreshButton.value = value;
+  }
+});
+
+watch(
+  body,
+  () => {
+    if (selectedParticipant.value) {
+      showRefreshButton.value = true;
+    }
+  },
+  {
+    immediate: true
+  }
+);
+
+const handlePreview = async participantId => {
+  selectedParticipant.value = participantId;
+  isFetching.value = true;
+
+  await messagingMessageStore.fetchPreview([
+    props.experimentId,
+    props.exposureId,
+    props.containerId,
+    props.messageId,
+    {
+      id: participantId,
+      body: body.value,
+      ruleSets: ruleSets.value,
+      conditionalTexts: allConditionalTexts.value,
+      pipedText: pipedText.value
+    }
+  ]);
+
+  showRefreshButton.value = false;
+  isFetching.value = false;
+};
+
+const initialize = async () => {
+  messagingMessageStore.setPreview(null);
+
+  await participantsStore.fetchParticipants([
+    props.experimentId
+  ]);
+
+  participantsStore.setParticipants(
+    participants.value.map(participant => ({
+      ...participant,
+      participantId: null
+    }))
+  );
+};
+
+const panelExpansion = () => {
+  window.setTimeout(() => {
+    deleteAttributesFromElement(
+      ".v-expansion-panel",
+      ["aria-expanded"]
+    );
+  }, 1000);
+};
+
+onMounted(async () => {
+  await initialize();
+
+  loaded.value = true;
+
+  await nextTick();
+
+  deleteAttributesFromElement(
+    ".v-expansion-panel",
+    ["aria-expanded"]
+  );
+});
 </script>
 
 <style scoped>
 .v-expansion-panels {
-  border: 1px solid #9e9e9e;
-  border-radius: 4px;
-  & .v-expansion-panel-content__wrap {
+  :deep(.v-expansion-panel) {
+    margin-bottom: 0 !important;
+    border: none !important;
+  }
+
+  :deep(.v-expansion-panel-text__wrapper) {
     padding: 10px 20px;
   }
 }
+
 .preview-header {
   display: flex;
   align-content: start;
+
   > * {
     max-width: fit-content;
   }
 }
+
 .preview-message-container {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   min-height: 500px;
   max-height: 500px;
+
   & .preview-message,
   & .preview-participant-list {
     min-height: 100%;
@@ -259,37 +325,46 @@ export default {
     border: thin solid #9e9e9e;
     border-radius: 4px;
   }
+
   & .preview-message {
     width: 68%;
+
     & .preview-message-conversation-body {
       white-space: pre-wrap;
     }
+
     > .preview-message-body {
       overflow-y: scroll;
       height: 100%;
     }
   }
+
   & .preview-participant-list {
     width: 30%;
+
     & .v-list {
       min-height: 100%;
       max-height: 100%;
       overflow-y: auto;
       border: none;
     }
+
     & .preview-participant {
       min-height: fit-content;
       max-height: fit-content;
       padding: 0;
     }
+
     & .selected-participant {
-      background-color: rgba(29, 157, 255, .15);
+      background-color: rgba(29, 157, 255, 0.15);
     }
   }
+
   > div {
     border: 1px solid #9e9e9e;
     border-radius: 4px;
   }
+
   & legend {
     padding: 4px;
   }

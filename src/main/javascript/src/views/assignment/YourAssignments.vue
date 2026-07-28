@@ -1,264 +1,350 @@
 <template>
-<div>
-  <template
-    v-if="loaded && exposures && exposures.length>0 && assignments"
-  >
-    <h1
-      class="mb-3"
+  <div>
+    <template
+      v-if="
+        loaded &&
+        exposures.length > 0 &&
+        assignments
+      "
     >
-      Your Components
-    </h1>
-    <div
-      class="mb-6"
-    >
-      <v-expansion-panels
-        v-for="(exposure, eIndex) in exposures"
-        :key="eIndex"
-        class="v-expansion-panels--outlined mb-7"
-        flat
-      >
-        <v-expansion-panel
-          class="py-3"
+      <h1 class="mb-3">
+        Your Components
+      </h1>
+
+      <div class="mb-6">
+        <v-expansion-panels
+          v-for="exposure in exposures"
+          :key="exposure.exposureId"
+          class="v-expansion-panels--outlined mb-7"
         >
-          <v-expansion-panel-header>
-            <strong>
-              {{ exposure.title }}
-              <span
-                :class="{'red--text':!assignmentIsBalanced(exposure.exposureId) || !allComplete(exposure.exposureId)}"
-              >
-                ({{ getComplete(exposure.exposureId) }}/{{ assignments.filter(a => a.exposureId === exposure.exposureId).length }})
-              </span>
-            </strong>
-          </v-expansion-panel-header>
-          <v-expansion-panel-content>
-            <v-list
-              class="pa-0  mb-3"
-            >
-              <v-list-item
-                v-for="(assignment, aIndex) in assignments.filter(a=>a.exposureId===exposure.exposureId)"
-                :key="aIndex"
-                class="justify-center px-0"
-              >
-                <v-list-item-content>
-                  <p
-                    class="ma-0 pa-0"
-                  >
-                    {{ assignment.title }} ({{ assignment.treatments && assignment.treatments.length || 0 }}/{{ conditions.length || 0 }})
-                </p>
-                </v-list-item-content>
-                <v-list-item-action>
-                  <v-btn
-                    :to="{name:'AssignmentTreatmentSelect', params: {'exposureId':assignment.exposureId, 'assignmentId':assignment.assignmentId}}"
-                    icon
-                    outlined
-                    text
-                    tile
-                  >
-                    <v-icon>mdi-pencil</v-icon>
-                  </v-btn>
-                </v-list-item-action>
-                <v-list-item-action>
-                  <v-btn
-                    @click="handleDeleteAssignment(exposure.exposureId, assignment)"
-                    icon
-                    outlined
-                    text
-                    tile
-                  >
-                    <v-icon>mdi-delete</v-icon>
-                  </v-btn>
-                </v-list-item-action>
-              </v-list-item>
-            </v-list>
-            <template
-              v-if="!assignmentIsBalanced(exposure.exposureId)"
-            >
+          <v-expansion-panel class="py-3">
+            <v-expansion-panel-title>
+              <strong>
+                {{ exposure.title }}
+
+                <span
+                  :class="{
+                    'error-text':
+                      !assignmentIsBalanced(exposure.exposureId) ||
+                      !allComplete(exposure.exposureId)
+                  }"
+                >
+                  ({{ getComplete(exposure.exposureId) }}/{{ getAssignmentsForExposure(exposure.exposureId).length }})
+                </span>
+              </strong>
+            </v-expansion-panel-title>
+
+            <v-expansion-panel-text>
+              <v-list class="pa-0 mb-3">
+                <v-list-item
+                  v-for="assignmentItem in getAssignmentsForExposure(exposure.exposureId)"
+                  :key="assignmentItem.assignmentId"
+                  class="justify-center px-0"
+                >
+                  <v-list-item-title>
+                    <p class="ma-0 pa-0">
+                      {{ assignmentItem.title }}
+                      ({{ assignmentItem.treatments?.length || 0 }}/{{ conditions.length || 0 }})
+                    </p>
+                  </v-list-item-title>
+
+                  <template #append>
+                    <v-btn
+                      :to="{
+                        name: 'AssignmentTreatmentSelect',
+                        params: {
+                          exposureId: assignmentItem.exposureId,
+                          assignmentId: assignmentItem.assignmentId
+                        }
+                      }"
+                      icon="mdi-pencil"
+                      variant="outlined"
+                    />
+
+                    <v-btn
+                      icon="mdi-delete"
+                      variant="outlined"
+                      @click="handleDeleteAssignment(exposure.exposureId, assignmentItem)"
+                    />
+                  </template>
+                </v-list-item>
+              </v-list>
+
               <div
-                class="red--text mb-3"
+                v-if="!assignmentIsBalanced(exposure.exposureId)"
+                class="error-text mb-3"
               >
                 Add a component to balance the experiment
               </div>
-            </template>
-            <template
-            v-if="!allComplete(exposure.exposureId)"
-          >
+
               <div
-                class="red--text mb-3"
+                v-if="!allComplete(exposure.exposureId)"
+                class="error-text mb-3"
               >
                 Create a treatment for all conditions
               </div>
-            </template>
-            <v-btn
-              :to="{ name: 'AssignmentCreateAssignment', params:{'exposureId': parseInt(exposure.exposureId)} }"
-              elevation="0"
-              color="primary"
-              class="px-0"
-              plain
-            >
-              add component
-            </v-btn>
-          </v-expansion-panel-content>
-        </v-expansion-panel>
-      </v-expansion-panels>
-      <v-btn
-        :to="{ name: 'ExperimentSummary' }"
-        :disabled="(shortestLength !== longestLength && exposures.length !== 1)|| longestLength < 1 || this.assignments.some(a => a.treatments.length < this.conditions.length)"
-        elevation="0"
-        color="primary"
-      >
-        Finish
-      </v-btn>
-    </div>
-  </template>
-</div>
+
+              <v-btn
+                :to="{
+                  name: 'AssignmentCreateAssignment',
+                  params: {
+                    exposureId: Number.parseInt(exposure.exposureId, 10)
+                  }
+                }"
+                elevation="0"
+                color="primary"
+                class="px-0"
+                variant="text"
+              >
+                add component
+              </v-btn>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
+
+        <v-btn
+          :to="{ name: 'ExperimentSummary' }"
+          :disabled="finishDisabled"
+          elevation="0"
+          color="primary"
+        >
+          Finish
+        </v-btn>
+      </div>
+    </template>
+  </div>
 </template>
 
-<script>
-import {mapActions, mapGetters, mapMutations} from "vuex";
+<script setup>
+import {
+  ref,
+  computed,
+  onMounted
+} from "vue";
 
-export default {
-  name: "YourAssignments",
-  props: {
-    experiment: {
-      type: Object,
-      required: true
-    }
-  },
-  computed: {
-    exposureId() {
-      return parseInt(this.$route.params.exposureId);
-    },
-    experimentId() {
-      return parseInt(this.experiment.experimentId);
-    },
-    ...mapGetters({
-      assignments: "assignment/assignments",
-      conditions: "experiment/conditions",
-      exposures: "exposures/exposures"
-    })
-  },
-  data: () => ({
-    shortestLength: 0,
-    longestLength: 0,
-    loaded: false
-  }),
-  methods: {
-    ...mapMutations({
-      resetAssignments: "assignment/resetAssignments",
-    }),
-    ...mapActions({
-      fetchExposures: "exposures/fetchExposures",
-      fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
-      deleteAssignment: "assignment/deleteAssignment"
-    }),
-    getComplete(eid){
-      let complete = 0;
-      this.assignments
-        .filter(a => a.exposureId === eid)
-        .map((filteredValue) => {
-          if (filteredValue.treatments.length === this.conditions.length) {
-            complete += 1;
-          }
-        });
+import {
+  useRoute,
+  useRouter
+} from "vue-router";
 
-      return complete;
-    },
-    allComplete(eid){
-      let allConditions = false;
-      let aArray = this.assignments.filter(a => a.exposureId === eid);
+import Swal from "sweetalert2";
 
-      if (aArray.some(a => a.treatments.length < this.conditions.length)) {
-        allConditions = false;
-      } else {
-        allConditions = true;
+import { assignment as assignmentModule } from "@/store/assignment.module";
+import { experiment as experimentModule } from "@/store/experiment.module";
+import { exposures as exposuresModule } from "@/store/exposures.module";
+
+defineOptions({
+  name: "YourAssignments"
+});
+
+const props = defineProps({
+  experiment: {
+    type: Object,
+    required: true
+  }
+});
+
+const route = useRoute();
+const router = useRouter();
+
+const assignmentStore = assignmentModule();
+const experimentStore = experimentModule();
+const exposuresStore = exposuresModule();
+
+const loaded = ref(false);
+
+const exposureId = computed(() => {
+  return Number.parseInt(route.params.exposureId, 10);
+});
+
+const experimentId = computed(() => {
+  return Number.parseInt(props.experiment.experimentId, 10);
+});
+
+const assignments = computed(() => {
+  return assignmentStore.assignments || [];
+});
+
+const conditions = computed(() => {
+  return experimentStore.conditions || [];
+});
+
+const exposures = computed(() => {
+  return exposuresStore.exposures || [];
+});
+
+const assignmentCountsByExposure = computed(() => {
+  return exposures.value.map(exposure => {
+    return getAssignmentsForExposure(exposure.exposureId).length;
+  });
+});
+
+const shortestLength = computed(() => {
+  if (!assignmentCountsByExposure.value.length) {
+    return 0;
+  }
+
+  return Math.min(...assignmentCountsByExposure.value);
+});
+
+const longestLength = computed(() => {
+  if (!assignmentCountsByExposure.value.length) {
+    return 0;
+  }
+
+  return Math.max(...assignmentCountsByExposure.value);
+});
+
+const finishDisabled = computed(() => {
+  const unbalanced =
+    shortestLength.value !== longestLength.value &&
+    exposures.value.length !== 1;
+
+  const noAssignments =
+    longestLength.value < 1;
+
+  const incompleteTreatments =
+    assignments.value.some(assignment => {
+      return (
+        (assignment.treatments?.length || 0) <
+        conditions.value.length
+      );
+    });
+
+  return (
+    unbalanced ||
+    noAssignments ||
+    incompleteTreatments
+  );
+});
+
+const getAssignmentsForExposure = exposureIdValue => {
+  return assignments.value.filter(assignment => {
+    return assignment.exposureId === exposureIdValue;
+  });
+};
+
+const getComplete = exposureIdValue => {
+  return getAssignmentsForExposure(exposureIdValue).filter(assignment => {
+    return (
+      (assignment.treatments?.length || 0) ===
+      conditions.value.length
+    );
+  }).length;
+};
+
+const allComplete = exposureIdValue => {
+  return getAssignmentsForExposure(exposureIdValue).every(assignment => {
+    return (
+      (assignment.treatments?.length || 0) >=
+      conditions.value.length
+    );
+  });
+};
+
+const assignmentIsBalanced = exposureIdValue => {
+  const currentLength =
+    getAssignmentsForExposure(exposureIdValue).length;
+
+  return (
+    currentLength > 0 &&
+    currentLength >= longestLength.value
+  );
+};
+
+const handleDeleteAssignment = async (
+  exposureIdValue,
+  assignmentItem
+) => {
+  const result = await Swal.fire({
+    icon: "question",
+    text: `Are you sure you want to delete the assignment "${assignmentItem.title}"?`,
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "No, cancel"
+  });
+
+  if (!result.isConfirmed) {
+    return null;
+  }
+
+  try {
+    return await assignmentStore.deleteAssignment([
+      experimentId.value,
+      exposureIdValue,
+      assignmentItem.assignmentId
+    ]);
+  } catch (error) {
+    console.error(
+      "handleDeleteAssignment | catch",
+      { error }
+    );
+
+    return null;
+  }
+};
+
+const saveExit = () => {
+  router.push({
+    name: "Home"
+  });
+};
+
+onMounted(async () => {
+  await assignmentStore.resetAssignments();
+
+  await exposuresStore.fetchExposures(
+    experimentId.value
+  );
+
+  for (const exposure of exposures.value) {
+    await assignmentStore.fetchAssignmentsByExposure([
+      experimentId.value,
+      exposure.exposureId
+    ]);
+  }
+
+  const selectedExposureExists =
+    exposures.value.some(exposure => {
+      return (
+        Number.parseInt(exposure.exposureId, 10) ===
+        exposureId.value
+      );
+    });
+
+  const selectedExposureHasAssignments =
+    assignments.value.some(assignment => {
+      return (
+        Number.parseInt(assignment.exposureId, 10) ===
+        exposureId.value
+      );
+    });
+
+  if (
+    exposureId.value &&
+    selectedExposureExists &&
+    !selectedExposureHasAssignments
+  ) {
+    router.push({
+      name: "AssignmentCreateAssignment",
+      params: {
+        exposureId: exposureId.value
       }
+    });
 
-      return !!allConditions;
-    },
-    assignmentIsBalanced(eid) {
-      // if Exposure Set Assignment array length is less than other Exposure Set Assignment arrays
-      let eArr = [];
-      let longestArr = [];
-      let shortest = 0;
-      let longest = 0;
+    return;
+  }
 
-      for (const e of this.exposures) {
-        eArr = [
-          ...eArr,
-          {
-            exposureId: e.exposureId,
-            assignments: this.assignments.filter(a => a.exposureId === e.exposureId)
-          }
-        ]
-      }
+  loaded.value = true;
+});
 
-      const curArrLength = eArr.find(e => e.exposureId === eid)?.assignments?.length
-
-      eArr.forEach((e) => {
-        const l = e.assignments.length;
-        shortest = (l <= longest)? l : shortest;
-
-        if (l > longest) {
-          longestArr = [e];
-          longest = l;
-        } else if (l == longest) {
-          longestArr.push(e);
-        }
-      });
-      // update the component so we can use these values in the template
-      this.shortestLength = shortest;
-      this.longestLength = longest;
-      // return true if current exposure set assignments list is longer or equal
-      // to the longest assignment list in the exposure sets
-      return !!curArrLength && curArrLength >= longest && curArrLength > 0;
-    },
-    async handleDeleteAssignment(eid, a) {
-      // DELETE ASSIGNMENT
-      const reallyDelete = await this.$swal({
-        icon: "question",
-        text: `Are you sure you want to delete the assignment "${a.title}"?`,
-        showCancelButton: true,
-        confirmButtonText: "Yes, delete it",
-        cancelButtonText: "No, cancel",
-      })
-
-      if (reallyDelete?.isConfirmed) {
-        try {
-          return await this.deleteAssignment([
-            this.experimentId,
-            eid,
-            a.assignmentId
-          ])
-        } catch (error) {
-          console.error("handleDeleteQuestion | catch", {error});
-        }
-      }
-    },
-    saveExit() {
-      this.$router.push({name: "Home"});
-    }
-  },
-  async created() {
-    // reset assignments to get a clean list
-    await this.resetAssignments();
-    // update assignments on load
-    await this.fetchExposures(this.experimentId);
-
-    for (const e of this.exposures) {
-      await this.fetchAssignmentsByExposure([this.experimentId, e.exposureId]);
-    }
-
-    // forward to create assignment if assignments array for selected exposure is empty
-    if (
-      this.exposureId &&
-      this.exposures.find(e => parseInt(e.exposureId) === this.exposureId) &&
-      !this.assignments.find(a => parseInt(a.exposureId) === this.exposureId)
-    ) {
-      this.$router.push({name: "AssignmentCreateAssignment", params:{exposureId: this.exposureId}});
-    } else {
-      // we don't want to display empty fields
-      this.loaded = true;
-    }
-  },
-}
+defineExpose({
+  saveExit
+});
 </script>
+
+<style lang="scss" scoped>
+.error-text {
+  color: map.get($red, "base") !important;
+}
+</style>

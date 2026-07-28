@@ -1,59 +1,80 @@
-import {authHeader, isJson} from "@/helpers";
-import store from "@/store/index.js";
+import { authHeader, isJson } from "@/helpers";
+import { api } from "@/store/api.module";
 
-/**
- * Register methods
- */
 export const previewService = {
   treatmentPreview
-}
+};
 
-/**
- * Get Treatment Preview
- */
-async function treatmentPreview(experimentId, conditionId, treatmentId, previewId, ownerId) {
-  const requestOptions = {
-    method: "GET",
-    headers: {...authHeader()}
-  }
+async function treatmentPreview(
+  experimentId,
+  conditionId,
+  treatmentId,
+  previewId,
+  ownerId
+) {
+  const query = new URLSearchParams({
+    ownerId
+  });
 
-  return fetch(`${store.getters["api/aud"]}/preview/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/id/${previewId}?ownerId=${ownerId}`, requestOptions).then(handleResponse)
-}
-
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-  .then(text => {
-    const data = (text && isJson(text)) ? JSON.parse(text) : text
-
-    if (
-      !response ||
-      response.status === 401 ||
-      response.status === 402 ||
-      response.status === 500 ||
-      response.status === 404
-    ) {
-      console.log("handleResponse | 401/402/500", {response})
-    } else if (response.status === 409) {
-      return {
-        message: data
+  const response = await fetch(
+    `${api().aud}/preview/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/id/${previewId}?${query}`,
+    {
+      method: "GET",
+      headers: {
+        ...authHeader()
       }
-    } else if (response.status === 204) {
+    }
+  );
+
+  return handleResponse(response);
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+    const data = text && isJson(text) ? JSON.parse(text) : text;
+
+    if (response.status === 204) {
       return {
         data: null,
         status: response.status
-      }
+      };
     }
 
-    const dataResponse = (data) ? {
-      data,
-      status: response.status
-    } : null
+    if (response.status === 409) {
+      return {
+        message: data,
+        status: response.status
+      };
+    }
 
-    return dataResponse || response
-  }).catch(text => {
-    console.error("handleResponse | catch",{text})
-  })
+    if (!response?.ok) {
+      console.error("handleResponse | error", {
+        response,
+        data
+      });
+
+      return {
+        data,
+        status: response.status,
+        error: data
+      };
+    }
+
+    return data
+      ? {
+          data,
+          status: response.status
+        }
+      : response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

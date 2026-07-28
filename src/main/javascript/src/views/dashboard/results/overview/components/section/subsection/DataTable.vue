@@ -5,32 +5,30 @@
     <v-data-table
       :headers="tableHeaders"
       :items="tableData"
-      :items-per-page="tableData.length"
-      :mobile-breakpoint="mobileBreakpoint"
+      :items-per-page="-1"
       :show-expand="displayExpand"
       class="data-table v-data-table-alt"
-      item-key="title"
-      disable-sort
-      hide-default-footer
+      item-value="title"
     >
       <template
         v-if="submissionRateTooltip"
-        v-slot:header.submissionRate="{ header }"
+        v-slot:header.submissionRate="{ column }"
       >
-        {{ header.text }}
-        <tool-tip
-          :header="submissionRateTooltip.header"
-          :content="submissionRateTooltip.message"
-          :activatorType="submissionRateTooltip.activator.type"
-          :activatorContent="submissionRateTooltip.activator.text"
-          :icon="submissionRateTooltip.activator.text"
-          :iconStyle="submissionRateTooltip.iconStyle"
-          alignment="top"
-          aria-label="Submission rate tooltip"
-        />
+        <span class="header-with-tooltip">
+          {{ column.title }}
+          <tool-tip
+            :header="submissionRateTooltip.header"
+            :content="submissionRateTooltip.message"
+            :icon="submissionRateTooltip.icon"
+            size="compact"
+            icon-color="primary"
+            alignment="top"
+            aria-label="Submission rate tooltip"
+          />
+        </span>
       </template>
       <template
-        v-slot:item="{ headers, item, expand, isExpanded }"
+        v-slot:item="{ item, isExpanded, toggleExpand, columns }"
       >
         <tr>
           <td
@@ -41,7 +39,7 @@
               v-if="item.treatments && item.treatments.rows && item.treatments.rows.length == 1"
               color="lightgrey"
               class="label-one-version"
-              label
+              density="compact"
             >
               Only One Version
             </v-chip>
@@ -73,8 +71,8 @@
               &#8212;
               <tool-tip
                 content="This component includes items that must be graded manually. Data will appear when those items have been graded."
-                activatorType="icon"
-                activatorContent="mdi-information-outline"
+                icon="mdi-information-outline"
+                icon-color="primary"
                 aria-label="Average grade explanation tooltip"
               />
             </span>
@@ -91,17 +89,16 @@
           >
             <v-btn
               v-if="hasSubmissions(item) && hasTreatments(item) && !isSingleTreatment(item)"
-              @click="expand(!isExpanded)"
-              :class="{'v-data-table__expand-icon--active' : isExpanded}"
+              @click="toggleExpand(item)"
+              :class="{'v-data-table__expand-icon--active': isExpanded(item)}"
               class="v-data-table__expand-icon"
-              icon
-            >
-              <v-icon>mdi-chevron-down</v-icon>
-            </v-btn>
+              variant="text"
+              icon="mdi-chevron-down"
+            />
           </td>
           <td
             v-if="!hasSubmissions(item)"
-            :colspan="headers.length"
+            :colspan="columns.length"
           >
             <span
               class="no-submissions-text"
@@ -112,14 +109,15 @@
         </tr>
       </template>
       <template
-        v-slot:expanded-item="{ headers, item }"
+        v-slot:expanded-row="{ item, columns }"
       >
         <data-table-treatment
           v-if="hasTreatments(item)"
-          :headers="headers"
+          :headers="columns"
           :item="item"
         />
       </template>
+      <template #bottom></template>
     </v-data-table>
     <v-row
       v-if="displayNote"
@@ -130,140 +128,98 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
 import DataTableTreatment from "./DataTableTreatment.vue";
 import ToolTip from "@/components/ToolTip.vue";
 import { round, percent } from "@/helpers/dashboard/utils.js";
 
-export default {
-  name: "DataTable",
-  props: [
-    "tableData",
-    "titleHeader",
-    "includeNote",
-    "showExpand",
-    "hasOverall",
-    "noSubmissionsMessage",
-    "tooltips" // [{tooltip1}, {tooltip2}, {...}]
-  ],
-  components: {
-    DataTableTreatment,
-    ToolTip
-  },
-  data: () => ({
-    mobileBreakpoint: 636,
-  }),
-  computed: {
-    tableHeaders() {
-      return [
-        {
-          text: this.titleHeader,
-          value: "title",
-          align: "start",
-          width: this.titleColumnWidth
-        },
-        {
-          text: "Number of submissions",
-          value: "submissionCount",
-          align: "center",
-          width: this.dataColumnWidth
-        },
-        {
-          text: "Submissions per participant",
-          value: "submissionRate",
-          align: "center",
-          width: this.dataColumnWidth
-        },
-        {
-          text: "Average grade",
-          value: "averageGrade",
-          align: "center",
-          width: this.dataColumnWidth
-        },
-        {
-          text: "Standard deviation",
-          value: "standardDeviation",
-          align: "center",
-          width: this.dataColumnWidth
-        },
-        {
-          text: "",
-          value: "data-table-expand",
-          width: this.expandColumnWidth
-        }
-      ]
-    },
-    submissionRateTooltip() {
-      const submissionRate = this.customTooltips.find(tooltip => tooltip.id === "submissionRate");
+defineOptions({
+  name: "DataTable"
+});
 
-      if (!submissionRate) {
-        return null;
-      }
-
-      return {
-        id: "submissionRate",
-        header: submissionRate.header || "Submissions per participant",
-        message: submissionRate.message || "N/A",
-        activator: {
-          "type": submissionRate.activator?.type || "icon",
-          "text": submissionRate.activator?.text || "mdi-help-circle-outline"
-        },
-        iconStyle: submissionRate.iconStyle || {
-          "font-size": "16px",
-          "vertical-align": "middle"
-        }
-      }
-    },
-    displayNote() {
-      return this.includeNote || false;
-    },
-    displayExpand() {
-      return this.showExpand || false;
-    },
-    titleColumnWidth() {
-      return "35%";
-    },
-    dataColumnWidth() {
-      return "15%";
-    },
-    expandColumnWidth() {
-      return this.displayExpand ? "5%" : "0%";
-    },
-    displayOverall() {
-      return this.hasOverall || false;
-    },
-    noSubmissionsText() {
-      return this.noSubmissionsMessage || "N/A";
-    },
-    customTooltips() {
-      return this.tooltips || [];
-    }
+const props = defineProps({
+  tableData: {
+    type: Array,
+    default: () => []
   },
-  methods: {
-    treatments(item) {
-      return item.treatments ? item.treatments.rows || [] : [];
-    },
-    hasTreatments(item) {
-      return this.treatments(item).length > 0;
-    },
-    isSingleTreatment(item) {
-      return this.treatments(item).length === 1;
-    },
-    hasSubmissions(item) {
-      return item.submissionCount > 0;
-    },
-    title(item) {
-      return item.title || "N/A";
-    },
-    rate(item) {
-      return round(item.submissionRate);
-    },
-    grade(item) {
-      return percent(item.averageGrade);
-    },
-    sd(item) {
-      return percent(item.standardDeviation);
-    }
+  titleHeader: {
+    type: String,
+    default: "Title"
+  },
+  includeNote: {
+    type: Boolean,
+    default: false
+  },
+  showExpand: {
+    type: Boolean,
+    default: false
+  },
+  hasOverall: {
+    type: Boolean,
+    default: false
+  },
+  noSubmissionsMessage: {
+    type: String,
+    default: "N/A"
+  },
+  tooltips: {
+    type: Array,
+    default: () => []
   }
-}
+});
+
+const dataColumnWidth = "15%";
+const expandColumnWidth = "5%";
+const displayNote = computed(() => props.includeNote || false);
+const displayExpand = computed(() => props.showExpand || false);
+// the 4 data columns are always 15% each so they match width-wise across tables that do and
+// don't show the expand column; the title column absorbs whatever's left so everything still
+// sums to 100% (35% + expand's 5% when shown, or 40% when there's no expand column at all)
+const titleColumnWidth = computed(() => displayExpand.value ? "35%" : "40%");
+const tableHeaders = computed(() => {
+  const headers = [
+    { title: props.titleHeader, key: "title", align: "start", width: titleColumnWidth.value, sortable: false },
+    { title: "Number of submissions", key: "submissionCount", align: "center", width: dataColumnWidth, sortable: false },
+    { title: "Submissions per participant", key: "submissionRate", align: "center", width: dataColumnWidth, sortable: false },
+    { title: "Average grade", key: "averageGrade", align: "center", width: dataColumnWidth, sortable: false },
+    { title: "Standard deviation", key: "standardDeviation", align: "center", width: dataColumnWidth, sortable: false }
+  ];
+
+  if (displayExpand.value) {
+    headers.push({ title: "", key: "data-table-expand", width: expandColumnWidth, sortable: false });
+  }
+
+  return headers;
+});
+const noSubmissionsText = computed(() => props.noSubmissionsMessage || "N/A");
+
+const customTooltips = computed(() => props.tooltips || []);
+const submissionRateTooltip = computed(() => {
+  const t = customTooltips.value.find(item => item.id === "submissionRate");
+  if (!t) return null;
+  return {
+    header: t.header || "Submissions per participant",
+    message: t.message || "N/A",
+    icon: t.activator?.text || "mdi-help-circle-outline"
+  };
+});
+
+const treatments = item => item.treatments?.rows || [];
+const hasTreatments = item => treatments(item).length > 0;
+const isSingleTreatment = item => treatments(item).length === 1;
+const hasSubmissions = item => item.submissionCount > 0;
+const title = item => item.title || "N/A";
+const rate = item => round(item.submissionRate);
+const grade = item => percent(item.averageGrade);
+const sd = item => percent(item.standardDeviation);
 </script>
+
+<style lang="scss" scoped>
+.header-with-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+</style>

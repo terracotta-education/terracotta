@@ -1,64 +1,78 @@
 <template>
-<v-btn-toggle
-  v-model="newSelection"
-  color="primary"
-  mandatory
-  dense
->
-  <v-btn
-    :value="leftOption"
-    :disabled="readOnly"
+  <v-btn-toggle
+    v-model="newSelection"
+    density="compact"
+    color="primary"
+    mandatory
   >
-    {{ leftOption }}
-  </v-btn>
-  <v-btn
-    :value="rightOption"
-    :disabled="readOnly"
-  >
-    {{ rightOption }}
-  </v-btn>
-</v-btn-toggle>
+    <v-btn
+      :value="leftOption"
+      :disabled="readOnly"
+    >
+      {{ leftOption }}
+    </v-btn>
+
+    <v-btn
+      :value="rightOption"
+      :disabled="readOnly"
+    >
+      {{ rightOption }}
+    </v-btn>
+  </v-btn-toggle>
 </template>
 
-<script>
-export default {
-  props: {
-    selectedOption: {
-      type: String
-    },
-    options: {
-      type: Array,
-      required: true
-    },
-    readOnly: {
-      type: Boolean,
-      default: false
-    }
+<script setup>
+import {
+  ref,
+  computed,
+  watch
+} from "vue";
+
+defineOptions({
+  name: "RecipientToggle"
+});
+
+const props = defineProps({
+  selectedOption: {
+    type: String,
+    default: null
   },
-  data: () => ({
-    newSelection: null
-  }),
-  computed: {
-    leftOption() {
-      return this.options[0];
-    },
-    rightOption() {
-      return this.options[1];
-    }
+  options: {
+    type: Array,
+    required: true
   },
-  watch: {
-    selectedOption: {
-      handler (newValue) {
-        this.newSelection = newValue;
-      },
-      immediate: true
-    },
-    newSelection: {
-      handler(newValue) {
-        this.$emit("update", newValue);
-      },
-      immediate: false
-    }
+  readOnly: {
+    type: Boolean,
+    default: false
   }
-}
+});
+
+const emit = defineEmits([
+  "update"
+]);
+
+const newSelection = ref(null);
+
+const leftOption = computed(() => {
+  return props.options[0];
+});
+
+const rightOption = computed(() => {
+  return props.options[1];
+});
+
+watch(
+  () => props.selectedOption,
+  value => {
+    newSelection.value = value;
+  },
+  {
+    immediate: true
+  }
+);
+
+watch(newSelection, value => {
+  emit("update", value);
+});
 </script>
+

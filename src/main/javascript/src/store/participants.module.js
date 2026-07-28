@@ -1,99 +1,115 @@
-import { participantService } from "@/services"
+import { defineStore } from "pinia";
 
-const state = {
-  participants: null,
-  participant: null,
-  groups: null,
-}
+import { participantService } from "@/services";
 
-const actions = {
-  async fetchParticipants({ commit }, payload) {
-    // payload = experimentId, refresh
-    return participantService
-      .getAll(...payload)
-      .then((data) => {
-        commit("setParticipants", data)
-      })
-      .catch((response) => {
-        console.log("fetchParticipants | catch", { response })
-      })
+export const participants = defineStore("participants", {
+  state: () => ({
+    participants: [],
+    participant: null,
+    groups: []
+  }),
+
+  getters: {
+    hasParticipants: state => state.participants.length > 0
   },
 
-  setParticipantsGroup: ({ commit }, participantsList) => {
-    commit("setParticipantsGroup", participantsList)
-  },
+  actions: {
+    async fetchParticipants(payload) {
+      // payload = experimentId, refresh
+      try {
+        const data = await participantService.getAll(...payload);
 
-  async updateParticipants({ state }, experimentId) {
-    const requestBody = []
-    state.participants.map((participant) => {
-      const participantDetail = {
-        participantId: participant.participantId,
-        consent: participant.consent,
-        dropped: participant.dropped,
-        groupId: participant.groupId,
+        this.participants = data || [];
+
+        return this.participants;
+      } catch (error) {
+        console.error(
+          "participants/fetchParticipants | catch",
+          error
+        );
+
+        this.participants = [];
+
+        return [];
       }
-      requestBody.push(participantDetail)
-    })
+    },
 
-    return participantService
-      .updateParticipants(experimentId, requestBody)
-      .catch((response) =>
-        console.log("updateParticipants | catch", { response })
-      )
-  },
+    setParticipantsGroup(participantsList) {
+      this.participants = participantsList;
+    },
 
-  // payload = experimentId, participant_data
-  async updateParticipant({ commit }, payload) {
-    try {
-      const { experimentId, participantData } = payload;
-      const response = await participantService.updateParticipant(
-        experimentId,
-        participantData
+    setParticipants(participantsList) {
+      this.setParticipantsGroup(participantsList);
+    },
+
+    async updateParticipants(experimentId) {
+      try {
+        const requestBody = this.participants.map(p => ({
+          participantId: p.participantId,
+          consent: p.consent,
+          dropped: p.dropped,
+          groupId: p.groupId
+        }));
+
+        return await participantService.updateParticipants(
+          experimentId,
+          requestBody
+        );
+      } catch (error) {
+        console.error(
+          "participants/updateParticipants | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async updateParticipant(payload) {
+      try {
+        const { experimentId, participantData } = payload;
+
+        const response = await participantService.updateParticipant(
+          experimentId,
+          participantData
+        );
+
+        this.participant = participantData;
+        this.upsertParticipant(participantData);
+
+        return response;
+      } catch (error) {
+        console.error(
+          "participants/updateParticipant | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    resetParticipants() {
+      this.participants = [];
+      this.participant = null;
+      this.groups = [];
+    },
+
+    upsertParticipant(participantData) {
+      if (!participantData?.participantId) {
+        return;
+      }
+
+      const index = this.participants.findIndex(
+        item =>
+          parseInt(item.participantId) ===
+          parseInt(participantData.participantId)
       );
-      commit("setParticipant");
-      return response;
-    } catch (error) {
-      console.log("updateParticipant catch", { error, state });
+
+      if (index >= 0) {
+        this.participants.splice(index, 1, participantData);
+      } else {
+        this.participants.push(participantData);
+      }
     }
-  },
-  fetchGroups: ({ commit }, experimentId) => {
-    return participantService
-      .getGroups(experimentId)
-      .then((data) => {
-        commit("setGroups", data)
-      })
-      .catch((response) => {
-        console.log("fetchParticipants | catch", { response })
-      })
-  },
-  resetParticipants({state}) {
-    state.participants = [];
-    state.participant = null;
-  },
-}
-
-const mutations = {
-  setParticipants(state, data) {
-    state.participants = data
-  },
-  setParticipant(state, data) {
-    state.participant = data
-  },
-  setParticipantsGroup(state, data) {
-    state.participants = data
-  },
-}
-
-const getters = {
-  participants(state) {
-    return state.participants
-  },
-}
-
-export const participants = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters,
-}
+  }
+});

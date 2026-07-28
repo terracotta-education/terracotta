@@ -1,10 +1,7 @@
-import { authHeader } from "@/helpers"
-import axios from "axios"
-import store from "@/store/index.js"
+import { authHeader, fileAuthHeader } from "@/helpers";
+import axios from "axios";
+import { api } from "@/store/api.module";
 
-/**
- * Register methods
- */
 export const messageService = {
   update,
   fetchPreview,
@@ -12,133 +9,169 @@ export const messageService = {
   getAssignments,
   uploadPipedText,
   updatePlaceholders
-}
+};
 
-/**
- * Update message
- */
-async function update(experimentId, exposureId, containerId, messageId, payload) {
-  const requestOptions = {
-    method: "PUT",
-    headers: { ...authHeader(), "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}`, requestOptions).then(handleResponse);
-}
-
-/**
- * Preview message
- */
-async function fetchPreview(experimentId, exposureId, containerId, messageId, messagePreviewDto) {
-  const requestOptions = {
-    method: "POST",
-    headers: { ...authHeader(), "Content-Type": "application/json" },
-    body: JSON.stringify(messagePreviewDto)
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}/preview`, requestOptions).then(handleResponse);
-}
-
-/**
- * Send test message
- */
-async function sendTest(experimentId, exposureId, containerId, messageId, messageSendTestDto) {
-  const requestOptions = {
-    method: "POST",
-    headers: { ...authHeader(), "Content-Type": "application/json" },
-    body: JSON.stringify(messageSendTestDto)
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}/sendtest`, requestOptions).then(handleResponse);
-}
-
-/**
- * Get all assignments for messaging rules
- */
-async function getAssignments() {
-  const requestOptions = {
-    method: "GET",
-    headers: { ...authHeader() }
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/0/exposures/0/messaging/container/0/message/assignments`, requestOptions).then(handleResponse);
-}
-
-/**
- * Update content placeholders
- */
-async function updatePlaceholders(experimentId, exposureId, containerId, messageId, contentId, contentDto) {
-  const requestOptions = {
-    method: "POST",
-    headers: { ...authHeader(), "Content-Type": "application/json" },
-    body: JSON.stringify(contentDto)
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}/content/${contentId}/piped/updatePlaceholders`, requestOptions).then(handleResponse);
-}
-
-/**
- * Upload file
- */
-function uploadPipedText(experimentId, exposureId, containerId, messageId, contentId, file) {
-  const requestOptions = {
-    headers: {
-      "Content-Type": "multipart/form-data",
-      ...authHeader()
+async function update(
+  experimentId,
+  exposureId,
+  containerId,
+  messageId,
+  payload
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}`,
+    {
+      method: "PUT",
+      body: payload
     }
-  }
-
-  let formData = new FormData();
-  formData.append("file", file);
-
-  // Axios was required for correct formData boundary
-  return (
-    axios
-      .post(
-        `${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}/content/${contentId}/piped/file`,
-        formData,
-        requestOptions
-      )
-      // can't use handleResponse here since this is the Axios API, not Fetch API
-      .then((response) => {
-        return response.data;
-      })
-      .catch((error) => {
-        if (error.response) {
-          return {
-            content: null,
-            validationErrors: ["An unspecified error occurred"]
-          };
-        } else {
-          throw error; // re-raise error, something unexpected happened
-        }
-      })
   );
 }
 
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-    .then(text => {
-      const data = text && JSON.parse(text);
+async function fetchPreview(
+  experimentId,
+  exposureId,
+  containerId,
+  messageId,
+  messagePreviewDto
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}/preview`,
+    {
+      method: "POST",
+      body: messagePreviewDto
+    }
+  );
+}
 
-      if (!response || !response.ok) {
-        if (response.status === 401 || response.status === 402 || response.status === 500) {
-          console.log("handleResponse | 401/402/500",{response});
-        } else if (response.status === 404) {
-          console.log("handleResponse | 404",{response});
+async function sendTest(
+  experimentId,
+  exposureId,
+  containerId,
+  messageId,
+  messageSendTestDto
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}/sendtest`,
+    {
+      method: "POST",
+      body: messageSendTestDto
+    }
+  );
+}
+
+async function getAssignments() {
+  return request(
+    "/api/experiments/0/exposures/0/messaging/container/0/message/assignments"
+  );
+}
+
+async function updatePlaceholders(
+  experimentId,
+  exposureId,
+  containerId,
+  messageId,
+  contentId,
+  contentDto
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}/content/${contentId}/piped/updatePlaceholders`,
+    {
+      method: "POST",
+      body: contentDto
+    }
+  );
+}
+
+async function uploadPipedText(
+  experimentId,
+  exposureId,
+  containerId,
+  messageId,
+  contentId,
+  file
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await axios.post(
+      `${api().aud}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/${messageId}/content/${contentId}/piped/file`,
+      formData,
+      {
+        headers: {
+          ...fileAuthHeader()
         }
+      }
+    );
 
-        return response;
-      } else if (response.status === 204) {
-        return [];
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      return {
+        content: null,
+        validationErrors: ["An unspecified error occurred"]
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
+
+  const response = await fetch(`${api().aud}${path}`, {
+    method,
+    headers: {
+      ...authHeader(),
+      ...(body ? { "Content-Type": "application/json" } : {})
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
+
+  return handleResponse(response);
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+
+    const data = text
+      ? JSON.parse(text)
+      : null;
+
+    if (response.status === 204) {
+      return [];
+    }
+
+    if (!response?.ok) {
+      if ([401, 402, 500].includes(response.status)) {
+        console.error("handleResponse | auth/server error", {
+          response
+        });
+      } else if (response.status === 404) {
+        console.warn("handleResponse | not found", {
+          response
+        });
       }
 
-      return data || response;
-    }).catch(text => {
-      console.error("handleResponse | catch",{text});
-    })
+      return {
+        status: response.status,
+        error: data || response
+      };
+    }
+
+    return data || response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return {
+      error
+    };
+  }
 }

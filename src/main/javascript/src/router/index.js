@@ -1,395 +1,397 @@
+import { createRouter, createWebHistory } from "vue-router";
 import Home from "../views/Home.vue";
 import OAuth2Redirect from "@/views/OAuth2Redirect.vue";
-import Vue from "vue";
-import VueRouter from "vue-router";
-
-Vue.use(VueRouter)
+import { experiment as useExperimentStore } from "@/store/experiment.module";
 
 const routes = [
   {
-    path: '/',
-    name: 'Home',
+    path: "/",
+    name: "Home",
     component: Home
   },
   {
     // Experiment paths
-    path: '/experiment/:experimentId',
-    component: () => import('../views/Experiment.vue'),
+    path: "/experiment/:experimentId",
+    component: () => import("../views/Experiment.vue"),
     children: [
       {
-        path: 'experiment-summary',
-        name: 'ExperimentSummary',
-        component: () => import('../views/ExperimentSummary.vue')
+        path: "experiment-summary/:experimentId",
+        name: "ExperimentSummary",
+        component: () => import("../views/ExperimentSummary.vue")
       },
       {
-        path:'experiment-summary-status',
-        name: 'ExperimentSummaryStatus',
-        component: () => import('../views/ExperimentSummary.vue')
+        path:"experiment-summary-status",
+        name: "ExperimentSummaryStatus",
+        component: () => import("../views/ExperimentSummary.vue")
       },
       {
-        path: 'exposure/:exposureId',
-        component: () => import('../views/ExperimentOutcome.vue'),
+        path: "exposure/:exposureId",
+        component: () => import("../views/ExperimentOutcome.vue"),
+        beforeEnter: beforeExperimentOutcome,
         children: [
           {
-            path: 'outcome/:outcomeId/outcome-scoring',
-            alias: 'outcome-scoring',
-            name: 'OutcomeScoring',
+            path: "outcome/:outcomeId/outcome-scoring",
+            alias: "outcome-scoring",
+            name: "OutcomeScoring",
             meta: {
-              previousStep: 'ExperimentSummaryStatus'
+              previousStep: "ExperimentSummaryStatus"
             },
-            component: () => import('../views/outcome/OutcomeScoring.vue')
+            component: () => import("../views/outcome/OutcomeScoring.vue")
           },
           {
-            path: 'outcome-gradebook',
-            name: 'OutcomeGradebook',
+            path: "outcome-gradebook",
+            name: "OutcomeGradebook",
             meta: {
-              previousStep: 'ExperimentSummaryStatus'
+              previousStep: "ExperimentSummaryStatus"
             },
-            component: () => import('../views/outcome/OutcomeGradebook.vue')
+            component: () => import("../views/outcome/OutcomeGradebook.vue")
           },
           {
-            path: 'assignment/:assignmentId/assignment-scores',
-            name: 'AssignmentScores',
+            path: "assignment/:assignmentId/assignment-scores",
+            name: "AssignmentScores",
             meta: {
-              previousStep: 'ExperimentSummaryStatus'
+              previousStep: "ExperimentSummaryStatus"
             },
-            component: () => import('../views/grading/AssignmentScores.vue')
+            component: () => import("../views/grading/AssignmentScores.vue")
           },
           {
-            path: 'assignment/:assignmentId/assessment/:assessmentId/condition/:conditionId/treatment/:treatmentId/participants/:participantId/student-assignment-scores',
-            name: 'StudentSubmissionGrading',
+            path: "assignment/:assignmentId/assessment/:assessmentId/condition/:conditionId/treatment/:treatmentId/participants/:participantId/student-assignment-scores",
+            name: "StudentSubmissionGrading",
             meta: {
-              previousStep: 'AssignmentScores',
-              stepActionText: 'SAVE'
+              previousStep: "AssignmentScores",
+              stepActionText: "SAVE"
             },
-            component: () => import('../views/grading/StudentSubmissionGrading.vue')
+            component: () => import("../views/grading/StudentSubmissionGrading.vue")
           },
         ]
       },
       {
-        path: '',
-        alias: 'design',
-        component: () => import('../views/ExperimentSteps.vue'),
+        path: "",
+        alias: "design",
+        component: () => import("../views/ExperimentSteps.vue"),
+        beforeEnter: beforeExperimentSteps,
         meta: {
-          currentSection: 'design',
-          currentStep: 'design',
-          previousStep: 'Home'
+          currentSection: "design",
+          currentStep: "design",
+          previousStep: "Home"
         },
         children: [
           // Experiment | Design Steps paths
           {
-            path: '',
-            alias: 'intro',
-            name: 'ExperimentDesignIntro',
-            component: () => import('../views/design/Intro.vue'),
+            path: "experiment-design-intro/:experimentId",
+            alias: "intro",
+            name: "ExperimentDesignIntro",
+            component: () => import("../views/design/Intro.vue"),
             meta: {
-              currentSection: 'design',
-              currentStep: 'design',
+              currentSection: "design",
+              currentStep: "design",
             }
           },
           {
-            path: 'title',
-            name: 'ExperimentDesignTitle',
-            component: () => import('../views/design/Title.vue'),
+            path: "title",
+            name: "ExperimentDesignTitle",
+            component: () => import("../views/design/Title.vue"),
             meta: {
-              currentSection: 'design',
-              currentStep: 'design_title',
-              previousStep: 'ExperimentDesignIntro',
+              currentSection: "design",
+              currentStep: "design_title",
+              previousStep: "ExperimentDesignIntro",
             }
           },
           {
-            path: 'description',
-            name: 'ExperimentDesignDescription',
-            component: () => import('../views/design/Description.vue'),
+            path: "description",
+            name: "ExperimentDesignDescription",
+            component: () => import("../views/design/Description.vue"),
             meta: {
-              currentSection: 'design',
-              currentStep: 'design_description',
-              previousStep: 'ExperimentDesignTitle'
+              currentSection: "design",
+              currentStep: "design_description",
+              previousStep: "ExperimentDesignTitle"
             }
           },
           {
-            path: 'conditions',
-            name: 'ExperimentDesignConditions',
-            component: () => import('../views/design/Conditions.vue'),
+            path: "conditions/:experimentId",
+            name: "ExperimentDesignConditions",
+            component: () => import("../views/design/Conditions.vue"),
             meta: {
-              currentSection: 'design',
-              currentStep: 'design_conditions',
-              previousStep: 'ExperimentDesignDescription'
+              currentSection: "design",
+              currentStep: "design_conditions",
+              previousStep: "ExperimentDesignDescription"
             }
           },
           {
-            path: 'type',
-            name: 'ExperimentDesignType',
-            component: () => import('../views/design/ExperimentType.vue'),
+            path: "type",
+            name: "ExperimentDesignType",
+            component: () => import("../views/design/ExperimentType.vue"),
             meta: {
-              currentSection: 'design',
-              currentStep: 'design_type',
-              previousStep: 'ExperimentDesignConditions'
+              currentSection: "design",
+              currentStep: "design_type",
+              previousStep: "ExperimentDesignConditions"
             }
           },
           {
-            path: 'default-condition',
-            name: 'ExperimentDesignDefaultCondition',
-            component: () => import('../views/design/DefaultCondition.vue'),
+            path: "default-condition",
+            name: "ExperimentDesignDefaultCondition",
+            component: () => import("../views/design/DefaultCondition.vue"),
             meta: {
-              currentSection: 'design',
-              currentStep: 'design_type',
-              previousStep: 'ExperimentDesignType'
+              currentSection: "design",
+              currentStep: "design_type",
+              previousStep: "ExperimentDesignType"
             }
           },
           {
-            path: 'summary',
-            name: 'ExperimentDesignSummary',
-            component: () => import('../views/design/Summary.vue'),
+            path: "summary",
+            name: "ExperimentDesignSummary",
+            component: () => import("../views/design/Summary.vue"),
             meta: {
-              currentSection: 'design',
-              currentStep: 'design_type',
+              currentSection: "design",
+              currentStep: "design_type",
               stepsComplete: true,
-              previousStep: 'ExperimentDesignType',
-              previousStepSingleCondition: 'ExperimentDesignConditions'
+              previousStep: "ExperimentDesignType",
+              previousStepSingleCondition: "ExperimentDesignConditions"
             }
           },
         ]
       },
       {
-        path: 'participation',
-        component: () => import('../views/ExperimentSteps.vue'),
+        path: "participation",
+        component: () => import("../views/ExperimentSteps.vue"),
+        beforeEnter: beforeExperimentSteps,
         meta: {
-          currentSection: 'participation',
-          previousStep: 'ExperimentDesignSummary'
+          currentSection: "participation",
+          previousStep: "ExperimentDesignSummary"
         },
         children: [
           // Experiment | Participation Steps paths
           {
-            path: '',
-            alias: 'intro',
-            name: 'ExperimentParticipationIntro',
-            component: () => import('../views/participation/Intro.vue'),
+            path: "",
+            alias: "intro",
+            name: "ExperimentParticipationIntro",
+            component: () => import("../views/participation/Intro.vue"),
             meta: {
-              currentSection: 'participation',
-              currentStep: 'participation',
+              currentSection: "participation",
+              currentStep: "participation",
             }
           },
           {
-            path: 'selection-method',
-            name: 'ExperimentParticipationSelectionMethod',
-            component: () => import('../views/participation/SelectionMethod.vue'),
+            path: "selection-method",
+            name: "ExperimentParticipationSelectionMethod",
+            component: () => import("../views/participation/SelectionMethod.vue"),
             meta: {
-              currentSection: 'participation',
-              currentStep: 'participation_selection_method',
-              previousStep: 'ExperimentParticipationIntro'
+              currentSection: "participation",
+              currentStep: "participation_selection_method",
+              previousStep: "ExperimentParticipationIntro"
             }
           },
           {
-            path: 'participation-type-auto-confirm',
-            name: 'ParticipationTypeAutoConfirm',
-            component: () => import('../views/participation/ParticipationTypeAutoConfirm.vue'),
+            path: "participation-type-auto-confirm",
+            name: "ParticipationTypeAutoConfirm",
+            component: () => import("../views/participation/ParticipationTypeAutoConfirm.vue"),
             meta: {
-              selectionType: 'auto',
-              currentSection: 'participation',
-              currentStep: 'participation_selection_method',
-              previousStep: 'ExperimentParticipationSelectionMethod'
+              selectionType: "auto",
+              currentSection: "participation",
+              currentStep: "participation_selection_method",
+              previousStep: "ExperimentParticipationSelectionMethod"
             }
           },
           {
-            path: 'participation-type-consent/intro',
-            name: 'ParticipationTypeConsentOverview',
-            component: () => import('../views/participation/ParticipationTypeConsentOverview.vue'),
+            path: "participation-type-consent/intro",
+            name: "ParticipationTypeConsentOverview",
+            component: () => import("../views/participation/ParticipationTypeConsentOverview.vue"),
             meta: {
-              selectionType: 'consent',
-              currentSection: 'participation',
-              currentStep: 'participation_selection_method',
-              previousStep: 'ExperimentParticipationSelectionMethod'
+              selectionType: "consent",
+              currentSection: "participation",
+              currentStep: "participation_selection_method",
+              previousStep: "ExperimentParticipationSelectionMethod"
             }
           },
           {
-            path: 'participation-type-consent/title',
-            name: 'ParticipationTypeConsentTitle',
-            component: () => import('../views/participation/ParticipationTypeConsentTitle.vue'),
+            path: "participation-type-consent/title",
+            name: "ParticipationTypeConsentTitle",
+            component: () => import("../views/participation/ParticipationTypeConsentTitle.vue"),
             meta: {
-              selectionType: 'consent',
-              currentSection: 'participation',
-              currentStep: 'participation_selection_consent_title',
-              previousStep: 'ParticipationTypeConsentOverview'
+              selectionType: "consent",
+              currentSection: "participation",
+              currentStep: "participation_selection_consent_title",
+              previousStep: "ParticipationTypeConsentOverview"
             }
           },
           {
-            path: 'participation-type-consent/file',
-            name: 'ParticipationTypeConsentFile',
-            component: () => import('../views/participation/ParticipationTypeConsentFile.vue'),
+            path: "participation-type-consent/file",
+            name: "ParticipationTypeConsentFile",
+            component: () => import("../views/participation/ParticipationTypeConsentFile.vue"),
             meta: {
-              selectionType: 'consent',
-              currentSection: 'participation',
-              currentStep: 'participation_selection_consent_file',
-              previousStep: 'ParticipationTypeConsentTitle'
+              selectionType: "consent",
+              currentSection: "participation",
+              currentStep: "participation_selection_consent_file",
+              previousStep: "ParticipationTypeConsentTitle"
             }
           },
           {
-            path: 'manual-selection',
-            name: 'ParticipationTypeManual',
-            component: () => import('../views/participation/manual-participation/ParticipationTypeManual.vue'),
+            path: "manual-selection",
+            name: "ParticipationTypeManual",
+            component: () => import("../views/participation/manual-participation/ParticipationTypeManual.vue"),
             meta: {
-              selectionType: 'manual',
-              currentSection: 'participation',
-              currentStep: 'participation_selection_method',
-              previousStep: 'ExperimentParticipationSelectionMethod'
+              selectionType: "manual",
+              currentSection: "participation",
+              currentStep: "participation_selection_method",
+              previousStep: "ExperimentParticipationSelectionMethod"
             }
           },
           {
-            path: 'manual-participant-selection',
-            name: 'ParticipationTypeManualSelection',
-            component: () => import('../views/participation/manual-participation/ParticipationTypeManualSelection.vue'),
+            path: "manual-participant-selection",
+            name: "ParticipationTypeManualSelection",
+            component: () => import("../views/participation/manual-participation/ParticipationTypeManualSelection.vue"),
             meta: {
-              selectionType: 'manual',
-              currentSection: 'participation',
-              currentStep: 'select_participants',
-              previousStep: 'ParticipationTypeManual'
+              selectionType: "manual",
+              currentSection: "participation",
+              currentStep: "select_participants",
+              previousStep: "ParticipationTypeManual"
             }
           },
           {
-            path: 'participant-distribution',
-            name: 'ParticipationDistribution',
-            component: () => import('../views/participation/distribution/ParticipationDistribution.vue'),
+            path: "participant-distribution",
+            name: "ParticipationDistribution",
+            component: () => import("../views/participation/distribution/ParticipationDistribution.vue"),
             meta: {
-              selectionType: 'any',
-              currentSection: 'participation',
-              currentStep: 'participation_distribution',
-              previousStep: 'ExperimentParticipationSelectionMethod'
+              selectionType: "any",
+              currentSection: "participation",
+              currentStep: "participation_distribution",
+              previousStep: "ExperimentParticipationSelectionMethod"
             }
           },
           {
-            path: 'participant-custom-distribution',
-            name: 'ParticipationCustomDistribution',
-            component: () => import('../views/participation/distribution/ParticipationCustomDistribution.vue'),
+            path: "participant-custom-distribution",
+            name: "ParticipationCustomDistribution",
+            component: () => import("../views/participation/distribution/ParticipationCustomDistribution.vue"),
             meta: {
-              selectionType: 'any',
-              currentSection: 'participation',
-              currentStep: 'participation_distribution',
-              previousStep: 'ParticipationDistribution'
+              selectionType: "any",
+              currentSection: "participation",
+              currentStep: "participation_distribution",
+              previousStep: "ParticipationDistribution"
             }
           },
           {
-            path: 'participant-manual-distribution',
-            name: 'ParticipationManualDistribution',
-            component: () => import('../views/participation/distribution/ParticipationManualDistribution.vue'),
+            path: "participant-manual-distribution",
+            name: "ParticipationManualDistribution",
+            component: () => import("../views/participation/distribution/ParticipationManualDistribution.vue"),
             meta: {
-              selectionType: 'any',
-              currentSection: 'participation',
-              currentStep: 'participation_distribution',
-              previousStep: 'ParticipationDistribution'
+              selectionType: "any",
+              currentSection: "participation",
+              currentStep: "participation_distribution",
+              previousStep: "ParticipationDistribution"
             }
           },
           {
-            path: 'participation-summary',
-            name: 'ParticipationSummary',
-            component: () => import('../views/participation/ParticipationSummary.vue'),
+            path: "participation-summary",
+            name: "ParticipationSummary",
+            component: () => import("../views/participation/ParticipationSummary.vue"),
             meta: {
-              currentSection: 'participation',
-              currentStep: 'select_participants',
-              previousStep: 'ParticipationDistribution',
-              previousStepSingleCondition: 'ExperimentParticipationSelectionMethod'
+              currentSection: "participation",
+              currentStep: "select_participants",
+              previousStep: "ParticipationDistribution",
+              previousStepSingleCondition: "ExperimentParticipationSelectionMethod"
             }
           }
         ]
       },
       {
-        path: 'assignments',
-        component: () => import('../views/ExperimentSteps.vue'),
+        path: "assignments",
+        component: () => import("../views/ExperimentSteps.vue"),
+        beforeEnter: beforeExperimentSteps,
         meta: {
-          currentSection: 'assignments',
-          previousStep: 'Home'
+          currentSection: "assignments",
+          previousStep: "Home"
         },
         children: [
           // Experiment | Assignments Steps paths
           {
-            path: '',
-            alias: 'intro',
-            name: 'AssignmentIntro',
-            component: () => import('../views/assignment/Intro.vue'),
+            path: "",
+            alias: "intro",
+            name: "AssignmentIntro",
+            component: () => import("../views/assignment/Intro.vue"),
             meta: {
-              currentSection: 'assignments',
-              currentStep: 'assignment_intro',
+              currentSection: "assignments",
+              currentStep: "assignment_intro",
             }
           },
           {
-            path: 'exposure-sets',
-            name: 'AssignmentExposureSets',
-            component: () => import('../views/assignment/ExposureSets.vue'),
+            path: "exposure-sets",
+            name: "AssignmentExposureSets",
+            component: () => import("../views/assignment/ExposureSets.vue"),
             meta: {
-              currentSection: 'assignments',
-              currentStep: 'assignment_intro',
-              previousStep: 'AssignmentIntro'
+              currentSection: "assignments",
+              currentStep: "assignment_intro",
+              previousStep: "AssignmentIntro"
             }
           },
           {
-            path: 'exposure-sets/:exposureId/intro',
-            name: 'AssignmentExposureSetsIntro',
-            component: () => import('../views/assignment/ExposureSetsIntro.vue'),
+            path: "exposure-sets/:exposureId/intro",
+            name: "AssignmentExposureSetsIntro",
+            component: () => import("../views/assignment/ExposureSetsIntro.vue"),
             meta: {
-              currentSection: 'assignments',
-              currentStep: 'assignment_intro',
-              previousStep: 'AssignmentExposureSets'
+              currentSection: "assignments",
+              currentStep: "assignment_intro",
+              previousStep: "AssignmentExposureSets"
             }
           },
           {
-            path: 'exposure-sets/:exposureId/assignments',
-            name: 'AssignmentYourAssignments',
-            component: () => import('../views/assignment/YourAssignments.vue'),
+            path: "exposure-sets/:exposureId/assignments",
+            name: "AssignmentYourAssignments",
+            component: () => import("../views/assignment/YourAssignments.vue"),
             meta: {
-              currentSection: 'assignments',
-              currentStep: 'your_assignments',
-              previousStep: 'ExperimentSummary'
+              currentSection: "assignments",
+              currentStep: "your_assignments",
+              previousStep: "ExperimentSummary"
             }
           },
           {
-            path: 'exposure-sets/:exposureId/create-assignment',
-            name: 'AssignmentCreateAssignment',
-            component: () => import('../views/assignment/CreateAssignment.vue'),
+            path: "exposure-sets/:exposureId/create-assignment",
+            name: "AssignmentCreateAssignment",
+            component: () => import("../views/assignment/CreateAssignment.vue"),
             meta: {
-              currentSection: 'assignments',
-              currentStep: 'your_assignments',
-              previousStep: 'ExperimentSummary'
+              currentSection: "assignments",
+              currentStep: "your_assignments",
+              previousStep: "ExperimentSummary"
             }
           },
           {
-            path: 'message',
-            name: 'Message',
-            component: () => import('../views/messaging/Message.vue')
+            path: "message",
+            name: "Message",
+            component: () => import("../views/messaging/Message.vue")
           },
           {
-            path: 'message-container',
-            name: 'MessageContainer',
-            component: () => import('../views/messaging/MessageContainer.vue')
+            path: "message-container",
+            name: "MessageContainer",
+            component: () => import("../views/messaging/MessageContainer.vue")
           },
           {
-            path: 'exposure-sets/:exposureId/assignment/:assignmentId/select-assignment-treatment',
-            name: 'AssignmentTreatmentSelect',
-            component: () => import('../views/assignment/AssignmentTreatmentSelect.vue'),
+            path: "exposure-sets/:exposureId/assignment/:assignmentId/select-assignment-treatment",
+            name: "AssignmentTreatmentSelect",
+            component: () => import("../views/assignment/AssignmentTreatmentSelect.vue"),
             meta: {
-              currentSection: 'assignments',
-              currentStep: 'your_assignments',
-              previousStep: 'AssignmentYourAssignments'
+              currentSection: "assignments",
+              currentStep: "your_assignments",
+              previousStep: "AssignmentYourAssignments"
             }
           },
           {
-            path: 'exposure-sets/:exposureId/assignment/:assignmentId/condition/:conditionId/treatment/:treatmentId/assessment/:assessmentId/builder',
-            name: 'TerracottaBuilder',
-            component: () => import('../views/assignment/TerracottaBuilder.vue'),
+            path: "exposure-sets/:exposureId/assignment/:assignmentId/condition/:conditionId/treatment/:treatmentId/assessment/:assessmentId/builder",
+            name: "TerracottaBuilder",
+            component: () => import("../views/assignment/builder/TerracottaBuilder.vue"),
             meta: {
-              currentSection: 'assignments',
-              currentStep: 'your_assignments',
-              previousStep: 'ExperimentSummary'
+              currentSection: "assignments",
+              currentStep: "your_assignments",
+              previousStep: "ExperimentSummary"
             }
           },
           {
-            path: 'exposure-sets/:exposureId/assignment/:assignmentId/edit',
-            alias: 'editor',
-            name: 'AssignmentEditor',
-            component: () => import('../views/assignment/AssignmentEditor.vue'),
+            path: "exposure-sets/:exposureId/assignment/:assignmentId/edit",
+            alias: "editor",
+            name: "AssignmentEditor",
+            component: () => import("../views/assignment/AssignmentEditor.vue"),
             meta: {
-              currentSection: 'assignments',
-              currentStep: 'assignment_editor',
-              previousStep: 'ExperimentSummary',
+              currentSection: "assignments",
+              currentStep: "assignment_editor",
+              previousStep: "ExperimentSummary",
             }
           },
         ]
@@ -397,8 +399,8 @@ const routes = [
     ]
   },
   {
-    path: '/oauth2-redirect',
-    name: 'oauth2-redirect',
+    path: "/oauth2-redirect",
+    name: "oauth2-redirect",
     component: OAuth2Redirect,
     meta: {
       appStyle: {
@@ -409,14 +411,26 @@ const routes = [
     }
   },
   {
-    path: '*',
-    component: Home
-  },
+    path: "/:pathMatch(.*)*",
+    redirect: { name: "Home" }
+  }
 ]
 
-const router = new VueRouter({
-  base: process.env.BASE_URL,
+export default createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 
-export default router
+function beforeExperimentSteps(to, from, next) {
+  // don't load new data after consent title screen
+  if (from.name === "ParticipationTypeConsentTitle" && to.name === "ParticipationTypeConsentFile") {
+    next();
+    return;
+  }
+
+  return useExperimentStore().fetchExperimentById(to.params.experimentId).then(() => next(), next);
+}
+
+function beforeExperimentOutcome(to, from, next) {
+  return useExperimentStore().fetchExperimentById(to.params.experimentId).then(() => next(), next);
+}

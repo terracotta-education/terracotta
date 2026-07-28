@@ -1,8 +1,28 @@
-html, body {
+@use "sass:map";
+@use "@/styles/variables" as *;
+
+html,
+body {
   font-family: Roboto, Helvetica, "Helvetica Neue", sans-serif;
 }
+
+.v-application {
+  line-height: 1.5;
+}
+
+.v-application p {
+  margin-bottom: 16px;
+  margin-top: 0;
+}
+
+.v-container,
+.container {
+  max-width: 100% !important;
+}
+
 .v-main {
   overflow-y: visible;
+
   &__wrap {
     > div {
       min-height: 100%;
@@ -10,6 +30,76 @@ html, body {
     }
   }
 }
-.v-tabs-slider {
+
+.v-tab__slider {
   background: #e0e0e0 !important;
+}
+
+.v-tab {
+  &:not(.v-tab--selected) {
+    color: rgba(0, 0, 0, .54) !important;
+  }
+
+  &.v-tab--selected {
+    color: map.get($blue, "primary") !important;
+  }
+}
+
+.v-application {
+  & a:not(.v-btn) {
+    color: map.get($blue, "primary") !important;
+  }
+}
+
+.v-btn {
+  text-transform: uppercase !important;
+  font-size: .875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 1.25px !important;
+}
+
+.v-card--variant-outlined {
+  border-color: map.get($grey, "lighter") !important;
+  border: thin solid !important;
+}
+
+.rounded-pill {
+  height: fit-content !important;
+  padding: 4px 12px !important;
+}
+
+.v-expansion-panel {
+  border: thin solid map.get($grey, "lighter") !important;
+  border-radius: 4px !important;
+  margin-bottom: 16px !important;
+}
+
+.v-card--variant-outlined {
+  border: thin solid map.get($grey, "lighter") !important;
+}
+
+.v-expansion-panel-title__overlay {
+  opacity: 0 !important;
+}
+
+.blue {
+  &.lighten-5 {
+    background-color: map.get($blue, "lighten-5") !important;
+    border-color: map.get($blue, "lighten-5") !important;
+  }
+}
+
+.v-field__overlay {
+  background-color: white;
+}
+
+.v-card-text {
+  color: rgba(0,0,0,0.87);
+}
+
+.icon-treatment-incomplete,
+.label-treatment-incomplete {
+  text-transform: none !important;
+  opacity: 0.87 !important;
+  color: map.get($red, "base") !important;
 }

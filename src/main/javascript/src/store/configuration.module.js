@@ -1,50 +1,64 @@
+import { defineStore } from "pinia";
+
 import { configurationService } from "@/services";
 
-const state = {
-  configurations: null
-};
+export const configuration = defineStore("configuration", {
+  state: () => ({
+    configurations: null
+  }),
 
-const actions = {
-  retrieve: ({commit}) => {
-    return configurationService.get()
-      .then(configurations => {
-        if (configurations.message) {
-          alert(configurations.message);
-        } else {
-          commit("setConfigurations", configurations);
+  getters: {
+    get: state => state.configurations,
+
+    hasConfigurations: state =>
+      Boolean(state.configurations),
+
+    getConfiguration:
+      state =>
+      (name, defaultValue = null) =>
+        state.configurations?.[name] ?? defaultValue
+  },
+
+  actions: {
+    async retrieve() {
+      try {
+        const configurations =
+          await configurationService.get();
+
+        if (configurations?.message) {
+          return configurations;
         }
-      })
-      .catch(response => {
-        console.log("get | catch", {response})
-      })
-  },
-  update: ({commit}, data) => {
-    commit("addConfiguration", data);
-  }
-}
 
-const mutations = {
-  setConfigurations(state, data) {
-    state.configurations = data;
-  },
-  addConfiguration(state, data) {
-    state.configurations = {
-      ...state.configurations,
-      [data.name]: data.value
+        this.configurations = configurations || {};
+
+        return configurations;
+      } catch (error) {
+        console.error(
+          "configuration/retrieve | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    update(data) {
+      if (!data?.name) {
+        return;
+      }
+
+      this.configurations = {
+        ...(this.configurations || {}),
+        [data.name]: data.value
+      };
+    },
+
+    reset() {
+      this.configurations = null;
     }
-  }
-};
+  },
 
-const getters = {
-  get(state) {
-    return state.configurations;
+  persist: {
+    key: "terracotta-configuration"
   }
-}
-
-export const configuration = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+});

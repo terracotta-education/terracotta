@@ -1,21 +1,33 @@
-import store from "@/store/index";
+import { alert as alertStore } from "@/store/alert.module";
+import { configuration as configurationStore } from "@/store/configuration.module";
 
 export function widenContainer(from = "col-md-6", to = "col-md-10") {
     const element = document.getElementsByClassName("steps-container-col")[0];
+    if (!element) {
+        return;
+    }
     element.classList.remove(from);
     element.classList.add(to);
 }
 
 export function shrinkContainer(from = "col-md-10", to = "col-md-6") {
     const element = document.getElementsByClassName("steps-container-col")[0];
+    if (!element) {
+        return;
+    }
     element.classList.remove(from);
     element.classList.add(to);
 }
 
 export function adjustBodyTopPadding(to = "pt-4", from = "pt-4") {
     const element = document.getElementsByClassName("experiment-steps__body")[0];
+    if (!element) {
+        return;
+    }
     element.classList.remove(from);
-    element.classList.add(to);
+    if (to) {
+        element.classList.add(to);
+    }
 }
 
 export function getColor(property) {
@@ -119,14 +131,13 @@ export function statusAlert(type, message) {
 }
 
 export function createStatusAlert(statusAlert) {
-  store.dispatch(
-    `alert/${statusAlert.alertType || store.getters["alert/statuses"].info}`,
-    statusAlert.alertMessage
-  );
+  const aStore = alertStore();
+  const actionName = statusAlert.alertType || aStore.statuses.info;
+  aStore[actionName](statusAlert.alertMessage);
 }
 
 export function showSkipLink(show) {
-  store.dispatch("configuration/update", {
+  configurationStore().update({
     name: "showSkipLink",
     value: show
   });

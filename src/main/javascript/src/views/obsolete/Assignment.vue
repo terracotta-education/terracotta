@@ -8,7 +8,7 @@
         <v-col>
           <v-img
             class="mx-auto mb-10"
-            src="@/assets/terracotta_logo.svg"
+            :src="terracottaLogo"
             alt="Terracotta Logo"
             max-width="173"
           />
@@ -39,25 +39,28 @@
 </v-app>
 </template>
 
-<script>
-import { mapGetters } from "vuex";
+<script setup>
+import { computed } from "vue";
 
-export default {
-  computed: {
-    ...mapGetters({
-      configurations: "configuration/get"
-    }),
-    lmsTitle() {
-      return this.configurations?.lmsTitle || "LMS";
-    }
-  }
-};
+import { configuration } from "@/store/configuration.module";
+import terracottaLogo from "@/assets/terracotta_logo.svg";
+
+defineOptions({
+  name: "InactiveExperimentNotice"
+});
+
+const configurationStore = configuration();
+
+const configurations = computed(() => {
+  return configurationStore.get;
+});
+
+const lmsTitle = computed(() => {
+  return configurations.value?.lmsTitle || "LMS";
+});
 </script>
 
 <style lang="scss" scoped>
-@import "@/styles/custom";
-@import "@/styles/variables";
-
 .app {
   background-color: rgba(253, 245, 242, 1) !important;
   padding-top: 80px;
@@ -80,20 +83,20 @@ export default {
       align-content: center;
       opacity: 1;
       &.icon-circle-invalid {
-        border: 2px solid map-get($red, "base");
+        border: 2px solid map.get($red, "base");
         background-color: rgba(229, 21, 62, .2);
-        color: map-get($red, "base");
+        color: map.get($red, "base");
         > .v-icon {
-          color: map-get($red, "base");
+          color: map.get($red, "base");
         }
       }
     }
-    & .v-card__title {
+    & .v-card-title {
       flex-wrap: nowrap;
       font-size: 28px;
       font-weight: unset;
     }
-    & .v-card__text {
+    & .v-card-text {
       font-size: 16px;
       display: flex;
       flex-direction: row;

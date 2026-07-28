@@ -1,215 +1,227 @@
 <template>
-<div>
-  <template
-    v-if="experiment"
-  >
-    <div
-      class="experiment-steps"
-    >
-      <aside
-        v-if="!this.noSidebar.includes(this.$router.currentRoute.name)"
-        class="experiment-steps__sidebar"
-      >
-        <steps
-          :current-section="currentSection"
-          :current-step="currentStep"
-          :participationType="experiment.participationType"
-        />
-      </aside>
-      <nav>
-        <router-link
-          v-if="this.editModePage"
-          :to="getBackTo"
-          :disabled="isSaving"
+  <div>
+    <template v-if="experiment">
+      <div class="experiment-steps">
+        <aside
+          v-if="!noSidebar.includes(route.name)"
+          class="experiment-steps__sidebar"
         >
-          <v-icon>mdi-chevron-left</v-icon> Back
-        </router-link>
-        <div
-          class="nav-right"
-          :class="{'ml-auto': !this.editModePage}"
+          <Steps
+            :current-section="currentSection"
+            :current-step="currentStep"
+            :participation-type="experiment.participationType"
+          />
+        </aside>
+
+        <nav
+          class="d-flex align-center"
         >
-            <v-btn
-            v-show="this.$router.currentRoute.name !== 'ExperimentDesignIntro' && !isSaving"
+          <router-link
+            v-if="editModePage"
+            :to="getBackTo"
             :disabled="isSaving"
-            @click="handleSaveClick()"
-            color="primary"
-            elevation="0"
-            class="save-button"
           >
-            <span
-              v-if="this.$router.currentRoute.meta.stepActionText"
-            >
-              {{ this.$router.currentRoute.meta.stepActionText }}
-            </span>
-            <span
-              v-else-if="editMode"
-            >
-              SAVE & CLOSE
-            </span>
-            <span
-              v-else
-            >
-              SAVE & EXIT
-            </span>
-          </v-btn>
-          <help />
-        </div>
-      </nav>
-      <article
-        class="experiment-steps__body"
-      >
-        <v-container>
-          <v-row
-            justify="center"
+            <v-icon>mdi-chevron-left</v-icon>
+            Back
+          </router-link>
+
+          <div
+            class="nav-right d-flex align-center"
+            :class="{ 'ml-auto': !editModePage }"
           >
-            <v-col
-              md="6"
-              class="steps-container-col"
+            <v-btn
+              v-show="route.name !== 'ExperimentDesignIntro' && !isSaving"
+              :disabled="isSaving"
+              color="primary"
+              elevation="0"
+              class="save-button"
+              @click="handleSaveClick"
             >
-              <router-view
-                :key="$route.fullPath"
-                :experiment="experiment"
-                ref="childComponent"
+              <span v-if="route.meta.stepActionText">
+                {{ route.meta.stepActionText }}
+              </span>
+
+              <span v-else-if="editMode">
+                SAVE & CLOSE
+              </span>
+
+              <span v-else>
+                SAVE & EXIT
+              </span>
+            </v-btn>
+
+            <Help />
+          </div>
+        </nav>
+
+        <article class="experiment-steps__body">
+          <v-container fluid>
+            <v-row>
+              <v-col
+                cols="12"
+                class="steps-container-col"
               >
-              </router-view>
-            </v-col>
-          </v-row>
-        </v-container>
-      </article>
-    </div>
-  </template>
-  <template
-    v-else
-  >
-    <v-row
-      justify="center"
-    >
-      <v-col
-        md="6"
-      >
-        <v-alert
-          type="error"
-          prominent
-          outlined
-          text
-        >
-          <v-row
-            align="center"
+                <router-view
+                  v-slot="{ Component }"
+                >
+                  <component
+                    :is="Component"
+                    :key="route.fullPath"
+                    :experiment="experiment"
+                    ref="childComponent"
+                  />
+                </router-view>
+              </v-col>
+            </v-row>
+          </v-container>
+        </article>
+      </div>
+    </template>
+
+    <template v-else>
+      <v-row justify="center">
+        <v-col md="8">
+          <v-alert
+            type="error"
+            variant="outlined"
           >
-            <v-col
-              class="grow"
-            >
-              Experiment not found
-            </v-col>
-          </v-row>
-        </v-alert>
-      </v-col>
-    </v-row>
-  </template>
-</div>
+            <v-row align="center">
+              <v-col class="grow">
+                Experiment not found
+              </v-col>
+            </v-row>
+          </v-alert>
+        </v-col>
+      </v-row>
+    </template>
+  </div>
 </template>
 
-<script>
-import {mapActions, mapGetters} from "vuex";
+<script setup>
+import {
+  ref,
+  computed,
+  onMounted
+} from "vue";
+
+import {
+  useRoute,
+  onBeforeRouteUpdate
+} from "vue-router";
+
 import Help from "@/components/Help.vue";
-import Steps from "@/components/Steps";
-import store from "@/store";
+import Steps from "@/components/Steps.vue";
 
-export default {
-  name: "ExperimentSteps",
-  components: {
-    Help,
-    Steps
-  },
-  data: () => ({
-    saveButtonClicked: false
-  }),
-  computed: {
-    ...mapGetters({
-      experiment: "experiment/experiment",
-      editMode: "navigation/editMode"
-    }),
-    currentSection() {
-      return this.$router.currentRoute.meta.currentSection
-    },
-    currentStep() {
-      return this.$router.currentRoute.meta.currentStep
-    },
-    routeExperimentId() {
-      return this.$route.params.experimentId
-    },
-    noSidebar() {
-      // these pages should not show the sidebar
-      return [
-        "TerracottaBuilder",
-        "AssignmentCreateAssignment",
-        "AssignmentEditor",
-        "Message",
-        "MessageContainer"
-      ];
-    },
-    editModePage() {
-      if (this.editMode?.initialPage === this.$router.currentRoute.name) {
-        // this page is where we initially began, return to the caller page on exit
-        return this.editMode.callerPage.name;
-      }
-      if (this.singleConditionExperiment && this.$router.currentRoute.meta.previousStepSingleCondition) {
-        return this.$router.currentRoute.meta.previousStepSingleCondition;
-      }
-      return this.$router.currentRoute.meta.previousStep;
-    },
-    conditions() {
-      return this.experiment.conditions;
-    },
-    singleConditionExperiment() {
-      return this.conditions.length === 1;
-    },
-    isSaving() {
-      return this.saveButtonClicked || false;
-    },
-    getBackTo() {
-      if (this.isSaving) {
-        return "";
-      }
+import { experiment as experimentModule } from "@/store/experiment.module";
+import { navigation as navigationModule } from "@/store/navigation.module";
 
-      return {
-        name: this.editModePage
-      };
-    }
-  },
-  beforeRouteEnter (to, from, next) {
-    // don't load new data after consent title screen
-    if (from.name === "ParticipationTypeConsentTitle" && to.name === "ParticipationTypeConsentFile") {
-      next();
-      return;
-    }
-    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next)
-  },
-  beforeRouteUpdate (to, from, next) {
-    // don't load new data after consent title screen
-    if (from.name === "ParticipationTypeConsentTitle" && to.name === "ParticipationTypeConsentFile") {
-      next();
-      return;
-    }
-    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next);
-  },
-  methods: {
-    ...mapActions({
-      fetchExperimentById: "experiment/fetchExperimentById"
-    }),
-    async handleSaveClick() {
-      this.saveButtonClicked = true;
-      await this.$refs.childComponent.saveExit();
-      this.saveButtonClicked = false;
-    }
+defineOptions({
+  name: "ExperimentSteps"
+});
+
+const route = useRoute();
+
+const experimentStore = experimentModule();
+const navigationStore = navigationModule();
+
+const childComponent = ref(null);
+const saveButtonClicked = ref(false);
+
+const experiment = computed(() => experimentStore.experiment);
+const editMode = computed(() => navigationStore.editMode);
+
+const currentSection = computed(() => {
+  return route.meta.currentSection;
+});
+
+const currentStep = computed(() => {
+  return route.meta.currentStep;
+});
+
+const noSidebar = [
+  "TerracottaBuilder",
+  "AssignmentCreateAssignment",
+  "AssignmentEditor",
+  "Message",
+  "MessageContainer"
+];
+
+const conditions = computed(() => {
+  return experiment.value?.conditions || [];
+});
+
+const singleConditionExperiment = computed(() => {
+  return conditions.value.length === 1;
+});
+
+const editModePage = computed(() => {
+  if (editMode.value?.initialPage === route.name) {
+    return editMode.value.callerPage.name;
   }
-}
+
+  if (
+    singleConditionExperiment.value &&
+    route.meta.previousStepSingleCondition
+  ) {
+    return route.meta.previousStepSingleCondition;
+  }
+
+  return route.meta.previousStep;
+});
+
+const isSaving = computed(() => {
+  return saveButtonClicked.value || false;
+});
+
+const getBackTo = computed(() => {
+  if (isSaving.value) {
+    return "";
+  }
+
+  return {
+    name: editModePage.value
+  };
+});
+
+const shouldSkipFetch = (to, from) => {
+  return (
+    from.name === "ParticipationTypeConsentTitle" &&
+    to.name === "ParticipationTypeConsentFile"
+  );
+};
+
+const fetchExperiment = async routeToUse => {
+  await experimentStore.fetchExperimentById(
+    routeToUse.params.experimentId
+  );
+};
+
+const handleSaveClick = async () => {
+  saveButtonClicked.value = true;
+
+  try {
+    await childComponent.value?.saveExit?.();
+  } finally {
+    saveButtonClicked.value = false;
+  }
+};
+
+onMounted(async () => {
+  await fetchExperiment(route);
+});
+
+onBeforeRouteUpdate(async (to, from, next) => {
+  if (shouldSkipFetch(to, from)) {
+    next();
+    return;
+  }
+
+  await fetchExperiment(to);
+  next();
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~vuetify/src/styles/main.sass";
-@import "~@/styles/variables";
-
 .experiment-steps {
   display: grid;
   min-height: 100%;
@@ -218,6 +230,7 @@ export default {
   grid-template-areas:
     "aside nav"
     "aside article";
+
   > nav {
     position: sticky;
     position: -webkit-sticky;
@@ -231,34 +244,40 @@ export default {
     align-items: center;
     z-index: 100;
     background: white;
+
     a {
       text-decoration: none;
       align-content: center;
+
       * {
         vertical-align: sub;
-        @extend .blue--text;
+        color: map.get($blue, "primary");
       }
     }
+
     .save-button,
     .save-button:disabled,
     .save-button[disabled] {
-      margin-left:auto;
-      background: none!important;
+      margin-left: auto;
+      background: none !important;
       border: none;
-      padding: 0!important;
-      color: map-get($blue, "primary");
+      padding: 0 !important;
+      color: map.get($blue, "primary");
       cursor: pointer;
     }
+
     .save-button:disabled,
     .save-button[disabled] {
       color: grey;
     }
+
     > .nav-right {
       display: flex;
       justify-content: right;
       max-width: fit-content;
     }
   }
+
   > aside {
     position: sticky;
     position: -webkit-sticky;
@@ -266,6 +285,7 @@ export default {
     height: 100vh;
     grid-area: aside;
   }
+
   > article {
     grid-area: article;
     padding: 0;
@@ -273,7 +293,7 @@ export default {
   }
 
   &__sidebar {
-    background: map-get($grey, 'lighten-4');
+    background: map.get($grey, "lightest");
     padding: 30px 45px;
   }
 }

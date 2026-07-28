@@ -7,7 +7,6 @@
     :tableData="rows"
     :tooltips="tooltips"
     :includeNote="true"
-    :showExpand="true"
     :hasOverall="true"
     noSubmissionsMessage="No submissions yet"
     titleHeader="Component name"
@@ -15,41 +14,43 @@
 </v-row>
 </template>
 
-<script>
-import DataTable from "./subsection/DataTable";
+<script setup>
+import { computed } from "vue";
 
-export default {
-  name: "Assignments",
-  props: {
-    assignmentsData: {
-      type: Object,
-      required: false
-    }
-  },
-  components: {
-    DataTable
-  },
-  computed: {
-    tooltips() {
-      return [
-        {
-          id: "submissionRate",
-          message: "This value is calculated by dividing the total number of component submissions by the total number of consenting participants."
-        }
-      ]
-    },
-    sectionData() {
-      return this.assignmentsData || {};
-    },
-    rows() {
-      return this.sectionData.rows || [];
-    }
+import DataTable from "./subsection/DataTable.vue";
+
+defineOptions({
+  name: "OverviewAssignmentsSection"
+});
+
+const props = defineProps({
+  assignmentsData: {
+    type: Object,
+    required: false
   }
-}
+});
+
+const tooltips = [
+  {
+    id: "submissionRate",
+    message: "This value is calculated by dividing the total number of component submissions by the total number of consenting participants."
+  }
+];
+
+const sectionData = computed(() => {
+  return props.assignmentsData || {};
+});
+
+const rows = computed(() => {
+  return sectionData.value.rows || [];
+});
 </script>
 
 <style scoped>
-div.container-data-table {
+/* DataTable.vue is a separate (shared) child component, so :deep() is required here to reach
+   its rendered rows - anchoring on .container-table (this component's own root) means this only
+   affects this Assignments.vue instance, not other sections reusing the same DataTable.vue */
+.container-table :deep(div.container-data-table) {
   & .data-table {
     & tbody {
       tr:nth-last-child(2) {
@@ -61,13 +62,17 @@ div.container-data-table {
       }
       & tr:last-child {
         position: relative;
-        background-color: #f6fbff;
+        background-color: #f6fbff !important;
         border-bottom-left-radius: 10px;
         border-bottom-right-radius: 10px;
         -webkit-box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
         -moz-box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
         box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
         z-index: 0;
+
+        &:hover {
+          background-color: #f6fbff !important;
+        }
 
         &::after {
           content: "";
@@ -90,5 +95,10 @@ div.container-data-table {
     float: left;
     color: #666666;
   }
+}
+h3 {
+  font-weight: 700;
+  padding: 0;
+  margin: 0;
 }
 </style>

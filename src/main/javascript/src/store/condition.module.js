@@ -1,94 +1,8 @@
-import {conditionService} from "@/services";
+import { defineStore } from "pinia";
 
-const state = {};
-
-const actions = {
-  resetCondition: ({commit}) => {
-    commit("setCondition", {})
-  },
-  createDefaultConditions: ({dispatch}, experimentId) => {
-    const defaultConditions = [{}, {}];
-    dispatch("createConditions", {conditions: defaultConditions, experimentId: experimentId});
-  },
-  createConditions: ({dispatch}, payload) => {
-    if (payload.conditions.length) {
-      payload.conditions.forEach(() => {
-        dispatch("createCondition", payload.experimentId)
-      })
-    }
-  },
-  createCondition: ({commit}, experimentId) => {
-    return conditionService.create(experimentId)
-            .then(condition => {
-              // commit mutation from experiment module
-              if (condition.message) {
-                alert(condition.message)
-              } else {
-                commit("experiment/setCondition", condition, {root: true})
-              }
-            })
-            .catch(response => {
-              console.log("createCondition | catch", {response})
-            })
-  },
-  updateCondition: ({commit}, condition) => {
-    return conditionService.update(condition)
-            .then((response) => {
-              if (response.status === 200) {
-                // commit mutation from experiment module
-                commit("experiment/setCondition", condition, {root: true})
-              }
-              return response
-            })
-            .catch(response => {
-              console.log("setCondition | catch", {response})
-            })
-  },
-  updateConditions: ({commit}, conditions) => {
-    return conditionService.updateAll(conditions)
-        .then((response) => {
-          if (response.status === 200) {
-            // commit mutation from experiment module
-            commit("experiment/setConditions", conditions, {root: true});
-          }
-          return response;
-        })
-        .catch(response => {
-          console.log("setConditions | catch", {response})
-        })
-  },
-  setDefaultCondition({dispatch}, payload) {
-    if (!payload || !payload.conditions || !payload.defaultConditionId) {
-      return false
-    }
-
-    return Promise.all(
-      payload.conditions.map(async (condition) => {
-        return new Promise((resolve) => {
-          condition.defaultCondition = (condition.conditionId === payload.defaultConditionId) ? 1 : 0
-          dispatch("updateCondition", condition)
-          resolve(condition)
-        });
-      })
-    )
-  },
-  deleteCondition: ({commit}, condition) => {
-    return conditionService.delete(condition)
-            .then(() => {
-              // commit mutation from experiment module
-              commit("experiment/deleteCondition", condition, {root: true})
-            })
-            .catch(response => {
-              console.log("setCondition | catch", {response})
-            })
-  },
-  resetCondtions({state}) {
-    state.conditions = [];
-    state.condition = null;
-  },
-}
-
-const mutations = {};
+import { conditionService } from "@/services";
+import { exposures as useExposuresStore } from "@/store/exposures.module";
+import { experiment as useExperimentStore } from "@/store/experiment.module";
 
 const CONDITION_COLORS = [
   "#FFCCBC",
@@ -108,28 +22,174 @@ const CONDITION_COLORS = [
   "#C5CAE9",
   "#E1BEE7",
   "#E1BEE7",
-  "#CFD8DC",
+  "#CFD8DC"
 ];
-const getters = {
-  conditionColorMapping(_state, _getters, _rootState, rootGetters) {
-    const exposures = rootGetters["exposures/exposures"];
-    // Base the color mapping on the order of conditions in the first exposure
-    const groupConditionList = exposures?.length > 0 ? exposures[0].groupConditionList : [];
-    const conditionColorMap = {};
 
-    for (let index = 0; index < groupConditionList.length; index++) {
-      const groupCondition = groupConditionList[index];
-      conditionColorMap[groupCondition.conditionName] = CONDITION_COLORS[index % CONDITION_COLORS.length];
+export const condition = defineStore("condition", {
+  state: () => ({
+    condition: null,
+    conditions: []
+  }),
+
+  getters: {
+    conditionColorMapping() {
+      const exposuresStore = useExposuresStore();
+      const groupConditionList =
+        exposuresStore.exposures?.[0]?.groupConditionList || [];
+
+      return groupConditionList.reduce(
+        (conditionColorMap, groupCondition, index) => {
+          conditionColorMap[groupCondition.conditionName] =
+            CONDITION_COLORS[index % CONDITION_COLORS.length];
+
+          return conditionColorMap;
+        },
+        {}
+      );
     }
+  },
 
-    return conditionColorMap;
+  actions: {
+    resetCondition() {
+      this.condition = null;
+    },
+
+    async createDefaultConditions(experimentId) {
+      return this.createConditions({
+        conditions: [{}, {}],
+        experimentId
+      });
+    },
+
+    async createConditions(payload) {
+      const conditions = payload?.conditions || [];
+
+      if (!conditions.length) {
+        return [];
+      }
+
+      return Promise.all(
+        conditions.map(() => this.createCondition(payload.experimentId))
+      );
+    },
+
+    async createCondition(experimentId) {
+      try {
+        const cond = await conditionService.create(experimentId);
+
+        if (cond?.message) {
+          return cond;
+        }
+
+        useExperimentStore().setCondition(cond);
+        this.condition = cond;
+        this.upsertCondition(cond);
+
+        return cond;
+      } catch (error) {
+        console.error("condition/createCondition | catch", error);
+
+        return null;
+      }
+    },
+
+    async updateCondition(cond) {
+      try {
+        const response = await conditionService.update(cond);
+
+        if (response?.status === 200) {
+          useExperimentStore().setCondition(cond);
+          this.condition = cond;
+          this.upsertCondition(cond);
+        }
+
+        return response;
+      } catch (error) {
+        console.error("condition/updateCondition | catch", error);
+
+        return null;
+      }
+    },
+
+    async updateConditions(conditions) {
+      try {
+        const response = await conditionService.updateAll(conditions);
+
+        if (response?.status === 200) {
+          useExperimentStore().setConditions(conditions);
+          this.conditions = Array.isArray(conditions) ? conditions : [];
+        }
+
+        return response;
+      } catch (error) {
+        console.error("condition/updateConditions | catch", error);
+
+        return null;
+      }
+    },
+
+    async setDefaultCondition(payload) {
+      if (!payload?.conditions || !payload.defaultConditionId) {
+        return false;
+      }
+
+      // one batched request for all conditions instead of one PUT per condition
+      const updatedConditions = payload.conditions.map(cond => ({
+        ...cond,
+        defaultCondition:
+          cond.conditionId === payload.defaultConditionId ? 1 : 0
+      }));
+
+      return this.updateConditions(updatedConditions);
+    },
+
+    async deleteCondition(cond) {
+      try {
+        const response = await conditionService.delete(cond);
+
+        if (response?.status === 200) {
+          useExperimentStore().deleteCondition(cond);
+          this.conditions = this.conditions.filter(
+            item =>
+              parseInt(item.conditionId) !== parseInt(cond.conditionId)
+          );
+
+          if (
+            parseInt(this.condition?.conditionId) ===
+            parseInt(cond.conditionId)
+          ) {
+            this.condition = null;
+          }
+        }
+
+        return response;
+      } catch (error) {
+        console.error("condition/deleteCondition | catch", error);
+
+        return null;
+      }
+    },
+
+    resetConditions() {
+      this.condition = null;
+      this.conditions = [];
+    },
+
+    upsertCondition(cond) {
+      if (!cond) {
+        return;
+      }
+
+      const index = this.conditions.findIndex(
+        item =>
+          parseInt(item.conditionId) === parseInt(cond.conditionId)
+      );
+
+      if (index >= 0) {
+        this.conditions.splice(index, 1, cond);
+      } else {
+        this.conditions.push(cond);
+      }
+    }
   }
-}
-
-export const condition = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+});

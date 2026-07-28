@@ -8,7 +8,7 @@
         <v-col>
           <v-img
             class="mx-auto mb-10"
-            src="@/assets/terracotta_logo.svg"
+            :src="terracottaLogo"
             alt="Terracotta Logo"
             max-width="173"
           />
@@ -46,15 +46,15 @@
 </v-app>
 </template>
 
-<script>
-export default {
+<script setup>
+import terracottaLogo from "@/assets/terracotta_logo.svg";
+
+defineOptions({
   name: "TreatmentPreviewComplete"
-}
+});
 </script>
 
 <style lang="scss" scoped>
-  @import "@/styles/custom.scss";
-
 .app {
   background-color: rgba(253, 245, 242, 1) !important;
   padding-top: 80px;
@@ -86,12 +86,12 @@ export default {
         }
       }
     }
-    & .v-card__title {
+    & .v-card-title {
       flex-wrap: nowrap;
       font-size: 28px;
       font-weight: unset;
     }
-    & .v-card__text {
+    & .v-card-text {
       font-size: 16px;
     }
   }

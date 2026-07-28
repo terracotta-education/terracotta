@@ -1,6 +1,7 @@
 <template>
 <v-container
   v-show="display"
+  fluid
   :style="containerStyles"
   class="page-loading-container"
 >
@@ -10,44 +11,48 @@
   >
     <h1>{{ message }}</h1>
     <spinner
-      :width="'100px'"
-      :height="'100px'"
+      width="100px"
+      height="100px"
       class="spinner"
-    >
-    </spinner>
+    />
   </div>
 </v-container>
 </template>
 
-<script>
+<script setup>
 import Spinner from "@/components/Spinner";
 
-export default {
-  name: "PageLoading",
-  components: {
-    Spinner
+defineOptions({
+  name: "PageLoading"
+});
+
+defineProps({
+  message: {
+    type: String,
+    default: "Loading. Please wait."
   },
-  props: {
-    message: {
-      type: String,
-      default: "Loading. Please wait."
-    },
-    display: {
-      type: Boolean,
-      default: false
-    },
-    containerStyles: {
-      type: String
-    },
-    spinnerStyles: {
-      type: String
-    }
+  display: {
+    type: Boolean,
+    default: false
+  },
+  containerStyles: {
+    type: String,
+    default: ""
+  },
+  spinnerStyles: {
+    type: String,
+    default: ""
   }
-}
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~@/styles/variables";
+.page-loading-container {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background-color: rgba(0, 0, 0, 0.5);
+}
 
 div.spinner-container {
   position: absolute;
@@ -65,7 +70,7 @@ div.spinner-container {
   h1 {
     width: 100%;
     margin-top: 20px;
-    color: map-get($blue, "base");
+    color: map.get($blue, "base");
   }
   .spinner {
     position: relative;

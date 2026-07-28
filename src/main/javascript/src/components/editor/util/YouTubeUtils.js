@@ -1,4 +1,8 @@
 export function parseIframeEmbed(embedCode) {
+  if (!embedCode) {
+    return null;
+  }
+
   const parser = new DOMParser();
   const doc = parser.parseFromString(embedCode, "text/html");
 
@@ -6,12 +10,11 @@ export function parseIframeEmbed(embedCode) {
 }
 
 export function youtubeParser(url) {
-  const split = url.split("/embed/");
+  if (!url) {
+    return false;
+  }
 
-  return split && split.length > 1 ? split[1] : false;
+  const match = url.match(/\/embed\/([^?&]+)/);
+
+  return match?.[1] || false;
 }
-
-export default {
-  parseIframeEmbed,
-  youtubeParser,
-};

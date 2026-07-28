@@ -26,7 +26,7 @@
         <commons-math3.version>3.6.1</commons-math3.version>
         <commons-validator.version>1.10.1</commons-validator.version>
         <db-scheduler.version>16.12.0</db-scheduler.version>
-        <frontend-maven-plugin.version>1.15.4</frontend-maven-plugin.version>
+        <frontend-maven-plugin.version>2.0.1</frontend-maven-plugin.version>
         <guava.version>33.6.0-jre</guava.version>
         <jackson-datatype-joda.version>3.0.2</jackson-datatype-joda.version>
         <jacoco.version>0.8.15</jacoco.version>
@@ -38,9 +38,9 @@
         <lombok.version>1.18.46</lombok.version>
         <mysql-connector-j.version>9.7.0</mysql-connector-j.version>
         <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
-        <node.version>v16.19.0</node.version>
+        <node.version>v22.22.3</node.version>
+        <npm.version>10.9.0</npm.version>
         <opencsv.version>5.12.0</opencsv.version>
-        <yarn.version>v1.22.19</yarn.version>
         <zip4j.version>2.11.6</zip4j.version>
     </properties>
 
@@ -277,6 +277,34 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>frontend-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <version>${frontend-maven-plugin.version}</version>
+                        <configuration>
+                            <workingDirectory>src/main/javascript</workingDirectory>
+                            <installDirectory>${project.build.directory}</installDirectory>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>yarn test</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>npm</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>exec -- corepack yarn test</arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <build>
@@ -289,35 +317,49 @@
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>${frontend-maven-plugin.version}</version>
+
                 <configuration>
-                    <nodeVersion>${node.version}</nodeVersion>
-                    <yarnVersion>${yarn.version}</yarnVersion>
                     <workingDirectory>src/main/javascript</workingDirectory>
+                    <installDirectory>${project.build.directory}</installDirectory>
                 </configuration>
+
                 <executions>
                     <execution>
-                        <id>install node and yarn</id>
+                        <id>install node and npm</id>
                         <goals>
-                            <goal>install-node-and-yarn</goal>
+                            <goal>install-node-and-npm</goal>
                         </goals>
-                        <phase>generate-resources</phase>
+                        <configuration>
+                            <nodeVersion>${node.version}</nodeVersion>
+                            <npmVersion>${npm.version}</npmVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enable corepack</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>exec -- corepack enable</arguments>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>yarn install</id>
                         <goals>
-                            <goal>yarn</goal>
+                            <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install</arguments>
+                            <arguments>exec -- corepack yarn install</arguments>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>yarn build</id>
+                        <id>vite build</id>
+                        <phase>generate-resources</phase>
                         <goals>
-                            <goal>yarn</goal>
+                            <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>build</arguments>
+                            <arguments>exec -- corepack yarn build</arguments>
                         </configuration>
                     </execution>
                 </executions>

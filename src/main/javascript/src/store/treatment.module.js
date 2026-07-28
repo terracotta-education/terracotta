@@ -1,113 +1,112 @@
-import {treatmentService} from '@/services'
+import { defineStore } from "pinia";
 
-const state = {
-  treatments: [],
-  treatment: {}
-}
+import { treatmentService } from "@/services";
 
-const actions = {
-  async createTreatment ({commit}, payload) {
-    const assignmentId = parseInt(payload[2])
-    // payload = experimentId, conditionId, assignmentId
-    // create the treatment, commit an update mutation, and return the status/data response
-    try {
-      // check if treatments exist before creating a new one
-      let response = await treatmentService.fetchTreatment(...payload)
-      let treatment
+export const treatment = defineStore("treatment", {
+  state: () => ({
+    treatments: [],
+    treatment: null
+  }),
 
-      // return first treatment that matches, only one treatment per condition
-      if (response?.data?.length>0 && response.data.find(t=>t.assignmentId===assignmentId)) {
-        treatment = response.data.find(t=>t.assignmentId===assignmentId)
-      } else {
-        response = await treatmentService.create(...payload);
-        if (response.status !== 201) {
+  getters: {
+    hasTreatment: state => Boolean(state.treatment),
+    hasTreatments: state => state.treatments.length > 0
+  },
+
+  actions: {
+    async createTreatment(payload) {
+      try {
+        const assignmentId = parseInt(payload[2]);
+
+        const treat = this.treatments.find(
+          t => t.assignmentId === assignmentId
+        );
+
+        if (treat) {
+          this.treatment = treat;
+          return { status: 200, data: treat };
+        }
+
+        const response = await treatmentService.create(...payload);
+
+        if (response?.status !== 201) {
           return response;
         }
-        treatment = response?.data
+
+        const created = response?.data;
+        this.treatment = created;
+        this.upsertTreatment(created);
+
+        return { status: response.status, data: created };
+      } catch (error) {
+        console.error("treatment/createTreatment | catch", error);
+
+        return null;
       }
+    },
 
-      // commit changes to state
-      commit('setTreatment', treatment)
-      commit('updateTreatments', treatment)
+    async updateTreatment(payload) {
+      try {
+        const response = await treatmentService.update(...payload);
 
-      return {
-        status: response?.status,
-        data: treatment
-      }
-    } catch (error) {
-      console.log('createTreatment catch', error)
-    }
-  },
-  async updateTreatment ({commit}, payload) {
-    // payload = experimentId, conditionId, treatmentId
-    // create the treatment, commit an update mutation, and return the status/data response
-    try {
-
-      // return first treatment that matches, only one treatment per condition
-      const response = await treatmentService.update(...payload);
-      if (response.status !== 201) {
-        return response;
-      }
-      const treatment = response?.data
-
-      // commit changes to state
-      commit('setTreatment', treatment)
-      commit('updateTreatments', treatment)
-
-      return {
-        status: response?.status,
-        data: treatment
-      }
-    } catch (error) {
-      console.log('updateTreatment catch', error)
-    }
-  },
-  async checkTreatment({state}, payload) {
-    // payload = experimentId, conditionId
-    try {
-      const response = await treatmentService.fetchTreatment(...payload)
-      if (response) {
-        return {
-          status: response.status,
-          data: response.data
+        if (response?.status !== 201 && response?.status !== 200) {
+          return response;
         }
-      }
-    } catch (error) {
-      console.error('checkTreatment catch', {error, state})
-    }
-  },
-  resetTreatments({state}) {
-    state.treatments = [];
-    state.treatment = null;
-  },
-}
-const mutations = {
-  setTreatment(state, treatment) {
-    state.treatment = treatment
-  },
-  updateTreatments(state, treatment) {
-    // check for same id and update if exists
-    const foundIndex = state.treatments?.findIndex(t => t.treatmentId === treatment.treatmentId)
-    if (foundIndex >= 0) {
-      state.treatments[foundIndex] = treatment
-    } else {
-      state.treatments.push(treatment)
-    }
-  }
-}
-const getters = {
-  treatment: (state) => {
-    return state.treatment
-  },
-  treatments: (state) => {
-    return state.treatments
-  }
-}
 
-export const treatment = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+        const treat = response?.data;
+
+        this.treatment = treat;
+        this.upsertTreatment(treat);
+
+        return {
+          status: response?.status,
+          data: treat
+        };
+      } catch (error) {
+        console.error("treatment/updateTreatment | catch", error);
+
+        return null;
+      }
+    },
+
+    async checkTreatment(payload) {
+      try {
+        const response =
+          await treatmentService.fetchTreatment(...payload);
+
+        return response
+          ? {
+              status: response.status,
+              data: response.data
+            }
+          : null;
+      } catch (error) {
+        console.error("treatment/checkTreatment | catch", error);
+
+        return null;
+      }
+    },
+
+    resetTreatments() {
+      this.treatments = [];
+      this.treatment = null;
+    },
+
+    upsertTreatment(treat) {
+      if (!treat?.treatmentId) {
+        return;
+      }
+
+      const index = this.treatments.findIndex(
+        item =>
+          parseInt(item.treatmentId) === parseInt(treat.treatmentId)
+      );
+
+      if (index >= 0) {
+        this.treatments.splice(index, 1, treat);
+      } else {
+        this.treatments.push(treat);
+      }
+    }
+  }
+});

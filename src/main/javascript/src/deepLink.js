@@ -1,22 +1,23 @@
+import { createApp } from "vue";
+import { pinia } from "@/pinia";
+
 import DeepLink from "./DeepLink.vue";
 import router from "./router";
-import store from "./store/index";
-import Vue from "vue";
 import vuetify from "./plugins/vuetify";
 
-Vue.config.productionTip = false;
+import "vuetify/styles";
+import "@/styles/custom.scss";
 
 const url = new URL(window.location.href);
-const params = new URLSearchParams(url.search);
+const params = url.searchParams;
 
-new Vue({
-  router,
-  store,
-  vuetify,
-  render: (h) =>
-    h(DeepLink, {
-      props: {
-        id: params.get("id"),
-      },
-    }),
-}).$mount("#app");
+createApp(
+  DeepLink,
+  {
+    id: params.get("id")
+  }
+)
+.use(pinia)
+.use(router)
+.use(vuetify)
+.mount("#app");

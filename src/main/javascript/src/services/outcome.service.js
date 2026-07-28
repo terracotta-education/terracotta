@@ -1,13 +1,13 @@
-import {authHeader, isJson} from '@/helpers'
-import store from '@/store/index.js'
+import {
+  authHeader,
+  isJson
+} from "@/helpers";
 
-/**
- * Register methods
- */
+import { api } from "@/store/api.module";
+
 export const outcomeService = {
   getAll,
   getById,
-  getByExperimentId,
   getAllByExperimentId,
   create,
   updateOutcome,
@@ -17,269 +17,250 @@ export const outcomeService = {
   createOutcomeScores,
   updateOutcomeScores,
   getOutcomePotentials
+};
+
+async function getAll(
+  experimentId,
+  exposureId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes`
+  );
 }
 
-/**
- * Get all Outcomes by Experiment and Exposure Id
- */
-function getAll(experimentId, exposureId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes`,
-    requestOptions
-  ).then(handleResponse)
+async function getById(
+  experimentId,
+  exposureId,
+  outcomeId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}`
+  );
 }
 
-/**
- * Get Outcome by Experiment, Exposure, and Outcome Id
- */
-function getById(experimentId, exposureId, outcomeId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}`, requestOptions).then(handleResponse)
+async function getAllByExperimentId(experimentId) {
+  return request(
+    `/api/experiments/${experimentId}/outcomes`
+  );
 }
 
-/**
- * Get Outcomes by Experiment Id and a list of exposures
- */
-async function getByExperimentId(experimentId, exposures = []) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader()
-  }
-  // For One condition experiment, there will be one exposure
-  if (exposures.length>=1) {
-    return await Promise.all(exposures.map(async exposureId =>
-      fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes`, requestOptions).then(handleResponse)
-    ))
-  }
+async function create(
+  experimentId,
+  exposureId,
+  title,
+  maxPoints,
+  external = false,
+  lmsType = "NONE",
+  lmsOutcomeId = null
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes`,
+    {
+      method: "POST",
+      body: {
+        title,
+        maxPoints,
+        external,
+        lmsType,
+        lmsOutcomeId
+      }
+    }
+  );
 }
 
-/**
- * Get all Outcomes by Experiment and Exposure Id
- */
-function getAllByExperimentId(experimentId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/outcomes`,
-    requestOptions
-  ).then(handleResponse)
+async function updateOutcome(
+  experimentId,
+  exposureId,
+  outcome
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcome.outcomeId}`,
+    {
+      method: "PUT",
+      body: {
+        title: outcome.title,
+        maxPoints: outcome.maxPoints,
+        external: outcome.external
+      }
+    }
+  );
 }
 
-/**
- * Create Outcome
- */
-function create(experimentId, exposureId, title, max_points, external=false, lms_type='NONE', lms_outcomeId = null) {
-  const requestOptions = {
-    method: 'POST',
-    headers: {
-      ...authHeader(),
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      title,
-      "maxPoints": max_points,
-      external,
-      "lmsType": lms_type,
-      "lmsOutcomeId": lms_outcomeId
-    })
-  }
-
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes`, requestOptions).then(handleResponse)
+async function deleteOutcome(
+  experimentId,
+  exposureId,
+  outcomeId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}`,
+    {
+      method: "DELETE"
+    }
+  );
 }
 
-/**
- * Update Outcome by Outcome Id
- */
-function updateOutcome(experimentId, exposureId, outcome) {
-  const requestOptions = {
-    method: 'PUT',
-    headers: {
-      ...authHeader(),
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      "title":outcome.title,
-      "maxPoints": outcome.maxPoints,
-      "external":outcome.external
-    })
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcome.outcomeId}`,
-    requestOptions
-  ).then(handleResponse)
+async function getOutcomeScoresById(
+  experimentId,
+  exposureId,
+  outcomeId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`
+  );
 }
 
-/**
- * Delete Outcome by Outcome Id
- */
-function deleteOutcome(experimentId, exposureId, outcomeId) {
-  const requestOptions = {
-    method: 'DELETE',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}`,
-    requestOptions
-  ).then(handleResponse)
+async function getScoreById(
+  experimentId,
+  exposureId,
+  outcomeId,
+  outcomeScoreId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores/${outcomeScoreId}`
+  );
 }
 
-/**
- * Get Outcome Scores by Outcome Id
- */
-function getOutcomeScoresById(experimentId, exposureId, outcomeId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
+async function createOutcomeScores(
+  experimentId,
+  exposureId,
+  outcomeId,
+  scores = []
+) {
+  const validScores =
+    Array.isArray(scores) ||
+    (typeof scores === "object" &&
+      scores?.participantId);
+
+  if (!validScores) {
+    return false;
   }
 
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`,
-    requestOptions
-  ).then(handleResponse)
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`,
+    {
+      method: "POST",
+      body: scores
+    }
+  );
 }
 
-/**
- * Get Outcome Score by Outcome Score Id
- */
-function getScoreById(experimentId, exposureId, outcomeId, outcome_scoreId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores/${outcome_scoreId}`,
-    requestOptions
-  ).then(handleResponse)
-}
-
-/**
- * POST Outcome Scores
- */
-async function createOutcomeScores(experimentId, exposureId, outcomeId, scores = null) {
-  // scores = array || object
-  if (!Array.isArray(scores) || typeof scores !== 'object' && scores.participantId) {
-    // if scores is not an array or object with the participantId key
-    return false
-  }
-
-  const requestOptions = {
-    method: 'POST',
-    headers: {
-      ...authHeader(),
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(scores)
-  }
-
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`, requestOptions).then(handleResponse)
-}
-
-/**
- * POST/PUT Outcome Scores
- */
-async function updateOutcomeScores(experimentId, exposureId, outcomeId, scores = null) {
+async function updateOutcomeScores(
+  experimentId,
+  exposureId,
+  outcomeId,
+  scores = []
+) {
   if (
     !scores ||
-    // scores exists and is not an array
     !Array.isArray(scores) ||
-    // scores is an array and includes participantId's
-    (Array.isArray(scores) && !scores.find(o=>o.participantId)) ||
-    // score is an object with participantId
-    (typeof scores === 'object' && scores.participantId)
+    !scores.some(score => score.participantId)
   ) {
-    return false
+    return false;
   }
 
-  const requestOptions = {
+  // single batched request; the backend creates entries without an outcomeScoreId
+  // and updates entries that already have one, instead of one request per score
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`,
+    {
+      method: "PUT",
+      body: scores.map(score => ({
+        outcomeScoreId: score.outcomeScoreId,
+        participantId: score.participantId,
+        scoreNumeric: score.scoreNumeric
+      }))
+    }
+  );
+}
+
+async function getOutcomePotentials(experimentId) {
+  return request(
+    `/api/experiments/${experimentId}/outcome_potentials`
+  );
+}
+
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
+
+  const response = await fetch(`${api().aud}${path}`, {
+    method,
     headers: {
       ...authHeader(),
-      'Content-Type': 'application/json'
-    }
-  }
-
-  if(Array.isArray(scores) && scores.find(o=>o.outcomeScoreId)) {
-    requestOptions.method = 'PUT'
-    return await Promise.all(scores.map(async score => {
-      requestOptions.body = JSON.stringify({'participantId': score.participantId, 'scoreNumeric': score.scoreNumeric})
-      await fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores/${score.outcomeScoreId}`, requestOptions).then(handleResponse)
-    }))
-
-  } else if (typeof scores === 'object' && scores.outcomeScoreId) {
-    requestOptions.method = 'PUT'
-    requestOptions.body = JSON.stringify(scores)
-
-    return await fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores/${scores.outcomeScoreId}`, requestOptions).then(handleResponse)
-  } else {
-    requestOptions.method = 'POST'
-    requestOptions.body = JSON.stringify(scores)
-
-    return await Promise.all(scores.map(async score => {
-      requestOptions.body = JSON.stringify({'participantId': score.participantId, 'scoreNumeric': score.scoreNumeric})
-      await fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}/outcomes/${outcomeId}/outcome_scores`, requestOptions).then(handleResponse)
-    }))
-  }
-}
-
-
-/**
- * Get Outcome Potentials by Experiment Id
- */
-function getOutcomePotentials(experimentId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/outcome_potentials`, requestOptions).then(handleResponse)
-}
-
-
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-    .then((text) => {
-      const data = (text && isJson(text)) ? JSON.parse(text) : text
-
-      if (
-        !response ||
-        response.status === 401 ||
-        response.status === 402 ||
-        response.status === 500 ||
-        response.status === 404
-      ) {
-        console.log('handleResponse | 401/402/500', {response})
-      } else if (response.status === 409) {
-        return {
-          message: data
+      ...(body
+        ? {
+            "Content-Type":
+              "application/json"
+          }
+        : {})
+    },
+    ...(body
+      ? {
+          body: JSON.stringify(body)
         }
-      } else if (response.status === 204) {
-        return []
-      }
+      : {})
+  });
 
-      const dataResponse = (data) ? {
-        data,
+  return handleResponse(response);
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+
+    const data =
+      text && isJson(text)
+        ? JSON.parse(text)
+        : text;
+
+    if (response.status === 204) {
+      return [];
+    }
+
+    if (response.status === 409) {
+      return {
+        message: data,
         status: response.status
-      } : null
+      };
+    }
 
-      return dataResponse || response
-    }).catch(text => {
-      console.log('handleResponse | catch', {text})
-    })
+    if (
+      !response?.ok ||
+      [401, 402, 404, 500].includes(response.status)
+    ) {
+      console.error(
+        "handleResponse | error",
+        {
+          response,
+          data
+        }
+      );
+
+      return {
+        status: response.status,
+        error: data || response
+      };
+    }
+
+    return data
+      ? {
+          data,
+          status: response.status
+        }
+      : response;
+  } catch (error) {
+    console.error(
+      "handleResponse | catch",
+      {
+        error
+      }
+    );
+
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

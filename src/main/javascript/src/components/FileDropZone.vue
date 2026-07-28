@@ -1,171 +1,177 @@
 <template>
-<div
-  class="file-drop-zone"
->
-  <template
-    v-if="!file"
-  >
-    <div
-      :class="['drop-zone', dragging ? 'drop-zone--over' : '']"
-      @dragenter="dragging = true"
-      @dragleave="dragging = false"
-    >
+  <div class="file-drop-zone">
+    <template v-if="!file">
       <div
-        @drag="onChange"
-        class="drop-zone__info"
+        :class="[
+          'drop-zone',
+          dragging ? 'drop-zone--over' : ''
+        ]"
+        @dragenter.prevent="dragging = true"
+        @dragover.prevent="dragging = true"
+        @dragleave.prevent="dragging = false"
+        @drop.prevent="onChange"
       >
-        <v-btn
-          @click="$refs.fileInput.click()"
+        <div class="drop-zone__info">
+          <v-btn
+            aria-label="Upload consent file"
+            class="mb-3"
+            elevation="0"
+            color="primary"
+            @click="fileInput?.click()"
+          >
+            Upload PDF
+          </v-btn>
+
+          <p>or drag and drop here</p>
+        </div>
+
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".pdf,application/pdf"
           aria-label="Upload consent file"
-          class="mb-3"
-          elevation="0"
-          color="primary"
-        >
-          Upload PDF
-        </v-btn>
-        <p>or drag and drop here</p>
+          @change="onChange"
+        />
       </div>
-      <input
-        @change="onChange"
-        type="file"
-        ref="fileInput"
-        accept=".pdf,application/pdf"
-        aria-label="Upload consent file"
-      >
-    </div>
-  </template>
-  <div
-    v-else
-    class="drop-zone__uploaded pa-3"
-  >
+    </template>
+
     <div
-      class="drop-zone__uploaded-info"
+      v-else
+      class="drop-zone__uploaded pa-3"
     >
-      <h4
-        class="drop-zone__title"
-      >
-        Selected file:
-      </h4>
-      <v-card
-        outlined
-      >
-        <v-card-text
-          class="py-1 px-2"
-        >
-          <strong>Informed Consent File</strong>
-          <div>
-            <v-btn
-              @click="doDisplayFile"
-              aria-label="View uploaded consent file"
-              class="icon-file-view"
-              elevation="0"
-              icon
-              tile
-            >
-              <v-icon>
-                mdi-file-eye-outline
-              </v-icon>
-            </v-btn>
-            <v-btn
-              @click="removeFile"
-              aria-label="Remove uploaded consent file"
-              class="icon-file-remove"
-              elevation="0"
-              icon
-              tile
-            >
-              <v-icon dark>
-                mdi-close
-              </v-icon>
-            </v-btn>
-          </div>
-        </v-card-text>
-      </v-card>
+      <div class="drop-zone__uploaded-info">
+        <h4 class="drop-zone__title">
+          Selected file:
+        </h4>
+
+        <v-card variant="outlined">
+          <v-card-text class="py-1 px-2">
+            <strong>Informed Consent File</strong>
+
+            <div>
+              <v-btn
+                aria-label="View uploaded consent file"
+                class="icon-file-view"
+                elevation="0"
+                icon="mdi-file-eye-outline"
+                @click="doDisplayFile"
+              />
+
+              <v-btn
+                aria-label="Remove uploaded consent file"
+                class="icon-file-remove"
+                elevation="0"
+                icon="mdi-close"
+                @click="removeFile"
+              />
+            </div>
+          </v-card-text>
+        </v-card>
+      </div>
     </div>
   </div>
-</div>
 </template>
 
-<script>
-export default {
-  props: {
-    existingFile: {
-      type: Object,
-      default: null
-    }
-  },
-  data: () => ({
-    file: null,
-    dragging: false
-  }),
-  watch: {
-    existingFile(newFile) {
-      this.file = newFile;
-    }
-  },
-  computed: {
-    extension() {
-      return (this.file) ? this.file.name.split(".").pop() : "";
-    }
-  },
-  methods: {
-    onChange(e) {
-      var files = e.target.files || e.dataTransfer.files;
+<script setup>
+import {
+  ref,
+  watch
+} from "vue";
 
-      if (!files.length) {
-        this.dragging = false;
-        return;
-      }
+import Swal from "sweetalert2";
 
-      this.createFile(files[0]);
-    },
-    createFile(file) {
-      if (!file.type.match("application/pdf")) {
-        this.$swal("Please select a pdf file.");
-        this.dragging = false;
-        return;
-      }
+defineOptions({
+  name: "FileDropZone"
+});
 
-      if (file.size > 10*1024*1024) {
-        this.$swal("Please check file size is not over 10 MB.");
-        this.dragging = false;
-        return;
-      }
-
-      this.file = file;
-      this.dragging = false;
-      this.$emit("update", file);
-      this.$emit("newUpload", true);
-    },
-    removeFile() {
-      this.file = null;
-      this.$emit("update", null);
-      this.$emit("newUpload", true);
-      this.$emit("displayFile", false);
-    },
-    doDisplayFile() {
-      this.$emit("displayFile", true);
-    }
+const props = defineProps({
+  existingFile: {
+    type: [File, String, Object],
+    default: null
   }
-}
+});
+
+const emit = defineEmits([
+  "update",
+  "newUpload",
+  "displayFile"
+]);
+
+const fileInput = ref(null);
+const file = ref(props.existingFile);
+const dragging = ref(false);
+
+watch(
+  () => props.existingFile,
+  newFile => {
+    file.value = newFile;
+  }
+);
+
+const onChange = event => {
+  const files =
+    event.target?.files ||
+    event.dataTransfer?.files;
+
+  if (!files?.length) {
+    dragging.value = false;
+    return;
+  }
+
+  createFile(files[0]);
+
+  if (event.target) {
+    event.target.value = "";
+  }
+};
+
+const createFile = async newFile => {
+  if (!newFile.type.match("application/pdf")) {
+    await Swal.fire("Please select a pdf file.");
+    dragging.value = false;
+    return;
+  }
+
+  if (newFile.size > 10 * 1024 * 1024) {
+    await Swal.fire("Please check file size is not over 10 MB.");
+    dragging.value = false;
+    return;
+  }
+
+  file.value = newFile;
+  dragging.value = false;
+
+  emit("update", newFile);
+  emit("newUpload", true);
+};
+
+const removeFile = () => {
+  file.value = null;
+
+  emit("update", null);
+  emit("newUpload", true);
+  emit("displayFile", false);
+};
+
+const doDisplayFile = () => {
+  emit("displayFile", true);
+};
 </script>
 
 <style lang="scss">
-@import "~@/styles/variables";
-
 .drop-zone {
   height: 153px;
   position: relative;
-  border: 2px dashed map-get($grey, 'lighten-2');
+  border: 2px dashed map.get($grey, "lighter");
   border-radius: 9px;
 
   &:hover {
-    border: 2px dashed map-get($blue, 'lighten-2');
+    border: 2px dashed map.get($blue, "light");
   }
 
   &--over {
-    background: map-get($grey, 'lighten-2');
-    border: 2px solid map-get($blue, 'lighten-2');
+    background: map.get($grey, "lighter");
+    border: 2px solid map.get($blue, "light");
     opacity: 0.8;
   }
 
@@ -188,14 +194,14 @@ export default {
     flex-direction: column;
     justify-content: center;
     height: 153px;
-    border: 2px dashed map-get($grey, 'lighten-2');
+    border: 2px dashed map.get($grey, "lighter");
     border-radius: 9px;
 
     * {
       color: black;
     }
 
-    .v-card__text {
+    .v-card-text {
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -206,18 +212,14 @@ export default {
     .icon-file-view {
       height: 30px;
       width: 30px;
-      border: 1px solid map-get($grey, 'lighten-2');
+      border: 1px solid map.get($grey, "lighter");
       border-radius: 4px;
-
-      i {
-        font-size: 16px;
-      }
     }
 
     .icon-file-remove {
       &:hover,
       &:focus {
-        background: map-get($red, 'base');
+        background: map.get($red, "base");
         color: white;
       }
     }
@@ -225,7 +227,7 @@ export default {
     .icon-file-view {
       &:hover,
       &:focus {
-        background: map-get($grey, 'lighten-2');
+        background: map.get($grey, "lighter");
         color: white;
       }
     }
@@ -234,10 +236,7 @@ export default {
   input {
     position: absolute;
     cursor: pointer;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
     opacity: 0;

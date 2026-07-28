@@ -1,80 +1,94 @@
 <template>
-<div>
-  <div
-    class="mb-5 pb-2"
-  >
-    <multiple-attempts-setting
-      v-model="multipleAttemptsSettings"
-    />
-  </div>
   <div>
-    <reveal-responses-setting
-      v-model="revealResponseSettings"
-    />
+    <div class="mb-5 pb-2">
+      <MultipleAttemptsSetting
+        v-if="multipleAttemptsSettings"
+        v-model="multipleAttemptsSettings"
+      />
+    </div>
+
+    <div>
+      <RevealResponsesSetting
+        v-if="revealResponseSettings"
+        v-model="revealResponseSettings"
+      />
+    </div>
   </div>
-</div>
 </template>
 
-<script>
-import { mapGetters, mapMutations } from "vuex";
-import MultipleAttemptsSetting from "./MultipleAttemptsSetting.vue";
-import RevealResponsesSetting from "./RevealResponsesSetting.vue";
+<script setup>
+import { computed } from "vue";
 
-export default {
-  components: {
-    RevealResponsesSetting,
-    MultipleAttemptsSetting,
-  },
-  computed: {
-    ...mapGetters({
-      assessment: "assessment/assessment",
-      questions: "assessment/questions",
-    }),
-    integration() {
-      return this.questions.length ? this.questions[0].integration : null;
-    },
-    isIntegration() {
-      return this.integration !== null;
-    },
-    revealResponseSettings: {
-      get() {
-        return this.assessment
-          ? {
-              allowStudentViewResponses: this.assessment.allowStudentViewResponses,
-              studentViewResponsesAfter: this.assessment.studentViewResponsesAfter,
-              studentViewResponsesBefore: this.assessment.studentViewResponsesBefore,
-              allowStudentViewCorrectAnswers: this.assessment.allowStudentViewCorrectAnswers,
-              studentViewCorrectAnswersAfter: this.assessment.studentViewCorrectAnswersAfter,
-              studentViewCorrectAnswersBefore: this.assessment.studentViewCorrectAnswersBefore,
-              integration: this.integration
-            }
-          : null;
-      },
-      set(value) {
-        this.setAssessment({ ...this.assessment, ...value });
-      },
-    },
-    multipleAttemptsSettings: {
-      get() {
-        return this.assessment
-          ? {
-              allowMultipleAttempts: this.assessment.allowMultipleAttempts,
-              numOfSubmissions: this.assessment.numOfSubmissions,
-              hoursBetweenSubmissions: this.assessment.hoursBetweenSubmissions,
-              multipleSubmissionScoringScheme: this.assessment.multipleSubmissionScoringScheme,
-              cumulativeScoringInitialPercentage: this.assessment.cumulativeScoringInitialPercentage,
-            }
-          : null;
-      },
-      set(value) {
-        this.setAssessment({ ...this.assessment, ...value });
-      }
+import MultipleAttemptsSetting from "@/views/assignment/MultipleAttemptsSetting.vue";
+import RevealResponsesSetting from "@/views/assignment/RevealResponsesSetting.vue";
+
+import { assessment as assessmentModule } from "@/store/assessment.module";
+
+defineOptions({
+  name: "TreatmentSettings"
+});
+
+const assessmentStore = assessmentModule();
+
+const assessment = computed(() => {
+  return assessmentStore.assessment;
+});
+
+const questions = computed(() => {
+  return assessmentStore.questions || [];
+});
+
+const integration = computed(() => {
+  return questions.value.length
+    ? questions.value[0].integration
+    : null;
+});
+
+const revealResponseSettings = computed({
+  get() {
+    if (!assessment.value) {
+      return null;
     }
+
+    return {
+      allowStudentViewResponses: assessment.value.allowStudentViewResponses,
+      studentViewResponsesAfter: assessment.value.studentViewResponsesAfter,
+      studentViewResponsesBefore: assessment.value.studentViewResponsesBefore,
+      allowStudentViewCorrectAnswers: assessment.value.allowStudentViewCorrectAnswers,
+      studentViewCorrectAnswersAfter: assessment.value.studentViewCorrectAnswersAfter,
+      studentViewCorrectAnswersBefore: assessment.value.studentViewCorrectAnswersBefore,
+      integration: integration.value
+    };
   },
-  methods: {
-    ...mapMutations({
-      setAssessment: "assessment/setAssessment",
-    })
+
+  set(value) {
+    assessmentStore.setAssessment({
+      ...assessment.value,
+      ...value
+    });
   }
-};
+});
+
+const multipleAttemptsSettings = computed({
+  get() {
+    if (!assessment.value) {
+      return null;
+    }
+
+    return {
+      allowMultipleAttempts: assessment.value.allowMultipleAttempts,
+      numOfSubmissions: assessment.value.numOfSubmissions,
+      hoursBetweenSubmissions: assessment.value.hoursBetweenSubmissions,
+      multipleSubmissionScoringScheme: assessment.value.multipleSubmissionScoringScheme,
+      cumulativeScoringInitialPercentage: assessment.value.cumulativeScoringInitialPercentage
+    };
+  },
+
+  set(value) {
+    assessmentStore.setAssessment({
+      ...assessment.value,
+      ...value
+    });
+  }
+});
 </script>
