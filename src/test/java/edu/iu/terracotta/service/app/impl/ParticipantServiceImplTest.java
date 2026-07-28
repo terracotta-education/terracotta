@@ -731,17 +731,31 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(ltiContextRepository).save(ltiContextEntity);
     }
 
-    // prepareParticipation should reset consent for existing participants directly, without
-    // syncing the entire course roster; new participants get correct consent at creation time.
+    // prepareParticipation should throttle the roster sync (rather than always syncing) and
+    // reset consent for existing participants directly either way.
     @Test
     public void testPrepareParticipation() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
         when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        assertDoesNotThrow(() -> participantService.prepareParticipation(1L, securedInfo));
+
+        verify(participantService).refreshParticipantsIfStale(1L);
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
+    }
+
+    // when the roster was already synced recently, prepareParticipation should skip the sync
+    // but still reset consent for existing participants.
+    @Test
+    public void testPrepareParticipationSkipsSyncWhenRecentlySynced() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
 
         assertDoesNotThrow(() -> participantService.prepareParticipation(1L, securedInfo));
 
         verify(participantService, never()).refreshParticipants(anyLong());
-        verify(lmsUserBatchAsyncService, never()).success(any(UUID.class));
         verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
     }
 

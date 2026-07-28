@@ -574,10 +574,14 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        // reset consent for participants who already exist, instead of syncing the entire
-        // course roster; a brand-new participant already gets the correct initial consent for
-        // the current participation type at creation time (see buildAndSaveParticipant), so
-        // there's nothing left to catch up for them
+        // throttled, so picking/re-picking a participation type doesn't always force a full LMS
+        // roster sync; still proactively populates the roster (rather than waiting for each
+        // student's own lazy-create-on-launch) as long as the last sync isn't recent
+        refreshParticipantsIfStale(experimentId);
+
+        // reset consent for participants who already exist - covers both the case where the
+        // above was skipped as not-yet-stale, and is a harmless no-op otherwise, since a
+        // just-synced participant's source already matches the current participation type
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
 
         if (experiment == null) {
