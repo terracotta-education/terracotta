@@ -157,6 +157,40 @@ describe("SelectionMethod", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  it("shows an error alert and does not navigate when reportStep fails", async () => {
+    experimentService.update.mockResolvedValue({ status: 200 });
+    apiService.reportStep.mockResolvedValue({ status: 500, message: "boom" });
+
+    const wrapper = mountComponent(SelectionMethod, {
+      props: { experiment: buildExperiment() }
+    });
+
+    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+    await selectButtons[0].trigger("click");
+    await flushPromisesAndTicks(wrapper);
+
+    expect(Swal.fire).toHaveBeenCalledWith("Error: boom");
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("shows a generic error alert and does not navigate when reportStep resolves with no data (e.g. a network failure)", async () => {
+    experimentService.update.mockResolvedValue({ status: 200 });
+    apiService.reportStep.mockResolvedValue(null);
+
+    const wrapper = mountComponent(SelectionMethod, {
+      props: { experiment: buildExperiment() }
+    });
+
+    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+    await selectButtons[0].trigger("click");
+    await flushPromisesAndTicks(wrapper);
+
+    expect(Swal.fire).toHaveBeenCalledWith(
+      "There was an error preparing participants for this experiment."
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("shows the consent-file-missing alert only in edit mode for a CONSENT experiment without a consent file", async () => {
     const wrapper = mountComponent(SelectionMethod, {
       props: {

@@ -204,12 +204,22 @@ const setParticipationType = async type => {
     if (response?.status === 200) {
       preparingParticipants.value = true;
 
-      await apiStore.reportStep({
+      const stepResponse = await apiStore.reportStep({
         experimentId,
         step
       });
 
       preparingParticipants.value = false;
+
+      if (stepResponse?.status !== 200) {
+        await Swal.fire(
+          stepResponse?.message
+            ? `Error: ${stepResponse.message}`
+            : "There was an error preparing participants for this experiment."
+        );
+
+        return;
+      }
 
       switch (experiment.participationType) {
         case "CONSENT":
