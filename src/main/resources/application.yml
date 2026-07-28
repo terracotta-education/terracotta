@@ -233,6 +233,9 @@ app:
   participant:
     batch:
       size: 500
+    refresh:
+      throttle:
+        hours: 24
   # external files
   external:
     file:

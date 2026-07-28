@@ -77,6 +77,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -105,6 +106,11 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Value("${app.participant.batch.size:500}")
     private int batchSize;
+
+    @Value("${app.participant.refresh.throttle.hours:24}")
+    private long refreshThrottleHours;
+
+    private final Map<Long, Instant> lastParticipantsRefresh = new ConcurrentHashMap<>();
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -344,6 +350,28 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         log.debug("Refreshing participants for experiment ID: [{}] took [{}]", experimentId, Duration.between(startTime, Instant.now()));
+    }
+
+    /**
+     * Like refreshParticipants, but skips the LMS membership service sync entirely if this
+     * experiment's roster was already refreshed within the last app.participant.refresh.throttle.hours.
+     * Intended for callers that need the roster reasonably fresh (to reconcile external LMS
+     * submitters against participants) but run repeatedly enough that syncing on every call is
+     * wasteful - e.g. viewing a gradebook outcome, or repeated exports.
+     *
+     * @param experimentId
+     */
+    @Override
+    @Transactional
+    public void refreshParticipantsIfStale(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        Instant lastRefresh = lastParticipantsRefresh.get(experimentId);
+
+        if (lastRefresh != null && lastRefresh.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+            return;
+        }
+
+        refreshParticipants(experimentId);
+        lastParticipantsRefresh.put(experimentId, Instant.now());
     }
 
     /**

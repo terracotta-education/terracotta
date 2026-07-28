@@ -15,10 +15,12 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -110,6 +112,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         );
         ReflectionTestUtils.setField(participantService, "batchSize", 500);
         ReflectionTestUtils.setField(participantService, "entityManager", entityManager);
+        ReflectionTestUtils.setField(participantService, "refreshThrottleHours", 24L);
 
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
@@ -690,6 +693,50 @@ public class ParticipantServiceImplTest extends BaseTest {
         );
 
         verify(lmsUserBatchAsyncService).fail(any(UUID.class), anyString());
+    }
+
+    @Test
+    public void testRefreshParticipantsIfStaleRefreshesWhenNeverRefreshedBefore() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService).refreshParticipants(1L);
+    }
+
+    @Test
+    public void testRefreshParticipantsIfStaleSkipsWhenRecentlyRefreshed() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        participantService.refreshParticipantsIfStale(1L);
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService, times(1)).refreshParticipants(1L);
+    }
+
+    @Test
+    public void testRefreshParticipantsIfStaleRefreshesAgainAfterThrottleWindowElapses() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        Map<Long, Instant> lastRefresh = (Map<Long, Instant>) ReflectionTestUtils.getField(participantService, "lastParticipantsRefresh");
+        lastRefresh.put(1L, Instant.now().minus(Duration.ofHours(25)));
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService, times(2)).refreshParticipants(1L);
+    }
+
+    @Test
+    public void testRefreshParticipantsIfStaleTracksSeparatelyPerExperiment() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        participantService.refreshParticipantsIfStale(1L);
+        participantService.refreshParticipantsIfStale(2L);
+
+        verify(participantService).refreshParticipants(1L);
+        verify(participantService).refreshParticipants(2L);
     }
 
     // prepareParticipation should reset consent for existing participants directly, without
