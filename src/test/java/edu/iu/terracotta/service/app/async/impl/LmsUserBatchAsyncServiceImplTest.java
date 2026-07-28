@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,6 +18,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
@@ -41,6 +44,17 @@ public class LmsUserBatchAsyncServiceImplTest {
             lmsUserBatchRepository,
             applicationEventPublisher
         );
+    }
+
+    // handleBatchEvent must fire on AFTER_COMPLETION, not AFTER_COMMIT: an AFTER_COMMIT-only
+    // listener is simply never invoked when the transaction it was registered against rolls back
+    // instead of commits, which would silently drop a fail() published right before a rollback.
+    @Test
+    public void testHandleBatchEventListensOnAfterCompletionNotAfterCommitOnly() throws NoSuchMethodException {
+        Method handleBatchEvent = LmsUserBatchAsyncServiceImpl.class.getMethod("handleBatchEvent", LmsUserBatchEvent.class);
+        TransactionalEventListener annotation = handleBatchEvent.getAnnotation(TransactionalEventListener.class);
+
+        assertEquals(TransactionPhase.AFTER_COMPLETION, annotation.phase());
     }
 
     @Test
