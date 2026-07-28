@@ -24,6 +24,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+import java.time.Instant;
 import java.util.Set;
 
 @Entity
@@ -74,6 +75,8 @@ public class LtiContextEntity extends BaseEntity {
     @Lob
     @Column
     private String settings;
+
+    private Instant lastParticipantSync;
 
     @ManyToOne(
         fetch = FetchType.EAGER,

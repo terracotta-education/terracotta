@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -12,6 +13,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -77,7 +79,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -101,6 +102,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final GroupParticipantService groupParticipantService;
     private final LmsUserBatchAsyncService lmsUserBatchAsyncService;
     private final LtiDataService ltiDataService;
+    private final LtiContextRepository ltiContextRepository;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -109,8 +111,6 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Value("${app.participant.refresh.throttle.hours:24}")
     private long refreshThrottleHours;
-
-    private final Map<Long, Instant> lastParticipantsRefresh = new ConcurrentHashMap<>();
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -354,7 +354,9 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     /**
      * Like refreshParticipants, but skips the LMS membership service sync entirely if this
-     * experiment's roster was already refreshed within the last app.participant.refresh.throttle.hours.
+     * experiment's LTI context (course) was already refreshed within the last
+     * app.participant.refresh.throttle.hours. Tracked per LTI context, not per experiment,
+     * since the LMS roster is a property of the course, and multiple experiments can share one.
      * Intended for callers that need the roster reasonably fresh (to reconcile external LMS
      * submitters against participants) but run repeatedly enough that syncing on every call is
      * wasteful - e.g. viewing a gradebook outcome, or repeated exports.
@@ -364,14 +366,23 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void refreshParticipantsIfStale(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        Instant lastRefresh = lastParticipantsRefresh.get(experimentId);
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
 
-        if (lastRefresh != null && lastRefresh.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+        if (experiment == null) {
+            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+        }
+
+        LtiContextEntity ltiContextEntity = experiment.getLtiContextEntity();
+        Instant lastSync = ltiContextEntity.getLastParticipantSync();
+
+        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
             return;
         }
 
         refreshParticipants(experimentId);
-        lastParticipantsRefresh.put(experimentId, Instant.now());
+
+        ltiContextEntity.setLastParticipantSync(Instant.now());
+        ltiContextRepository.save(ltiContextEntity);
     }
 
     /**

@@ -15,7 +15,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +37,7 @@ import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
@@ -107,7 +107,8 @@ public class ParticipantServiceImplTest extends BaseTest {
                 apiClient,
                 groupParticipantService,
                 lmsUserBatchAsyncService,
-                ltiDataService
+                ltiDataService,
+                ltiContextRepository
             )
         );
         ReflectionTestUtils.setField(participantService, "batchSize", 500);
@@ -695,48 +696,39 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(lmsUserBatchAsyncService).fail(any(UUID.class), anyString());
     }
 
+    // last_participant_sync lives on the LTI context (course), not the experiment, since the
+    // LMS roster is shared by every experiment in that course.
     @Test
-    public void testRefreshParticipantsIfStaleRefreshesWhenNeverRefreshedBefore() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+    public void testRefreshParticipantsIfStaleRefreshesWhenNeverSyncedBefore() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
         doNothing().when(participantService).refreshParticipants(anyLong());
 
         participantService.refreshParticipantsIfStale(1L);
 
         verify(participantService).refreshParticipants(1L);
+        verify(ltiContextEntity).setLastParticipantSync(any(Instant.class));
+        verify(ltiContextRepository).save(ltiContextEntity);
     }
 
     @Test
-    public void testRefreshParticipantsIfStaleSkipsWhenRecentlyRefreshed() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        doNothing().when(participantService).refreshParticipants(anyLong());
+    public void testRefreshParticipantsIfStaleSkipsWhenRecentlySynced() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
 
         participantService.refreshParticipantsIfStale(1L);
-        participantService.refreshParticipantsIfStale(1L);
 
-        verify(participantService, times(1)).refreshParticipants(1L);
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(ltiContextRepository, never()).save(any(LtiContextEntity.class));
     }
 
     @Test
-    public void testRefreshParticipantsIfStaleRefreshesAgainAfterThrottleWindowElapses() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+    public void testRefreshParticipantsIfStaleRefreshesAgainWhenSyncIsStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now().minus(Duration.ofHours(25)));
         doNothing().when(participantService).refreshParticipants(anyLong());
 
         participantService.refreshParticipantsIfStale(1L);
-
-        Map<Long, Instant> lastRefresh = (Map<Long, Instant>) ReflectionTestUtils.getField(participantService, "lastParticipantsRefresh");
-        lastRefresh.put(1L, Instant.now().minus(Duration.ofHours(25)));
-
-        participantService.refreshParticipantsIfStale(1L);
-
-        verify(participantService, times(2)).refreshParticipants(1L);
-    }
-
-    @Test
-    public void testRefreshParticipantsIfStaleTracksSeparatelyPerExperiment() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        doNothing().when(participantService).refreshParticipants(anyLong());
-
-        participantService.refreshParticipantsIfStale(1L);
-        participantService.refreshParticipantsIfStale(2L);
 
         verify(participantService).refreshParticipants(1L);
-        verify(participantService).refreshParticipants(2L);
+        verify(ltiContextRepository).save(ltiContextEntity);
     }
 
     // prepareParticipation should reset consent for existing participants directly, without
