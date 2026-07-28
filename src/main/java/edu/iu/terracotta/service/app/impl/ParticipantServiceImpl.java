@@ -450,6 +450,30 @@ public class ParticipantServiceImpl implements ParticipantService {
             ltiUserEntity = ltiDataService.saveLtiUserEntity(newLtiUserEntity);
         }
 
+        return buildAndSaveParticipant(ltiUserEntity, experiment);
+    }
+
+    /**
+     * Creates a new participant for an LTI user who has already launched the tool (and so
+     * already has an LtiUserEntity created by the LTI launch flow), without requiring a full
+     * LMS membership service roster refresh. Returns null if the launch's LtiUserEntity can't
+     * be resolved, so the caller can fall back to a full refresh.
+     *
+     * @param experiment
+     * @param securedInfo
+     * @return
+     */
+    private Participant createParticipantFromLaunch(Experiment experiment, SecuredInfo securedInfo) {
+        LtiUserEntity ltiUserEntity = ltiDataService.findByUserKeyAndPlatformDeployment(securedInfo.getUserId(), experiment.getPlatformDeployment());
+
+        if (ltiUserEntity == null) {
+            return null;
+        }
+
+        return buildAndSaveParticipant(ltiUserEntity, experiment);
+    }
+
+    private Participant buildAndSaveParticipant(LtiUserEntity ltiUserEntity, Experiment experiment) {
         LtiMembershipEntity ltiMembershipEntity = ltiDataService.findByUserAndContext(ltiUserEntity, experiment.getLtiContextEntity());
 
         if (ltiMembershipEntity == null) {
@@ -809,11 +833,18 @@ public class ParticipantServiceImpl implements ParticipantService {
                     ExperimentNotMatchingException, TerracottaConnectorException {
         Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experiment.getExperimentId(), securedInfo.getUserId());
 
-        // if participant record doesn't exist, or if a consenting participant isn't assigned to a
-        // group, or if the participant is marked as dropped, refresh the participant list
-        if (participant == null
-                || (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null)
+        if (participant == null) {
+            // brand-new participant: create directly from the current LTI launch instead of
+            // syncing the entire course roster just to add one record
+            participant = createParticipantFromLaunch(experiment, securedInfo);
+        } else if ((BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null)
                 || BooleanUtils.isTrue(participant.getDropped())) {
+            // an existing consenting participant isn't assigned to a group, or is marked as
+            // dropped: fall through to a full roster refresh below
+            participant = null;
+        }
+
+        if (participant == null) {
             refreshParticipants(experiment.getExperimentId());
             participant = findParticipant(experiment.getExperimentId(), securedInfo.getUserId());
 

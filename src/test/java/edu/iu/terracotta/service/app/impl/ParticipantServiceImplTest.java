@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -189,6 +190,48 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(participantService).refreshParticipants(experiment.getExperimentId());
         verify(participant).setDropped(false);
         verify(participant, never()).setGroup(any(Group.class));
+    }
+
+    // Test handleExperimentParticipant when no participant record exists yet: it should be
+    // created directly from the current LTI launch's already-resolved LtiUserEntity/
+    // LtiMembershipEntity, without triggering a full roster refresh.
+    @Test
+    public void testHandleExperimentParticipantCreatesFromLaunchWhenNotFound() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(USER_ID, platformDeployment)).thenReturn(ltiUserEntity);
+        when(ltiDataService.findByUserAndContext(ltiUserEntity, ltiContextEntity)).thenReturn(ltiMembershipEntity);
+
+        participantService.handleExperimentParticipant(experiment, securedInfo);
+
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService, never()).findParticipant(anyLong(), anyString());
+        verify(ltiDataService, never()).saveLtiMembershipEntity(any(LtiMembershipEntity.class));
+
+        ArgumentCaptor<Participant> captor = ArgumentCaptor.forClass(Participant.class);
+        verify(participantRepository, atLeastOnce()).save(captor.capture());
+        Participant created = captor.getAllValues().get(0);
+
+        assertEquals(experiment, created.getExperiment());
+        assertEquals(ltiUserEntity, created.getLtiUserEntity());
+        assertEquals(ltiMembershipEntity, created.getLtiMembershipEntity());
+        assertEquals(false, created.getDropped());
+        assertTrue(created.getConsent());
+    }
+
+    // Test handleExperimentParticipant when no participant record exists yet and the launch's
+    // LtiUserEntity can't be resolved (shouldn't normally happen): it should fall back to a
+    // full roster refresh rather than fail outright.
+    @Test
+    public void testHandleExperimentParticipantFallsBackToRefreshWhenLaunchUserNotFound() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(USER_ID, platformDeployment)).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong());
+        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
+
+        Participant result = participantService.handleExperimentParticipant(experiment, securedInfo);
+
+        assertNotNull(result);
+        verify(participantService).refreshParticipants(experiment.getExperimentId());
     }
 
     @Test
