@@ -42,7 +42,7 @@ public class LmsUserBatchAsyncServiceImpl implements LmsUserBatchAsyncService {
 
         // set the batch status; if one is not available, create it
         LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(lmsUserBatchEvent.batchId())
-            .orElse(LmsUserBatchProcessing.builder().build());
+            .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(lmsUserBatchEvent.batchId()).build());
 
         lmsUserBatchProcessing.setStatus(lmsUserBatchEvent.status());
 

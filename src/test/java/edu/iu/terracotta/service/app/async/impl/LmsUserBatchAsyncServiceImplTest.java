@@ -108,6 +108,7 @@ public class LmsUserBatchAsyncServiceImplTest {
         verify(lmsUserBatchRepository).deleteByBatchId(batchId);
         ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
         verify(lmsUserBatchProcessingRepository).save(captor.capture());
+        assertEquals(batchId, captor.getValue().getBatchId());
         assertEquals(LmsUserBatchStatus.COMPLETED, captor.getValue().getStatus());
         assertNull(captor.getValue().getMessage());
     }
