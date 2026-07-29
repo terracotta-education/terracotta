@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+    http://www.liquibase.org/xml/ns/pro
+    http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd"
+>
+  <changeSet author="rlong" id="1785297600-01">
+    <!--
+      findByBatchId, deleteByBatchId, and findBatchProjectionsByBatchIdAndEmailIn all filter by
+      batch_id with no supporting index, so every one of them is a full table scan. That's not
+      just slow at scale (a huge course roster's pagination re-scans the whole staging table once
+      per page) - a full-scan DELETE/read under InnoDB's default REPEATABLE READ isolation locks
+      every row/gap it examines, including rows from other batches being concurrently inserted by
+      other syncs, which is what caused "Lock wait timeout exceeded" even on an otherwise short,
+      unrelated per-page insert.
+    -->
+    <createIndex indexName="IDX_LMS_USER_BATCH_BATCH_ID" tableName="lms_user_batch">
+      <column name="batch_id"/>
+    </createIndex>
+  </changeSet>
+
+</databaseChangeLog>
