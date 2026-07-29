@@ -102,6 +102,15 @@ export const api = defineStore("api", {
       }
     },
 
+    async getStepStatus({ experimentId, batchId }) {
+      try {
+        return await apiService.getStepStatus(experimentId, batchId);
+      } catch (error) {
+        console.error("api/getStepStatus | catch", error);
+        return null;
+      }
+    },
+
     async deepLinkJwt(id) {
       try {
         const data = await apiService.deepLinkJwt(id);

@@ -5,6 +5,7 @@ import { api } from "@/store/api.module";
 export const apiService = {
   deepLinkJwt,
   getApiToken,
+  getStepStatus,
   refreshToken,
   reportStep
 };
@@ -61,6 +62,20 @@ async function reportStep(
         step,
         parameters
       })
+    }
+  );
+
+  return handleResponse(response);
+}
+
+async function getStepStatus(experimentId, batchId) {
+  const response = await fetch(
+    `${api(pinia).aud}/api/experiments/${experimentId}/step/status/${batchId}`,
+    {
+      method: "GET",
+      headers: {
+        ...authHeader()
+      }
     }
   );
 

@@ -70,6 +70,7 @@
 import {
   ref,
   computed,
+  onBeforeUnmount,
   onMounted
 } from "vue";
 
@@ -182,6 +183,93 @@ const displayConsentFileMissingAlert = computed(() => {
   );
 });
 
+let statusPollTimer = null;
+
+const stopPolling = () => {
+  if (statusPollTimer) {
+    clearInterval(statusPollTimer);
+    statusPollTimer = null;
+  }
+};
+
+const navigateAfterParticipationTypeSelected = (selectedParticipationType, experimentId) => {
+  switch (selectedParticipationType) {
+    case "CONSENT":
+      router.push({
+        name:
+          "ParticipationTypeConsentOverview",
+        params: {
+          experiment: experimentId
+        }
+      });
+      break;
+
+    case "MANUAL":
+      router.push({
+        name: "ParticipationTypeManual",
+        params: {
+          experiment: experimentId
+        }
+      });
+      break;
+
+    case "AUTO":
+      router.push({
+        name:
+          "ParticipationTypeAutoConfirm",
+        params: {
+          experiment: experimentId
+        }
+      });
+      break;
+
+    default:
+      Swal.fire(
+        "Select a participation type"
+      );
+  }
+};
+
+// refreshParticipants (kicked off server-side by reportStep) can take several minutes for a
+// large course roster, so instead of blocking on that one request, poll its status every 5
+// seconds until it reaches a terminal state.
+const pollPrepareParticipationStatus = (experimentId, batchId, selectedParticipationType) => {
+  statusPollTimer = setInterval(
+    async () => {
+      const statusResponse = await apiStore.getStepStatus({
+        experimentId,
+        batchId
+      });
+      const status = statusResponse?.data?.status;
+
+      if (
+        status !== "COMPLETED" &&
+        status !== "PROCESSED" &&
+        status !== "FAILED"
+      ) {
+        // still IN_PROGRESS/PENDING, or the poll request itself failed - keep polling either way
+        return;
+      }
+
+      stopPolling();
+      preparingParticipants.value = false;
+
+      if (status === "FAILED") {
+        await Swal.fire(
+          statusResponse?.data?.message
+            ? `Error: ${statusResponse.data.message}`
+            : "There was an error preparing participants for this experiment."
+        );
+
+        return;
+      }
+
+      navigateAfterParticipationTypeSelected(selectedParticipationType, experimentId);
+    },
+    5000
+  );
+};
+
 const setParticipationType = async type => {
   initialParticipationType.value = type;
 
@@ -209,9 +297,9 @@ const setParticipationType = async type => {
         step
       });
 
-      preparingParticipants.value = false;
-
       if (stepResponse?.status !== 200) {
+        preparingParticipants.value = false;
+
         await Swal.fire(
           stepResponse?.message
             ? `Error: ${stepResponse.message}`
@@ -221,41 +309,19 @@ const setParticipationType = async type => {
         return;
       }
 
-      switch (experiment.participationType) {
-        case "CONSENT":
-          router.push({
-            name:
-              "ParticipationTypeConsentOverview",
-            params: {
-              experiment: experimentId
-            }
-          });
-          break;
+      const batchId = stepResponse?.data?.batchId;
 
-        case "MANUAL":
-          router.push({
-            name: "ParticipationTypeManual",
-            params: {
-              experiment: experimentId
-            }
-          });
-          break;
+      if (!batchId) {
+        preparingParticipants.value = false;
 
-        case "AUTO":
-          router.push({
-            name:
-              "ParticipationTypeAutoConfirm",
-            params: {
-              experiment: experimentId
-            }
-          });
-          break;
+        await Swal.fire(
+          "There was an error preparing participants for this experiment."
+        );
 
-        default:
-          await Swal.fire(
-            "Select a participation type"
-          );
+        return;
       }
+
+      pollPrepareParticipationStatus(experimentId, batchId, experiment.participationType);
     } else if (response?.message) {
       await Swal.fire(
         `Error: ${response.message}`
@@ -296,6 +362,10 @@ onMounted(() => {
     ".v-expansion-panel",
     ["aria-expanded"]
   );
+});
+
+onBeforeUnmount(() => {
+  stopPolling();
 });
 
 defineExpose({

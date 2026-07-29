@@ -19,7 +19,8 @@ vi.mock("@/services", () => ({
     update: vi.fn()
   },
   apiService: {
-    reportStep: vi.fn()
+    reportStep: vi.fn(),
+    getStepStatus: vi.fn()
   }
 }));
 
@@ -34,6 +35,8 @@ const buildExperiment = (overrides = {}) => ({
   participationType: null,
   ...overrides
 });
+
+const BATCH_ID = "batch-1";
 
 describe("SelectionMethod", () => {
   afterEach(() => {
@@ -76,67 +79,236 @@ describe("SelectionMethod", () => {
     expect(panels[2].props("disabled")).toBe(true);
   });
 
-  it("selecting CONSENT saves the experiment, reports the step, and routes to the consent overview", async () => {
-    experimentService.update.mockResolvedValue({ status: 200 });
-    apiService.reportStep.mockResolvedValue({ status: 200 });
+  it("selecting CONSENT saves the experiment, reports the step, polls until completed, and routes to the consent overview", async () => {
+    vi.useFakeTimers();
 
-    const wrapper = mountComponent(SelectionMethod, {
-      props: { experiment: buildExperiment() }
-    });
+    try {
+      experimentService.update.mockResolvedValue({ status: 200 });
+      apiService.reportStep.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+      apiService.getStepStatus.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "COMPLETED" }
+      });
 
-    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
-    await selectButtons[0].trigger("click");
-    await flushPromisesAndTicks(wrapper);
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment() }
+      });
 
-    expect(experimentService.update).toHaveBeenCalledWith(
-      expect.objectContaining({ participationType: "CONSENT" })
-    );
-    expect(apiService.reportStep).toHaveBeenCalledWith(
-      1,
-      "participation_type",
-      null,
-      false
-    );
-    expect(push).toHaveBeenCalledWith({
-      name: "ParticipationTypeConsentOverview",
-      params: { experiment: 1 }
-    });
+      const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+      await selectButtons[0].trigger("click");
+      await flushWithFakeTimers(wrapper);
+
+      expect(experimentService.update).toHaveBeenCalledWith(
+        expect.objectContaining({ participationType: "CONSENT" })
+      );
+      expect(apiService.reportStep).toHaveBeenCalledWith(
+        1,
+        "participation_type",
+        null,
+        false
+      );
+
+      // not yet - still waiting on the first poll tick
+      expect(push).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(apiService.getStepStatus).toHaveBeenCalledWith(1, BATCH_ID);
+      expect(push).toHaveBeenCalledWith({
+        name: "ParticipationTypeConsentOverview",
+        params: { experiment: 1 }
+      });
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it("selecting MANUAL routes to ParticipationTypeManual", async () => {
-    experimentService.update.mockResolvedValue({ status: 200 });
-    apiService.reportStep.mockResolvedValue({ status: 200 });
+  it("selecting MANUAL routes to ParticipationTypeManual once the poll completes", async () => {
+    vi.useFakeTimers();
 
-    const wrapper = mountComponent(SelectionMethod, {
-      props: { experiment: buildExperiment() }
-    });
+    try {
+      experimentService.update.mockResolvedValue({ status: 200 });
+      apiService.reportStep.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+      apiService.getStepStatus.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "COMPLETED" }
+      });
 
-    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
-    await selectButtons[1].trigger("click");
-    await flushPromisesAndTicks(wrapper);
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment() }
+      });
 
-    expect(push).toHaveBeenCalledWith({
-      name: "ParticipationTypeManual",
-      params: { experiment: 1 }
-    });
+      const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+      await selectButtons[1].trigger("click");
+      await flushWithFakeTimers(wrapper);
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(push).toHaveBeenCalledWith({
+        name: "ParticipationTypeManual",
+        params: { experiment: 1 }
+      });
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it("selecting AUTO routes to ParticipationTypeAutoConfirm", async () => {
-    experimentService.update.mockResolvedValue({ status: 200 });
-    apiService.reportStep.mockResolvedValue({ status: 200 });
+  it("selecting AUTO routes to ParticipationTypeAutoConfirm once the poll completes", async () => {
+    vi.useFakeTimers();
 
-    const wrapper = mountComponent(SelectionMethod, {
-      props: { experiment: buildExperiment() }
-    });
+    try {
+      experimentService.update.mockResolvedValue({ status: 200 });
+      apiService.reportStep.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+      apiService.getStepStatus.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "PROCESSED" }
+      });
 
-    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
-    await selectButtons[2].trigger("click");
-    await flushPromisesAndTicks(wrapper);
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment() }
+      });
 
-    expect(push).toHaveBeenCalledWith({
-      name: "ParticipationTypeAutoConfirm",
-      params: { experiment: 1 }
-    });
+      const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+      await selectButtons[2].trigger("click");
+      await flushWithFakeTimers(wrapper);
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(push).toHaveBeenCalledWith({
+        name: "ParticipationTypeAutoConfirm",
+        params: { experiment: 1 }
+      });
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps polling every 5 seconds while the status is still IN_PROGRESS", async () => {
+    vi.useFakeTimers();
+
+    try {
+      experimentService.update.mockResolvedValue({ status: 200 });
+      apiService.reportStep.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+      apiService.getStepStatus
+        .mockResolvedValueOnce({ status: 200, data: { batchId: BATCH_ID, status: "IN_PROGRESS" } })
+        .mockResolvedValueOnce({ status: 200, data: { batchId: BATCH_ID, status: "IN_PROGRESS" } })
+        .mockResolvedValueOnce({ status: 200, data: { batchId: BATCH_ID, status: "COMPLETED" } });
+
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment() }
+      });
+
+      const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+      await selectButtons[0].trigger("click");
+      await flushWithFakeTimers(wrapper);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(push).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(push).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(apiService.getStepStatus).toHaveBeenCalledTimes(3);
+      expect(push).toHaveBeenCalledWith({
+        name: "ParticipationTypeConsentOverview",
+        params: { experiment: 1 }
+      });
+
+      // polling must stop once a terminal status is reached - no further calls on later ticks
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(apiService.getStepStatus).toHaveBeenCalledTimes(3);
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shows an error alert and does not navigate when the poll reports a FAILED status", async () => {
+    vi.useFakeTimers();
+
+    try {
+      experimentService.update.mockResolvedValue({ status: 200 });
+      apiService.reportStep.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+      apiService.getStepStatus.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "FAILED", message: "canvas error" }
+      });
+
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment() }
+      });
+
+      const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+      await selectButtons[0].trigger("click");
+      await flushWithFakeTimers(wrapper);
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(Swal.fire).toHaveBeenCalledWith("Error: canvas error");
+      expect(push).not.toHaveBeenCalled();
+
+      // polling must stop after the FAILED status - no further calls on later ticks
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(apiService.getStepStatus).toHaveBeenCalledTimes(1);
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("shows a generic error alert when the poll reports FAILED with no message", async () => {
+    vi.useFakeTimers();
+
+    try {
+      experimentService.update.mockResolvedValue({ status: 200 });
+      apiService.reportStep.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+      apiService.getStepStatus.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "FAILED" }
+      });
+
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment() }
+      });
+
+      const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+      await selectButtons[0].trigger("click");
+      await flushWithFakeTimers(wrapper);
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(Swal.fire).toHaveBeenCalledWith(
+        "There was an error preparing participants for this experiment."
+      );
+      expect(push).not.toHaveBeenCalled();
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("shows an error alert and does not navigate when the save fails", async () => {
@@ -155,6 +327,7 @@ describe("SelectionMethod", () => {
 
     expect(Swal.fire).toHaveBeenCalledWith("Error: Something went wrong");
     expect(push).not.toHaveBeenCalled();
+    expect(apiService.getStepStatus).not.toHaveBeenCalled();
   });
 
   it("shows an error alert and does not navigate when reportStep fails", async () => {
@@ -171,6 +344,7 @@ describe("SelectionMethod", () => {
 
     expect(Swal.fire).toHaveBeenCalledWith("Error: boom");
     expect(push).not.toHaveBeenCalled();
+    expect(apiService.getStepStatus).not.toHaveBeenCalled();
   });
 
   it("shows a generic error alert and does not navigate when reportStep resolves with no data (e.g. a network failure)", async () => {
@@ -189,6 +363,26 @@ describe("SelectionMethod", () => {
       "There was an error preparing participants for this experiment."
     );
     expect(push).not.toHaveBeenCalled();
+    expect(apiService.getStepStatus).not.toHaveBeenCalled();
+  });
+
+  it("shows a generic error alert and does not poll when reportStep succeeds but returns no batchId", async () => {
+    experimentService.update.mockResolvedValue({ status: 200 });
+    apiService.reportStep.mockResolvedValue({ status: 200, data: {} });
+
+    const wrapper = mountComponent(SelectionMethod, {
+      props: { experiment: buildExperiment() }
+    });
+
+    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+    await selectButtons[0].trigger("click");
+    await flushPromisesAndTicks(wrapper);
+
+    expect(Swal.fire).toHaveBeenCalledWith(
+      "There was an error preparing participants for this experiment."
+    );
+    expect(push).not.toHaveBeenCalled();
+    expect(apiService.getStepStatus).not.toHaveBeenCalled();
   });
 
   it("shows the consent-file-missing alert only in edit mode for a CONSENT experiment without a consent file", async () => {
@@ -228,5 +422,13 @@ describe("SelectionMethod", () => {
 async function flushPromisesAndTicks(wrapper) {
   await wrapper.vm.$nextTick();
   await new Promise(resolve => setTimeout(resolve));
+  await wrapper.vm.$nextTick();
+}
+
+// flushPromisesAndTicks' bare setTimeout becomes a fake timer once vi.useFakeTimers() is
+// active, and never resolves without an explicit advance - use this instead in those tests.
+async function flushWithFakeTimers(wrapper) {
+  await wrapper.vm.$nextTick();
+  await vi.advanceTimersByTimeAsync(0);
   await wrapper.vm.$nextTick();
 }
