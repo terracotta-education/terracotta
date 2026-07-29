@@ -188,12 +188,10 @@ export default {
           break;
       }
     },
-    async handleTerminalPrepareParticipationStatus(status, message, selectedParticipationType, experimentId) {
+    async handleTerminalPrepareParticipationStatus(status, batchId, selectedParticipationType, experimentId) {
       if (status === "FAILED") {
         this.$swal(
-          message
-            ? `Error: ${message}`
-            : "There was an error preparing participants for this experiment."
+          `An error occurred processing the enrollment. Error ID: ${batchId}`
         );
 
         return;
@@ -235,7 +233,7 @@ export default {
 
           await this.handleTerminalPrepareParticipationStatus(
             status,
-            statusResponse?.data?.message,
+            batchId,
             selectedParticipationType,
             experimentId
           );
@@ -292,7 +290,7 @@ export default {
 
                 await this.handleTerminalPrepareParticipationStatus(
                   initialStatus,
-                  stepResponse?.data?.message,
+                  batchId,
                   e.participationType,
                   experimentId
                 );
