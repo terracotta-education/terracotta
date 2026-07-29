@@ -235,7 +235,12 @@ app:
       size: 500
     refresh:
       throttle:
-        hours: 24
+        # 1 week
+        hours: 168
+    status:
+      poll:
+        max:
+          hours: 2
   # external files
   external:
     file:

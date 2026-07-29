@@ -115,7 +115,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Value("${app.participant.batch.size:500}")
     private int batchSize;
 
-    @Value("${app.participant.refresh.throttle.hours:24}")
+    @Value("${app.participant.refresh.throttle.hours:168}")
     private long refreshThrottleHours;
 
     private final Map<Long, Object> refreshLocks = new ConcurrentHashMap<>();
