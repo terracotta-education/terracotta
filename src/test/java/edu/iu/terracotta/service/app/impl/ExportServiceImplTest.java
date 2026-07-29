@@ -281,7 +281,7 @@ public class ExportServiceImplTest extends BaseTest {
         Map<String, String> files = new HashMap<>();
         ReflectionTestUtils.invokeMethod(exportService, "handleOutcomesCsv", 1L, securedInfo, files);
 
-        verify(participantService).refreshParticipants(1L);
+        verify(participantService).refreshParticipantsIfStale(1L);
         String content = Files.readString(Path.of(files.get(OutcomesCsv.FILENAME)));
         assertTrue(content.contains(outcome.getOutcomeId().toString()));
     }
@@ -307,7 +307,7 @@ public class ExportServiceImplTest extends BaseTest {
         Map<String, String> files = new HashMap<>();
         ReflectionTestUtils.invokeMethod(exportService, "handleOutcomesCsv", 1L, securedInfo, files);
 
-        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService, never()).refreshParticipantsIfStale(anyLong());
         assertTrue(files.containsKey(OutcomesCsv.FILENAME));
     }
 

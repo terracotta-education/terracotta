@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,12 +30,14 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
@@ -104,11 +107,13 @@ public class ParticipantServiceImplTest extends BaseTest {
                 apiClient,
                 groupParticipantService,
                 lmsUserBatchAsyncService,
-                ltiDataService
+                ltiDataService,
+                ltiContextRepository
             )
         );
         ReflectionTestUtils.setField(participantService, "batchSize", 500);
         ReflectionTestUtils.setField(participantService, "entityManager", entityManager);
+        ReflectionTestUtils.setField(participantService, "refreshThrottleHours", 24L);
 
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
@@ -148,47 +153,135 @@ public class ParticipantServiceImplTest extends BaseTest {
     public void testhandleExperimentParticipantNotInAGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(this.participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
-        doNothing().when(participantService).refreshParticipants(anyLong());
-        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
 
         Participant participant = participantService.handleExperimentParticipant(experiment, securedInfo);
 
         assertNotNull(participant);
-        verify(participantService).refreshParticipants(experiment.getExperimentId());
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, this.participant);
         verify(participant).setGroup(any(Group.class));
     }
 
-    // Test handleExperimentParticipant when a student has consented but hasn't been
-    // assigned a group: refreshParticipants should be triggered before the group is assigned.
+    // Test handleExperimentParticipant when a student has consented but hasn't been assigned a
+    // group: the participant should be repaired directly (an active LTI launch already proves
+    // they're enrolled), not via a full roster refresh.
     @Test
     public void testHandleExperimentParticipantConsentedButNoGroup() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participant.getConsent()).thenReturn(true);
         when(participant.getGroup()).thenReturn(null);
-        doNothing().when(participantService).refreshParticipants(anyLong());
-        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(experiment.getExperimentId());
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
         verify(participant).setGroup(any(Group.class));
     }
 
-    // Test handleExperimentParticipant when a student has not consented but is marked
-    // as dropped: refreshParticipants should be triggered and the dropped flag cleared.
+    // Test handleExperimentParticipant when a student has not consented but is marked as
+    // dropped: the dropped flag should be cleared directly, not via a full roster refresh.
     @Test
     public void testHandleExperimentParticipantNotConsentedAndDropped() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
         when(participant.getConsent()).thenReturn(false);
         when(participant.getDropped()).thenReturn(true);
-        doNothing().when(participantService).refreshParticipants(anyLong());
-        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
 
         participantService.handleExperimentParticipant(experiment, securedInfo);
 
-        verify(participantService).refreshParticipants(experiment.getExperimentId());
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
         verify(participant).setDropped(false);
         verify(participant, never()).setGroup(any(Group.class));
+    }
+
+    // Test handleExperimentParticipant when no participant record exists yet: it should be
+    // created directly from the current LTI launch's already-resolved LtiUserEntity/
+    // LtiMembershipEntity, without triggering a full roster refresh.
+    @Test
+    public void testHandleExperimentParticipantCreatesFromLaunchWhenNotFound() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(USER_ID, platformDeployment)).thenReturn(ltiUserEntity);
+        when(ltiDataService.findByUserAndContext(ltiUserEntity, ltiContextEntity)).thenReturn(ltiMembershipEntity);
+
+        participantService.handleExperimentParticipant(experiment, securedInfo);
+
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService, never()).findParticipant(anyLong(), anyString());
+        verify(ltiDataService, never()).saveLtiMembershipEntity(any(LtiMembershipEntity.class));
+
+        ArgumentCaptor<Participant> captor = ArgumentCaptor.forClass(Participant.class);
+        verify(participantRepository, atLeastOnce()).save(captor.capture());
+        Participant created = captor.getAllValues().get(0);
+
+        assertEquals(experiment, created.getExperiment());
+        assertEquals(ltiUserEntity, created.getLtiUserEntity());
+        assertEquals(ltiMembershipEntity, created.getLtiMembershipEntity());
+        assertEquals(false, created.getDropped());
+        assertTrue(created.getConsent());
+    }
+
+    // Test handleExperimentParticipant when no participant record exists yet and the launch's
+    // LtiUserEntity can't be resolved (shouldn't normally happen): it should fall back to a
+    // full roster refresh rather than fail outright.
+    @Test
+    public void testHandleExperimentParticipantFallsBackToRefreshWhenLaunchUserNotFound() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(USER_ID, platformDeployment)).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong());
+        doReturn(participant).when(participantService).findParticipant(anyLong(), anyString());
+
+        Participant result = participantService.handleExperimentParticipant(experiment, securedInfo);
+
+        assertNotNull(result);
+        verify(participantService).refreshParticipants(experiment.getExperimentId());
+    }
+
+    // Test ensureParticipantExists when the participant already exists: it should do nothing.
+    @Test
+    public void testEnsureParticipantExistsWhenAlreadyPresent() throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(participant);
+
+        participantService.ensureParticipantExists(experiment.getExperimentId(), securedInfo);
+
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(ltiDataService, never()).findByUserKeyAndPlatformDeployment(anyString(), any());
+        verify(participantRepository, never()).save(any(Participant.class));
+    }
+
+    // Test ensureParticipantExists when no participant exists yet: it should create one
+    // directly from the current LTI launch instead of syncing the entire course roster.
+    @Test
+    public void testEnsureParticipantExistsCreatesFromLaunch() throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(USER_ID, platformDeployment)).thenReturn(ltiUserEntity);
+        when(ltiDataService.findByUserAndContext(ltiUserEntity, ltiContextEntity)).thenReturn(ltiMembershipEntity);
+
+        participantService.ensureParticipantExists(experiment.getExperimentId(), securedInfo);
+
+        verify(participantService, never()).refreshParticipants(anyLong());
+
+        ArgumentCaptor<Participant> captor = ArgumentCaptor.forClass(Participant.class);
+        verify(participantRepository).save(captor.capture());
+
+        assertEquals(ltiUserEntity, captor.getValue().getLtiUserEntity());
+        assertEquals(ltiMembershipEntity, captor.getValue().getLtiMembershipEntity());
+    }
+
+    // Test ensureParticipantExists when no participant exists yet and the launch's
+    // LtiUserEntity can't be resolved (shouldn't normally happen): it should fall back to a
+    // full roster refresh rather than fail outright.
+    @Test
+    public void testEnsureParticipantExistsFallsBackToRefreshWhenLaunchUserNotFound() throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(anyLong(), anyString())).thenReturn(null);
+        when(ltiDataService.findByUserKeyAndPlatformDeployment(USER_ID, platformDeployment)).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        participantService.ensureParticipantExists(experiment.getExperimentId(), securedInfo);
+
+        verify(participantService).refreshParticipants(experiment.getExperimentId());
     }
 
     @Test
@@ -603,12 +696,67 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(lmsUserBatchAsyncService).fail(any(UUID.class), anyString());
     }
 
+    // last_participant_sync lives on the LTI context (course), not the experiment, since the
+    // LMS roster is shared by every experiment in that course.
+    @Test
+    public void testRefreshParticipantsIfStaleRefreshesWhenNeverSyncedBefore() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService).refreshParticipants(1L);
+        verify(ltiContextEntity).setLastParticipantSync(any(Instant.class));
+        verify(ltiContextRepository).save(ltiContextEntity);
+    }
+
+    @Test
+    public void testRefreshParticipantsIfStaleSkipsWhenRecentlySynced() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(ltiContextRepository, never()).save(any(LtiContextEntity.class));
+    }
+
+    @Test
+    public void testRefreshParticipantsIfStaleRefreshesAgainWhenSyncIsStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now().minus(Duration.ofHours(25)));
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService).refreshParticipants(1L);
+        verify(ltiContextRepository).save(ltiContextEntity);
+    }
+
+    // prepareParticipation should throttle the roster sync (rather than always syncing) and
+    // reset consent for existing participants directly either way.
     @Test
     public void testPrepareParticipation() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
+        doNothing().when(participantService).refreshParticipants(anyLong());
+
         assertDoesNotThrow(() -> participantService.prepareParticipation(1L, securedInfo));
 
-        // side effect proving refreshParticipants()'s real body executed
-        verify(lmsUserBatchAsyncService).success(any(UUID.class));
+        verify(participantService).refreshParticipantsIfStale(1L);
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
+    }
+
+    // when the roster was already synced recently, prepareParticipation should skip the sync
+    // but still reset consent for existing participants.
+    @Test
+    public void testPrepareParticipationSkipsSyncWhenRecentlySynced() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+        when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+
+        assertDoesNotThrow(() -> participantService.prepareParticipation(1L, securedInfo));
+
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
     }
 
     @Test
@@ -670,6 +818,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         assertDoesNotThrow(() -> participantService.setAllToTrue(1L));
 
+        verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(true);
         verify(participantRepository).saveAll(List.of(participant));
     }
@@ -680,6 +829,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         assertDoesNotThrow(() -> participantService.setAllToFalse(1L));
 
+        verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(false);
     }
 
@@ -689,6 +839,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         assertDoesNotThrow(() -> participantService.setAllToNull(1L));
 
+        verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(null);
     }
 
