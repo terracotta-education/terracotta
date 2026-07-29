@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.generic.dao.repository.lti;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 public interface LtiMembershipRepository extends JpaRepository<LtiMembershipEntity, Long> {
 
     LtiMembershipEntity findByUserAndContext(LtiUserEntity user, LtiContextEntity context);
+    List<LtiMembershipEntity> findByUserInAndContext(Collection<LtiUserEntity> users, LtiContextEntity context);
     List<LtiMembershipEntity> findByRoleAndContext_ToolDeployment_PlatformDeployment_KeyId(int role, long platformDeploymentId);
 
 }

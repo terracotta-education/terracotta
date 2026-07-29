@@ -25,5 +25,7 @@ public class ConfigurationDto {
     private String lmsTitle;
     private String icsTemplateUrl;
     private String parentalPermissionTemplateUrl;
+    private int participantStatusPollMaxHours;
+    private long participantRefreshThrottleHours;
 
 }

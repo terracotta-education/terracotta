@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -427,6 +428,11 @@ public class LtiDataServiceImpl implements LtiDataService {
     }
 
     @Override
+    public List<LtiUserEntity> findAllByUserKeysAndPlatformDeployment(Collection<String> userKeys, PlatformDeployment platformDeployment) {
+        return ltiUserRepository.findAllByUserKeyInAndPlatformDeployment(userKeys, platformDeployment);
+    }
+
+    @Override
     public LtiUserEntity saveLtiUserEntity(LtiUserEntity ltiUserEntity) {
         return ltiUserRepository.save(ltiUserEntity);
     }
@@ -434,6 +440,11 @@ public class LtiDataServiceImpl implements LtiDataService {
     @Override
     public LtiMembershipEntity findByUserAndContext(LtiUserEntity ltiUserEntity, LtiContextEntity ltiContextEntity) {
         return ltiMembershipRepository.findByUserAndContext(ltiUserEntity,ltiContextEntity);
+    }
+
+    @Override
+    public List<LtiMembershipEntity> findAllByUsersAndContext(Collection<LtiUserEntity> ltiUserEntities, LtiContextEntity ltiContextEntity) {
+        return ltiMembershipRepository.findByUserInAndContext(ltiUserEntities, ltiContextEntity);
     }
 
     @Override

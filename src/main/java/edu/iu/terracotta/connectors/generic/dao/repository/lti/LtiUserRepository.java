@@ -15,6 +15,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 public interface LtiUserRepository extends JpaRepository<LtiUserEntity, Long> {
 
     LtiUserEntity findFirstByUserKeyAndPlatformDeployment(String linkKey, PlatformDeployment platformDeployment);
+    List<LtiUserEntity> findAllByUserKeyInAndPlatformDeployment(Collection<String> userKeys, PlatformDeployment platformDeployment);
     LtiUserEntity findFirstByUserKeyAndPlatformDeployment_KeyId(String userKey, long keyId);
     LtiUserEntity findFirstByUserIdAndPlatformDeployment_KeyId(long userId, long keyId);
     LtiUserEntity findFirstByEmailAndPlatformDeployment_KeyId(String email, long keyId);
