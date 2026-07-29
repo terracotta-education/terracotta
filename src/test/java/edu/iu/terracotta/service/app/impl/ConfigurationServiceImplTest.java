@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
@@ -65,6 +66,24 @@ public class ConfigurationServiceImplTest extends BaseTest {
         when(platformDeploymentRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> configurationService.getConfigurations(securedInfo));
+    }
+
+    @Test
+    public void testGetConfigurationsIncludesParticipantStatusPollMaxHours() {
+        ReflectionTestUtils.setField(configurationService, "participantStatusPollMaxHours", 3);
+
+        ConfigurationDto dto = configurationService.getConfigurations(securedInfo);
+
+        assertEquals(3, dto.getParticipantStatusPollMaxHours());
+    }
+
+    @Test
+    public void testGetConfigurationsIncludesParticipantRefreshThrottleHours() {
+        ReflectionTestUtils.setField(configurationService, "participantRefreshThrottleHours", 168L);
+
+        ConfigurationDto dto = configurationService.getConfigurations(securedInfo);
+
+        assertEquals(168L, dto.getParticipantRefreshThrottleHours());
     }
 
 }

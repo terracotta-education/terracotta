@@ -244,4 +244,21 @@ public class AdvantageConnectorHelperImplTest extends BaseTest {
 
         assertEquals(BufferingClientHttpRequestFactory.class, ret.getRequestFactory().getClass());
     }
+
+    // a hung/slow LMS response must not block a thread indefinitely - init() (normally run by
+    // Spring's @PostConstruct, called manually here since these are plain Mockito tests) must
+    // apply the configured connect/read timeouts to the shared RestTemplate's request factory.
+    @Test
+    public void testInitConfiguresRequestFactoryTimeouts() {
+        org.springframework.test.util.ReflectionTestUtils.setField(advantageConnectorHelper, "connectTimeoutMs", 1234);
+        org.springframework.test.util.ReflectionTestUtils.setField(advantageConnectorHelper, "readTimeoutMs", 5678);
+
+        advantageConnectorHelper.init();
+
+        RestTemplate ret = advantageConnectorHelper.createRestTemplate();
+        Object requestFactory = org.springframework.test.util.ReflectionTestUtils.getField(ret.getRequestFactory(), "requestFactory");
+
+        assertEquals(1234, org.springframework.test.util.ReflectionTestUtils.getField(requestFactory, "connectTimeout"));
+        assertEquals(5678, org.springframework.test.util.ReflectionTestUtils.getField(requestFactory, "readTimeout"));
+    }
 }

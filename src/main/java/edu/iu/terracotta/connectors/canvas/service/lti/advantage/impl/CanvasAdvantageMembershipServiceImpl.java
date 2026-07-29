@@ -15,8 +15,6 @@ import org.springframework.web.client.RestTemplate;
 
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
@@ -25,17 +23,15 @@ import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUsers
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGenerator;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembershipService;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 import edu.iu.terracotta.utils.TextConstants;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,13 +42,11 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class CanvasAdvantageMembershipServiceImpl implements AdvantageMembershipService {
 
-    private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
     private final LmsUserBatchRepository lmsUserBatchRepository;
+    private final LmsUserBatchWriteService lmsUserBatchWriteService;
     private final AdvantageConnectorHelper advantageConnectorHelper;
     private final ExceptionMessageGenerator exceptionMessageGenerator;
     private final LmsUserBatchAsyncService lmsUserBatchAsyncService;
-
-    @PersistenceContext private EntityManager entityManager;
 
     @Value("${app.participant.batch.size:500}")
     private int batchSize;
@@ -89,23 +83,13 @@ public class CanvasAdvantageMembershipServiceImpl implements AdvantageMembership
                 CourseUsers.class
             );
 
-            LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.saveAndFlush(
-                LmsUserBatchProcessing.builder()
-                    .batchId(batchId)
-                    .status(LmsUserBatchStatus.IN_PROGRESS)
-                    .build()
-            );
+            lmsUserBatchWriteService.startBatch(batchId);
 
             if (!membershipGetResponse.getStatusCode().is2xxSuccessful()) {
                 String errorMessage = String.format("Can't get the membership for context ID: [%s]", context.getContextId());
                 log.error(errorMessage);
 
-                lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(batchId)
-                    .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(batchId).build());
-                lmsUserBatchProcessing.setStatus(LmsUserBatchStatus.FAILED);
-                lmsUserBatchProcessing.setMessage(errorMessage);
-                lmsUserBatchProcessingRepository.saveAndFlush(lmsUserBatchProcessing);
-
+                // caught below, which marks the batch failed - no need to do it here too
                 throw new ConnectionException(errorMessage);
             }
 
@@ -132,12 +116,17 @@ public class CanvasAdvantageMembershipServiceImpl implements AdvantageMembership
             StringBuilder exceptionMsg = new StringBuilder();
             exceptionMsg.append("Can't get the membership");
             log.error(exceptionMsg.toString(), e);
+            lmsUserBatchWriteService.markFailed(batchId, e.getMessage());
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
     }
 
     /**
-     * Add student role users to the batch data database
+     * Add student role users to the batch data database. Saved via lmsUserBatchWriteService,
+     * which commits each page independently of this method's own transaction - a huge course
+     * roster can take many pages/minutes to fully paginate, and holding every page's inserts
+     * uncommitted for that whole duration is what caused concurrent syncs for OTHER contexts to
+     * hit "Lock wait timeout exceeded" on this same table.
      *
      * @param batchId
      * @param courseUsers
@@ -156,10 +145,7 @@ public class CanvasAdvantageMembershipServiceImpl implements AdvantageMembership
             )
             .toList();
 
-        lmsUserBatchRepository.saveAll(usersToSave);
-
-        entityManager.flush();
-        entityManager.clear();
+        lmsUserBatchWriteService.saveUsers(usersToSave);
     }
 
     @Override

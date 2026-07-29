@@ -51,9 +51,11 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
 import edu.iu.terracotta.service.app.GroupParticipantService;
+import edu.iu.terracotta.service.app.ParticipantRosterWriteService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 import edu.iu.terracotta.utils.LtiStrings;
+import edu.iu.terracotta.utils.ParticipantConsentUtils;
 import edu.iu.terracotta.utils.TextConstants;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -83,7 +85,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -109,16 +110,15 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final LtiDataService ltiDataService;
     private final LtiContextRepository ltiContextRepository;
     private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
+    private final ParticipantRosterWriteService participantRosterWriteService;
 
     @PersistenceContext private EntityManager entityManager;
 
     @Value("${app.participant.batch.size:500}")
     private int batchSize;
 
-    @Value("${app.participant.refresh.throttle.hours:24}")
+    @Value("${app.participant.refresh.throttle.hours:168}")
     private long refreshThrottleHours;
-
-    private final Map<Long, Object> refreshLocks = new ConcurrentHashMap<>();
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -314,38 +314,14 @@ public class ParticipantServiceImpl implements ParticipantService {
             PageRequest pageRequest = PageRequest.of(page, batchSize);
             List<LmsUserBatch> batchUsers = lmsUserBatchRepository.findByBatchId(batchId, pageRequest);
 
-            // process batch
+            // each page is synced (matched, created, saved) in its own transaction, independent
+            // of this method's own - a huge course roster can take many pages/minutes to fully
+            // sync, and holding every page's participant/lti-user writes uncommitted for that
+            // whole duration is what previously risked "Lock wait timeout exceeded" against other
+            // concurrent writers of those same tables (mirroring the equivalent lms_user_batch fix
+            // in CanvasAdvantageMembershipServiceImpl)
             while (CollectionUtils.isNotEmpty(batchUsers)) {
-                // retrieve batch of participants; reset dropped value and will set to false later, if found in the course roster
-                List<Participant> participants = participantRepository.findAllByExperiment_ExperimentIdAndLtiUserEntity_UserKeyIn(
-                    experimentId,
-                    batchUsers.stream()
-                        .map(LmsUserBatch::getUserKey)
-                        .toList()
-                )
-                .stream()
-                .map(
-                    p -> {
-                        p.setDropped(true);
-                        return p;
-                    }
-                )
-                .toList();
-
-                for (LmsUserBatch batchUser : batchUsers) {
-                    Participant participant = participants.stream()
-                        .filter(p -> Strings.CI.equals(p.getLtiUserEntity().getUserKey(), batchUser.getUserKey()))
-                        .findFirst()
-                        .orElseGet(() -> createNewParticipant(batchUser, experiment.get()));
-
-                    resetParticipantConsentIfExperimentNotStarted(experiment.get(), participant);
-
-                    participant.setDropped(false);
-                    participantRepository.save(participant);
-                }
-
-                entityManager.flush();
-                entityManager.clear();
+                participantRosterWriteService.syncParticipantsPage(experiment.get(), batchUsers);
 
                 pageRequest = PageRequest.of(++page, batchSize);
                 batchUsers = lmsUserBatchRepository.findByBatchId(batchId, pageRequest);
@@ -380,42 +356,28 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
         }
 
-        LtiContextEntity ltiContextEntity = experiment.getLtiContextEntity();
+        if (isParticipantSyncFresh(experiment.getLtiContextEntity())) {
+            return;
+        }
+
+        // take a real DB row lock (rather than an in-process-only one) so concurrent callers for
+        // the same course (a double-click, a slow request the user retried, or - since this is a
+        // DB lock - a concurrent request handled by a different app instance entirely) don't each
+        // fire a full roster sync at once. Concurrent bulk inserts into lms_user_batch from
+        // separate transactions can otherwise lock each other out entirely ("Lock wait timeout
+        // exceeded" was observed in production). Held for this whole method, so nothing else can
+        // change last_participant_sync out from under it - a failed refreshParticipants below
+        // simply never reaches the write that marks it synced, leaving it correctly untouched.
+        LtiContextEntity ltiContextEntity = ltiContextRepository.findByContextIdForUpdate(experiment.getLtiContextEntity().getContextId());
 
         if (isParticipantSyncFresh(ltiContextEntity)) {
             return;
         }
 
-        // synchronize per LTI context so concurrent callers for the same course (e.g. a
-        // double-click, or a slow request the user retried) don't each fire a full roster sync
-        // at once - concurrent bulk inserts into lms_user_batch from separate transactions can
-        // lock each other out entirely ("Lock wait timeout exceeded" was observed in production)
-        Object lock = refreshLocks.computeIfAbsent(ltiContextEntity.getContextId(), contextId -> new Object());
+        refreshParticipants(experimentId);
 
-        synchronized (lock) {
-            // force a re-read: another thread may have already refreshed and committed while
-            // this one was waiting for the lock, and this session's first-level cache wouldn't
-            // otherwise reflect that
-            entityManager.refresh(ltiContextEntity);
-
-            if (isParticipantSyncFresh(ltiContextEntity)) {
-                return;
-            }
-
-            Instant previousSync = ltiContextEntity.getLastParticipantSync();
-
-            try {
-                refreshParticipants(experimentId);
-            } catch (ParticipantNotUpdatedException | ExperimentNotMatchingException | TerracottaConnectorException | RuntimeException e) {
-                // restoreLastParticipantSync runs in its own transaction, so the timestamp is
-                // reliably restored even though this method's transaction is about to roll back
-                ltiContextRepository.restoreLastParticipantSync(ltiContextEntity.getContextId(), previousSync);
-                throw e;
-            }
-
-            ltiContextEntity.setLastParticipantSync(Instant.now());
-            ltiContextRepository.save(ltiContextEntity);
-        }
+        ltiContextEntity.setLastParticipantSync(Instant.now());
+        ltiContextRepository.save(ltiContextEntity);
     }
 
     private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity) {
@@ -432,103 +394,8 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param participant
      */
     public void resetParticipantConsentIfExperimentNotStarted(Experiment experiment, Participant participant) {
-        if (experiment.getStarted() == null && experiment.getParticipationType() != participant.getSource()) {
-            switch (participant.getSource()) {
-                case NOSET:
-                    switch (experiment.getParticipationType()) {
-                        case MANUAL:
-                            participant.setConsent(null);
-                            break;
-                        case CONSENT:
-                            participant.setConsent(false);
-                            break;
-                        case AUTO:
-                            participant.setConsent(true);
-                            participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
-                            break;
-                        default:
-                    }
-                    break;
-                case AUTO:
-                    switch (experiment.getParticipationType()) {
-                        case MANUAL:
-                            participant.setConsent(null);
-                            participant.setDateGiven(null);
-                            participant.setDateRevoked(null);
-                            break;
-                        case CONSENT:
-                            participant.setConsent(false);
-                            participant.setDateGiven(null);
-                            participant.setDateRevoked(null);
-                            break;
-                        case AUTO:
-                            break;
-                        default:
-                    }
-                    break;
-                case MANUAL:
-                    switch (experiment.getParticipationType()) {
-                        case MANUAL:
-                            break;
-                        case CONSENT:
-                            participant.setConsent(false);
-                            participant.setDateGiven(null);
-                            participant.setDateRevoked(null);
-                            break;
-                        case AUTO:
-                            participant.setConsent(true);
-                            participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
-                            participant.setDateRevoked(null);
-                            break;
-                        default:
-                    }
-                    break;
-                case CONSENT:
-                    switch (experiment.getParticipationType()) {
-                        case MANUAL:
-                            participant.setConsent(null);
-                            participant.setDateGiven(null);
-                            participant.setDateRevoked(null);
-                            break;
-                        case CONSENT:
-                            break;
-                        case AUTO:
-                            participant.setConsent(true);
-                            participant.setDateGiven(new Timestamp(System.currentTimeMillis()));
-                            participant.setDateRevoked(null);
-                            break;
-                        default:
-                    }
-                    break;
-                default:
-            }
-
-            participant.setSource(experiment.getParticipationType());
-            participantRepository.save(participant);
-        }
-    }
-
-    private Participant createNewParticipant(LmsUserBatch batchUser, Experiment experiment) {
-        LtiUserEntity ltiUserEntity = ltiDataService.findByUserKeyAndPlatformDeployment(
-            batchUser.getUserKey(),
-            experiment.getPlatformDeployment()
-        );
-
-        if (ltiUserEntity == null) {
-            LtiUserEntity newLtiUserEntity = new LtiUserEntity(batchUser.getUserKey(), null, experiment.getPlatformDeployment());
-            newLtiUserEntity.setEmail(batchUser.getEmail());
-            /*
-                TODO: We don't have a way here to get the userLmsId except calling the API
-                or waiting for the user to access. BUT we just need this to send the grades with the API...
-                so if the user never accessed... we can't send them until we use LTI.
-            */
-            newLtiUserEntity.setDisplayName(batchUser.getName());
-            // By default it adds a value in the constructor, but if we are generating it, it means that the user has never logged in
-            newLtiUserEntity.setLoginAt(null);
-            ltiUserEntity = ltiDataService.saveLtiUserEntity(newLtiUserEntity);
-        }
-
-        return buildAndSaveParticipant(ltiUserEntity, experiment);
+        ParticipantConsentUtils.resetConsentIfExperimentNotStarted(experiment, participant);
+        participantRepository.save(participant);
     }
 
     /**

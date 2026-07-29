@@ -8,13 +8,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -30,22 +30,20 @@ import org.springframework.http.ResponseEntity;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.membership.CourseUsers;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 
 public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
 
     @InjectMocks private CanvasAdvantageMembershipServiceImpl canvasAdvantageMembershipService;
 
-    @Mock private LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
     @Mock private LmsUserBatchRepository lmsUserBatchRepository;
+    @Mock private LmsUserBatchWriteService lmsUserBatchWriteService;
     @Mock private LmsUserBatchAsyncService lmsUserBatchAsyncService;
 
     private ResponseEntity<CourseUsers> successResponse;
@@ -55,9 +53,6 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         MockitoAnnotations.openMocks(this);
 
         setup();
-        // @InjectMocks only does constructor injection here (all constructor params already match), so
-        // the separate @PersistenceContext EntityManager field is never populated unless set explicitly
-        org.springframework.test.util.ReflectionTestUtils.setField(canvasAdvantageMembershipService, "entityManager", entityManager);
 
         successResponse = new ResponseEntity<>(courseUsers, HttpStatusCode.valueOf(200));
 
@@ -82,26 +77,20 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         assertNull(ret);
 
         ArgumentCaptor<List<LmsUserBatch>> captor = ArgumentCaptor.forClass(List.class);
-        verify(lmsUserBatchRepository).saveAll(captor.capture());
+        verify(lmsUserBatchWriteService).saveUsers(captor.capture());
         assertEquals(1, captor.getValue().size());
         assertEquals("user_id", captor.getValue().get(0).getLmsUserId());
         assertEquals(batchId, captor.getValue().get(0).getBatchId());
     }
 
     @Test
-    public void testCallMembershipServiceSuccessCreatesInProgressRecord() throws ConnectionException, TerracottaConnectorException {
+    public void testCallMembershipServiceSuccessStartsBatch() throws ConnectionException, TerracottaConnectorException {
         UUID batchId = UUID.randomUUID();
 
         CourseUsers ret = canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, batchId, true);
 
         assertNull(ret);
-
-        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
-        verify(lmsUserBatchProcessingRepository).saveAndFlush(captor.capture());
-        assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
-        assertEquals(batchId, captor.getValue().getBatchId());
-        verify(entityManager).flush();
-        verify(entityManager).clear();
+        verify(lmsUserBatchWriteService).startBatch(batchId);
     }
 
     @Test
@@ -111,7 +100,7 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, UUID.randomUUID(), true);
 
         ArgumentCaptor<List<LmsUserBatch>> captor = ArgumentCaptor.forClass(List.class);
-        verify(lmsUserBatchRepository).saveAll(captor.capture());
+        verify(lmsUserBatchWriteService).saveUsers(captor.capture());
         assertTrue(captor.getValue().isEmpty());
     }
 
@@ -122,7 +111,7 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, UUID.randomUUID(), true);
 
         ArgumentCaptor<List<LmsUserBatch>> captor = ArgumentCaptor.forClass(List.class);
-        verify(lmsUserBatchRepository).saveAll(captor.capture());
+        verify(lmsUserBatchWriteService).saveUsers(captor.capture());
         assertEquals(1, captor.getValue().size());
     }
 
@@ -133,10 +122,13 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, UUID.randomUUID(), false);
 
         ArgumentCaptor<List<LmsUserBatch>> captor = ArgumentCaptor.forClass(List.class);
-        verify(lmsUserBatchRepository).saveAll(captor.capture());
+        verify(lmsUserBatchWriteService).saveUsers(captor.capture());
         assertEquals(1, captor.getValue().size());
     }
 
+    // each page's users are saved (and committed) as soon as that page is fetched, rather than
+    // accumulating everything in one uncommitted transaction across a potentially huge, many-page
+    // course roster.
     @Test
     public void testCallMembershipServicePaginatesUntilNoNextPage() throws ConnectionException, TerracottaConnectorException {
         when(advantageConnectorHelper.nextPage(any())).thenReturn("https://canvas.example.edu/next", (String) null);
@@ -144,9 +136,7 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, UUID.randomUUID(), true);
 
         verify(restTemplate, times(2)).exchange(anyString(), eq(HttpMethod.GET), any(), eq(CourseUsers.class));
-        verify(lmsUserBatchRepository, times(2)).saveAll(anyList());
-        verify(entityManager, times(2)).flush();
-        verify(entityManager, times(2)).clear();
+        verify(lmsUserBatchWriteService, times(2)).saveUsers(anyList());
     }
 
     @Test
@@ -156,34 +146,33 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         CourseUsers ret = canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, UUID.randomUUID(), true);
 
         assertNull(ret);
-        verify(lmsUserBatchRepository, never()).saveAll(anyList());
+        verify(lmsUserBatchWriteService, never()).saveUsers(anyList());
     }
 
     @Test
-    public void testCallMembershipServiceThrowsConnectionExceptionOnBadStatusWithExistingProcessingRecord() {
-        UUID batchId = UUID.randomUUID();
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(CourseUsers.class))).thenReturn(new ResponseEntity<>(HttpStatusCode.valueOf(400)));
-
-        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
-
-        assertThrows(ConnectionException.class, () -> canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, batchId, true));
-
-        assertEquals(LmsUserBatchStatus.FAILED, existing.getStatus());
-        verify(lmsUserBatchProcessingRepository, times(2)).saveAndFlush(any(LmsUserBatchProcessing.class));
-    }
-
-    @Test
-    public void testCallMembershipServiceThrowsConnectionExceptionOnBadStatusWithNoExistingProcessingRecord() {
+    public void testCallMembershipServiceThrowsConnectionExceptionOnBadStatusAndMarksBatchFailed() {
         UUID batchId = UUID.randomUUID();
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(CourseUsers.class))).thenReturn(new ResponseEntity<>(HttpStatusCode.valueOf(400)));
 
         assertThrows(ConnectionException.class, () -> canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, batchId, true));
 
-        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
-        verify(lmsUserBatchProcessingRepository, times(2)).saveAndFlush(captor.capture());
-        assertEquals(LmsUserBatchStatus.FAILED, captor.getValue().getStatus());
-        assertEquals(batchId, captor.getValue().getBatchId());
+        verify(lmsUserBatchWriteService).startBatch(batchId);
+        // marked failed exactly once - not once explicitly and once more via the generic catch block
+        verify(lmsUserBatchWriteService, times(1)).markFailed(eq(batchId), anyString());
+    }
+
+    // reproduces the production "Lock wait timeout exceeded" error: a huge course roster's page
+    // save can fail partway through pagination, and that failure must still mark the batch
+    // failed (previously it was silently swallowed into a rethrow with no status update) and
+    // propagate as a ConnectionException.
+    @Test
+    public void testCallMembershipServiceMarksBatchFailedWhenSaveUsersThrows() {
+        UUID batchId = UUID.randomUUID();
+        doThrow(new RuntimeException("Lock wait timeout exceeded")).when(lmsUserBatchWriteService).saveUsers(anyList());
+
+        assertThrows(ConnectionException.class, () -> canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, batchId, true));
+
+        verify(lmsUserBatchWriteService).markFailed(eq(batchId), anyString());
     }
 
     @Test
@@ -202,7 +191,7 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
 
         assertEquals(expected, ret);
         verify(lmsUserBatchAsyncService).success(any(UUID.class));
-        verify(lmsUserBatchRepository).saveAll(anyList());
+        verify(lmsUserBatchWriteService).saveUsers(anyList());
     }
 
     @Test

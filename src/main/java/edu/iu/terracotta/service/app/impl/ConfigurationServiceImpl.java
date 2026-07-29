@@ -31,6 +31,12 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Value("${app.external.file.parental.permission.url:https://readmebucket.s3.us-east-1.amazonaws.com/Terracotta_ParentalPermission_template.docx}")
     private String parentalPermissionTemplateUrl;
 
+    @Value("${app.participant.status.poll.max.hours:2}")
+    private int participantStatusPollMaxHours;
+
+    @Value("${app.participant.refresh.throttle.hours:168}")
+    private long participantRefreshThrottleHours;
+
     @Override
     public ConfigurationDto getConfigurations(SecuredInfo securedInfo) {
         PlatformDeployment platformDeployment = platformDeploymentRepository.findById(securedInfo.getPlatformDeploymentId())
@@ -44,6 +50,8 @@ public class ConfigurationServiceImpl implements ConfigurationService {
             .lmsTitle(platformDeployment.getLmsConnector().title())
             .messagingEnabled(featureService.isFeatureEnabled(FeatureType.MESSAGING, securedInfo.getPlatformDeploymentId()))
             .parentalPermissionTemplateUrl(parentalPermissionTemplateUrl)
+            .participantStatusPollMaxHours(participantStatusPollMaxHours)
+            .participantRefreshThrottleHours(participantRefreshThrottleHours)
             .build();
     }
 
