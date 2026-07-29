@@ -4,14 +4,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.MapUtils;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
@@ -37,67 +33,53 @@ public class ConnectorServiceImpl<T> implements ConnectorService<T> {
 
     @PostConstruct
     public void createConnectorMap() {
-        // get classes annotated with "@TerracottaConnector(<LmsConnector>)"
-        ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(false);
-        scanner.addIncludeFilter(new AnnotationTypeFilter(TerracottaConnector.class));
-        Set<BeanDefinition> connectorServices = scanner.findCandidateComponents("edu.iu.terracotta.connectors");
-
-        // create mapping
         Arrays.stream(LmsConnector.values())
             .forEach(lmsConnector -> connectorServiceMap.put(lmsConnector, new HashMap<>()));
 
-        // populate each connector service map (LmsConnector : {interface class: connector service impl})
-        connectorServices.stream()
+        // beans annotated with "@TerracottaConnector(<LmsConnector>)" - Spring already tracks this
+        // via bean definition metadata, so no need to re-scan the classpath by hand
+        Arrays.stream(applicationContext.getBeanNamesForAnnotation(TerracottaConnector.class))
+            .forEach(this::registerConnectorBean);
+
+        logConnectorMap();
+    }
+
+    // getType() (rather than beanName -> getBean() -> getClass()) resolves the actual declared
+    // bean type even when Spring has wrapped it in a CGLIB proxy (e.g. for @Transactional
+    // connector impls) - TerracottaConnector isn't @Inherited, so the proxy subclass itself
+    // wouldn't carry the annotation.
+    private void registerConnectorBean(String beanName) {
+        Class<?> beanType = applicationContext.getType(beanName);
+
+        if (beanType == null) {
+            return;
+        }
+
+        TerracottaConnector terracottaConnector = beanType.getAnnotation(TerracottaConnector.class);
+
+        if (terracottaConnector == null) {
+            return;
+        }
+
+        // find interfaces of the impl that are annotated with "@TerracottaConnector(LmsConnector.GENERIC)"
+        Arrays.stream(beanType.getInterfaces())
+            .filter(iface -> iface.getAnnotation(TerracottaConnector.class) != null)
+            .forEach(iface -> connectorServiceMap.get(terracottaConnector.value()).put(iface.getSimpleName(), applicationContext.getBean(beanName)));
+    }
+
+    private void logConnectorMap() {
+        connectorServiceMap.entrySet().stream()
+            .filter(connectorService -> MapUtils.isNotEmpty(connectorService.getValue()))
             .forEach(
-                connector -> {
-                    try {
-                        // connector service impl annotation
-                        TerracottaConnector terracottaConnector = Class.forName(connector.getBeanClassName()).getAnnotation(TerracottaConnector.class);
-
-                        if (terracottaConnector == null) {
-                            return;
-                        }
-
-                        // find interfaces of the impl that are annotated with "@TerracottaConnector(LmsConnector.GENERIC)"
-                        Arrays.stream(Class.forName(connector.getBeanClassName()).getInterfaces())
-                            .forEach(
-                                iface -> {
-                                    // find annotated interface
-                                    TerracottaConnector ifaceTerracottaConnector = iface.getAnnotation(TerracottaConnector.class);
-
-                                    if (ifaceTerracottaConnector == null) {
-                                        return;
-                                    }
-
-                                    try {
-                                        // add to connector services mapping
-                                        Map<String, Object> connectorMap = connectorServiceMap.get(terracottaConnector.value());
-                                        connectorMap.put(iface.getSimpleName(), applicationContext.getBean(Class.forName(connector.getBeanClassName())));
-                                        connectorServiceMap.put(terracottaConnector.value(), connectorMap);
-                                    } catch (ClassNotFoundException e) {
-                                        log.error("No class with name: [{}] found.", connector.getBeanClassName(), e);
-                                    }
-                                }
-                            );
-                    } catch (ClassNotFoundException e) {
-                        log.error("No class with name: [{}] found.", connector.getBeanClassName(), e);
-                    }
-                }
+                connectorService ->
+                    log.info(
+                        "Added {} connectors to services map: [{}]",
+                        connectorService.getKey(),
+                        connectorService.getValue().entrySet().stream()
+                            .map(connector -> String.format("%s -> %s", connector.getValue().getClass().getSimpleName(), connector.getKey()))
+                            .collect(Collectors.joining(", "))
+                    )
             );
-
-            // log the connector initialization(s)
-            connectorServiceMap.entrySet().stream()
-                .filter(connectorService -> MapUtils.isNotEmpty(connectorService.getValue()))
-                .forEach(
-                    connectorService ->
-                        log.info(
-                            "Added {} connectors to services map: [{}]",
-                            connectorService.getKey(),
-                            connectorService.getValue().entrySet().stream()
-                                .map(connector -> String.format("%s -> %s", connector.getValue().getClass().getSimpleName(), connector.getKey()))
-                                .collect(Collectors.joining(", "))
-                        )
-                );
     }
 
     @Override
