@@ -311,6 +311,53 @@ describe("SelectionMethod", () => {
     }
   });
 
+  it("gives up and shows an error alert after polling for an hour with no terminal status", async () => {
+    vi.useFakeTimers();
+
+    try {
+      experimentService.update.mockResolvedValue({ status: 200 });
+      apiService.reportStep.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+      apiService.getStepStatus.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment() }
+      });
+
+      const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+      await selectButtons[0].trigger("click");
+      await flushWithFakeTimers(wrapper);
+
+      // just under an hour of 5-second ticks: still polling, no alert yet
+      await vi.advanceTimersByTimeAsync(59 * 60 * 1000);
+      expect(Swal.fire).not.toHaveBeenCalled();
+      expect(push).not.toHaveBeenCalled();
+
+      // past the hour mark: gives up
+      await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+
+      expect(Swal.fire).toHaveBeenCalledWith(
+        "Preparing participants is taking longer than expected. Please try again later."
+      );
+      expect(push).not.toHaveBeenCalled();
+
+      const callCountAtGiveUp = apiService.getStepStatus.mock.calls.length;
+
+      // polling must actually stop after giving up - no further calls on later ticks
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(apiService.getStepStatus).toHaveBeenCalledTimes(callCountAtGiveUp);
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shows an error alert and does not navigate when the save fails", async () => {
     experimentService.update.mockResolvedValue({
       status: 400,

@@ -183,6 +183,9 @@ const displayConsentFileMissingAlert = computed(() => {
   );
 });
 
+const POLL_INTERVAL_MS = 5000;
+const POLL_MAX_DURATION_MS = 60 * 60 * 1000; // 1 hour
+
 let statusPollTimer = null;
 
 const stopPolling = () => {
@@ -232,10 +235,24 @@ const navigateAfterParticipationTypeSelected = (selectedParticipationType, exper
 
 // refreshParticipants (kicked off server-side by reportStep) can take several minutes for a
 // large course roster, so instead of blocking on that one request, poll its status every 5
-// seconds until it reaches a terminal state.
+// seconds until it reaches a terminal state - giving up after an hour rather than polling
+// forever if it never does.
 const pollPrepareParticipationStatus = (experimentId, batchId, selectedParticipationType) => {
+  const pollStartedAt = Date.now();
+
   statusPollTimer = setInterval(
     async () => {
+      if (Date.now() - pollStartedAt >= POLL_MAX_DURATION_MS) {
+        stopPolling();
+        preparingParticipants.value = false;
+
+        await Swal.fire(
+          "Preparing participants is taking longer than expected. Please try again later."
+        );
+
+        return;
+      }
+
       const statusResponse = await apiStore.getStepStatus({
         experimentId,
         batchId
@@ -266,7 +283,7 @@ const pollPrepareParticipationStatus = (experimentId, batchId, selectedParticipa
 
       navigateAfterParticipationTypeSelected(selectedParticipationType, experimentId);
     },
-    5000
+    POLL_INTERVAL_MS
   );
 };
 
