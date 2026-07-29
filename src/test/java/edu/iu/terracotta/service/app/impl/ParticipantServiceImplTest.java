@@ -11,10 +11,12 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +30,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -729,6 +736,39 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(participantService).refreshParticipants(1L);
         verify(ltiContextRepository).save(ltiContextEntity);
+    }
+
+    // Reproduces the production "Lock wait timeout exceeded" / duplicate-key errors: two
+    // concurrent callers for the same LTI context must not both run refreshParticipants at once.
+    @Test
+    public void testRefreshParticipantsIfStaleSerializesConcurrentCallsForSameContext() throws Exception {
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+
+        AtomicBoolean synced = new AtomicBoolean(false);
+        when(ltiContextEntity.getLastParticipantSync()).thenAnswer(invocation -> synced.get() ? Instant.now() : null);
+        doAnswer(invocation -> {
+            Thread.sleep(200);
+            synced.set(true);
+
+            return null;
+        }).when(participantService).refreshParticipants(anyLong());
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            List<Future<?>> futures = List.of(
+                executor.submit(() -> assertDoesNotThrow(() -> participantService.refreshParticipantsIfStale(1L))),
+                executor.submit(() -> assertDoesNotThrow(() -> participantService.refreshParticipantsIfStale(1L)))
+            );
+
+            for (Future<?> future : futures) {
+                future.get(5, TimeUnit.SECONDS);
+            }
+        } finally {
+            executor.shutdown();
+        }
+
+        verify(participantService, times(1)).refreshParticipants(1L);
     }
 
     // prepareParticipation should throttle the roster sync (rather than always syncing) and

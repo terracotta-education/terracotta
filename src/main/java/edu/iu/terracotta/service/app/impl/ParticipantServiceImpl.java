@@ -79,6 +79,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -111,6 +112,8 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Value("${app.participant.refresh.throttle.hours:24}")
     private long refreshThrottleHours;
+
+    private final Map<Long, Object> refreshLocks = new ConcurrentHashMap<>();
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -373,16 +376,38 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         LtiContextEntity ltiContextEntity = experiment.getLtiContextEntity();
-        Instant lastSync = ltiContextEntity.getLastParticipantSync();
 
-        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+        if (isParticipantSyncFresh(ltiContextEntity)) {
             return;
         }
 
-        refreshParticipants(experimentId);
+        // synchronize per LTI context so concurrent callers for the same course (e.g. a
+        // double-click, or a slow request the user retried) don't each fire a full roster sync
+        // at once - concurrent bulk inserts into lms_user_batch from separate transactions can
+        // lock each other out entirely ("Lock wait timeout exceeded" was observed in production)
+        Object lock = refreshLocks.computeIfAbsent(ltiContextEntity.getContextId(), contextId -> new Object());
 
-        ltiContextEntity.setLastParticipantSync(Instant.now());
-        ltiContextRepository.save(ltiContextEntity);
+        synchronized (lock) {
+            // force a re-read: another thread may have already refreshed and committed while
+            // this one was waiting for the lock, and this session's first-level cache wouldn't
+            // otherwise reflect that
+            entityManager.refresh(ltiContextEntity);
+
+            if (isParticipantSyncFresh(ltiContextEntity)) {
+                return;
+            }
+
+            refreshParticipants(experimentId);
+
+            ltiContextEntity.setLastParticipantSync(Instant.now());
+            ltiContextRepository.save(ltiContextEntity);
+        }
+    }
+
+    private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity) {
+        Instant lastSync = ltiContextEntity.getLastParticipantSync();
+
+        return lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)));
     }
 
     /**
