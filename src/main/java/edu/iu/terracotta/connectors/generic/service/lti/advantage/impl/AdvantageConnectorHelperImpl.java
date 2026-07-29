@@ -9,6 +9,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.helper.ExceptionMessageGe
 import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageConnectorHelper;
 import edu.iu.terracotta.utils.TextConstants;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,11 +50,29 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
 
     // RestTemplate is thread-safe once constructed and has no per-request mutable state, so a
     // single shared instance is reused for every AGS/NRPS/registration/OAuth call instead of
-    // allocating a new client (and request factory) on every outbound request.
+    // allocating a new client (and request factory) on every outbound request. Its request
+    // factory is replaced with a timeout-configured one in init() below, once the @Value fields
+    // are populated - a field initializer runs before Spring injects those.
     private final RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
 
     @Value("${app.token.logging.enabled:true}")
     private boolean tokenLoggingEnabled;
+
+    // without these, a hung/slow LMS response (e.g. partway through paginating a huge course
+    // roster) can block a thread indefinitely instead of failing cleanly
+    @Value("${app.lti.advantage.connect.timeout.ms:10000}")
+    private int connectTimeoutMs;
+
+    @Value("${app.lti.advantage.read.timeout.ms:30000}")
+    private int readTimeoutMs;
+
+    @PostConstruct
+    public void init() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(connectTimeoutMs);
+        requestFactory.setReadTimeout(readTimeoutMs);
+        restTemplate.setRequestFactory(new BufferingClientHttpRequestFactory(requestFactory));
+    }
 
     @Override
     public HttpEntity createRequestEntity(String apiKey) {

@@ -193,6 +193,13 @@ app:
       verbose:
         logging:
           enabled: false
+    advantage:
+      connect:
+        timeout:
+          ms: 10000
+      read:
+        timeout:
+          ms: 30000
   # external integrations
   integrations:
     # token TTL (default 3600 seconds)

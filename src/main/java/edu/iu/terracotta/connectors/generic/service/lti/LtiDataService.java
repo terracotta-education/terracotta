@@ -1,5 +1,8 @@
 package edu.iu.terracotta.connectors.generic.service.lti;
 
+import java.util.Collection;
+import java.util.List;
+
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -23,8 +26,12 @@ public interface LtiDataService {
     PlatformDeploymentRepository getPlatformDeploymentRepository();
     LtiNonceRepository getLtiNonceRepository();
     LtiUserEntity findByUserKeyAndPlatformDeployment(String userKey, PlatformDeployment platformDeployment);
+    // batches what would otherwise be one findByUserKeyAndPlatformDeployment call per user - e.g.
+    // syncing a large course roster's new enrollees
+    List<LtiUserEntity> findAllByUserKeysAndPlatformDeployment(Collection<String> userKeys, PlatformDeployment platformDeployment);
     LtiUserEntity saveLtiUserEntity(LtiUserEntity ltiUserEntity);
     LtiMembershipEntity findByUserAndContext(LtiUserEntity ltiUserEntity, LtiContextEntity ltiContextEntity);
+    List<LtiMembershipEntity> findAllByUsersAndContext(Collection<LtiUserEntity> ltiUserEntities, LtiContextEntity ltiContextEntity);
     LtiMembershipEntity saveLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity);
     ToolDeployment findOrCreateToolDeployment(String iss, String clientId, String ltiDeploymentId);
     String getOwnPrivateKey();
