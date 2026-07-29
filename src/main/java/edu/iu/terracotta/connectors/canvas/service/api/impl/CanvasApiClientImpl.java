@@ -639,7 +639,9 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     private OauthToken getOauthToken(LtiUserEntity apiUser) throws ApiException {
-        return new NonRefreshableOauthToken(getAccessToken(apiUser, null));
+        String accessToken = getAccessToken(apiUser, null);
+
+        return new RefreshableCanvasOauthToken(() -> getAccessToken(apiUser, null), accessToken);
     }
 
     private OauthToken getOauthToken(LtiUserEntity apiUser, String tokenOverride) throws ApiException {

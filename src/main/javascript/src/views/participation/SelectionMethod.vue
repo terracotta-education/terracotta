@@ -156,8 +156,18 @@ export default {
             if (typeof response?.status !== "undefined" && response?.status === 200) {
               this.preparingParticipants = true;
               // report the current step
-              await this.reportStep({experimentId, step});
+              const stepResponse = await this.reportStep({experimentId, step});
               this.preparingParticipants = false;
+
+              if (typeof stepResponse?.status === "undefined" || stepResponse?.status !== 200) {
+                this.$swal(
+                  stepResponse?.message
+                    ? `Error: ${stepResponse.message}`
+                    : "There was an error preparing participants for this experiment."
+                );
+
+                return;
+              }
 
               // route based on participation type selection
               switch(e.participationType) {

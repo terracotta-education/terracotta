@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -12,6 +13,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -100,11 +102,15 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final GroupParticipantService groupParticipantService;
     private final LmsUserBatchAsyncService lmsUserBatchAsyncService;
     private final LtiDataService ltiDataService;
+    private final LtiContextRepository ltiContextRepository;
 
     @PersistenceContext private EntityManager entityManager;
 
     @Value("${app.participant.batch.size:500}")
     private int batchSize;
+
+    @Value("${app.participant.refresh.throttle.hours:24}")
+    private long refreshThrottleHours;
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -347,6 +353,39 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     /**
+     * Like refreshParticipants, but skips the LMS membership service sync entirely if this
+     * experiment's LTI context (course) was already refreshed within the last
+     * app.participant.refresh.throttle.hours. Tracked per LTI context, not per experiment,
+     * since the LMS roster is a property of the course, and multiple experiments can share one.
+     * Intended for callers that need the roster reasonably fresh (to reconcile external LMS
+     * submitters against participants) but run repeatedly enough that syncing on every call is
+     * wasteful - e.g. viewing a gradebook outcome, or repeated exports.
+     *
+     * @param experimentId
+     */
+    @Override
+    @Transactional
+    public void refreshParticipantsIfStale(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+
+        if (experiment == null) {
+            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+        }
+
+        LtiContextEntity ltiContextEntity = experiment.getLtiContextEntity();
+        Instant lastSync = ltiContextEntity.getLastParticipantSync();
+
+        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+            return;
+        }
+
+        refreshParticipants(experimentId);
+
+        ltiContextEntity.setLastParticipantSync(Instant.now());
+        ltiContextRepository.save(ltiContextEntity);
+    }
+
+    /**
      * If experiment hasn't started and participation type has changed, reset the
      * participant's consent.
      *
@@ -450,6 +489,30 @@ public class ParticipantServiceImpl implements ParticipantService {
             ltiUserEntity = ltiDataService.saveLtiUserEntity(newLtiUserEntity);
         }
 
+        return buildAndSaveParticipant(ltiUserEntity, experiment);
+    }
+
+    /**
+     * Creates a new participant for an LTI user who has already launched the tool (and so
+     * already has an LtiUserEntity created by the LTI launch flow), without requiring a full
+     * LMS membership service roster refresh. Returns null if the launch's LtiUserEntity can't
+     * be resolved, so the caller can fall back to a full refresh.
+     *
+     * @param experiment
+     * @param securedInfo
+     * @return
+     */
+    private Participant createParticipantFromLaunch(Experiment experiment, SecuredInfo securedInfo) {
+        LtiUserEntity ltiUserEntity = ltiDataService.findByUserKeyAndPlatformDeployment(securedInfo.getUserId(), experiment.getPlatformDeployment());
+
+        if (ltiUserEntity == null) {
+            return null;
+        }
+
+        return buildAndSaveParticipant(ltiUserEntity, experiment);
+    }
+
+    private Participant buildAndSaveParticipant(LtiUserEntity ltiUserEntity, Experiment experiment) {
         LtiMembershipEntity ltiMembershipEntity = ltiDataService.findByUserAndContext(ltiUserEntity, experiment.getLtiContextEntity());
 
         if (ltiMembershipEntity == null) {
@@ -484,8 +547,60 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+    public void ensureParticipantExists(long experimentId, SecuredInfo securedInfo) throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
+        Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
+
+        if (participant != null) {
+            return;
+        }
+
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+
+        if (experiment == null) {
+            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+        }
+
+        // brand-new participant: create directly from the current LTI launch instead of
+        // syncing the entire course roster just to add one record
+        if (createParticipantFromLaunch(experiment, securedInfo) != null) {
+            return;
+        }
+
+        // launch's LtiUserEntity couldn't be resolved (shouldn't normally happen): fall back
+        // to a full roster refresh
         refreshParticipants(experimentId);
+    }
+
+    @Override
+    @Transactional
+    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        // throttled, so picking/re-picking a participation type doesn't always force a full LMS
+        // roster sync; still proactively populates the roster (rather than waiting for each
+        // student's own lazy-create-on-launch) as long as the last sync isn't recent
+        refreshParticipantsIfStale(experimentId);
+
+        // reset consent for participants who already exist - covers both the case where the
+        // above was skipped as not-yet-stale, and is a harmless no-op otherwise, since a
+        // just-synced participant's source already matches the current participation type
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+
+        if (experiment == null) {
+            throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
+        }
+
+        int page = 0;
+        PageRequest pageRequest = PageRequest.of(page, batchSize);
+        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+
+        while (CollectionUtils.isNotEmpty(participants)) {
+            participants.forEach(participant -> resetParticipantConsentIfExperimentNotStarted(experiment, participant));
+
+            entityManager.flush();
+            entityManager.clear();
+
+            pageRequest = PageRequest.of(++page, batchSize);
+            participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
+        }
     }
 
     @Override
@@ -671,8 +786,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     private void setConsentToAll(Boolean consent, Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        refreshParticipants(experimentId);
-
+        // apply to participants who already exist, instead of syncing the entire course
+        // roster; a brand-new participant already gets the correct initial consent for the
+        // current participation type at creation time (see buildAndSaveParticipant)
         int page = 0;
         PageRequest pageRequest = PageRequest.of(page, batchSize);
         List<Participant> participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
@@ -809,20 +925,29 @@ public class ParticipantServiceImpl implements ParticipantService {
                     ExperimentNotMatchingException, TerracottaConnectorException {
         Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experiment.getExperimentId(), securedInfo.getUserId());
 
-        // if participant record doesn't exist, or if a consenting participant isn't assigned to a
-        // group, or if the participant is marked as dropped, refresh the participant list
-        if (participant == null
-                || (BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null)
-                || BooleanUtils.isTrue(participant.getDropped())) {
-            refreshParticipants(experiment.getExperimentId());
-            participant = findParticipant(experiment.getExperimentId(), securedInfo.getUserId());
+        if (participant == null) {
+            // brand-new participant: create directly from the current LTI launch instead of
+            // syncing the entire course roster just to add one record
+            participant = createParticipantFromLaunch(experiment, securedInfo);
 
             if (participant == null) {
-                throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
-            }
+                // launch's LtiUserEntity couldn't be resolved (shouldn't normally happen):
+                // fall back to a full roster refresh
+                refreshParticipants(experiment.getExperimentId());
+                participant = findParticipant(experiment.getExperimentId(), securedInfo.getUserId());
 
-            // get managed entity
-            participant = participantRepository.findById(participant.getId()).get();
+                if (participant == null) {
+                    throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
+                }
+
+                // get managed entity
+                participant = participantRepository.findById(participant.getId()).get();
+            }
+        } else if ((BooleanUtils.isTrue(participant.getConsent()) && participant.getGroup() == null)
+                || BooleanUtils.isTrue(participant.getDropped())) {
+            // an active LTI launch already proves the participant is currently enrolled, so
+            // repair their state directly instead of syncing the entire course roster
+            resetParticipantConsentIfExperimentNotStarted(experiment, participant);
         }
 
         if (BooleanUtils.isTrue(participant.getDropped())) {

@@ -572,6 +572,17 @@ public class AssessmentServiceImplTest extends BaseTest {
         assertNotNull(retVal);
     }
 
+    // MANUAL-type participants have no consent process, so getConsent() is null rather than
+    // false/true (see buildAndSaveParticipant); this must not NPE.
+    @Test
+    public void testGetAssessmentForParticipantNullConsent() throws AssessmentNotMatchingException {
+        when(participant.getConsent()).thenReturn(null);
+
+        Assessment retVal = assessmentService.getAssessmentForParticipant(participant, securedInfo);
+
+        assertNotNull(retVal);
+    }
+
     @Test
     public void testRetrieveTreatmentAssessmentNoTreatment() {
         when(treatmentRepository.findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong(), anyLong())).thenReturn(Collections.emptyList());

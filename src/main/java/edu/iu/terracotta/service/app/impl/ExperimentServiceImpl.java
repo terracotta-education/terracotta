@@ -236,15 +236,17 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     private void changeParticipantionType(String toPT, Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        // consent mapping must match buildAndSaveParticipant/resetParticipantConsentIfExperimentNotStarted:
+        // MANUAL has no consent process (null), CONSENT starts unanswered (false), AUTO is pre-consented (true)
         switch (EnumUtils.getEnum(ParticipationTypes.class, toPT)) {
-            case CONSENT:
+            case MANUAL:
             case NOSET:
                 participantService.setAllToNull(experimentId);
                 break;
             case AUTO:
                 participantService.setAllToTrue(experimentId);
                 break;
-            case MANUAL:
+            case CONSENT:
                 participantService.setAllToFalse(experimentId);
                 break;
             default:

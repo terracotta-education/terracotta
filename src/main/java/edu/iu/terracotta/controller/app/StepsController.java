@@ -194,11 +194,12 @@ public class StepsController {
                 }
             case LAUNCH_CONSENT_ASSIGNMENT:
                 if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
-                    // Return this student's participant record, refreshing the list of participants if necessary
+                    // Return this student's participant record, creating it from the current
+                    // launch if it doesn't exist yet
                     List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(experimentId, securedInfo.getUserId(), true, securedInfo, false);
 
                     if (studentUserAsParticipant.isEmpty()) {
-                        participantService.refreshParticipants(experimentId);
+                        participantService.ensureParticipantExists(experimentId, securedInfo);
                         studentUserAsParticipant = participantService.getParticipants(experimentId, securedInfo.getUserId(), true, securedInfo, false);
                     }
 

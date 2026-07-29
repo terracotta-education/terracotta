@@ -250,7 +250,7 @@ public class OutcomeServiceImpl implements OutcomeService {
         }
 
         if (refreshParticipants) {
-            participantService.refreshParticipants(outcome.getExposure().getExperiment().getExperimentId());
+            participantService.refreshParticipantsIfStale(outcome.getExposure().getExperiment().getExperimentId());
         }
 
         List<OutcomeScore> newScores = new ArrayList<>();

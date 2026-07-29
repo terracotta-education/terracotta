@@ -18,18 +18,14 @@ import edu.iu.terracotta.connectors.canvas.service.extended.UserReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.UserWriterExtended;
 import edu.ksu.canvas.model.User;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.ksu.canvas.exception.InvalidOauthTokenException;
 import edu.ksu.canvas.impl.BaseImpl;
 import edu.ksu.canvas.net.Response;
 import edu.ksu.canvas.net.RestClient;
 import edu.ksu.canvas.oauth.OauthToken;
 import edu.ksu.canvas.requestOptions.GetUsersInCourseOptions;
-import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -37,8 +33,6 @@ import tools.jackson.databind.json.JsonMapper;
 @Slf4j
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class UserExtendedImpl extends BaseImpl<UserExtended, UserReaderExtended, UserWriterExtended> implements UserReaderExtended, UserWriterExtended {
-
-    private EntityManager entityManager;
 
     private int connectTimeout;
     private int readTimeout;
@@ -51,7 +45,6 @@ public class UserExtendedImpl extends BaseImpl<UserExtended, UserReaderExtended,
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.paginationPageSize = paginationPageSize;
-        this.entityManager = ContextProvider.getEntityManager();
     }
 
     @Override
@@ -73,55 +66,54 @@ public class UserExtendedImpl extends BaseImpl<UserExtended, UserReaderExtended,
     }
 
     private void getFromCanvas(@NotNull OauthToken oauthToken, @NotNull String url, Consumer<Response> callback, UUID batchId) throws InvalidOauthTokenException, IOException, TerracottaConnectorException {
-        LmsUserBatchRepository lmsUserBatchRepository = ContextProvider.getBean(LmsUserBatchRepository.class);
-        LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository = ContextProvider.getBean(LmsUserBatchProcessingRepository.class);
+        LmsUserBatchWriteService lmsUserBatchWriteService = ContextProvider.getBean(LmsUserBatchWriteService.class);
 
-        LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.saveAndFlush(
-            LmsUserBatchProcessing.builder()
-                .batchId(batchId)
-                .status(LmsUserBatchStatus.IN_PROGRESS)
-                .build()
-        );
+        // committed independently of whatever transaction the caller is running in, so progress
+        // is visible immediately and durable even if a later page - or the caller's own
+        // transaction - fails
+        lmsUserBatchWriteService.startBatch(batchId);
 
-        while (StringUtils.isNotBlank(url)) {
-            Response response = getSingleResponseFromCanvas(oauthToken, url);
+        try {
+            while (StringUtils.isNotBlank(url)) {
+                Response response = getSingleResponseFromCanvas(oauthToken, url);
 
-            if (response.getErrorHappened() || response.getResponseCode() != 200) {
-                String errorMessage = String.format("Errors retrieving responses from canvas for url:  %s", url);
-                log.error(errorMessage);
+                if (response.getErrorHappened() || response.getResponseCode() != 200) {
+                    String errorMessage = String.format("Errors retrieving responses from canvas for url:  %s", url);
+                    log.error(errorMessage);
+                    lmsUserBatchWriteService.markFailed(batchId, errorMessage);
 
-                lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(batchId)
-                    .orElse(LmsUserBatchProcessing.builder().batchId(batchId).build());
-                lmsUserBatchProcessing.setStatus(LmsUserBatchStatus.FAILED);
-                lmsUserBatchProcessing.setMessage(errorMessage);
-                lmsUserBatchProcessingRepository.saveAndFlush(lmsUserBatchProcessing);
+                    return;
+                }
 
-                return;
+                List<LmsUserBatch> usersToSave = jsonMapper.readValue(
+                    response.getContent(),
+                    new TypeReference<List<User>>() {}
+                ).stream()
+                    .map(
+                        user -> LmsUserBatch.builder()
+                            .batchId(batchId)
+                            .email(user.getEmail())
+                            .lmsUserId(String.valueOf(user.getId()))
+                            .build()
+                    )
+                    .toList();
+
+                lmsUserBatchWriteService.saveUsers(usersToSave);
+
+                url = response.getNextLink();
+
+                if (callback != null) {
+                    callback.accept(response);
+                }
             }
+        } catch (IOException | InvalidOauthTokenException e) {
+            lmsUserBatchWriteService.markFailed(batchId, e.getMessage());
 
-            List<LmsUserBatch> usersToSave = jsonMapper.readValue(
-                response.getContent(),
-                new TypeReference<List<User>>() {}
-            ).stream()
-                .map(
-                    user -> LmsUserBatch.builder()
-                        .batchId(batchId)
-                        .email(user.getEmail())
-                        .lmsUserId(String.valueOf(user.getId()))
-                        .build()
-                )
-                .toList();
+            throw e;
+        } catch (RuntimeException e) {
+            lmsUserBatchWriteService.markFailed(batchId, e.getMessage());
 
-            lmsUserBatchRepository.saveAll(usersToSave);
-
-            entityManager.flush();
-            entityManager.clear();
-
-            url = response.getNextLink();
-
-            if (callback != null) {
-                callback.accept(response);
-            }
+            throw e;
         }
     }
 

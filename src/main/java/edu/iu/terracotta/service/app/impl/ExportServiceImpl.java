@@ -276,7 +276,7 @@ public class ExportServiceImpl implements ExportService {
         List<Outcome> outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(outcomesPage, exportBatchSize)).getContent();
 
         if (CollectionUtils.isNotEmpty(outcomes)) {
-            participantService.refreshParticipants(experimentId);
+            participantService.refreshParticipantsIfStale(experimentId);
         }
 
         while (CollectionUtils.isNotEmpty(outcomes)) {
