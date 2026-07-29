@@ -128,6 +128,10 @@ const lmsTitle = computed(() => {
   return configurations.value?.lmsTitle || "LMS";
 });
 
+const pollMaxDurationMs = computed(() => {
+  return (configurations.value?.participantStatusPollMaxHours || 2) * 60 * 60 * 1000;
+});
+
 const panels = computed(() => {
   return [
     {
@@ -184,7 +188,6 @@ const displayConsentFileMissingAlert = computed(() => {
 });
 
 const POLL_INTERVAL_MS = 5000;
-const POLL_MAX_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
 let statusPollTimer = null;
 
@@ -255,14 +258,15 @@ const handleTerminalPrepareParticipationStatus = async (status, message, selecte
 
 // refreshParticipants (kicked off server-side by reportStep) can take several minutes for a
 // large course roster, so instead of blocking on that one request, poll its status every 5
-// seconds until it reaches a terminal state - giving up after an hour rather than polling
-// forever if it never does.
+// seconds until it reaches a terminal state - giving up after pollMaxDurationMs (configurable via
+// app.participant.status.poll.max.hours, default 2 hours) rather than polling forever if it
+// never does.
 const pollPrepareParticipationStatus = (experimentId, batchId, selectedParticipationType) => {
   const pollStartedAt = Date.now();
 
   statusPollTimer = setInterval(
     async () => {
-      if (Date.now() - pollStartedAt >= POLL_MAX_DURATION_MS) {
+      if (Date.now() - pollStartedAt >= pollMaxDurationMs.value) {
         stopPolling();
         preparingParticipants.value = false;
 

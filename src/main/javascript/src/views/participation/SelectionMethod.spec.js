@@ -24,11 +24,14 @@ vi.mock("@/services", () => ({
   }
 }));
 
+import { createPinia, setActivePinia } from "pinia";
+
 import Swal from "sweetalert2";
 import { experimentService, apiService } from "@/services";
 import { mountComponent } from "@/test-utils/mount";
 import SelectionMethod from "./SelectionMethod.vue";
 import { navigation as navigationModule } from "@/store/navigation.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
 
 const buildExperiment = (overrides = {}) => ({
   experimentId: 1,
@@ -377,7 +380,7 @@ describe("SelectionMethod", () => {
     }
   });
 
-  it("gives up and shows an error alert after polling for an hour with no terminal status", async () => {
+  it("gives up and shows an error alert after polling for the default 2 hours with no terminal status", async () => {
     vi.useFakeTimers();
 
     try {
@@ -399,12 +402,12 @@ describe("SelectionMethod", () => {
       await selectButtons[0].trigger("click");
       await flushWithFakeTimers(wrapper);
 
-      // just under an hour of 5-second ticks: still polling, no alert yet
-      await vi.advanceTimersByTimeAsync(59 * 60 * 1000);
+      // just under 2 hours of 5-second ticks: still polling, no alert yet
+      await vi.advanceTimersByTimeAsync(119 * 60 * 1000);
       expect(Swal.fire).not.toHaveBeenCalled();
       expect(push).not.toHaveBeenCalled();
 
-      // past the hour mark: gives up
+      // past the 2-hour mark: gives up
       await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
 
       expect(Swal.fire).toHaveBeenCalledWith(
@@ -417,6 +420,49 @@ describe("SelectionMethod", () => {
       // polling must actually stop after giving up - no further calls on later ticks
       await vi.advanceTimersByTimeAsync(5000);
       expect(apiService.getStepStatus).toHaveBeenCalledTimes(callCountAtGiveUp);
+
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("respects a configured participantStatusPollMaxHours instead of the 2-hour default", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const pinia = createPinia();
+      setActivePinia(pinia);
+      configurationModule().configurations = { participantStatusPollMaxHours: 1 };
+
+      experimentService.update.mockResolvedValue({ status: 200 });
+      apiService.reportStep.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+      apiService.getStepStatus.mockResolvedValue({
+        status: 200,
+        data: { batchId: BATCH_ID, status: "IN_PROGRESS" }
+      });
+
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment() },
+        pinia
+      });
+
+      const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+      await selectButtons[0].trigger("click");
+      await flushWithFakeTimers(wrapper);
+
+      // just under the configured 1 hour: still polling, no alert yet
+      await vi.advanceTimersByTimeAsync(59 * 60 * 1000);
+      expect(Swal.fire).not.toHaveBeenCalled();
+
+      // past the configured 1-hour mark: gives up (rather than waiting for the 2-hour default)
+      await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+      expect(Swal.fire).toHaveBeenCalledWith(
+        "Preparing participants is taking longer than expected. Please try again later."
+      );
 
       wrapper.unmount();
     } finally {
