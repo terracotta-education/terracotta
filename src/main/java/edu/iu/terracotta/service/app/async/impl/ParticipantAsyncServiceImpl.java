@@ -15,12 +15,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentState;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentType;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -31,10 +34,13 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.FeatureService;
+import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 import jakarta.persistence.EntityManager;
@@ -48,6 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
+    private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
     private final LmsUserBatchRepository lmsUserBatchRepository;
     private final LtiContextRepository ltiContextRepository;
     private final LtiUserRepository ltiUserRepository;
@@ -56,6 +63,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     private final FeatureService featureService;
     private final LmsUserBatchAsyncService lmsUserBatchAsyncService;
     private final LmsUtils lmsUtils;
+    private final ParticipantService participantService;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -161,6 +169,27 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
         // send the event and delete temporary batch data
         lmsUserBatchAsyncService.success(batchId);
+    }
+
+    @Async
+    @Override
+    public void prepareParticipationAsync(long experimentId, SecuredInfo securedInfo, UUID batchId) {
+        try {
+            participantService.prepareParticipation(experimentId, securedInfo);
+            updateBatchStatus(batchId, LmsUserBatchStatus.COMPLETED, null);
+        } catch (ParticipantNotUpdatedException | ExperimentNotMatchingException | TerracottaConnectorException | RuntimeException e) {
+            log.error("Failed to prepare participation for experiment ID: [{}]", experimentId, e);
+            updateBatchStatus(batchId, LmsUserBatchStatus.FAILED, e.getMessage());
+        }
+    }
+
+    private void updateBatchStatus(UUID batchId, LmsUserBatchStatus status, String message) {
+        LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(batchId)
+            .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(batchId).build());
+
+        lmsUserBatchProcessing.setStatus(status);
+        lmsUserBatchProcessing.setMessage(message);
+        lmsUserBatchProcessingRepository.save(lmsUserBatchProcessing);
     }
 
 }

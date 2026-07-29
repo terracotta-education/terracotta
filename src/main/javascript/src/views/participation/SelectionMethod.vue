@@ -64,6 +64,9 @@ import { mapActions, mapGetters } from "vuex";
 import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 import PageLoading from "@/components/PageLoading.vue"
 
+const POLL_INTERVAL_MS = 5000;
+const POLL_MAX_DURATION_MS = 60 * 60 * 1000; // 1 hour
+
 export default {
   name: "ParticipationSelectionMethod",
   components: {
@@ -79,7 +82,8 @@ export default {
     loading: false,
     expanded: [0, 1, 2],
     initialParticipationType: null,
-    preparingParticipants: false
+    preparingParticipants: false,
+    statusPollTimer: null
   }),
   computed: {
     ...mapGetters({
@@ -139,8 +143,103 @@ export default {
   methods: {
     ...mapActions({
       reportStep: "api/reportStep",
+      getStepStatus: "api/getStepStatus",
       updateExperiment: "experiment/updateExperiment",
     }),
+    stopPolling() {
+      if (this.statusPollTimer) {
+        clearInterval(this.statusPollTimer);
+        this.statusPollTimer = null;
+      }
+    },
+    isTerminalPrepareParticipationStatus(status) {
+      return status === "COMPLETED" || status === "PROCESSED" || status === "FAILED";
+    },
+    navigateAfterParticipationTypeSelected(selectedParticipationType, experimentId) {
+      switch (selectedParticipationType) {
+        case "CONSENT":
+          this.$router.push({
+            name:"ParticipationTypeConsentOverview",
+            params: {
+              experiment: experimentId
+            }
+          });
+          break;
+        case "MANUAL":
+          this.$router.push({
+            name:"ParticipationTypeManual",
+            params: {
+              experiment: experimentId
+            }
+          });
+          break;
+        case "AUTO":
+          this.$router.push({
+            name:"ParticipationTypeAutoConfirm",
+            params: {
+              experiment: experimentId
+            }
+          });
+          break;
+        default:
+          this.$swal("Select a participation type");
+          break;
+      }
+    },
+    async handleTerminalPrepareParticipationStatus(status, message, selectedParticipationType, experimentId) {
+      if (status === "FAILED") {
+        this.$swal(
+          message
+            ? `Error: ${message}`
+            : "There was an error preparing participants for this experiment."
+        );
+
+        return;
+      }
+
+      this.navigateAfterParticipationTypeSelected(selectedParticipationType, experimentId);
+    },
+    // refreshParticipants (kicked off server-side by reportStep) can take several minutes for a
+    // large course roster, so instead of blocking on that one request, poll its status every 5
+    // seconds until it reaches a terminal state - giving up after an hour rather than polling
+    // forever if it never does.
+    pollPrepareParticipationStatus(experimentId, batchId, selectedParticipationType) {
+      const pollStartedAt = Date.now();
+
+      this.statusPollTimer = setInterval(
+        async () => {
+          if (Date.now() - pollStartedAt >= POLL_MAX_DURATION_MS) {
+            this.stopPolling();
+            this.preparingParticipants = false;
+
+            this.$swal(
+              "Preparing participants is taking longer than expected. Please try again later."
+            );
+
+            return;
+          }
+
+          const statusResponse = await this.getStepStatus({experimentId, batchId});
+          const status = statusResponse?.data?.status;
+
+          if (!this.isTerminalPrepareParticipationStatus(status)) {
+            // still IN_PROGRESS/PENDING, or the poll request itself failed - keep polling either way
+            return;
+          }
+
+          this.stopPolling();
+          this.preparingParticipants = false;
+
+          await this.handleTerminalPrepareParticipationStatus(
+            status,
+            statusResponse?.data?.message,
+            selectedParticipationType,
+            experimentId
+          );
+        },
+        POLL_INTERVAL_MS
+      );
+    },
     setParticipationType(type) {
       this.initialParticipationType = type;
       const e = this.experiment;
@@ -157,9 +256,10 @@ export default {
               this.preparingParticipants = true;
               // report the current step
               const stepResponse = await this.reportStep({experimentId, step});
-              this.preparingParticipants = false;
 
               if (typeof stepResponse?.status === "undefined" || stepResponse?.status !== 200) {
+                this.preparingParticipants = false;
+
                 this.$swal(
                   stepResponse?.message
                     ? `Error: ${stepResponse.message}`
@@ -169,36 +269,35 @@ export default {
                 return;
               }
 
-              // route based on participation type selection
-              switch(e.participationType) {
-                case "CONSENT":
-                  this.$router.push({
-                    name:"ParticipationTypeConsentOverview",
-                    params: {
-                      experiment: experimentId
-                    }
-                  });
-                  break;
-                case "MANUAL":
-                  this.$router.push({
-                    name:"ParticipationTypeManual",
-                    params: {
-                      experiment: experimentId
-                    }
-                  });
-                  break;
-                case "AUTO":
-                  this.$router.push({
-                    name:"ParticipationTypeAutoConfirm",
-                    params: {
-                      experiment: experimentId
-                    }
-                  });
-                  break;
-                default:
-                  this.$swal("Select a participation type");
-                  break;
+              const batchId = stepResponse?.data?.batchId;
+              const initialStatus = stepResponse?.data?.status;
+
+              if (!batchId || !initialStatus) {
+                this.preparingParticipants = false;
+
+                this.$swal(
+                  "There was an error preparing participants for this experiment."
+                );
+
+                return;
               }
+
+              if (this.isTerminalPrepareParticipationStatus(initialStatus)) {
+                // the roster wasn't due for a sync, so the backend already finished synchronously -
+                // no need to poll for something that's already done
+                this.preparingParticipants = false;
+
+                await this.handleTerminalPrepareParticipationStatus(
+                  initialStatus,
+                  stepResponse?.data?.message,
+                  e.participationType,
+                  experimentId
+                );
+
+                return;
+              }
+
+              this.pollPrepareParticipationStatus(experimentId, batchId, e.participationType);
             } else if (response?.message) {
               this.$swal(`Error: ${response.message}`)
             } else {
@@ -228,6 +327,9 @@ export default {
   async mounted() {
     this.initialParticipationType = this.participationType;
     deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
+  },
+  beforeDestroy() {
+    this.stopPolling();
   }
 }
 </script>

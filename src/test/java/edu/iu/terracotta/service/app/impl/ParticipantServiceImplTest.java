@@ -11,10 +11,13 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -37,9 +45,12 @@ import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -52,6 +63,7 @@ import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.enums.DistributionTypes;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
@@ -60,6 +72,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @SuppressWarnings("unchecked")
@@ -75,6 +88,9 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Mock
     private LmsUserBatchAsyncService lmsUserBatchAsyncService;
+
+    @Mock
+    private LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
 
     private ParticipantServiceImpl participantService;
 
@@ -108,7 +124,8 @@ public class ParticipantServiceImplTest extends BaseTest {
                 groupParticipantService,
                 lmsUserBatchAsyncService,
                 ltiDataService,
-                ltiContextRepository
+                ltiContextRepository,
+                lmsUserBatchProcessingRepository
             )
         );
         ReflectionTestUtils.setField(participantService, "batchSize", 500);
@@ -731,6 +748,94 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(ltiContextRepository).save(ltiContextEntity);
     }
 
+    // a failed sync must not leave last_participant_sync showing a partial-failure value -
+    // restoring it to whatever it was immediately before this attempt (which may itself be null,
+    // if it was never successfully synced before) makes the field's meaning unambiguous, and
+    // restoreLastParticipantSync runs in its own transaction so this survives even when the
+    // failure is a RuntimeException that rolls back this method's own transaction.
+    @Test
+    public void testRefreshParticipantsIfStaleRestoresSyncTimestampOnFailureWhenNeverSyncedBefore() throws Exception {
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doThrow(new ParticipantNotUpdatedException("failed")).when(participantService).refreshParticipants(anyLong());
+
+        assertThrows(
+            ParticipantNotUpdatedException.class,
+            () -> participantService.refreshParticipantsIfStale(1L)
+        );
+
+        verify(ltiContextRepository).restoreLastParticipantSync(1L, null);
+        verify(ltiContextEntity, never()).setLastParticipantSync(any(Instant.class));
+        verify(ltiContextRepository, never()).save(any(LtiContextEntity.class));
+    }
+
+    // when the context had a prior (now-stale) sync timestamp, a failed re-sync must restore
+    // that exact prior value rather than nulling it out.
+    @Test
+    public void testRefreshParticipantsIfStaleRestoresPriorSyncTimestampOnFailureWhenPreviouslySynced() throws Exception {
+        Instant previousSync = Instant.now().minus(Duration.ofHours(25));
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(previousSync);
+        doThrow(new ParticipantNotUpdatedException("failed")).when(participantService).refreshParticipants(anyLong());
+
+        assertThrows(
+            ParticipantNotUpdatedException.class,
+            () -> participantService.refreshParticipantsIfStale(1L)
+        );
+
+        verify(ltiContextRepository).restoreLastParticipantSync(1L, previousSync);
+    }
+
+    // covers the exact production scenario: a RuntimeException (lock timeout / duplicate key)
+    // bubbling straight out of refreshParticipants, uncaught by its own connector-exception
+    // handling.
+    @Test
+    public void testRefreshParticipantsIfStaleRestoresSyncTimestampOnRuntimeExceptionFailure() throws Exception {
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doThrow(new DataIntegrityViolationException("Duplicate entry")).when(participantService).refreshParticipants(anyLong());
+
+        assertThrows(
+            DataIntegrityViolationException.class,
+            () -> participantService.refreshParticipantsIfStale(1L)
+        );
+
+        verify(ltiContextRepository).restoreLastParticipantSync(1L, null);
+    }
+
+    // Reproduces the production "Lock wait timeout exceeded" / duplicate-key errors: two
+    // concurrent callers for the same LTI context must not both run refreshParticipants at once.
+    @Test
+    public void testRefreshParticipantsIfStaleSerializesConcurrentCallsForSameContext() throws Exception {
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+
+        AtomicBoolean synced = new AtomicBoolean(false);
+        when(ltiContextEntity.getLastParticipantSync()).thenAnswer(invocation -> synced.get() ? Instant.now() : null);
+        doAnswer(invocation -> {
+            Thread.sleep(200);
+            synced.set(true);
+
+            return null;
+        }).when(participantService).refreshParticipants(anyLong());
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            List<Future<?>> futures = List.of(
+                executor.submit(() -> assertDoesNotThrow(() -> participantService.refreshParticipantsIfStale(1L))),
+                executor.submit(() -> assertDoesNotThrow(() -> participantService.refreshParticipantsIfStale(1L)))
+            );
+
+            for (Future<?> future : futures) {
+                future.get(5, TimeUnit.SECONDS);
+            }
+        } finally {
+            executor.shutdown();
+        }
+
+        verify(participantService, times(1)).refreshParticipants(1L);
+    }
+
     // prepareParticipation should throttle the roster sync (rather than always syncing) and
     // reset consent for existing participants directly either way.
     @Test
@@ -757,6 +862,69 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(participantService, never()).refreshParticipants(anyLong());
         verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
+    }
+
+    // startPrepareParticipation must return immediately (no LMS call), leaving a durable
+    // IN_PROGRESS marker that the async job and the polling endpoint both key off of - when the
+    // roster is actually due for a sync.
+    @Test
+    public void testStartPrepareParticipationSavesInProgressRecordAndReturnsDtoWhenStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+
+        LmsUserBatchStatusDto result = participantService.startPrepareParticipation(1L, securedInfo);
+
+        assertNotNull(result.getBatchId());
+        assertEquals(LmsUserBatchStatus.IN_PROGRESS, result.getStatus());
+
+        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
+        verify(lmsUserBatchProcessingRepository).save(captor.capture());
+        assertEquals(result.getBatchId(), captor.getValue().getBatchId());
+        assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
+        verify(participantService, never()).prepareParticipation(anyLong(), any());
+    }
+
+    // when the roster isn't due for a sync, prepareParticipation only does a fast, local
+    // consent reset anyway - so run it synchronously and report COMPLETED immediately, instead
+    // of making the caller wait out a full poll cycle for work that's already done.
+    @Test
+    public void testStartPrepareParticipationRunsSynchronouslyAndReturnsCompletedWhenNotStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(Collections.emptyList());
+
+        LmsUserBatchStatusDto result = participantService.startPrepareParticipation(1L, securedInfo);
+
+        assertNotNull(result.getBatchId());
+        assertEquals(LmsUserBatchStatus.COMPLETED, result.getStatus());
+        verify(participantService).prepareParticipation(1L, securedInfo);
+        verify(lmsUserBatchProcessingRepository, never()).save(any(LmsUserBatchProcessing.class));
+    }
+
+    @Test
+    public void testGetPrepareParticipationStatusReturnsDtoWhenFound() {
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchProcessing lmsUserBatchProcessing = LmsUserBatchProcessing.builder()
+            .batchId(batchId)
+            .status(LmsUserBatchStatus.COMPLETED)
+            .message("done")
+            .build();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(lmsUserBatchProcessing));
+
+        Optional<LmsUserBatchStatusDto> result = participantService.getPrepareParticipationStatus(batchId);
+
+        assertTrue(result.isPresent());
+        assertEquals(batchId, result.get().getBatchId());
+        assertEquals(LmsUserBatchStatus.COMPLETED, result.get().getStatus());
+        assertEquals("done", result.get().getMessage());
+    }
+
+    @Test
+    public void testGetPrepareParticipationStatusReturnsEmptyWhenNotFound() {
+        UUID batchId = UUID.randomUUID();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
+
+        Optional<LmsUserBatchStatusDto> result = participantService.getPrepareParticipationStatus(batchId);
+
+        assertTrue(result.isEmpty());
     }
 
     @Test

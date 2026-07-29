@@ -77,6 +77,17 @@ const actions = {
         return response
       })
   },
+  async getStepStatus({state}, {experimentId, batchId}) {
+    // check on the status of an async step batch (e.g. a participation-type roster prep) started by reportStep
+    return await apiService.getStepStatus(experimentId, batchId)
+      .then(data => {
+        return data
+      })
+      .catch(response => {
+        console.error('getStepStatus | catch', {response, state})
+        return null
+      })
+  },
   async deepLinkJwt({state}, id) {
     // get a deeplink jwt from the server
     return await apiService.deepLinkJwt(id)

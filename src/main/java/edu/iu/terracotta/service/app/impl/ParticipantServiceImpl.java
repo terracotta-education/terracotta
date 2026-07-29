@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -12,6 +13,8 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -32,6 +35,7 @@ import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.dto.UserDto;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
@@ -79,6 +83,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -103,6 +108,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final LmsUserBatchAsyncService lmsUserBatchAsyncService;
     private final LtiDataService ltiDataService;
     private final LtiContextRepository ltiContextRepository;
+    private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -111,6 +117,8 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Value("${app.participant.refresh.throttle.hours:24}")
     private long refreshThrottleHours;
+
+    private final Map<Long, Object> refreshLocks = new ConcurrentHashMap<>();
 
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
@@ -373,16 +381,47 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         LtiContextEntity ltiContextEntity = experiment.getLtiContextEntity();
-        Instant lastSync = ltiContextEntity.getLastParticipantSync();
 
-        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+        if (isParticipantSyncFresh(ltiContextEntity)) {
             return;
         }
 
-        refreshParticipants(experimentId);
+        // synchronize per LTI context so concurrent callers for the same course (e.g. a
+        // double-click, or a slow request the user retried) don't each fire a full roster sync
+        // at once - concurrent bulk inserts into lms_user_batch from separate transactions can
+        // lock each other out entirely ("Lock wait timeout exceeded" was observed in production)
+        Object lock = refreshLocks.computeIfAbsent(ltiContextEntity.getContextId(), contextId -> new Object());
 
-        ltiContextEntity.setLastParticipantSync(Instant.now());
-        ltiContextRepository.save(ltiContextEntity);
+        synchronized (lock) {
+            // force a re-read: another thread may have already refreshed and committed while
+            // this one was waiting for the lock, and this session's first-level cache wouldn't
+            // otherwise reflect that
+            entityManager.refresh(ltiContextEntity);
+
+            if (isParticipantSyncFresh(ltiContextEntity)) {
+                return;
+            }
+
+            Instant previousSync = ltiContextEntity.getLastParticipantSync();
+
+            try {
+                refreshParticipants(experimentId);
+            } catch (ParticipantNotUpdatedException | ExperimentNotMatchingException | TerracottaConnectorException | RuntimeException e) {
+                // restoreLastParticipantSync runs in its own transaction, so the timestamp is
+                // reliably restored even though this method's transaction is about to roll back
+                ltiContextRepository.restoreLastParticipantSync(ltiContextEntity.getContextId(), previousSync);
+                throw e;
+            }
+
+            ltiContextEntity.setLastParticipantSync(Instant.now());
+            ltiContextRepository.save(ltiContextEntity);
+        }
+    }
+
+    private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity) {
+        Instant lastSync = ltiContextEntity.getLastParticipantSync();
+
+        return lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)));
     }
 
     /**
@@ -601,6 +640,72 @@ public class ParticipantServiceImpl implements ParticipantService {
             pageRequest = PageRequest.of(++page, batchSize);
             participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
         }
+    }
+
+    /**
+     * If the LTI context's participant roster isn't due for a sync, prepareParticipation only
+     * does a fast, local consent reset anyway (see refreshParticipantsIfStale) - so run it
+     * synchronously and report COMPLETED immediately, instead of making the caller wait out a
+     * full poll cycle for work that's already done by the time it would first check.
+     *
+     * Otherwise, creates a tracking record for an async prepareParticipation run and returns its
+     * ID immediately, instead of the caller blocking on the LMS roster sync (which can take
+     * several minutes for a large course, and would otherwise hold the HTTP request/DB
+     * transaction open that whole time). The caller is responsible for actually invoking the
+     * async work (see ParticipantAsyncService.prepareParticipationAsync) with the returned
+     * batch ID.
+     *
+     * @param experimentId
+     * @param securedInfo
+     * @return
+     */
+    @Override
+    @Transactional
+    public LmsUserBatchStatusDto startPrepareParticipation(long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        if (!isParticipantSyncStale(experimentId)) {
+            prepareParticipation(experimentId, securedInfo);
+
+            return LmsUserBatchStatusDto.builder()
+                .batchId(UUID.randomUUID())
+                .status(LmsUserBatchStatus.COMPLETED)
+                .build();
+        }
+
+        UUID batchId = UUID.randomUUID();
+
+        lmsUserBatchProcessingRepository.save(
+            LmsUserBatchProcessing.builder()
+                .batchId(batchId)
+                .status(LmsUserBatchStatus.IN_PROGRESS)
+                .build()
+        );
+
+        return LmsUserBatchStatusDto.builder()
+            .batchId(batchId)
+            .status(LmsUserBatchStatus.IN_PROGRESS)
+            .build();
+    }
+
+    private boolean isParticipantSyncStale(long experimentId) {
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+
+        if (experiment == null) {
+            return true;
+        }
+
+        return !isParticipantSyncFresh(experiment.getLtiContextEntity());
+    }
+
+    @Override
+    public Optional<LmsUserBatchStatusDto> getPrepareParticipationStatus(UUID batchId) {
+        return lmsUserBatchProcessingRepository.findByBatchId(batchId)
+            .map(
+                lmsUserBatchProcessing -> LmsUserBatchStatusDto.builder()
+                    .batchId(lmsUserBatchProcessing.getBatchId())
+                    .status(lmsUserBatchProcessing.getStatus())
+                    .message(lmsUserBatchProcessing.getMessage())
+                    .build()
+            );
     }
 
     @Override

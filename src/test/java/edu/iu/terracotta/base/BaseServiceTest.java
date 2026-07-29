@@ -89,6 +89,7 @@ import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
@@ -181,6 +182,7 @@ public class BaseServiceTest extends BaseRepositoryTest {
     @Mock protected LtiJwtService ltiJwtService;
     @Mock protected OutcomeScoreService outcomeScoreService;
     @Mock protected OutcomeService outcomeService;
+    @Mock protected ParticipantAsyncService participantAsyncService;
     @Mock protected ParticipantService participantService;
     @Mock protected QuestionService questionService;
     @Mock protected QuestionSubmissionCommentService questionSubmissionCommentService;
