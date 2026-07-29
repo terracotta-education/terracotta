@@ -11,6 +11,7 @@ import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -22,6 +23,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @SuppressWarnings({"PMD.LooseCoupling"})
 public interface ParticipantService {
@@ -38,6 +41,8 @@ public interface ParticipantService {
     void refreshParticipantsIfStale(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException;
     void ensureParticipantExists(long experimentId, SecuredInfo securedInfo) throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException;
     void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException;
+    LmsUserBatchStatusDto startPrepareParticipation(long experimentId);
+    Optional<LmsUserBatchStatusDto> getPrepareParticipationStatus(UUID batchId);
     List<Participant> changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo);
     Participant findParticipant(long experimentId, String userId);
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId);

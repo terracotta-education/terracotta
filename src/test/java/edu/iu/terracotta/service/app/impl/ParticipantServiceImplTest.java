@@ -44,9 +44,12 @@ import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -59,6 +62,7 @@ import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.enums.DistributionTypes;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
@@ -82,6 +86,9 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Mock
     private LmsUserBatchAsyncService lmsUserBatchAsyncService;
+
+    @Mock
+    private LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
 
     private ParticipantServiceImpl participantService;
 
@@ -115,7 +122,8 @@ public class ParticipantServiceImplTest extends BaseTest {
                 groupParticipantService,
                 lmsUserBatchAsyncService,
                 ltiDataService,
-                ltiContextRepository
+                ltiContextRepository,
+                lmsUserBatchProcessingRepository
             )
         );
         ReflectionTestUtils.setField(participantService, "batchSize", 500);
@@ -797,6 +805,49 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(participantService, never()).refreshParticipants(anyLong());
         verify(participantService).resetParticipantConsentIfExperimentNotStarted(experiment, participant);
+    }
+
+    // startPrepareParticipation must return immediately (no LMS call), leaving a durable
+    // IN_PROGRESS marker that the async job and the polling endpoint both key off of.
+    @Test
+    public void testStartPrepareParticipationSavesInProgressRecordAndReturnsDto() {
+        LmsUserBatchStatusDto result = participantService.startPrepareParticipation(1L);
+
+        assertNotNull(result.getBatchId());
+        assertEquals(LmsUserBatchStatus.IN_PROGRESS, result.getStatus());
+
+        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
+        verify(lmsUserBatchProcessingRepository).save(captor.capture());
+        assertEquals(result.getBatchId(), captor.getValue().getBatchId());
+        assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
+    }
+
+    @Test
+    public void testGetPrepareParticipationStatusReturnsDtoWhenFound() {
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchProcessing lmsUserBatchProcessing = LmsUserBatchProcessing.builder()
+            .batchId(batchId)
+            .status(LmsUserBatchStatus.COMPLETED)
+            .message("done")
+            .build();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(lmsUserBatchProcessing));
+
+        Optional<LmsUserBatchStatusDto> result = participantService.getPrepareParticipationStatus(batchId);
+
+        assertTrue(result.isPresent());
+        assertEquals(batchId, result.get().getBatchId());
+        assertEquals(LmsUserBatchStatus.COMPLETED, result.get().getStatus());
+        assertEquals("done", result.get().getMessage());
+    }
+
+    @Test
+    public void testGetPrepareParticipationStatusReturnsEmptyWhenNotFound() {
+        UUID batchId = UUID.randomUUID();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
+
+        Optional<LmsUserBatchStatusDto> result = participantService.getPrepareParticipationStatus(batchId);
+
+        assertTrue(result.isEmpty());
     }
 
     @Test

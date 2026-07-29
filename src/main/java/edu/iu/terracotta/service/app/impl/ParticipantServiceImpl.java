@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -12,6 +13,8 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -32,6 +35,7 @@ import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
+import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.dto.UserDto;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
@@ -104,6 +108,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final LmsUserBatchAsyncService lmsUserBatchAsyncService;
     private final LtiDataService ltiDataService;
     private final LtiContextRepository ltiContextRepository;
+    private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -626,6 +631,47 @@ public class ParticipantServiceImpl implements ParticipantService {
             pageRequest = PageRequest.of(++page, batchSize);
             participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
         }
+    }
+
+    /**
+     * Creates a tracking record for an async prepareParticipation run and returns its ID
+     * immediately, instead of the caller blocking on the LMS roster sync (which can take
+     * several minutes for a large course, and would otherwise hold the HTTP request/DB
+     * transaction open that whole time). The caller is responsible for actually invoking the
+     * async work (see ParticipantAsyncService.prepareParticipationAsync) with the returned
+     * batch ID.
+     *
+     * @param experimentId
+     * @return
+     */
+    @Override
+    @Transactional
+    public LmsUserBatchStatusDto startPrepareParticipation(long experimentId) {
+        UUID batchId = UUID.randomUUID();
+
+        lmsUserBatchProcessingRepository.save(
+            LmsUserBatchProcessing.builder()
+                .batchId(batchId)
+                .status(LmsUserBatchStatus.IN_PROGRESS)
+                .build()
+        );
+
+        return LmsUserBatchStatusDto.builder()
+            .batchId(batchId)
+            .status(LmsUserBatchStatus.IN_PROGRESS)
+            .build();
+    }
+
+    @Override
+    public Optional<LmsUserBatchStatusDto> getPrepareParticipationStatus(UUID batchId) {
+        return lmsUserBatchProcessingRepository.findByBatchId(batchId)
+            .map(
+                lmsUserBatchProcessing -> LmsUserBatchStatusDto.builder()
+                    .batchId(lmsUserBatchProcessing.getBatchId())
+                    .status(lmsUserBatchProcessing.getStatus())
+                    .message(lmsUserBatchProcessing.getMessage())
+                    .build()
+            );
     }
 
     @Override

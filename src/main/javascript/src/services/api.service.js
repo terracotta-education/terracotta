@@ -7,6 +7,7 @@ import store from '@/store/index'
 export const apiService = {
   deepLinkJwt,
   getApiToken,
+  getStepStatus,
   refreshToken,
   reportStep
 }
@@ -75,6 +76,18 @@ async function reportStep(experimentId, step, parameters, preferLmsChecks = fals
   }
 
   return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/step?preferLmsChecks=${preferLmsChecks}`, requestOptions).then(handleResponse)
+}
+
+/**
+ * Check the status of an async step batch (e.g. a participation-type roster prep) started by reportStep
+ */
+async function getStepStatus(experimentId, batchId) {
+  const requestOptions = {
+    method: 'GET',
+    headers: { ...authHeader()}
+  }
+
+  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/step/status/${batchId}`, requestOptions).then(handleResponse)
 }
 
 
