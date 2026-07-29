@@ -689,6 +689,31 @@ public class LtiDataServiceImplTest {
     }
 
     @Test
+    public void testFindAllByUserKeysAndPlatformDeploymentDelegatesToRepository() {
+        LtiUserEntity expected = new LtiUserEntity("user1", new Date(), null);
+        PlatformDeployment pd = PlatformDeployment.builder().keyId(1L).build();
+        List<String> userKeys = List.of("user1", "user2");
+        when(ltiUserRepository.findAllByUserKeyInAndPlatformDeployment(userKeys, pd)).thenReturn(List.of(expected));
+
+        List<LtiUserEntity> result = ltiDataService.findAllByUserKeysAndPlatformDeployment(userKeys, pd);
+
+        assertEquals(List.of(expected), result);
+    }
+
+    @Test
+    public void testFindAllByUsersAndContextDelegatesToRepository() {
+        LtiUserEntity u = new LtiUserEntity("user1", new Date(), null);
+        LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
+        LtiMembershipEntity expected = new LtiMembershipEntity(c, u, 1);
+        List<LtiUserEntity> users = List.of(u);
+        when(ltiMembershipRepository.findByUserInAndContext(users, c)).thenReturn(List.of(expected));
+
+        List<LtiMembershipEntity> result = ltiDataService.findAllByUsersAndContext(users, c);
+
+        assertEquals(List.of(expected), result);
+    }
+
+    @Test
     public void testFindOrCreateToolDeploymentReturnsExistingToolDeploymentWhenFound() {
         ToolDeployment existing = ToolDeployment.builder().deploymentId(1L).ltiDeploymentId("dep1").build();
         when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId("iss1", "client1", "dep1"))
