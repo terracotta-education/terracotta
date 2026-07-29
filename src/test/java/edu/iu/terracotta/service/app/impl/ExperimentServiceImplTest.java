@@ -46,12 +46,10 @@ import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
-import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 
 public class ExperimentServiceImplTest extends BaseTest {
 
     @Mock private AssignmentAsyncService assignmentAsyncService;
-    @Mock private ParticipantAsyncService participantAsyncService;
     @Mock private ConditionService conditionService;
     @Mock private FeatureService featureService;
 

@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -15,6 +16,7 @@ import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.dao.model.dto.AssessmentDto;
+import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.dto.StepDto;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
@@ -31,6 +33,7 @@ import edu.iu.terracotta.service.app.GroupService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.lang.Collections;
 import org.apache.commons.lang3.StringUtils;
@@ -38,6 +41,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,6 +54,7 @@ import lombok.RequiredArgsConstructor;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 @RequiredArgsConstructor
@@ -69,6 +74,7 @@ public class StepsController {
 
     private final ExposureService exposureService;
     private final ParticipantService participantService;
+    private final ParticipantAsyncService participantAsyncService;
     private final GroupService groupService;
     private final SubmissionService submissionService;
     private final AssessmentService assessmentService;
@@ -102,9 +108,18 @@ public class StepsController {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
 
-                participantService.prepareParticipation(experimentId, securedInfo);
+                // refreshParticipants can take several minutes for a large course roster, so
+                // kick it off in the background and hand back a status ID instead of blocking
+                // this request (and holding its DB transaction open) for the whole duration -
+                // unless the roster isn't due for a sync, in which case this already ran
+                // synchronously and reports COMPLETED directly
+                LmsUserBatchStatusDto lmsUserBatchStatusDto = participantService.startPrepareParticipation(experimentId, securedInfo);
 
-                return new ResponseEntity<>(HttpStatus.OK);
+                if (lmsUserBatchStatusDto.getStatus() == LmsUserBatchStatus.IN_PROGRESS) {
+                    participantAsyncService.prepareParticipationAsync(experimentId, securedInfo, lmsUserBatchStatusDto.getBatchId());
+                }
+
+                return new ResponseEntity<>(lmsUserBatchStatusDto, HttpStatus.OK);
             case DISTRIBUTION_TYPE: //We prepare the groups once the distribution type is selected.
                 if (!apijwtService.isInstructorOrHigher(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -223,6 +238,16 @@ public class StepsController {
             default:
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @GetMapping("/status/{batchId}")
+    public ResponseEntity<Object> getStepStatus(@PathVariable long experimentId, @PathVariable UUID batchId, HttpServletRequest req) throws BadTokenException, ExperimentNotMatchingException, TerracottaConnectorException {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+
+        return participantService.getPrepareParticipationStatus(batchId)
+            .map(lmsUserBatchStatusDto -> new ResponseEntity<>((Object) lmsUserBatchStatusDto, HttpStatus.OK))
+            .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
 }

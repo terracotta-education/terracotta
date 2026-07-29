@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.StepDto;
 import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentLockedException;
@@ -43,7 +46,7 @@ public class StepsControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        stepsController = new StepsController(exposureService, participantService, groupService, submissionService, assessmentService, assignmentService, questionSubmissionService, apiJwtService);
+        stepsController = new StepsController(exposureService, participantService, participantAsyncService, groupService, submissionService, assessmentService, assignmentService, questionSubmissionService, apiJwtService);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
     }
@@ -80,11 +83,31 @@ public class StepsControllerTest extends BaseTest {
     @Test
     void participationTypeHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchStatusDto lmsUserBatchStatusDto = LmsUserBatchStatusDto.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
+        when(participantService.startPrepareParticipation(1L, securedInfo)).thenReturn(lmsUserBatchStatusDto);
 
         ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(participantService).prepareParticipation(1L, securedInfo);
+        assertEquals(lmsUserBatchStatusDto, response.getBody());
+        verify(participantAsyncService).prepareParticipationAsync(1L, securedInfo, batchId);
+        verify(participantService, never()).prepareParticipation(anyLong(), any());
+    }
+
+    // when the roster isn't due for a sync, startPrepareParticipation already ran
+    // prepareParticipation synchronously and returned COMPLETED - no async job to kick off.
+    @Test
+    void participationTypeSkipsAsyncDispatchWhenAlreadyCompletedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        LmsUserBatchStatusDto lmsUserBatchStatusDto = LmsUserBatchStatusDto.builder().batchId(UUID.randomUUID()).status(LmsUserBatchStatus.COMPLETED).build();
+        when(participantService.startPrepareParticipation(1L, securedInfo)).thenReturn(lmsUserBatchStatusDto);
+
+        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(lmsUserBatchStatusDto, response.getBody());
+        verify(participantAsyncService, never()).prepareParticipationAsync(anyLong(), any(), any());
     }
 
     @Test
@@ -94,6 +117,29 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        verify(participantAsyncService, never()).prepareParticipationAsync(anyLong(), any(), any());
+    }
+
+    @Test
+    void getStepStatusReturnsStatusWhenFound() throws Exception {
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchStatusDto lmsUserBatchStatusDto = LmsUserBatchStatusDto.builder().batchId(batchId).status(LmsUserBatchStatus.COMPLETED).build();
+        when(participantService.getPrepareParticipationStatus(batchId)).thenReturn(Optional.of(lmsUserBatchStatusDto));
+
+        ResponseEntity<Object> response = stepsController.getStepStatus(1L, batchId, httpServletRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(lmsUserBatchStatusDto, response.getBody());
+    }
+
+    @Test
+    void getStepStatusReturnsNotFoundWhenMissing() throws Exception {
+        UUID batchId = UUID.randomUUID();
+        when(participantService.getPrepareParticipationStatus(batchId)).thenReturn(Optional.empty());
+
+        ResponseEntity<Object> response = stepsController.getStepStatus(1L, batchId, httpServletRequest);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
     @Test

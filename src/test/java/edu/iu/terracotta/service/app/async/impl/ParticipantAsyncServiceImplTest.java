@@ -1,10 +1,12 @@
 package edu.iu.terracotta.service.app.async.impl;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -17,6 +19,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Pageable;
@@ -24,14 +27,19 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
+import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 
 public class ParticipantAsyncServiceImplTest extends BaseTest {
 
+    @Mock private LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
     @Mock private LmsUserBatchRepository lmsUserBatchRepository;
     @Mock private LmsUserBatchAsyncService lmsUserBatchAsyncService;
     @Mock private FeatureService featureService;
@@ -45,6 +53,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         setup();
 
         participantAsyncService = new ParticipantAsyncServiceImpl(
+            lmsUserBatchProcessingRepository,
             lmsUserBatchRepository,
             ltiContextRepository,
             ltiUserRepository,
@@ -52,7 +61,8 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
             apiClient,
             featureService,
             lmsUserBatchAsyncService,
-            lmsUtils
+            lmsUtils,
+            participantService
         );
         ReflectionTestUtils.setField(participantAsyncService, "entityManager", entityManager);
         ReflectionTestUtils.setField(participantAsyncService, "batchSize", 500);
@@ -184,6 +194,48 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         verify(entityManager, times(2)).flush();
         verify(entityManager, times(2)).clear();
         verify(lmsUserBatchAsyncService).success(any(UUID.class));
+    }
+
+    @Test
+    public void testPrepareParticipationAsyncMarksCompletedOnSuccess() throws Exception {
+        UUID batchId = UUID.randomUUID();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
+
+        participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId);
+
+        verify(participantService).prepareParticipation(1L, securedInfo);
+
+        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
+        verify(lmsUserBatchProcessingRepository).save(captor.capture());
+        assertEquals(batchId, captor.getValue().getBatchId());
+        assertEquals(LmsUserBatchStatus.COMPLETED, captor.getValue().getStatus());
+    }
+
+    @Test
+    public void testPrepareParticipationAsyncMarksFailedOnException() throws Exception {
+        UUID batchId = UUID.randomUUID();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
+        doThrow(new ParticipantNotUpdatedException("boom")).when(participantService).prepareParticipation(1L, securedInfo);
+
+        assertDoesNotThrow(() -> participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId));
+
+        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
+        verify(lmsUserBatchProcessingRepository).save(captor.capture());
+        assertEquals(batchId, captor.getValue().getBatchId());
+        assertEquals(LmsUserBatchStatus.FAILED, captor.getValue().getStatus());
+        assertEquals("boom", captor.getValue().getMessage());
+    }
+
+    @Test
+    public void testPrepareParticipationAsyncUpdatesExistingRecordRatherThanCreatingNew() throws Exception {
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
+
+        participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId);
+
+        verify(lmsUserBatchProcessingRepository).save(existing);
+        assertEquals(LmsUserBatchStatus.COMPLETED, existing.getStatus());
     }
 
 }
