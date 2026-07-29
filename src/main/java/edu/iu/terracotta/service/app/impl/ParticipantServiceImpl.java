@@ -402,7 +402,16 @@ public class ParticipantServiceImpl implements ParticipantService {
                 return;
             }
 
-            refreshParticipants(experimentId);
+            Instant previousSync = ltiContextEntity.getLastParticipantSync();
+
+            try {
+                refreshParticipants(experimentId);
+            } catch (ParticipantNotUpdatedException | ExperimentNotMatchingException | TerracottaConnectorException | RuntimeException e) {
+                // restoreLastParticipantSync runs in its own transaction, so the timestamp is
+                // reliably restored even though this method's transaction is about to roll back
+                ltiContextRepository.restoreLastParticipantSync(ltiContextEntity.getContextId(), previousSync);
+                throw e;
+            }
 
             ltiContextEntity.setLastParticipantSync(Instant.now());
             ltiContextRepository.save(ltiContextEntity);

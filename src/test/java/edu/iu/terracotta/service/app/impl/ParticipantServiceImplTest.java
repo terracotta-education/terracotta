@@ -14,6 +14,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -71,6 +72,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.ParticipantAlreadyStartedException;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @SuppressWarnings("unchecked")
@@ -744,6 +746,61 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(participantService).refreshParticipants(1L);
         verify(ltiContextRepository).save(ltiContextEntity);
+    }
+
+    // a failed sync must not leave last_participant_sync showing a partial-failure value -
+    // restoring it to whatever it was immediately before this attempt (which may itself be null,
+    // if it was never successfully synced before) makes the field's meaning unambiguous, and
+    // restoreLastParticipantSync runs in its own transaction so this survives even when the
+    // failure is a RuntimeException that rolls back this method's own transaction.
+    @Test
+    public void testRefreshParticipantsIfStaleRestoresSyncTimestampOnFailureWhenNeverSyncedBefore() throws Exception {
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doThrow(new ParticipantNotUpdatedException("failed")).when(participantService).refreshParticipants(anyLong());
+
+        assertThrows(
+            ParticipantNotUpdatedException.class,
+            () -> participantService.refreshParticipantsIfStale(1L)
+        );
+
+        verify(ltiContextRepository).restoreLastParticipantSync(1L, null);
+        verify(ltiContextEntity, never()).setLastParticipantSync(any(Instant.class));
+        verify(ltiContextRepository, never()).save(any(LtiContextEntity.class));
+    }
+
+    // when the context had a prior (now-stale) sync timestamp, a failed re-sync must restore
+    // that exact prior value rather than nulling it out.
+    @Test
+    public void testRefreshParticipantsIfStaleRestoresPriorSyncTimestampOnFailureWhenPreviouslySynced() throws Exception {
+        Instant previousSync = Instant.now().minus(Duration.ofHours(25));
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(previousSync);
+        doThrow(new ParticipantNotUpdatedException("failed")).when(participantService).refreshParticipants(anyLong());
+
+        assertThrows(
+            ParticipantNotUpdatedException.class,
+            () -> participantService.refreshParticipantsIfStale(1L)
+        );
+
+        verify(ltiContextRepository).restoreLastParticipantSync(1L, previousSync);
+    }
+
+    // covers the exact production scenario: a RuntimeException (lock timeout / duplicate key)
+    // bubbling straight out of refreshParticipants, uncaught by its own connector-exception
+    // handling.
+    @Test
+    public void testRefreshParticipantsIfStaleRestoresSyncTimestampOnRuntimeExceptionFailure() throws Exception {
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doThrow(new DataIntegrityViolationException("Duplicate entry")).when(participantService).refreshParticipants(anyLong());
+
+        assertThrows(
+            DataIntegrityViolationException.class,
+            () -> participantService.refreshParticipantsIfStale(1L)
+        );
+
+        verify(ltiContextRepository).restoreLastParticipantSync(1L, null);
     }
 
     // Reproduces the production "Lock wait timeout exceeded" / duplicate-key errors: two
