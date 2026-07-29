@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -109,9 +110,14 @@ public class StepsController {
 
                 // refreshParticipants can take several minutes for a large course roster, so
                 // kick it off in the background and hand back a status ID instead of blocking
-                // this request (and holding its DB transaction open) for the whole duration
-                LmsUserBatchStatusDto lmsUserBatchStatusDto = participantService.startPrepareParticipation(experimentId);
-                participantAsyncService.prepareParticipationAsync(experimentId, securedInfo, lmsUserBatchStatusDto.getBatchId());
+                // this request (and holding its DB transaction open) for the whole duration -
+                // unless the roster isn't due for a sync, in which case this already ran
+                // synchronously and reports COMPLETED directly
+                LmsUserBatchStatusDto lmsUserBatchStatusDto = participantService.startPrepareParticipation(experimentId, securedInfo);
+
+                if (lmsUserBatchStatusDto.getStatus() == LmsUserBatchStatus.IN_PROGRESS) {
+                    participantAsyncService.prepareParticipationAsync(experimentId, securedInfo, lmsUserBatchStatusDto.getBatchId());
+                }
 
                 return new ResponseEntity<>(lmsUserBatchStatusDto, HttpStatus.OK);
             case DISTRIBUTION_TYPE: //We prepare the groups once the distribution type is selected.

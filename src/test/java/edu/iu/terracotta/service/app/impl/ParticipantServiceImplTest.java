@@ -808,10 +808,13 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     // startPrepareParticipation must return immediately (no LMS call), leaving a durable
-    // IN_PROGRESS marker that the async job and the polling endpoint both key off of.
+    // IN_PROGRESS marker that the async job and the polling endpoint both key off of - when the
+    // roster is actually due for a sync.
     @Test
-    public void testStartPrepareParticipationSavesInProgressRecordAndReturnsDto() {
-        LmsUserBatchStatusDto result = participantService.startPrepareParticipation(1L);
+    public void testStartPrepareParticipationSavesInProgressRecordAndReturnsDtoWhenStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+
+        LmsUserBatchStatusDto result = participantService.startPrepareParticipation(1L, securedInfo);
 
         assertNotNull(result.getBatchId());
         assertEquals(LmsUserBatchStatus.IN_PROGRESS, result.getStatus());
@@ -820,6 +823,23 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(lmsUserBatchProcessingRepository).save(captor.capture());
         assertEquals(result.getBatchId(), captor.getValue().getBatchId());
         assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
+        verify(participantService, never()).prepareParticipation(anyLong(), any());
+    }
+
+    // when the roster isn't due for a sync, prepareParticipation only does a fast, local
+    // consent reset anyway - so run it synchronously and report COMPLETED immediately, instead
+    // of making the caller wait out a full poll cycle for work that's already done.
+    @Test
+    public void testStartPrepareParticipationRunsSynchronouslyAndReturnsCompletedWhenNotStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(Collections.emptyList());
+
+        LmsUserBatchStatusDto result = participantService.startPrepareParticipation(1L, securedInfo);
+
+        assertNotNull(result.getBatchId());
+        assertEquals(LmsUserBatchStatus.COMPLETED, result.getStatus());
+        verify(participantService).prepareParticipation(1L, securedInfo);
+        verify(lmsUserBatchProcessingRepository, never()).save(any(LmsUserBatchProcessing.class));
     }
 
     @Test

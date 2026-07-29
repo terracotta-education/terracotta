@@ -85,7 +85,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         UUID batchId = UUID.randomUUID();
         LmsUserBatchStatusDto lmsUserBatchStatusDto = LmsUserBatchStatusDto.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
-        when(participantService.startPrepareParticipation(1L)).thenReturn(lmsUserBatchStatusDto);
+        when(participantService.startPrepareParticipation(1L, securedInfo)).thenReturn(lmsUserBatchStatusDto);
 
         ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
 
@@ -93,6 +93,21 @@ public class StepsControllerTest extends BaseTest {
         assertEquals(lmsUserBatchStatusDto, response.getBody());
         verify(participantAsyncService).prepareParticipationAsync(1L, securedInfo, batchId);
         verify(participantService, never()).prepareParticipation(anyLong(), any());
+    }
+
+    // when the roster isn't due for a sync, startPrepareParticipation already ran
+    // prepareParticipation synchronously and returned COMPLETED - no async job to kick off.
+    @Test
+    void participationTypeSkipsAsyncDispatchWhenAlreadyCompletedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        LmsUserBatchStatusDto lmsUserBatchStatusDto = LmsUserBatchStatusDto.builder().batchId(UUID.randomUUID()).status(LmsUserBatchStatus.COMPLETED).build();
+        when(participantService.startPrepareParticipation(1L, securedInfo)).thenReturn(lmsUserBatchStatusDto);
+
+        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(lmsUserBatchStatusDto, response.getBody());
+        verify(participantAsyncService, never()).prepareParticipationAsync(anyLong(), any(), any());
     }
 
     @Test

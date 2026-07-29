@@ -634,19 +634,34 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     /**
-     * Creates a tracking record for an async prepareParticipation run and returns its ID
-     * immediately, instead of the caller blocking on the LMS roster sync (which can take
+     * If the LTI context's participant roster isn't due for a sync, prepareParticipation only
+     * does a fast, local consent reset anyway (see refreshParticipantsIfStale) - so run it
+     * synchronously and report COMPLETED immediately, instead of making the caller wait out a
+     * full poll cycle for work that's already done by the time it would first check.
+     *
+     * Otherwise, creates a tracking record for an async prepareParticipation run and returns its
+     * ID immediately, instead of the caller blocking on the LMS roster sync (which can take
      * several minutes for a large course, and would otherwise hold the HTTP request/DB
      * transaction open that whole time). The caller is responsible for actually invoking the
      * async work (see ParticipantAsyncService.prepareParticipationAsync) with the returned
      * batch ID.
      *
      * @param experimentId
+     * @param securedInfo
      * @return
      */
     @Override
     @Transactional
-    public LmsUserBatchStatusDto startPrepareParticipation(long experimentId) {
+    public LmsUserBatchStatusDto startPrepareParticipation(long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        if (!isParticipantSyncStale(experimentId)) {
+            prepareParticipation(experimentId, securedInfo);
+
+            return LmsUserBatchStatusDto.builder()
+                .batchId(UUID.randomUUID())
+                .status(LmsUserBatchStatus.COMPLETED)
+                .build();
+        }
+
         UUID batchId = UUID.randomUUID();
 
         lmsUserBatchProcessingRepository.save(
@@ -660,6 +675,16 @@ public class ParticipantServiceImpl implements ParticipantService {
             .batchId(batchId)
             .status(LmsUserBatchStatus.IN_PROGRESS)
             .build();
+    }
+
+    private boolean isParticipantSyncStale(long experimentId) {
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+
+        if (experiment == null) {
+            return true;
+        }
+
+        return !isParticipantSyncFresh(experiment.getLtiContextEntity());
     }
 
     @Override
