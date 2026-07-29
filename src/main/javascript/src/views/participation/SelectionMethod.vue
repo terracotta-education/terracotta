@@ -233,6 +233,26 @@ const navigateAfterParticipationTypeSelected = (selectedParticipationType, exper
   }
 };
 
+const isTerminalPrepareParticipationStatus = status => (
+  status === "COMPLETED" ||
+  status === "PROCESSED" ||
+  status === "FAILED"
+);
+
+const handleTerminalPrepareParticipationStatus = async (status, message, selectedParticipationType, experimentId) => {
+  if (status === "FAILED") {
+    await Swal.fire(
+      message
+        ? `Error: ${message}`
+        : "There was an error preparing participants for this experiment."
+    );
+
+    return;
+  }
+
+  navigateAfterParticipationTypeSelected(selectedParticipationType, experimentId);
+};
+
 // refreshParticipants (kicked off server-side by reportStep) can take several minutes for a
 // large course roster, so instead of blocking on that one request, poll its status every 5
 // seconds until it reaches a terminal state - giving up after an hour rather than polling
@@ -259,11 +279,7 @@ const pollPrepareParticipationStatus = (experimentId, batchId, selectedParticipa
       });
       const status = statusResponse?.data?.status;
 
-      if (
-        status !== "COMPLETED" &&
-        status !== "PROCESSED" &&
-        status !== "FAILED"
-      ) {
+      if (!isTerminalPrepareParticipationStatus(status)) {
         // still IN_PROGRESS/PENDING, or the poll request itself failed - keep polling either way
         return;
       }
@@ -271,17 +287,12 @@ const pollPrepareParticipationStatus = (experimentId, batchId, selectedParticipa
       stopPolling();
       preparingParticipants.value = false;
 
-      if (status === "FAILED") {
-        await Swal.fire(
-          statusResponse?.data?.message
-            ? `Error: ${statusResponse.data.message}`
-            : "There was an error preparing participants for this experiment."
-        );
-
-        return;
-      }
-
-      navigateAfterParticipationTypeSelected(selectedParticipationType, experimentId);
+      await handleTerminalPrepareParticipationStatus(
+        status,
+        statusResponse?.data?.message,
+        selectedParticipationType,
+        experimentId
+      );
     },
     POLL_INTERVAL_MS
   );
@@ -327,12 +338,28 @@ const setParticipationType = async type => {
       }
 
       const batchId = stepResponse?.data?.batchId;
+      const initialStatus = stepResponse?.data?.status;
 
-      if (!batchId) {
+      if (!batchId || !initialStatus) {
         preparingParticipants.value = false;
 
         await Swal.fire(
           "There was an error preparing participants for this experiment."
+        );
+
+        return;
+      }
+
+      if (isTerminalPrepareParticipationStatus(initialStatus)) {
+        // the roster wasn't due for a sync, so the backend already finished synchronously -
+        // no need to poll for something that's already done
+        preparingParticipants.value = false;
+
+        await handleTerminalPrepareParticipationStatus(
+          initialStatus,
+          stepResponse?.data?.message,
+          experiment.participationType,
+          experimentId
         );
 
         return;

@@ -128,6 +128,72 @@ describe("SelectionMethod", () => {
     }
   });
 
+  // when the roster isn't due for a sync, the backend runs prepareParticipation synchronously
+  // and reportStep's own response is already COMPLETED - no polling should happen at all.
+  it("routes immediately without polling when reportStep already reports COMPLETED", async () => {
+    experimentService.update.mockResolvedValue({ status: 200 });
+    apiService.reportStep.mockResolvedValue({
+      status: 200,
+      data: { batchId: BATCH_ID, status: "COMPLETED" }
+    });
+
+    const wrapper = mountComponent(SelectionMethod, {
+      props: { experiment: buildExperiment() }
+    });
+
+    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+    await selectButtons[0].trigger("click");
+    await flushPromisesAndTicks(wrapper);
+
+    expect(push).toHaveBeenCalledWith({
+      name: "ParticipationTypeConsentOverview",
+      params: { experiment: 1 }
+    });
+    expect(apiService.getStepStatus).not.toHaveBeenCalled();
+  });
+
+  it("routes immediately without polling when reportStep already reports PROCESSED", async () => {
+    experimentService.update.mockResolvedValue({ status: 200 });
+    apiService.reportStep.mockResolvedValue({
+      status: 200,
+      data: { batchId: BATCH_ID, status: "PROCESSED" }
+    });
+
+    const wrapper = mountComponent(SelectionMethod, {
+      props: { experiment: buildExperiment() }
+    });
+
+    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+    await selectButtons[1].trigger("click");
+    await flushPromisesAndTicks(wrapper);
+
+    expect(push).toHaveBeenCalledWith({
+      name: "ParticipationTypeManual",
+      params: { experiment: 1 }
+    });
+    expect(apiService.getStepStatus).not.toHaveBeenCalled();
+  });
+
+  it("shows an error alert without polling when reportStep already reports FAILED", async () => {
+    experimentService.update.mockResolvedValue({ status: 200 });
+    apiService.reportStep.mockResolvedValue({
+      status: 200,
+      data: { batchId: BATCH_ID, status: "FAILED", message: "canvas error" }
+    });
+
+    const wrapper = mountComponent(SelectionMethod, {
+      props: { experiment: buildExperiment() }
+    });
+
+    const selectButtons = wrapper.findAllComponents({ name: "VBtn" });
+    await selectButtons[0].trigger("click");
+    await flushPromisesAndTicks(wrapper);
+
+    expect(Swal.fire).toHaveBeenCalledWith("Error: canvas error");
+    expect(push).not.toHaveBeenCalled();
+    expect(apiService.getStepStatus).not.toHaveBeenCalled();
+  });
+
   it("selecting MANUAL routes to ParticipationTypeManual once the poll completes", async () => {
     vi.useFakeTimers();
 
