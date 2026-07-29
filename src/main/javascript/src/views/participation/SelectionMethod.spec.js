@@ -192,7 +192,7 @@ describe("SelectionMethod", () => {
     await selectButtons[0].trigger("click");
     await flushPromisesAndTicks(wrapper);
 
-    expect(Swal.fire).toHaveBeenCalledWith("Error: canvas error");
+    expect(Swal.fire).toHaveBeenCalledWith(`An error occurred processing the enrollment. Error ID: ${BATCH_ID}`);
     expect(push).not.toHaveBeenCalled();
     expect(apiService.getStepStatus).not.toHaveBeenCalled();
   });
@@ -333,7 +333,7 @@ describe("SelectionMethod", () => {
       await flushWithFakeTimers(wrapper);
       await vi.advanceTimersByTimeAsync(5000);
 
-      expect(Swal.fire).toHaveBeenCalledWith("Error: canvas error");
+      expect(Swal.fire).toHaveBeenCalledWith(`An error occurred processing the enrollment. Error ID: ${BATCH_ID}`);
       expect(push).not.toHaveBeenCalled();
 
       // polling must stop after the FAILED status - no further calls on later ticks
@@ -370,7 +370,7 @@ describe("SelectionMethod", () => {
       await vi.advanceTimersByTimeAsync(5000);
 
       expect(Swal.fire).toHaveBeenCalledWith(
-        "There was an error preparing participants for this experiment."
+        `An error occurred processing the enrollment. Error ID: ${BATCH_ID}`
       );
       expect(push).not.toHaveBeenCalled();
 

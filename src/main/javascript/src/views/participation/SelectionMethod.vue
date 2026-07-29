@@ -242,12 +242,10 @@ const isTerminalPrepareParticipationStatus = status => (
   status === "FAILED"
 );
 
-const handleTerminalPrepareParticipationStatus = async (status, message, selectedParticipationType, experimentId) => {
+const handleTerminalPrepareParticipationStatus = async (status, batchId, selectedParticipationType, experimentId) => {
   if (status === "FAILED") {
     await Swal.fire(
-      message
-        ? `Error: ${message}`
-        : "There was an error preparing participants for this experiment."
+      `An error occurred processing the enrollment. Error ID: ${batchId}`
     );
 
     return;
@@ -293,7 +291,7 @@ const pollPrepareParticipationStatus = (experimentId, batchId, selectedParticipa
 
       await handleTerminalPrepareParticipationStatus(
         status,
-        statusResponse?.data?.message,
+        batchId,
         selectedParticipationType,
         experimentId
       );
@@ -361,7 +359,7 @@ const setParticipationType = async type => {
 
         await handleTerminalPrepareParticipationStatus(
           initialStatus,
-          stepResponse?.data?.message,
+          batchId,
           experiment.participationType,
           experimentId
         );
