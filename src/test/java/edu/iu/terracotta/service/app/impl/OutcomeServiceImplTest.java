@@ -292,15 +292,17 @@ public class OutcomeServiceImplTest extends BaseTest {
 
         outcomeService.updateOutcomeGrades(1L, securedInfo, true);
 
-        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(participantService, never()).refreshParticipantsIfStale(anyLong());
         verify(outcomeScoreRepository, never()).saveAll(any());
     }
 
+    // updateOutcomeGrades throttles the roster sync (refreshParticipantsIfStale) rather than
+    // syncing unconditionally on every gradebook/outcome view.
     @Test
     public void testUpdateOutcomeGradesRefreshesParticipants() throws Exception {
         outcomeService.updateOutcomeGrades(1L, securedInfo, true);
 
-        verify(participantService).refreshParticipants(1L);
+        verify(participantService).refreshParticipantsIfStale(1L);
     }
 
     @Test

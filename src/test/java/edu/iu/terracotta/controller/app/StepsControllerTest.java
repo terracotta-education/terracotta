@@ -3,6 +3,7 @@ package edu.iu.terracotta.controller.app;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -343,11 +344,12 @@ public class StepsControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
+        verify(participantService, never()).ensureParticipantExists(anyLong(), any());
         verify(participantService, never()).refreshParticipants(1L);
     }
 
     @Test
-    void launchConsentAssignmentRefreshesWhenEmptyTest() throws Exception {
+    void launchConsentAssignmentCreatesParticipantWhenEmptyTest() throws Exception {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(participantService.getParticipants(1L, USER_ID, true, securedInfo, false))
@@ -357,7 +359,8 @@ public class StepsControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
-        verify(participantService, times(1)).refreshParticipants(1L);
+        verify(participantService, times(1)).ensureParticipantExists(1L, securedInfo);
+        verify(participantService, never()).refreshParticipants(1L);
     }
 
     @Test

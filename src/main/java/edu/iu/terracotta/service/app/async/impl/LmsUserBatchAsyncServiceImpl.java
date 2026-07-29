@@ -32,14 +32,17 @@ public class LmsUserBatchAsyncServiceImpl implements LmsUserBatchAsyncService {
     @Async
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    // AFTER_COMPLETION (not AFTER_COMMIT) so a fail() published just before the triggering
+    // transaction rolls back still gets recorded - AFTER_COMMIT-only listeners are simply never
+    // invoked when the transaction they were registered against rolls back instead of commits.
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMPLETION)
     public void handleBatchEvent(LmsUserBatchEvent lmsUserBatchEvent) {
         // delete the data rows
         lmsUserBatchRepository.deleteByBatchId(lmsUserBatchEvent.batchId());
 
         // set the batch status; if one is not available, create it
         LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(lmsUserBatchEvent.batchId())
-            .orElse(LmsUserBatchProcessing.builder().build());
+            .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(lmsUserBatchEvent.batchId()).build());
 
         lmsUserBatchProcessing.setStatus(lmsUserBatchEvent.status());
 

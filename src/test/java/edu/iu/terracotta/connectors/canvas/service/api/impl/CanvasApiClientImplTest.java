@@ -62,6 +62,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
 import edu.ksu.canvas.model.assignment.Assignment;
+import edu.ksu.canvas.oauth.OauthToken;
 
 public class CanvasApiClientImplTest extends BaseTest {
 
@@ -864,6 +865,40 @@ public class CanvasApiClientImplTest extends BaseTest {
 
         verify(userReaderExtended, times(1)).getUsersInCourse(any(), eq(options.getBatchId()));
         assertTrue(result.isEmpty());
+    }
+
+    // listUsersForCourse's OauthToken must actually be able to refresh itself: it's a long-running,
+    // multi-page call that can outlive the token's remaining lifetime, unlike the single-request
+    // calls elsewhere that use NonRefreshableOauthToken.
+    @Test
+    void testListUsersForCourseUsesRefreshableTokenThatFetchesAgainOnRefresh() throws Exception {
+        LmsGetUsersInCourseOptions options = LmsGetUsersInCourseOptions.builder()
+            .lmsCourseId("course1")
+            .enrollmentState(List.of(EnrollmentState.ACTIVE))
+            .enrollmentType(List.of(EnrollmentType.STUDENT))
+            .batchSize(50)
+            .batchId(UUID.randomUUID())
+            .build();
+
+        ArgumentCaptor<OauthToken> tokenCaptor = ArgumentCaptor.forClass(OauthToken.class);
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockConstruction(
+            CanvasApiFactoryExtended.class,
+            (mock, context) -> when(mock.getReader(eq(UserReaderExtended.class), tokenCaptor.capture())).thenReturn(userReaderExtended)
+        )) {
+            canvasApiClientService.listUsersForCourse(options, ltiUserEntity);
+        }
+
+        verify(canvasLmsOAuthService, times(1)).getAccessToken(ltiUserEntity);
+
+        OauthToken token = tokenCaptor.getValue();
+        assertTrue(token instanceof RefreshableCanvasOauthToken);
+        assertEquals(ACCESS_TOKEN, token.getAccessToken());
+
+        token.refresh();
+
+        verify(canvasLmsOAuthService, times(2)).getAccessToken(ltiUserEntity);
+        assertEquals(ACCESS_TOKEN, token.getAccessToken());
     }
 
     @Test

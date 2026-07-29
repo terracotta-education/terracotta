@@ -303,23 +303,27 @@ public class ExperimentServiceImplTest extends BaseTest {
         verify(participantService).setAllToTrue(1L);
     }
 
+    // MANUAL participation type has no consent process, so existing participants' consent
+    // resets to null - matching buildAndSaveParticipant's mapping for brand-new participants.
     @Test
-    public void testUpdateExperimentParticipationChangeToManualCallsSetAllToFalse() throws Exception {
+    public void testUpdateExperimentParticipationChangeToManualCallsSetAllToNull() throws Exception {
         ExperimentDto experimentDto = ExperimentDto.builder().title("Title").exposureType("BETWEEN").participationType("MANUAL").build();
 
         experimentService.updateExperiment(1L, 1L, experimentDto, securedInfo);
 
-        verify(participantService).setAllToFalse(1L);
+        verify(participantService).setAllToNull(1L);
         verify(experiment).setParticipationType(ParticipationTypes.MANUAL);
     }
 
+    // CONSENT participation type starts unanswered (not yet consented), so existing
+    // participants' consent resets to false - matching buildAndSaveParticipant's mapping.
     @Test
-    public void testUpdateExperimentParticipationChangeToConsentCallsSetAllToNull() throws Exception {
+    public void testUpdateExperimentParticipationChangeToConsentCallsSetAllToFalse() throws Exception {
         ExperimentDto experimentDto = ExperimentDto.builder().title("Title").exposureType("BETWEEN").participationType("CONSENT").build();
 
         experimentService.updateExperiment(1L, 1L, experimentDto, securedInfo);
 
-        verify(participantService).setAllToNull(1L);
+        verify(participantService).setAllToFalse(1L);
         verify(experiment).setParticipationType(ParticipationTypes.CONSENT);
     }
 
