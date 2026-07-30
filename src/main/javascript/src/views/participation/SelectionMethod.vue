@@ -4,7 +4,7 @@
 >
   <page-loading
       :display="preparingParticipants"
-      message="We are tranferring students from your LMS course. Depending on the roster size, this may take a few moments."
+      message="We are transferring students from your LMS course. Depending on the roster size, this may take a few moments. Please do not navigate away from this page."
     />
   <v-alert
     v-if="displayConsentFileMissingAlert"
