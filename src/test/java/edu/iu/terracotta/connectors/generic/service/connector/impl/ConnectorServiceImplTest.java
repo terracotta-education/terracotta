@@ -1,13 +1,11 @@
 package edu.iu.terracotta.connectors.generic.service.connector.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +13,7 @@ import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.canvas.service.api.impl.CanvasApiClientImpl;
 import edu.iu.terracotta.connectors.canvas.service.lms.impl.CanvasLmsOAuthServiceImpl;
 import edu.iu.terracotta.connectors.canvas.service.lms.impl.CanvasLmsUtilsImpl;
+import edu.iu.terracotta.connectors.generic.annotation.TerracottaConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
@@ -171,11 +170,13 @@ public class ConnectorServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testCreateConnectorMapPopulatesFromClasspathScan() {
-        // the real ApplicationContext.getBean(...) never returns null (it throws
-        // NoSuchBeanDefinitionException instead) - stub a non-null return so the diagnostic
-        // logging in createConnectorMap (which calls .getClass() on the resolved bean) doesn't NPE
-        when(applicationContext.getBean(any(Class.class))).thenReturn(new Object());
+    public void testCreateConnectorMapRegistersBeansFoundByApplicationContext() {
+        // CanvasApiClientImpl is @TerracottaConnector(CANVAS) and implements ApiClient, which is
+        // itself @TerracottaConnector(GENERIC) - a real class (not a mock) is used here since
+        // createConnectorMap reflects on the bean's actual declared type/interfaces.
+        when(applicationContext.getBeanNamesForAnnotation(TerracottaConnector.class)).thenReturn(new String[] {"canvasApiClientImpl"});
+        doReturn(CanvasApiClientImpl.class).when(applicationContext).getType("canvasApiClientImpl");
+        when(applicationContext.getBean("canvasApiClientImpl")).thenReturn(genericApiClient);
 
         connectorService.createConnectorMap();
 
@@ -185,8 +186,21 @@ public class ConnectorServiceImplTest extends BaseTest {
 
         assertNotNull(populatedMap);
         assertTrue(populatedMap.containsKey(LmsConnector.CANVAS));
-        assertFalse(populatedMap.get(LmsConnector.CANVAS).isEmpty());
-        verify(applicationContext, atLeastOnce()).getBean(any(Class.class));
+        assertEquals(genericApiClient, populatedMap.get(LmsConnector.CANVAS).get(ApiClient.class.getSimpleName()));
+    }
+
+    @Test
+    public void testCreateConnectorMapSkipsBeanWithUnresolvableType() {
+        when(applicationContext.getBeanNamesForAnnotation(TerracottaConnector.class)).thenReturn(new String[] {"someLazyBean"});
+        doReturn(null).when(applicationContext).getType("someLazyBean");
+
+        connectorService.createConnectorMap();
+
+        @SuppressWarnings("unchecked")
+        Map<LmsConnector, Map<String, Object>> populatedMap =
+            (Map<LmsConnector, Map<String, Object>>) ReflectionTestUtils.getField(connectorService, "connectorServiceMap");
+
+        assertTrue(populatedMap.get(LmsConnector.CANVAS).isEmpty());
     }
 
 }
