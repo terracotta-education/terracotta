@@ -26,5 +26,6 @@ public class LmsGetUsersInCourseOptions {
     private List<EnrollmentType> enrollmentType;
     private Integer batchSize;
     private UUID batchId;
+    private Long contextId;
 
 }

@@ -90,7 +90,7 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         CourseUsers ret = canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, batchId, true);
 
         assertNull(ret);
-        verify(lmsUserBatchWriteService).startBatch(batchId);
+        verify(lmsUserBatchWriteService).startBatch(batchId, 1L);
     }
 
     @Test
@@ -156,7 +156,7 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
 
         assertThrows(ConnectionException.class, () -> canvasAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, batchId, true));
 
-        verify(lmsUserBatchWriteService).startBatch(batchId);
+        verify(lmsUserBatchWriteService).startBatch(batchId, 1L);
         // marked failed exactly once - not once explicitly and once more via the generic catch block
         verify(lmsUserBatchWriteService, times(1)).markFailed(eq(batchId), anyString());
     }

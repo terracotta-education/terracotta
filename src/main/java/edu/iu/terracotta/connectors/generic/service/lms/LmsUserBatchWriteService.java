@@ -14,7 +14,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
  */
 public interface LmsUserBatchWriteService {
 
-    void startBatch(UUID batchId);
+    void startBatch(UUID batchId, Long contextId);
     void saveUsers(List<LmsUserBatch> usersToSave);
     void markFailed(UUID batchId, String message);
 

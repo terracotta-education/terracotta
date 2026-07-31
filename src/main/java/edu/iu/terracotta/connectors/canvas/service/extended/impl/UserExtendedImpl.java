@@ -48,30 +48,30 @@ public class UserExtendedImpl extends BaseImpl<UserExtended, UserReaderExtended,
     }
 
     @Override
-    public void getUsersInCourse(GetUsersInCourseOptions getUsersInCourseOptions, UUID batchId) throws IOException, InvalidOauthTokenException, TerracottaConnectorException {
+    public void getUsersInCourse(GetUsersInCourseOptions getUsersInCourseOptions, UUID batchId, Long contextId) throws IOException, InvalidOauthTokenException, TerracottaConnectorException {
         log.debug("Retrieving users in course {}", getUsersInCourseOptions.getCourseId());
         String url = buildCanvasUrl("courses/" + getUsersInCourseOptions.getCourseId() + "/users", getUsersInCourseOptions.getOptionsMap());
 
-        getListFromCanvas(url, batchId);
+        getListFromCanvas(url, batchId, contextId);
     }
 
-    private void getListFromCanvas(String url, UUID batchId) throws IOException, InvalidOauthTokenException, TerracottaConnectorException {
+    private void getListFromCanvas(String url, UUID batchId, Long contextId) throws IOException, InvalidOauthTokenException, TerracottaConnectorException {
         Consumer<Response> consumer = null;
 
         if (responseCallback != null) {
             consumer = response -> responseCallback.accept(responseParser.parseToList(listType(), response));
         }
 
-        getFromCanvas(oauthToken, url, consumer, batchId);
+        getFromCanvas(oauthToken, url, consumer, batchId, contextId);
     }
 
-    private void getFromCanvas(@NotNull OauthToken oauthToken, @NotNull String url, Consumer<Response> callback, UUID batchId) throws InvalidOauthTokenException, IOException, TerracottaConnectorException {
+    private void getFromCanvas(@NotNull OauthToken oauthToken, @NotNull String url, Consumer<Response> callback, UUID batchId, Long contextId) throws InvalidOauthTokenException, IOException, TerracottaConnectorException {
         LmsUserBatchWriteService lmsUserBatchWriteService = ContextProvider.getBean(LmsUserBatchWriteService.class);
 
         // committed independently of whatever transaction the caller is running in, so progress
         // is visible immediately and durable even if a later page - or the caller's own
         // transaction - fails
-        lmsUserBatchWriteService.startBatch(batchId);
+        lmsUserBatchWriteService.startBatch(batchId, contextId);
 
         try {
             while (StringUtils.isNotBlank(url)) {

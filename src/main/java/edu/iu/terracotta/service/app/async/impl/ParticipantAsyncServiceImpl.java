@@ -99,6 +99,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
         apiClient.listUsersForCourse(
             LmsGetUsersInCourseOptions.builder()
                 .batchId(batchId)
+                .contextId(ltiContextEntity.getContextId())
                 .batchSize(batchSize)
                 .enrollmentState(Arrays.asList(EnrollmentState.ACTIVE, EnrollmentState.INVITED))
                 .enrollmentType(Arrays.asList(EnrollmentType.STUDENT))
