@@ -105,6 +105,19 @@ public class OneEdTechAdvantageMembershipServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testCallMembershipServiceSuccessCreatesInProgressRecordWithContextId() throws ConnectionException, TerracottaConnectorException {
+        UUID batchId = UUID.randomUUID();
+
+        oneEdTechAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, batchId, true);
+
+        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
+        verify(lmsUserBatchProcessingRepository).saveAndFlush(captor.capture());
+        assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
+        assertEquals(batchId, captor.getValue().getBatchId());
+        assertEquals(ltiContextEntity.getContextId(), captor.getValue().getContextId());
+    }
+
+    @Test
     public void testCallMembershipServiceOnlyStudentsTrueFiltersNonLearners() throws ConnectionException, TerracottaConnectorException {
         CourseUser learner = CourseUser.builder().userId("learnerId").name("Learner One").email("learner@example.com").roles(List.of(Roles.LEARNER)).build();
         CourseUser instructor = CourseUser.builder().userId("instructorId").name("Instructor One").email("instructor@example.com").roles(List.of(Roles.INSTRUCTOR)).build();

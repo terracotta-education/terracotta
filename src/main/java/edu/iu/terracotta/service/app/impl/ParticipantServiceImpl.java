@@ -529,7 +529,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public LmsUserBatchStatusDto startPrepareParticipation(long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        if (!isParticipantSyncStale(experimentId)) {
+        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+
+        if (!isParticipantSyncStale(experiment)) {
             prepareParticipation(experimentId, securedInfo);
 
             return LmsUserBatchStatusDto.builder()
@@ -543,6 +545,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         lmsUserBatchProcessingRepository.save(
             LmsUserBatchProcessing.builder()
                 .batchId(batchId)
+                .contextId(experiment == null ? null : experiment.getLtiContextEntity().getContextId())
                 .status(LmsUserBatchStatus.IN_PROGRESS)
                 .build()
         );
@@ -553,9 +556,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .build();
     }
 
-    private boolean isParticipantSyncStale(long experimentId) {
-        Experiment experiment = experimentRepository.findByExperimentId(experimentId);
-
+    private boolean isParticipantSyncStale(Experiment experiment) {
         if (experiment == null) {
             return true;
         }
