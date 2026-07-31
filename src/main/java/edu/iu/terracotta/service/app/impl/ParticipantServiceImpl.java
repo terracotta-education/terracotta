@@ -69,6 +69,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -125,8 +126,21 @@ public class ParticipantServiceImpl implements ParticipantService {
         return participantRepository.findByExperiment_ExperimentId(experimentId);
     }
 
+    // READ_COMMITTED (rather than MySQL's default REPEATABLE READ): this call chain may lead
+    // into refreshParticipants, which writes lms_user_batch via LmsUserBatchWriteService in a
+    // REQUIRES_NEW sub-transaction so a huge sync doesn't hold one giant lock for its whole
+    // duration. Under REPEATABLE READ, THIS transaction's consistent-read snapshot is fixed as of
+    // its first read (here, the very first repository call below) - so a REQUIRES_NEW
+    // sub-transaction that commits AFTER that point is invisible to this transaction's later
+    // reads, even though the rows are genuinely there (findByBatchId would return nothing for a
+    // batchId that demonstrably matches in the DB). READ_COMMITTED gives each statement in this
+    // transaction a fresh view of whatever's committed at that moment instead of a frozen one.
+    // Self-invocation within this class means only the actual entry point's isolation setting
+    // takes effect for a whole call chain, so this same isolation is set on every public method
+    // here that can be an entry point into refreshParticipants (see also refreshParticipants,
+    // refreshParticipantsIfStale, ensureParticipantExists, prepareParticipation below).
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<ParticipantDto> getParticipants(long experimentId, String userId, boolean student, SecuredInfo securedInfo, boolean refresh) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         // retrieve published assignment IDs from LMS
@@ -295,8 +309,12 @@ public class ParticipantServiceImpl implements ParticipantService {
         participantRepository.saveAndFlush(participantToChange);
     }
 
+    // see the READ_COMMITTED comment on getParticipants above - only relevant if this method is
+    // ever an actual entry point (all current callers reach it via self-invocation from within
+    // this same class, where this annotation is bypassed and the real entry point's isolation
+    // governs instead)
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void refreshParticipants(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Instant startTime = Instant.now();
 
@@ -351,8 +369,11 @@ public class ParticipantServiceImpl implements ParticipantService {
      *
      * @param experimentId
      */
+    // see the READ_COMMITTED comment on getParticipants above - this is a real entry point
+    // (OutcomeServiceImpl/ExportServiceImpl call it directly, and prepareParticipation below
+    // reaches it via self-invocation)
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void refreshParticipantsIfStale(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
 
@@ -455,8 +476,11 @@ public class ParticipantServiceImpl implements ParticipantService {
         return participantRepository.save(newParticipant);
     }
 
+    // see the READ_COMMITTED comment on getParticipants above - a real entry point
+    // (StepsController calls it directly), and its fallback path reaches refreshParticipants via
+    // self-invocation
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void ensureParticipantExists(long experimentId, SecuredInfo securedInfo) throws ExperimentNotMatchingException, ParticipantNotUpdatedException, TerracottaConnectorException {
         Participant participant = participantRepository.findByExperiment_ExperimentIdAndLtiUserEntity_UserKey(experimentId, securedInfo.getUserId());
 
@@ -481,8 +505,11 @@ public class ParticipantServiceImpl implements ParticipantService {
         refreshParticipants(experimentId);
     }
 
+    // see the READ_COMMITTED comment on getParticipants above - a real entry point
+    // (ParticipantAsyncServiceImpl calls it directly), reaching refreshParticipantsIfStale
+    // (and from there refreshParticipants) via self-invocation
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         // throttled, so picking/re-picking a participation type doesn't always force a full LMS
         // roster sync; still proactively populates the roster (rather than waiting for each

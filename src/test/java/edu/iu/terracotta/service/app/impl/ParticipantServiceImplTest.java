@@ -36,9 +36,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
@@ -1017,6 +1020,41 @@ public class ParticipantServiceImplTest extends BaseTest {
             DataServiceException.class,
             () -> participantService.postConsentSubmission(participant, securedInfo)
         );
+    }
+
+    // refreshParticipants writes lms_user_batch via a REQUIRES_NEW sub-transaction
+    // (LmsUserBatchWriteService), so its own transaction must run under READ_COMMITTED rather
+    // than MySQL's default REPEATABLE READ - otherwise its later reads (e.g. the findByBatchId
+    // pagination loop) use a snapshot frozen before that sub-transaction committed and see
+    // nothing, even though the rows are genuinely there. Self-invocation means only the actual
+    // entry point's isolation setting takes effect for a whole call chain, so every public method
+    // that can be an entry point into refreshParticipants needs this set directly - a plain
+    // Mockito test can't exercise the real DB behavior this guards against, but it can at least
+    // catch this attribute being silently dropped in a future refactor.
+    @Test
+    public void testEntryPointsIntoRefreshParticipantsUseReadCommittedIsolation() throws NoSuchMethodException {
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("getParticipants", long.class, String.class, boolean.class, SecuredInfo.class, boolean.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("refreshParticipants", long.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("refreshParticipantsIfStale", long.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("ensureParticipantExists", long.class, SecuredInfo.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("prepareParticipation", Long.class, SecuredInfo.class)
+        );
+    }
+
+    private void assertIsolationReadCommitted(java.lang.reflect.Method method) {
+        Transactional transactional = method.getAnnotation(Transactional.class);
+
+        assertNotNull(transactional, method.getName() + " is missing @Transactional");
+        assertEquals(Isolation.READ_COMMITTED, transactional.isolation(), method.getName() + " must use READ_COMMITTED isolation");
     }
 
 }
