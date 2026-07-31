@@ -287,9 +287,18 @@ onMounted(async () => {
     outcomeId.value
   ]);
 
-  await participantsStore.fetchParticipants([
+  const result = await participantsStore.fetchParticipants([
     experimentId.value
   ]);
+
+  if (result === null) {
+    Swal.fire({
+      text: "Could not load participants.",
+      icon: "error"
+    });
+
+    return;
+  }
 
   await outcomeStore.fetchOutcomeScores([
     experimentId.value,

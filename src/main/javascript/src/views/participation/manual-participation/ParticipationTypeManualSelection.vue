@@ -294,12 +294,16 @@ onMounted(async () => {
   // page-loading rather than leaving the panels looking empty/stuck with no explanation
   loadingParticipants.value = true;
 
-  await participantsStore.fetchParticipants([
+  const result = await participantsStore.fetchParticipants([
     props.experiment.experimentId,
     true
   ]);
 
   loadingParticipants.value = false;
+
+  if (result === null) {
+    await Swal.fire("Error loading participants");
+  }
 
   deleteAttributesFromElement(
     ".v-expansion-panel",
@@ -310,9 +314,13 @@ onMounted(async () => {
 onBeforeRouteUpdate(
   async (to, from, next) => {
     try {
-      await participantsStore.fetchParticipants([
+      const result = await participantsStore.fetchParticipants([
         to.params.experimentId
       ]);
+
+      if (result === null) {
+        await Swal.fire("Error loading participants");
+      }
 
       next();
     } catch {

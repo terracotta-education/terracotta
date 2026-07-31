@@ -87,6 +87,8 @@ import {
   onMounted
 } from "vue";
 
+import Swal from "sweetalert2";
+
 import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 
 import { container as messagingMessageContainerModule } from "@/store/messaging/container.module";
@@ -255,9 +257,15 @@ const handlePreview = async participantId => {
 const initialize = async () => {
   messagingMessageStore.setPreview(null);
 
-  await participantsStore.fetchParticipants([
+  const result = await participantsStore.fetchParticipants([
     props.experimentId
   ]);
+
+  if (result === null) {
+    await Swal.fire("Error loading participants");
+
+    return false;
+  }
 
   participantsStore.setParticipants(
     participants.value.map(participant => ({
@@ -265,6 +273,8 @@ const initialize = async () => {
       participantId: null
     }))
   );
+
+  return true;
 };
 
 const panelExpansion = () => {
@@ -277,9 +287,7 @@ const panelExpansion = () => {
 };
 
 onMounted(async () => {
-  await initialize();
-
-  loaded.value = true;
+  loaded.value = await initialize();
 
   await nextTick();
 

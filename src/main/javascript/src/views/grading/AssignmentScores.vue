@@ -14,6 +14,14 @@
       Unable to load assignment data.
     </v-alert>
   </div>
+  <div
+    v-else-if="participantsLoadFailed"
+    class="pa-4"
+  >
+    <v-alert type="error" variant="outlined">
+      Unable to load participants.
+    </v-alert>
+  </div>
   <div v-else>
     <div
       v-if="showFileRequestAlert"
@@ -235,6 +243,7 @@ const participantsWithSubmissionsByTreatmentId = computed(() => {
 
 // ---------------- LOADING ----------------
 const isLoading = ref(true);
+const participantsLoadFailed = ref(false);
 
 // ---------------- FILE REQUEST ----------------
 const showFileRequestAlert = ref(false);
@@ -314,9 +323,10 @@ const handleFileRequest = async () => {
 // ---------------- DATA ----------------
 const loadData = async () => {
   isLoading.value = true;
+  participantsLoadFailed.value = false;
   assignmentFileArchiveStore.reset();
 
-  await Promise.all([
+  const [, participantsResult] = await Promise.all([
     assignmentStore.fetchAssignment([
       experimentId.value,
       exposureId.value,
@@ -325,6 +335,8 @@ const loadData = async () => {
     ]),
     participantsStore.fetchParticipants([experimentId.value])
   ]);
+
+  participantsLoadFailed.value = participantsResult === null;
 
   if (hasFileSubmissionQuestions.value) {
     await assignmentFileArchiveStore.poll([

@@ -370,9 +370,13 @@ onMounted(async () => {
     props.experiment.experimentId
   );
 
-  await participantsStore.fetchParticipants([
+  const result = await participantsStore.fetchParticipants([
     props.experiment.experimentId
   ]);
+
+  if (result === null) {
+    await Swal.fire("Error loading participants");
+  }
 
   deleteAttributesFromElement(
     ".v-expansion-panel",
@@ -383,9 +387,13 @@ onMounted(async () => {
 onBeforeRouteUpdate(
   async (to, from, next) => {
     try {
-      await participantsStore.fetchParticipants([
+      const result = await participantsStore.fetchParticipants([
         to.params.experimentId
       ]);
+
+      if (result === null) {
+        await Swal.fire("Error loading participants");
+      }
 
       next();
     } catch {

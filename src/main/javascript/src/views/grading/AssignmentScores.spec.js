@@ -148,6 +148,16 @@ describe("AssignmentScores", () => {
     expect(wrapper.text()).toContain("Unable to load assignment data.");
   });
 
+  it("shows an error state when participants fail to load", async () => {
+    participantService.getAll.mockRejectedValue(new Error("network error"));
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain("Unable to load participants.");
+  });
+
   it("links each student's name to their submission-grading route", async () => {
     const wrapper = mount();
     await flushPromises();

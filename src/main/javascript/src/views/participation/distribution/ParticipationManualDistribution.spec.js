@@ -85,6 +85,15 @@ describe("ParticipationManualDistribution", () => {
     expect(participantService.getAll).toHaveBeenCalled();
   });
 
+  it("shows an error alert when the participants fetch fails", async () => {
+    exposuresService.getAll.mockResolvedValue(buildExposures());
+    participantService.getAll.mockRejectedValue(new Error("network error"));
+
+    await mountView();
+
+    expect(Swal.fire).toHaveBeenCalledWith("Error loading participants");
+  });
+
   it("groups consenting participants under their assigned condition and shows the counts", async () => {
     exposuresService.getAll.mockResolvedValue(buildExposures());
     participantService.getAll.mockResolvedValue([

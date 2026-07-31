@@ -70,6 +70,16 @@ describe("ParticipationTypeManualSelection", () => {
     expect(participantService.getAll).toHaveBeenCalledWith(1, true);
   });
 
+  // fetchParticipants returns null (not []) when the fetch itself fails, so this must be
+  // distinguishable from a course that genuinely has zero participants.
+  it("shows an error alert when the initial fetch fails", async () => {
+    participantService.getAll.mockRejectedValue(new Error("network error"));
+
+    await mountView();
+
+    expect(Swal.fire).toHaveBeenCalledWith("Error loading participants");
+  });
+
   // refresh=true can trigger a synchronous LMS roster sync that takes a while for a large
   // course - the panels must not just sit empty/stuck with no explanation while that's pending.
   it("shows a loading overlay while participants are being fetched, then hides it", async () => {

@@ -50,13 +50,13 @@ describe("participants store", () => {
       expect(store.participants).toEqual([]);
     });
 
-    it("clears participants and returns [] on error", async () => {
+    it("clears participants and returns null on error", async () => {
       store.setParticipants([{ participantId: 1 }]);
       participantService.getAll.mockRejectedValue(new Error("fail"));
 
       const result = await store.fetchParticipants([1]);
 
-      expect(result).toEqual([]);
+      expect(result).toBeNull();
       expect(store.participants).toEqual([]);
     });
   });

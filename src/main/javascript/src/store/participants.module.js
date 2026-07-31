@@ -14,6 +14,8 @@ export const participants = defineStore("participants", {
   },
 
   actions: {
+    // returns null (rather than []) on failure, so callers can tell "fetch failed" apart from
+    // "genuinely no participants" and show an error instead of silently rendering an empty list
     async fetchParticipants(payload) {
       // payload = experimentId, refresh
       try {
@@ -30,7 +32,7 @@ export const participants = defineStore("participants", {
 
         this.participants = [];
 
-        return [];
+        return null;
       }
     },
 

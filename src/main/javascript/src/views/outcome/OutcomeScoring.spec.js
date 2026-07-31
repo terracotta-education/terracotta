@@ -147,6 +147,19 @@ describe("OutcomeScoring", () => {
     expect(wrapper.find("form").exists()).toBe(false);
   });
 
+  it("shows an error alert and skips fetching scores when participants fail to load", async () => {
+    participantService.getAll.mockReset().mockRejectedValue(new Error("network error"));
+
+    mountView();
+    await flush();
+
+    expect(swal).toHaveBeenCalledWith({
+      text: "Could not load participants.",
+      icon: "error"
+    });
+    expect(outcomeService.getOutcomeScoresById).not.toHaveBeenCalled();
+  });
+
   it("blocks save and shows an error dialog when the title is empty", async () => {
     const wrapper = mountView();
     await flush();

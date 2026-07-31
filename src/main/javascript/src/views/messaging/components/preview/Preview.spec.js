@@ -2,6 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { flushPromises } from "@vue/test-utils";
 
+vi.mock("sweetalert2", () => ({
+  default: {
+    fire: vi.fn().mockResolvedValue({})
+  }
+}));
+
+import Swal from "sweetalert2";
 import { mountComponent } from "@/test-utils/mount";
 import { container as useContainerStore } from "@/store/messaging/container.module";
 import { message as useMessageStore } from "@/store/messaging/message.module";
@@ -35,7 +42,10 @@ const setupStores = ({
     { id: "container-1", messages: [msg] }
   ];
   useParticipantsStore().participants = participants;
-  useParticipantsStore().fetchParticipants = vi.fn().mockResolvedValue(null);
+  // fetchParticipants is stubbed rather than actually exercised here - the store's participants
+  // are seeded directly above, and a non-null resolution keeps Preview.vue on its normal
+  // success path (null now specifically means "fetch failed", which this isn't)
+  useParticipantsStore().fetchParticipants = vi.fn().mockResolvedValue(participants);
 
   return pinia;
 };
@@ -53,6 +63,18 @@ describe("Preview", () => {
 
   afterEach(() => {
     wrapper?.unmount();
+  });
+
+  it("shows an error alert when the participants fetch fails", async () => {
+    const pinia = setupStores();
+
+    useParticipantsStore().fetchParticipants = vi.fn().mockResolvedValue(null);
+
+    wrapper = mountComponent(Preview, { props: baseProps, pinia });
+    await flushPromises();
+
+    expect(Swal.fire).toHaveBeenCalledWith("Error loading participants");
+    expect(wrapper.findComponent({ name: "VExpansionPanels" }).exists()).toBe(false);
   });
 
   it("renders nothing until initialization completes, then shows the panel", async () => {
