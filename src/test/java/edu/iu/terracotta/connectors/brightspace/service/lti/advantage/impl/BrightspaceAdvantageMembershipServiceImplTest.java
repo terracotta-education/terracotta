@@ -102,6 +102,7 @@ public class BrightspaceAdvantageMembershipServiceImplTest extends BaseTest {
         verify(lmsUserBatchProcessingRepository).saveAndFlush(captor.capture());
         assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
         assertEquals(batchId, captor.getValue().getBatchId());
+        assertEquals(ltiContextEntity.getContextId(), captor.getValue().getContextId());
         verify(entityManager).flush();
         verify(entityManager).clear();
     }

@@ -83,7 +83,7 @@ public class CanvasAdvantageMembershipServiceImpl implements AdvantageMembership
                 CourseUsers.class
             );
 
-            lmsUserBatchWriteService.startBatch(batchId);
+            lmsUserBatchWriteService.startBatch(batchId, context.getContextId());
 
             if (!membershipGetResponse.getStatusCode().is2xxSuccessful()) {
                 String errorMessage = String.format("Can't get the membership for context ID: [%s]", context.getContextId());

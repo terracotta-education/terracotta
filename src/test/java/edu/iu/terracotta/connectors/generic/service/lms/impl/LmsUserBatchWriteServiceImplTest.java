@@ -40,11 +40,12 @@ public class LmsUserBatchWriteServiceImplTest {
     public void testStartBatchSavesInProgressRecord() {
         UUID batchId = UUID.randomUUID();
 
-        lmsUserBatchWriteService.startBatch(batchId);
+        lmsUserBatchWriteService.startBatch(batchId, 123L);
 
         ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
         verify(lmsUserBatchProcessingRepository).save(captor.capture());
         assertEquals(batchId, captor.getValue().getBatchId());
+        assertEquals(123L, captor.getValue().getContextId());
         assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
     }
 

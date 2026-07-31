@@ -29,6 +29,7 @@ import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
@@ -115,7 +116,9 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
 
         participantAsyncService.updateParticipantData(securedInfo);
 
-        verify(apiClient).listUsersForCourse(any(), eq(ltiUserEntity));
+        ArgumentCaptor<LmsGetUsersInCourseOptions> optionsCaptor = ArgumentCaptor.forClass(LmsGetUsersInCourseOptions.class);
+        verify(apiClient).listUsersForCourse(optionsCaptor.capture(), eq(ltiUserEntity));
+        assertEquals(Long.valueOf(securedInfo.getContextId()), optionsCaptor.getValue().getContextId());
         verify(lmsUserBatchAsyncService).processed(any(UUID.class), anyString());
         verify(lmsUserBatchAsyncService, never()).success(any(UUID.class));
     }

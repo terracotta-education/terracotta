@@ -92,6 +92,7 @@ public class OneEdTechAdvantageMembershipServiceImpl implements AdvantageMembers
             LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.saveAndFlush(
                 LmsUserBatchProcessing.builder()
                     .batchId(batchId)
+                    .contextId(context.getContextId())
                     .status(LmsUserBatchStatus.IN_PROGRESS)
                     .build()
             );

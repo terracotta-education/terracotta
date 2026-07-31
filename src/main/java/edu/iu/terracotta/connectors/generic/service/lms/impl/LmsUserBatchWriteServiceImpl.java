@@ -25,10 +25,11 @@ public class LmsUserBatchWriteServiceImpl implements LmsUserBatchWriteService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void startBatch(UUID batchId) {
+    public void startBatch(UUID batchId, Long contextId) {
         lmsUserBatchProcessingRepository.save(
             LmsUserBatchProcessing.builder()
                 .batchId(batchId)
+                .contextId(contextId)
                 .status(LmsUserBatchStatus.IN_PROGRESS)
                 .build()
         );

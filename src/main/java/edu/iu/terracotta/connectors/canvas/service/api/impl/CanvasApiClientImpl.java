@@ -509,7 +509,7 @@ public class CanvasApiClientImpl implements ApiClient {
         getUsersInCourseOptions.enrollmentType(enrollmentTypes);
 
         try {
-            getReader(apiUser, UserReaderExtended.class, lmsGetUsersInCourseOptions.getBatchSize()).getUsersInCourse(getUsersInCourseOptions, lmsGetUsersInCourseOptions.getBatchId());
+            getReader(apiUser, UserReaderExtended.class, lmsGetUsersInCourseOptions.getBatchSize()).getUsersInCourse(getUsersInCourseOptions, lmsGetUsersInCourseOptions.getBatchId(), lmsGetUsersInCourseOptions.getContextId());
         } catch (IOException | CanvasException ex) {
             throw new ApiException(String.format("Failed to get the list of users for Canvas course ID: [%s] for Canvas user ID: [%s]", getUsersInCourseOptions.getCourseId(), apiUser.getLmsUserId()), ex);
         }

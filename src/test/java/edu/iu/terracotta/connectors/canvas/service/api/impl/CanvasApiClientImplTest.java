@@ -863,7 +863,7 @@ public class CanvasApiClientImplTest extends BaseTest {
             result = canvasApiClientService.listUsersForCourse(options, ltiUserEntity);
         }
 
-        verify(userReaderExtended, times(1)).getUsersInCourse(any(), eq(options.getBatchId()));
+        verify(userReaderExtended, times(1)).getUsersInCourse(any(), eq(options.getBatchId()), eq(options.getContextId()));
         assertTrue(result.isEmpty());
     }
 
@@ -910,7 +910,7 @@ public class CanvasApiClientImplTest extends BaseTest {
             .batchSize(50)
             .batchId(UUID.randomUUID())
             .build();
-        doThrow(new IOException("fail")).when(userReaderExtended).getUsersInCourse(any(), any());
+        doThrow(new IOException("fail")).when(userReaderExtended).getUsersInCourse(any(), any(), any());
 
         try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
             assertThrows(ApiException.class, () -> canvasApiClientService.listUsersForCourse(options, ltiUserEntity));
