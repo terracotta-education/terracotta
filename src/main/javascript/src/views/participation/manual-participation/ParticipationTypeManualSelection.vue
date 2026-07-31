@@ -1,5 +1,10 @@
 <template>
   <div>
+    <page-loading
+      :display="loadingParticipants"
+      message="We are tranferring students from your LMS course. Depending on the roster size, this may take a few moments."
+    />
+
     <h1 class="my-3">
       Which students can participate in the study?
     </h1>
@@ -94,6 +99,7 @@ import Swal from "sweetalert2";
 import { deleteAttributesFromElement } from "@/helpers/ui-utils.js";
 
 import ListParticipants from "@/components/ListParticipants.vue";
+import PageLoading from "@/components/PageLoading.vue";
 
 import { participants as participantsModule } from "@/store/participants.module";
 import { navigation as navigationModule } from "@/store/navigation.module";
@@ -112,6 +118,8 @@ const props = defineProps({
 const router = useRouter();
 
 const participantsStore = participantsModule();
+
+const loadingParticipants = ref(false);
 const navigationStore = navigationModule();
 
 const moveToOptions = ref([
@@ -281,10 +289,17 @@ const panelExpansion = () => {
 };
 
 onMounted(async () => {
+  // refresh=true here can trigger a full LMS roster sync (throttled server-side, but still
+  // synchronous when it does run, and can take a while for a large course) - shown behind
+  // page-loading rather than leaving the panels looking empty/stuck with no explanation
+  loadingParticipants.value = true;
+
   await participantsStore.fetchParticipants([
     props.experiment.experimentId,
     true
   ]);
+
+  loadingParticipants.value = false;
 
   deleteAttributesFromElement(
     ".v-expansion-panel",

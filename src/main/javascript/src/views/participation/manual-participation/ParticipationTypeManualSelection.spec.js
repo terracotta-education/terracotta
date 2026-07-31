@@ -70,6 +70,28 @@ describe("ParticipationTypeManualSelection", () => {
     expect(participantService.getAll).toHaveBeenCalledWith(1, true);
   });
 
+  // refresh=true can trigger a synchronous LMS roster sync that takes a while for a large
+  // course - the panels must not just sit empty/stuck with no explanation while that's pending.
+  it("shows a loading overlay while participants are being fetched, then hides it", async () => {
+    let resolveGetAll;
+    participantService.getAll.mockImplementation(
+      () => new Promise(resolve => { resolveGetAll = resolve; })
+    );
+
+    const wrapper = mountComponent(ParticipationTypeManualSelection, {
+      props: { experiment: buildExperiment() }
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(true);
+
+    resolveGetAll([]);
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+  });
+
   it("groups participants into participating, not participating, and unassigned", async () => {
     participantService.getAll.mockResolvedValue([
       buildParticipant(1, true),

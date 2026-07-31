@@ -524,8 +524,27 @@ public class ParticipantServiceImplTest extends BaseTest {
         List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, false, securedInfo, true);
 
         assertEquals(1, retVal.size());
-        // side effect proving refreshParticipants()'s real body executed
+        // refresh=true goes through the throttled refreshParticipantsIfStale (not a direct,
+        // unconditional refreshParticipants call) - never synced before, so it's stale and this
+        // real body executes anyway; lmsUserBatchAsyncService.success(...) is a side effect
+        // proving refreshParticipants() itself ran underneath it
+        verify(participantService).refreshParticipantsIfStale(1L);
         verify(lmsUserBatchAsyncService).success(any(UUID.class));
+    }
+
+    // the manual-participation selection page was the only caller passing refresh=true, and was
+    // forcing a full unthrottled sync on every instructor page load - confirm a second call
+    // within the throttle window now skips the LMS sync entirely instead of repeating it.
+    @Test
+    public void testGetParticipantsNonStudentWithRefreshSkipsSyncWhenRecentlySynced() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+
+        List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, false, securedInfo, true);
+
+        assertEquals(1, retVal.size());
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(lmsUserBatchAsyncService, never()).success(any());
     }
 
     @Test
