@@ -84,6 +84,7 @@ public class MessageSendServiceImpl implements MessageSendService {
         apiClient.listUsersForCourse(
             LmsGetUsersInCourseOptions.builder()
                 .batchId(batchId)
+                .contextId(message.getExperiment().getLtiContextEntity().getContextId())
                 .batchSize(batchSize)
                 .enrollmentState(Arrays.asList(EnrollmentState.ACTIVE, EnrollmentState.INVITED))
                 .enrollmentType(Arrays.asList(EnrollmentType.STUDENT))
