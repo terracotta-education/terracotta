@@ -11,6 +11,6 @@ import edu.ksu.canvas.requestOptions.GetUsersInCourseOptions;
 
 public interface UserReaderExtended extends CanvasReader<UserExtended, UserReaderExtended> {
 
-    void getUsersInCourse(GetUsersInCourseOptions getUsersInCourseOptions, UUID batchId) throws IOException, InvalidOauthTokenException, TerracottaConnectorException;
+    void getUsersInCourse(GetUsersInCourseOptions getUsersInCourseOptions, UUID batchId, Long contextId) throws IOException, InvalidOauthTokenException, TerracottaConnectorException;
 
 }

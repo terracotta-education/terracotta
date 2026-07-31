@@ -60,9 +60,9 @@ public class UserExtendedImplTest {
         when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
 
         UUID batchId = UUID.randomUUID();
-        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId);
+        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId, 1L);
 
-        verify(lmsUserBatchWriteService).startBatch(batchId);
+        verify(lmsUserBatchWriteService).startBatch(batchId, 1L);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class UserExtendedImplTest {
 
         when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
 
-        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID());
+        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID(), 1L);
 
         // all users from the page are saved in a single saveUsers() call, never one at a time
         verify(lmsUserBatchWriteService, times(1)).saveUsers(any());
@@ -99,7 +99,7 @@ public class UserExtendedImplTest {
             .thenReturn(pageOne)
             .thenReturn(pageTwo);
 
-        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID());
+        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID(), 1L);
 
         // one saveUsers() per page fetched, committed independently of the caller's transaction
         verify(lmsUserBatchWriteService, times(2)).saveUsers(any());
@@ -114,7 +114,7 @@ public class UserExtendedImplTest {
         when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
 
         UUID batchId = UUID.randomUUID();
-        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId);
+        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId, 1L);
 
         verify(lmsUserBatchWriteService).markFailed(eq(batchId), any());
         verify(lmsUserBatchWriteService, never()).saveUsers(any());
@@ -132,7 +132,7 @@ public class UserExtendedImplTest {
 
         assertThrows(
             InvalidOauthTokenException.class,
-            () -> userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId)
+            () -> userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), batchId, 1L)
         );
 
         verify(lmsUserBatchWriteService).markFailed(eq(batchId), any());
@@ -148,7 +148,7 @@ public class UserExtendedImplTest {
 
         when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
 
-        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID());
+        userExtended.getUsersInCourse(new GetUsersInCourseOptions("1"), UUID.randomUUID(), 1L);
 
         verify(lmsUserBatchWriteService, times(1)).saveUsers(List.<LmsUserBatch>of());
     }

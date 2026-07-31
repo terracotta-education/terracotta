@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProj
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsUser;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
@@ -151,7 +153,10 @@ public class MessageSendServiceImplTest extends BaseTest {
 
         // the LMS roster sync kicks off unconditionally before the participants check, so it still runs
         assertTrue(recipients.isEmpty());
-        verify(apiClient).listUsersForCourse(any(), any(LtiUserEntity.class));
+
+        ArgumentCaptor<LmsGetUsersInCourseOptions> optionsCaptor = ArgumentCaptor.forClass(LmsGetUsersInCourseOptions.class);
+        verify(apiClient).listUsersForCourse(optionsCaptor.capture(), any(LtiUserEntity.class));
+        assertEquals(Long.valueOf(message.getExperiment().getLtiContextEntity().getContextId()), optionsCaptor.getValue().getContextId());
     }
 
     @Test

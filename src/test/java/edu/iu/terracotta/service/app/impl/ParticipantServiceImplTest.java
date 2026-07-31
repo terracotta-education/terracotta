@@ -828,6 +828,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(lmsUserBatchProcessingRepository).save(captor.capture());
         assertEquals(result.getBatchId(), captor.getValue().getBatchId());
         assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
+        assertEquals(Long.valueOf(ltiContextEntity.getContextId()), captor.getValue().getContextId());
         verify(participantService, never()).prepareParticipation(anyLong(), any());
     }
 

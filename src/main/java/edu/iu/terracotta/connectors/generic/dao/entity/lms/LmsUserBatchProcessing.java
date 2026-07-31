@@ -36,6 +36,7 @@ public class LmsUserBatchProcessing extends BaseEntity {
     private LmsUserBatchStatus status;
 
     private UUID batchId;
+    private Long contextId;
     private String message;
 
 }
