@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.async.impl;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -24,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
@@ -149,7 +149,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         staleAttempt.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(301)));
         when(lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(anyLong())).thenReturn(Optional.of(staleAttempt));
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
-        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), any(Pageable.class))).thenReturn(List.of());
+        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), anyInt(), anyLong())).thenReturn(List.of());
 
         participantAsyncService.updateParticipantData(securedInfo);
 
@@ -159,7 +159,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
     @Test
     public void testUpdateParticipantDataNoParticipantsToUpdate() throws Exception {
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
-        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), any(Pageable.class))).thenReturn(List.of());
+        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), anyInt(), anyLong())).thenReturn(List.of());
 
         participantAsyncService.updateParticipantData(securedInfo);
 
@@ -174,7 +174,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
     public void testUpdateParticipantDataSuccessUpdatesLmsUserIdByEmail() throws Exception {
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
         LmsParticipantSummary firstPageSummary = summary(1L, EMAIL);
-        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), any(Pageable.class)))
+        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), anyInt(), anyLong()))
             .thenReturn(List.of(firstPageSummary))
             .thenReturn(List.of());
         when(participantRepository.findAllById(any())).thenReturn(List.of(participant));
@@ -198,7 +198,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
     public void testUpdateParticipantDataNoMatchingEmailSetsLmsUserIdNull() throws Exception {
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
         LmsParticipantSummary firstPageSummary = summary(1L, EMAIL);
-        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), any(Pageable.class)))
+        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), anyInt(), anyLong()))
             .thenReturn(List.of(firstPageSummary))
             .thenReturn(List.of());
         when(participantRepository.findAllById(any())).thenReturn(List.of(participant));
@@ -214,7 +214,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
     public void testUpdateParticipantDataSummaryWithNoMatchingParticipantIsSkipped() throws Exception {
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
         LmsParticipantSummary unmatchedSummary = summary(99L, EMAIL);
-        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), any(Pageable.class)))
+        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), anyInt(), anyLong()))
             .thenReturn(List.of(unmatchedSummary))
             .thenReturn(List.of());
         when(participantRepository.findAllById(any())).thenReturn(List.of());
@@ -231,7 +231,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
         LmsParticipantSummary firstPageSummary = summary(1L, EMAIL);
         LmsParticipantSummary secondPageSummary = summary(1L, EMAIL);
-        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), any(Pageable.class)))
+        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), anyInt(), anyLong()))
             .thenReturn(List.of(firstPageSummary))
             .thenReturn(List.of(secondPageSummary))
             .thenReturn(List.of());
@@ -240,7 +240,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
 
         participantAsyncService.updateParticipantData(securedInfo);
 
-        verify(participantRepository, times(3)).findLmsParticipantSummaryToUpdateByContextId(anyLong(), any(Pageable.class));
+        verify(participantRepository, times(3)).findLmsParticipantSummaryToUpdateByContextId(anyLong(), anyInt(), anyLong());
         verify(entityManager, times(2)).flush();
         verify(entityManager, times(2)).clear();
         verify(lmsUserBatchAsyncService).success(any(UUID.class));

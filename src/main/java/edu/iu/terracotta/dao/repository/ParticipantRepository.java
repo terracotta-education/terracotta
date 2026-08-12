@@ -33,6 +33,10 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     @Query("SELECT p.group.groupId AS groupId, COUNT(p) AS participantCount FROM Participant p WHERE p.experiment.experimentId = :experimentId AND p.group IS NOT NULL GROUP BY p.group.groupId")
     List<GroupParticipantCount> countByExperiment_ExperimentIdGroupByGroup(@Param("experimentId") Long experimentId);
 
+    // LIMIT/OFFSET are embedded directly in the SQL (rather than passed as a Pageable) so
+    // Hibernate never has to rewrite this query's text to inject pagination - its regex-based
+    // AbstractLimitHandler.insertBeforeForUpdate is pathologically slow (effectively hangs,
+    // spinning at 100% CPU) against this query's shape (JOINs + GROUP BY + nested functions)
     @NativeQuery(
         value = """
             SELECT
@@ -49,23 +53,10 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
                 NULLIF(TRIM(lu.lms_user_id), '') IS NULL
             GROUP BY lu.email
             ORDER BY id ASC
-            """,
-        countQuery = """
-            SELECT COUNT(*) FROM (
-                SELECT MIN(p.id)
-                FROM terr_participant p
-                JOIN lti_membership lme
-                    ON p.lti_membership_entity_membership_id = lme.membership_id
-                JOIN lti_user lu
-                    ON p.lti_user_entity_user_id = lu.user_id
-                WHERE
-                    lme.context_id = :contextId AND
-                    NULLIF(TRIM(lu.lms_user_id), '') IS NULL
-                GROUP BY lu.email
-            ) AS cnt
+            LIMIT :limit OFFSET :offset
             """
     )
-    List<LmsParticipantSummary> findLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId, Pageable pageable);
+    List<LmsParticipantSummary> findLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId, @Param("limit") int limit, @Param("offset") long offset);
 
     // cheap existence check so a full LMS course-membership fetch isn't kicked off (see
     // ParticipantAsyncServiceImpl.updateParticipantData) when nothing is actually missing an LMS
