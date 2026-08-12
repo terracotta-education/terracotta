@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -24,7 +23,6 @@ import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentState;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentType;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -32,6 +30,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
@@ -55,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
-    private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
+    private final LmsUserBatchWriteService lmsUserBatchWriteService;
     private final LmsUserBatchRepository lmsUserBatchRepository;
     private final LtiContextRepository ltiContextRepository;
     private final LtiUserRepository ltiUserRepository;
@@ -186,14 +185,11 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     }
 
     private void updateBatchStatus(UUID batchId, LmsUserBatchStatus status, String message) {
-        LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(batchId)
-            .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(batchId).build());
-
-        lmsUserBatchProcessing.setStatus(status);
-        lmsUserBatchProcessing.setMessage(message);
-
         try {
-            lmsUserBatchProcessingRepository.save(lmsUserBatchProcessing);
+            // a genuine cross-bean call into LmsUserBatchWriteServiceImpl's own REQUIRES_NEW
+            // transaction - its commit (and any optimistic-lock failure) happens synchronously
+            // as part of this call, so it's catchable here
+            lmsUserBatchWriteService.updateStatus(batchId, status, message);
         } catch (ObjectOptimisticLockingFailureException e) {
             // when refreshParticipants actually ran, LmsUserBatchAsyncServiceImpl's
             // @TransactionalEventListener already raced this same row to its final

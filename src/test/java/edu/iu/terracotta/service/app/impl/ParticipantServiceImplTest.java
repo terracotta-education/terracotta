@@ -893,6 +893,37 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(lmsUserBatchProcessingRepository, never()).save(any(LmsUserBatchProcessing.class));
     }
 
+    // the freshness pre-check happens under the LTI context's row lock (see
+    // refreshParticipantsIfStale) rather than the unlocked read that isParticipantSyncStale would
+    // otherwise use - so a rapid double-submit or a second overlapping request for the same
+    // course serializes here instead of each independently deciding "stale"
+    @Test
+    public void testStartPrepareParticipationAcquiresRowLockBeforeDecidingStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+
+        participantService.startPrepareParticipation(1L, securedInfo);
+
+        verify(ltiContextRepository).findByContextIdForUpdate(ltiContextEntity.getContextId());
+    }
+
+    // a rapid double-submit or a second overlapping request for the same course can each reach
+    // startPrepareParticipation before either one's async refresh has had a chance to mark the
+    // roster fresh - the second one must reuse the batch already in flight for this LTI context
+    // instead of creating a second, independently-tracked LmsUserBatchProcessing row
+    @Test
+    public void testStartPrepareParticipationReusesInProgressBatchForSameContextRatherThanCreatingNew() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        UUID existingBatchId = UUID.randomUUID();
+        LmsUserBatchProcessing inProgress = LmsUserBatchProcessing.builder().batchId(existingBatchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
+        when(lmsUserBatchProcessingRepository.findFirstByContextIdAndStatus(ltiContextEntity.getContextId(), LmsUserBatchStatus.IN_PROGRESS)).thenReturn(Optional.of(inProgress));
+
+        LmsUserBatchStatusDto result = participantService.startPrepareParticipation(1L, securedInfo);
+
+        assertEquals(existingBatchId, result.getBatchId());
+        assertEquals(LmsUserBatchStatus.IN_PROGRESS, result.getStatus());
+        verify(lmsUserBatchProcessingRepository, never()).save(any(LmsUserBatchProcessing.class));
+    }
+
     @Test
     public void testGetPrepareParticipationStatusReturnsDtoWhenFound() {
         UUID batchId = UUID.randomUUID();
