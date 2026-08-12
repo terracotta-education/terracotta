@@ -72,6 +72,7 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
             answerFileSubmissionRepository,
             assignmentFileArchiveRepository,
             assignmentRepository,
+            experimentRepository,
             ltiContextRepository,
             ltiUserRepository,
             obsoleteAssignmentRepository,
@@ -243,10 +244,38 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
     }
 
+    // consent LMS items (ConsentDocument, not Assignment) have no "assignment" query parameter
+    // of their own - e.g. https://.../lti3?consent=true&experiment=278 - so the check must fall
+    // back to the experiment ID for these, exactly like it did before the assignment-ID fix
     @Test
-    void testHandleObsoleteAssignmentsInLmsByContextSkipsWhenNoAssignmentParam() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+    void testHandleObsoleteAssignmentsInLmsByContextSkipsConsentAssignmentWhenExperimentStillInContext() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         when(lmsAssignment.getId()).thenReturn("2");
-        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?experiment=99");
+        // no assignment param; experiment=1 matches the default mock "experiment", still present
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?consent=true&experiment=1");
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+        verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
+    }
+
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextMarksObsoleteConsentAssignmentWhenExperimentDeleted() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getId()).thenReturn("2");
+        // no assignment param; experiment=99 does not match the default mock "experiment" (ID 1)
+        // still present in this context, so the parent experiment itself is gone
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?consent=true&experiment=99");
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient).editAssignment(any(LtiUserEntity.class), eq(lmsAssignment), anyString());
+        verify(obsoleteAssignmentRepository).save(any(ObsoleteAssignment.class));
+    }
+
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextSkipsWhenNoAssignmentOrExperimentParam() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?consent=true");
 
         assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
 

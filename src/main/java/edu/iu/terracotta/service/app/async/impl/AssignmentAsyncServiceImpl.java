@@ -43,6 +43,7 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.Question;
@@ -52,6 +53,7 @@ import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.dao.repository.AnswerFileSubmissionRepository;
 import edu.iu.terracotta.dao.repository.AssignmentFileArchiveRepository;
 import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ObsoleteAssignmentRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
@@ -71,6 +73,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
     private final AssignmentFileArchiveRepository assignmentFileArchiveRepository;
     private final AssignmentRepository assignmentRepository;
+    private final ExperimentRepository experimentRepository;
     private final LtiContextRepository ltiContextRepository;
     private final LtiUserRepository ltiUserRepository;
     private final ObsoleteAssignmentRepository obsoleteAssignmentRepository;
@@ -187,12 +190,21 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             return;
         }
 
-        // assignment IDs (not just experiment IDs) that currently exist in Terracotta for this
-        // context - an assignment can be deleted while its parent experiment (and other
-        // assignments in it) still exist, so checking only the experiment ID below would miss an
-        // otherwise-orphaned LMS assignment whose specific assignment no longer exists
+        // assignment IDs that currently exist in Terracotta for this context - an assignment can
+        // be deleted while its parent experiment (and other assignments in it) still exist, so
+        // checking only the experiment ID would miss an otherwise-orphaned LMS assignment whose
+        // specific assignment no longer exists
         List<Long> terracottaAssignmentIds = terracottaAssignments.stream()
             .map(Assignment::getAssignmentId)
+            .toList();
+
+        // consent LMS items have no per-assignment ID of their own (ConsentDocument is a
+        // separate entity, one per experiment, not tracked via Assignment/terracottaAssignmentIds
+        // above) - their URL only ever carries an "experiment" parameter (e.g.
+        // ?consent=true&experiment=278), so those still need to be checked against the
+        // experiment's own existence
+        List<Long> terracottaExperimentIds = experimentRepository.findAllByLtiContextEntity_ContextId(securedInfo.getContextId()).stream()
+            .map(Experiment::getExperimentId)
             .toList();
 
         List<String> convertedLmsAssignmentIds = obsoleteAssignmentRepository.findAllByContext_ContextId(securedInfo.getContextId()).stream()
@@ -218,22 +230,36 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                         return null;
                     }
 
-                    // find the assignment ID from the query parameters - this identifies the
+                    // prefer the assignment ID from the query parameters - it identifies the
                     // specific Terracotta assignment this LMS assignment links to, not just
-                    // which experiment it belongs to
+                    // which experiment it belongs to. Consent LMS items have no assignment
+                    // parameter of their own (e.g. ?consent=true&experiment=278 - see
+                    // ConsentDocument), so fall back to the experiment ID for those.
                     Optional<String> assignmentId = Arrays.stream(queryParameters)
                         .filter(queryParameter -> Strings.CI.equals(StringUtils.split(queryParameter, '=')[0], "assignment"))
                         .map(queryParameter -> StringUtils.split(queryParameter, '=')[1])
                         .findFirst();
 
-                    if (assignmentId.isEmpty()) {
-                        // no assignment query parameter; skip
-                        return null;
-                    }
+                    if (assignmentId.isPresent()) {
+                        if (terracottaAssignmentIds.contains(Long.parseLong(assignmentId.get()))) {
+                            // assignment ID still exists in this context; skip
+                            return null;
+                        }
+                    } else {
+                        Optional<String> experimentId = Arrays.stream(queryParameters)
+                            .filter(queryParameter -> Strings.CI.equals(StringUtils.split(queryParameter, '=')[0], "experiment"))
+                            .map(queryParameter -> StringUtils.split(queryParameter, '=')[1])
+                            .findFirst();
 
-                    if (terracottaAssignmentIds.contains(Long.parseLong(assignmentId.get()))) {
-                        // assignment ID still exists in this context; skip
-                        return null;
+                        if (experimentId.isEmpty()) {
+                            // no assignment or experiment query parameter; skip
+                            return null;
+                        }
+
+                        if (terracottaExperimentIds.contains(Long.parseLong(experimentId.get()))) {
+                            // experiment ID still exists in this context; skip
+                            return null;
+                        }
                     }
 
                     ObsoleteAssignment obsoleteAssignment = ObsoleteAssignment.builder()
