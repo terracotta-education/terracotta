@@ -236,6 +236,14 @@ app:
   # Help link
   help:
     url: https://terracotta-education.atlassian.net/wiki/x/xwDjCw
+  # @Async task executor (LMS roster syncs, exports, imports, etc.) - waits for in-flight tasks
+  # to finish on shutdown instead of letting them race a mid-flight EntityManagerFactory close
+  async:
+    core-pool-size: 4
+    max-pool-size: 8
+    queue-capacity: 100
+    # 30 minutes, matching db-scheduler's shutdown-max-wait below
+    await-termination-seconds: 1800
   # LTI User Participant batch handling
   participant:
     batch:
