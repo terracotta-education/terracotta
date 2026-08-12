@@ -69,7 +69,9 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
 
     // cheap existence check so a full LMS course-membership fetch isn't kicked off (see
     // ParticipantAsyncServiceImpl.updateParticipantData) when nothing is actually missing an LMS
-    // user ID for this context
+    // user ID for this context. MySQL's EXISTS(...) evaluates to a 1/0 BIGINT, not a real
+    // boolean - the JDBC driver hands that back as a Long, so the return type here has to be
+    // Long (not boolean/Boolean) or Spring Data's proxy fails trying to cast it directly.
     @NativeQuery(
         value = """
             SELECT EXISTS (
@@ -85,7 +87,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
             )
             """
     )
-    boolean existsLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId);
+    Long existsLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId);
 
     @NativeQuery(
         value = """

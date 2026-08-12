@@ -98,7 +98,9 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
             return;
         }
 
-        if (!participantRepository.existsLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId())) {
+        Long missingLmsUserIds = participantRepository.existsLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId());
+
+        if (missingLmsUserIds == null || missingLmsUserIds == 0) {
             // nothing is actually missing an LMS user ID for this context - skip the full LMS
             // course-membership fetch (and the LmsUserBatchProcessing row it would otherwise
             // create) entirely

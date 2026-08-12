@@ -78,7 +78,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         when(participant.getId()).thenReturn(1L);
         // most tests exercise the actual sync happening - only the dedicated
         // "nothing missing"/"recent attempt" tests below stub this away from the default
-        when(participantRepository.existsLmsParticipantSummaryToUpdateByContextId(anyLong())).thenReturn(true);
+        when(participantRepository.existsLmsParticipantSummaryToUpdateByContextId(anyLong())).thenReturn(1L);
     }
 
     private LmsParticipantSummary summary(long id, String email) {
@@ -123,7 +123,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
     // LmsUserBatchProcessing row it would otherwise create) whenever nothing actually needs it.
     @Test
     public void testUpdateParticipantDataSkipsWhenNoLmsUserIdsMissing() throws Exception {
-        when(participantRepository.existsLmsParticipantSummaryToUpdateByContextId(anyLong())).thenReturn(false);
+        when(participantRepository.existsLmsParticipantSummaryToUpdateByContextId(anyLong())).thenReturn(0L);
 
         assertDoesNotThrow(() -> participantAsyncService.updateParticipantData(securedInfo));
 
