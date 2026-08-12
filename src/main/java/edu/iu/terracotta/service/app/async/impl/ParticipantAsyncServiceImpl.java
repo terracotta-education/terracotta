@@ -173,14 +173,17 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
                             return;
                         }
 
-                        participant.get().getLtiUserEntity().setLmsUserId(
-                            batchEmails.stream()
-                                .filter(batchEmail -> Strings.CI.equals(batchEmail.getEmail(), participant.get().getLtiUserEntity().getEmail()))
-                                .findFirst()
+                        String matchedLmsUserId = batchEmails.stream()
+                            .filter(batchEmail -> Strings.CI.equals(batchEmail.getEmail(), participant.get().getLtiUserEntity().getEmail()))
+                            .findFirst()
                             .map(LmsUserBatchEmailProjection::getLmsUserId)
-                            .orElse(null)
-                        );
+                            .orElse(null);
 
+                        if (matchedLmsUserId == null) {
+                            log.warn("No LMS user ID match found in Canvas response for participant ID: [{}] with email: [{}]", lmsParticipantSummary.getId(), participant.get().getLtiUserEntity().getEmail());
+                        }
+
+                        participant.get().getLtiUserEntity().setLmsUserId(matchedLmsUserId);
                         ltiUserRepository.save(participant.get().getLtiUserEntity());
                     }
                 );
