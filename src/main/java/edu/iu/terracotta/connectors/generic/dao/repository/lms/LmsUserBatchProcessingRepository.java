@@ -16,6 +16,7 @@ public interface LmsUserBatchProcessingRepository extends JpaRepository<LmsUserB
 
     Optional<LmsUserBatchProcessing> findByBatchId(UUID batchId);
     Optional<LmsUserBatchProcessing> findFirstByContextIdAndStatus(Long contextId, LmsUserBatchStatus status);
+    Optional<LmsUserBatchProcessing> findFirstByContextIdOrderByCreatedAtDesc(Long contextId);
 
     /**
      * More than one writer can race to record the same batchId's terminal status (e.g. the LMS

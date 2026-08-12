@@ -256,6 +256,12 @@ app:
         # enough that a full sync is actually expensive - courses at or below this size just
         # refresh every time instead
         min-participants: 1000
+      # a short, always-on debounce (independent of min-participants above) against the most
+      # recently attempted sync for a course, so multiple staleness checks in quick succession
+      # (e.g. picking a participation type, then landing on the next page) collapse onto the one
+      # sync already under way or just finished, instead of each starting - and tracking - its own
+      debounce:
+        seconds: 60
     status:
       poll:
         max:
