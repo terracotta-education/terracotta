@@ -294,11 +294,15 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void refreshParticipants(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        Instant startTime = Instant.now();
+        refreshParticipants(experimentId, UUID.randomUUID());
+    }
 
-        // We don't want to delete participants if they drop the course, so keep the all participants. But we will need to mark them as
-        // dropped if they are not in the course roster.
-        UUID batchId = UUID.randomUUID();
+    // batchId is a parameter (rather than always generated here) so callers that already have a
+    // tracking batch ID for this operation (see startPrepareParticipation/prepareParticipation)
+    // can reuse it instead of ending up with two separate LmsUserBatchProcessing rows for what is,
+    // from the caller's perspective, a single logical refresh
+    void refreshParticipants(long experimentId, UUID batchId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        Instant startTime = Instant.now();
 
         try {
             Optional<Experiment> experiment = experimentRepository.findById(experimentId);
@@ -350,6 +354,12 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void refreshParticipantsIfStale(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        refreshParticipantsIfStale(experimentId, UUID.randomUUID());
+    }
+
+    // see refreshParticipants(long, UUID) - batchId lets a caller that already has a tracking
+    // batch ID for this operation reuse it instead of ending up with two rows
+    void refreshParticipantsIfStale(long experimentId, UUID batchId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
 
         if (experiment == null) {
@@ -374,7 +384,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             return;
         }
 
-        refreshParticipants(experimentId);
+        refreshParticipants(experimentId, batchId);
 
         ltiContextEntity.setLastParticipantSync(Instant.now());
         ltiContextRepository.save(ltiContextEntity);
@@ -479,11 +489,14 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo, UUID batchId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         // throttled, so picking/re-picking a participation type doesn't always force a full LMS
         // roster sync; still proactively populates the roster (rather than waiting for each
-        // student's own lazy-create-on-launch) as long as the last sync isn't recent
-        refreshParticipantsIfStale(experimentId);
+        // student's own lazy-create-on-launch) as long as the last sync isn't recent. batchId is
+        // reused (rather than generated fresh) so this shares the same LmsUserBatchProcessing row
+        // as the caller's own tracking record instead of creating a second one - see
+        // startPrepareParticipation
+        refreshParticipantsIfStale(experimentId, batchId);
 
         // reset consent for participants who already exist - covers both the case where the
         // above was skipped as not-yet-stale, and is a harmless no-op otherwise, since a
@@ -532,10 +545,11 @@ public class ParticipantServiceImpl implements ParticipantService {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
 
         if (!isParticipantSyncStale(experiment)) {
-            prepareParticipation(experimentId, securedInfo);
+            UUID batchId = UUID.randomUUID();
+            prepareParticipation(experimentId, securedInfo, batchId);
 
             return LmsUserBatchStatusDto.builder()
-                .batchId(UUID.randomUUID())
+                .batchId(batchId)
                 .status(LmsUserBatchStatus.COMPLETED)
                 .build();
         }

@@ -39,6 +39,7 @@ public class LmsUserBatchWriteServiceImplTest {
     @Test
     public void testStartBatchSavesInProgressRecord() {
         UUID batchId = UUID.randomUUID();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
 
         lmsUserBatchWriteService.startBatch(batchId, 123L);
 
@@ -47,6 +48,22 @@ public class LmsUserBatchWriteServiceImplTest {
         assertEquals(batchId, captor.getValue().getBatchId());
         assertEquals(123L, captor.getValue().getContextId());
         assertEquals(LmsUserBatchStatus.IN_PROGRESS, captor.getValue().getStatus());
+    }
+
+    // a caller (e.g. startPrepareParticipation) may have already created the
+    // LmsUserBatchProcessing row for this batchId - startBatch must update that row in place
+    // rather than inserting a second one for the same logical operation
+    @Test
+    public void testStartBatchReusesExistingRecordRatherThanCreatingNew() {
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
+
+        lmsUserBatchWriteService.startBatch(batchId, 456L);
+
+        verify(lmsUserBatchProcessingRepository).save(existing);
+        assertEquals(456L, existing.getContextId());
+        assertEquals(LmsUserBatchStatus.IN_PROGRESS, existing.getStatus());
     }
 
     @Test
