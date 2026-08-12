@@ -26,13 +26,16 @@ public class LmsUserBatchWriteServiceImpl implements LmsUserBatchWriteService {
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void startBatch(UUID batchId, Long contextId) {
-        lmsUserBatchProcessingRepository.save(
-            LmsUserBatchProcessing.builder()
-                .batchId(batchId)
-                .contextId(contextId)
-                .status(LmsUserBatchStatus.IN_PROGRESS)
-                .build()
-        );
+        // reuse the existing row if the caller already created one for this batchId (see
+        // ParticipantServiceImpl.startPrepareParticipation) instead of always inserting a new
+        // one, which previously left two LmsUserBatchProcessing rows behind for one logical
+        // refresh
+        LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(batchId)
+            .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(batchId).build());
+
+        lmsUserBatchProcessing.setContextId(contextId);
+        lmsUserBatchProcessing.setStatus(LmsUserBatchStatus.IN_PROGRESS);
+        lmsUserBatchProcessingRepository.save(lmsUserBatchProcessing);
     }
 
     @Override

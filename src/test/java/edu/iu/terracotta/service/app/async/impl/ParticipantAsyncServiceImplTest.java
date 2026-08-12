@@ -206,7 +206,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
 
         participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId);
 
-        verify(participantService).prepareParticipation(1L, securedInfo);
+        verify(participantService).prepareParticipation(1L, securedInfo, batchId);
 
         ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
         verify(lmsUserBatchProcessingRepository).save(captor.capture());
@@ -218,7 +218,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
     public void testPrepareParticipationAsyncMarksFailedOnException() throws Exception {
         UUID batchId = UUID.randomUUID();
         when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
-        doThrow(new ParticipantNotUpdatedException("boom")).when(participantService).prepareParticipation(1L, securedInfo);
+        doThrow(new ParticipantNotUpdatedException("boom")).when(participantService).prepareParticipation(1L, securedInfo, batchId);
 
         assertDoesNotThrow(() -> participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId));
 

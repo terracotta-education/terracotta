@@ -176,7 +176,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     @Override
     public void prepareParticipationAsync(long experimentId, SecuredInfo securedInfo, UUID batchId) {
         try {
-            participantService.prepareParticipation(experimentId, securedInfo);
+            participantService.prepareParticipation(experimentId, securedInfo, batchId);
             updateBatchStatus(batchId, LmsUserBatchStatus.COMPLETED, null);
         } catch (ParticipantNotUpdatedException | ExperimentNotMatchingException | TerracottaConnectorException | RuntimeException e) {
             log.error("Failed to prepare participation for experiment ID: [{}]", experimentId, e);
