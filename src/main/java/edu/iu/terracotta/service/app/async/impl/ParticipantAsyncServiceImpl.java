@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
@@ -81,9 +82,16 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     @Value("${app.participant.messaging.sync.debounce.seconds:300}")
     private long messagingSyncDebounceSeconds;
 
+    // READ_COMMITTED (rather than MySQL's default REPEATABLE READ): apiClient.listUsersForCourse
+    // below writes lms_user_batch via LmsUserBatchWriteService.saveUsers in a REQUIRES_NEW
+    // sub-transaction, which commits independently and before this method's own later plain
+    // read of that same table (findBatchProjectionsByBatchIdAndEmailIn). Under REPEATABLE READ,
+    // this transaction's consistent-read snapshot is fixed as of its first query (above), so
+    // that later read would still see the pre-sync (empty) state despite the sub-transaction
+    // having already committed - READ_COMMITTED gives it a fresh view instead.
     @Async
     @Override
-    @Transactional(rollbackFor = { ApiException.class })
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = { ApiException.class })
     public void updateParticipantData(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         LtiContextEntity ltiContextEntity = ltiContextRepository.findById(securedInfo.getContextId())
             .orElse(null);
