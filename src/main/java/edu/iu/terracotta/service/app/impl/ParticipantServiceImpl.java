@@ -155,7 +155,11 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         if (!student) {
             if (refresh) {
-                refreshParticipants(experimentId);
+                // throttled - the manual-participation selection page (the only caller that
+                // passes refresh=true) was forcing a full synchronous LMS roster sync on every
+                // instructor page load, blocking the request for however long that took (several
+                // minutes for a large course) with no throttle at all
+                refreshParticipantsIfStale(experimentId);
             }
 
             int page = 0;
