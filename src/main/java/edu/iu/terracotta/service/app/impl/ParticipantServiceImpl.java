@@ -570,8 +570,14 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param securedInfo
      * @return
      */
+    // READ_COMMITTED (see the comment on getParticipants) - a genuine entry point
+    // (StepsController calls it directly). The row lock below only serializes execution order
+    // against a concurrently-committing call; under the default REPEATABLE READ this method's own
+    // consistent-read snapshot (fixed at ITS first query, before that other call may have
+    // committed) would still be stale for the plain findFirstByContextIdAndStatus read that
+    // follows it, missing a just-committed in-progress row and creating a second one anyway.
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public LmsUserBatchStatusDto startPrepareParticipation(long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         Long contextId = experiment == null ? null : experiment.getLtiContextEntity().getContextId();

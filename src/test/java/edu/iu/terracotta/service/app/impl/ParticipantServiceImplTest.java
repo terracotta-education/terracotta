@@ -1102,6 +1102,9 @@ public class ParticipantServiceImplTest extends BaseTest {
         assertIsolationReadCommitted(
             ParticipantServiceImpl.class.getMethod("prepareParticipation", Long.class, SecuredInfo.class, UUID.class)
         );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("startPrepareParticipation", long.class, SecuredInfo.class)
+        );
     }
 
     private void assertIsolationReadCommitted(java.lang.reflect.Method method) {
