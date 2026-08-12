@@ -136,8 +136,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
         );
 
         int page = 0;
-        PageRequest pageable = PageRequest.of(page, batchSize);
-        List<LmsParticipantSummary> lmsParticipantSummariesToUpdate = participantRepository.findLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId(), pageable);
+        List<LmsParticipantSummary> lmsParticipantSummariesToUpdate = participantRepository.findLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId(), batchSize, (long) page * batchSize);
 
         if (CollectionUtils.isEmpty(lmsParticipantSummariesToUpdate)) {
             String message = String.format("No participants to update found for LTI Context with ID: [%s]", securedInfo.getContextId());
@@ -191,8 +190,8 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
             entityManager.clear();
 
             // retrieve next set of participants to update
-            pageable.withPage(page++);
-            lmsParticipantSummariesToUpdate = participantRepository.findLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId(), pageable);
+            page++;
+            lmsParticipantSummariesToUpdate = participantRepository.findLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId(), batchSize, (long) page * batchSize);
         }
 
         // send the event and delete temporary batch data
