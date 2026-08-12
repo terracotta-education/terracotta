@@ -1,6 +1,8 @@
 package edu.iu.terracotta.service.app.async.impl;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -22,6 +25,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentState;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.enums.EnrollmentType;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -55,6 +59,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
     private final LmsUserBatchWriteService lmsUserBatchWriteService;
     private final LmsUserBatchRepository lmsUserBatchRepository;
+    private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
     private final LtiContextRepository ltiContextRepository;
     private final LtiUserRepository ltiUserRepository;
     private final ParticipantRepository participantRepository;
@@ -68,6 +73,13 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
     @Value("${app.participant.batch.size:500}")
     private int batchSize;
+
+    // updateParticipantData runs on every Home.vue load (via ExperimentServiceImpl.getExperiments'
+    // hardcoded syncWithLms=true) with no throttle of its own, unlike the rest of the participant
+    // roster sync paths - debounce against the most recently attempted sync for the context so
+    // back-to-back launches don't each kick off their own full LMS course-membership fetch
+    @Value("${app.participant.messaging.sync.debounce.seconds:300}")
+    private long messagingSyncDebounceSeconds;
 
     @Async
     @Override
@@ -83,6 +95,20 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
         if (!featureService.isFeatureEnabled(FeatureType.MESSAGING, ltiContextEntity.getToolDeployment().getPlatformDeployment().getKeyId())) {
             // only update participants if messaging feature is enabled
+            return;
+        }
+
+        if (!participantRepository.existsLmsParticipantSummaryToUpdateByContextId(securedInfo.getContextId())) {
+            // nothing is actually missing an LMS user ID for this context - skip the full LMS
+            // course-membership fetch (and the LmsUserBatchProcessing row it would otherwise
+            // create) entirely
+            return;
+        }
+
+        if (isRecentSyncAttempt(securedInfo.getContextId())) {
+            // a sync for this context was already attempted moments ago (e.g. this same
+            // instructor reloading the tool) - this call runs on every launch with no throttle
+            // of its own, so debounce it here instead of hitting the LMS again immediately
             return;
         }
 
@@ -169,6 +195,13 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
         // send the event and delete temporary batch data
         lmsUserBatchAsyncService.success(batchId);
+    }
+
+    private boolean isRecentSyncAttempt(long contextId) {
+        return lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(contextId)
+            .map(LmsUserBatchProcessing::getCreatedAt)
+            .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(messagingSyncDebounceSeconds))))
+            .orElse(false);
     }
 
     @Async

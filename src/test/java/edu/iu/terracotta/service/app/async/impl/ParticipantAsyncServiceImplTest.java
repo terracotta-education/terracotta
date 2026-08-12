@@ -13,6 +13,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,8 +29,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
+import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
+import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
@@ -41,6 +45,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
 
     @Mock private LmsUserBatchWriteService lmsUserBatchWriteService;
     @Mock private LmsUserBatchRepository lmsUserBatchRepository;
+    @Mock private LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
     @Mock private LmsUserBatchAsyncService lmsUserBatchAsyncService;
     @Mock private FeatureService featureService;
 
@@ -55,6 +60,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         participantAsyncService = new ParticipantAsyncServiceImpl(
             lmsUserBatchWriteService,
             lmsUserBatchRepository,
+            lmsUserBatchProcessingRepository,
             ltiContextRepository,
             ltiUserRepository,
             participantRepository,
@@ -66,9 +72,13 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         );
         ReflectionTestUtils.setField(participantAsyncService, "entityManager", entityManager);
         ReflectionTestUtils.setField(participantAsyncService, "batchSize", 500);
+        ReflectionTestUtils.setField(participantAsyncService, "messagingSyncDebounceSeconds", 300L);
 
         when(featureService.isFeatureEnabled(FeatureType.MESSAGING, 1L)).thenReturn(true);
         when(participant.getId()).thenReturn(1L);
+        // most tests exercise the actual sync happening - only the dedicated
+        // "nothing missing"/"recent attempt" tests below stub this away from the default
+        when(participantRepository.existsLmsParticipantSummaryToUpdateByContextId(anyLong())).thenReturn(true);
     }
 
     private LmsParticipantSummary summary(long id, String email) {
@@ -106,6 +116,44 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         assertDoesNotThrow(() -> participantAsyncService.updateParticipantData(securedInfo));
 
         verify(apiClient, never()).listUsersForCourse(any(), any());
+    }
+
+    // this runs on every Home.vue load via getExperiments' hardcoded syncWithLms=true, with no
+    // throttle of its own - so it must skip the expensive LMS course-membership fetch (and the
+    // LmsUserBatchProcessing row it would otherwise create) whenever nothing actually needs it.
+    @Test
+    public void testUpdateParticipantDataSkipsWhenNoLmsUserIdsMissing() throws Exception {
+        when(participantRepository.existsLmsParticipantSummaryToUpdateByContextId(anyLong())).thenReturn(false);
+
+        assertDoesNotThrow(() -> participantAsyncService.updateParticipantData(securedInfo));
+
+        verify(ltiUserRepository, never()).findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong());
+        verify(apiClient, never()).listUsersForCourse(any(), any());
+    }
+
+    @Test
+    public void testUpdateParticipantDataSkipsWhenRecentSyncAttemptExistsForContext() throws Exception {
+        LmsUserBatchProcessing recentAttempt = new LmsUserBatchProcessing();
+        recentAttempt.setCreatedAt(Timestamp.from(Instant.now()));
+        when(lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(anyLong())).thenReturn(Optional.of(recentAttempt));
+
+        assertDoesNotThrow(() -> participantAsyncService.updateParticipantData(securedInfo));
+
+        verify(ltiUserRepository, never()).findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong());
+        verify(apiClient, never()).listUsersForCourse(any(), any());
+    }
+
+    @Test
+    public void testUpdateParticipantDataRunsWhenPriorSyncAttemptOutsideDebounceWindow() throws Exception {
+        LmsUserBatchProcessing staleAttempt = new LmsUserBatchProcessing();
+        staleAttempt.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(301)));
+        when(lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(anyLong())).thenReturn(Optional.of(staleAttempt));
+        when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
+        when(participantRepository.findLmsParticipantSummaryToUpdateByContextId(anyLong(), any(Pageable.class))).thenReturn(List.of());
+
+        participantAsyncService.updateParticipantData(securedInfo);
+
+        verify(apiClient).listUsersForCourse(any(), eq(ltiUserEntity));
     }
 
     @Test

@@ -67,6 +67,26 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     )
     List<LmsParticipantSummary> findLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId, Pageable pageable);
 
+    // cheap existence check so a full LMS course-membership fetch isn't kicked off (see
+    // ParticipantAsyncServiceImpl.updateParticipantData) when nothing is actually missing an LMS
+    // user ID for this context
+    @NativeQuery(
+        value = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM terr_participant p
+                JOIN lti_membership lme
+                    ON p.lti_membership_entity_membership_id = lme.membership_id
+                JOIN lti_user lu
+                    ON p.lti_user_entity_user_id = lu.user_id
+                WHERE
+                    lme.context_id = :contextId AND
+                    NULLIF(TRIM(lu.lms_user_id), '') IS NULL
+            )
+            """
+    )
+    boolean existsLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId);
+
     @NativeQuery(
         value = """
             SELECT
