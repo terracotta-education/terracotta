@@ -98,6 +98,7 @@ public class UserExtendedImpl extends BaseImpl<UserExtended, UserReaderExtended,
                     )
                     .toList();
 
+                log.debug("Retrieved {} users from Canvas for batch ID: [{}]: {}", usersToSave.size(), batchId, usersToSave.stream().map(LmsUserBatch::getEmail).toList());
                 lmsUserBatchWriteService.saveUsers(usersToSave);
 
                 url = response.getNextLink();
