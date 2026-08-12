@@ -60,7 +60,7 @@ public class AsyncServiceImplTest extends BaseTest {
     @Test
     void testHandleObsoleteAssignmentsInLmsByContextException() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         when(obsoleteAssignmentRepository.findAllByContext_ContextId(anyLong())).thenReturn(Collections.emptyList());
-        when(lmsAssignment.getLmsExternalToolFields().getUrl()).thenReturn(LTI_URL + "?experiment=2&assignment=1");
+        when(lmsAssignment.getLmsExternalToolFields().getUrl()).thenReturn(LTI_URL + "?experiment=2&assignment=99");
         when(lmsAssignment.getId()).thenReturn("2");
 
         doThrow(new ApiException("API Exception")).when(apiClient).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
