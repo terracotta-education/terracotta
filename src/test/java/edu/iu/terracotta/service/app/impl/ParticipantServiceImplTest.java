@@ -130,6 +130,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         ReflectionTestUtils.setField(participantService, "batchSize", 500);
         ReflectionTestUtils.setField(participantService, "entityManager", entityManager);
         ReflectionTestUtils.setField(participantService, "refreshThrottleHours", 24L);
+        ReflectionTestUtils.setField(participantService, "refreshThrottleMinParticipants", 1000L);
 
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
@@ -704,11 +705,39 @@ public class ParticipantServiceImplTest extends BaseTest {
     public void testRefreshParticipantsIfStaleRefreshesWhenNeverSyncedBefore() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
         doNothing().when(participantService).refreshParticipants(anyLong(), any(UUID.class));
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(1001L);
 
         participantService.refreshParticipantsIfStale(1L);
 
         verify(participantService).refreshParticipants(eq(1L), any(UUID.class));
         verify(ltiContextEntity).setLastParticipantSync(any(Instant.class));
+        verify(ltiContextRepository).save(ltiContextEntity);
+    }
+
+    // a full sync is only expensive enough to be worth throttling for large courses - at or
+    // below the configured threshold, last_participant_sync is left null so the course keeps
+    // refreshing on every call instead of skipping a sync that would have been cheap anyway
+    @Test
+    public void testRefreshParticipantsIfStaleSetsNullSyncTimestampWhenParticipantCountAtThreshold() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong(), any(UUID.class));
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(1000L);
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(ltiContextEntity).setLastParticipantSync(null);
+        verify(ltiContextRepository).save(ltiContextEntity);
+    }
+
+    @Test
+    public void testRefreshParticipantsIfStaleSetsNullSyncTimestampWhenParticipantCountBelowThreshold() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong(), any(UUID.class));
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(ltiContextEntity).setLastParticipantSync(null);
         verify(ltiContextRepository).save(ltiContextEntity);
     }
 

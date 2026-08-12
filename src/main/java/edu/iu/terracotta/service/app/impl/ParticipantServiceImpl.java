@@ -121,6 +121,13 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Value("${app.participant.refresh.throttle.hours:168}")
     private long refreshThrottleHours;
 
+    // a full roster sync is only expensive enough to be worth throttling for courses with a
+    // large enough participant count - smaller courses just refresh every time (last_participant_sync
+    // is left null, which isParticipantSyncFresh always treats as stale) since a fresh sync is
+    // cheap for them and there's no accuracy benefit to skipping it
+    @Value("${app.participant.refresh.throttle.min-participants:1000}")
+    private long refreshThrottleMinParticipants;
+
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
         return participantRepository.findByExperiment_ExperimentId(experimentId);
@@ -387,7 +394,11 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         refreshParticipants(experimentId, batchId);
 
-        ltiContextEntity.setLastParticipantSync(Instant.now());
+        // only worth throttling the next refresh if this one was actually expensive - a small
+        // course stays perpetually "stale" (null) so it keeps refreshing every time, which is
+        // cheap and keeps it maximally accurate
+        long participantCount = participantRepository.countByExperiment_ExperimentId(experimentId);
+        ltiContextEntity.setLastParticipantSync(participantCount > refreshThrottleMinParticipants ? Instant.now() : null);
         ltiContextRepository.save(ltiContextEntity);
     }
 
