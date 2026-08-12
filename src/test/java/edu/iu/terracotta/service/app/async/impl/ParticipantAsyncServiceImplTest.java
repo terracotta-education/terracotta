@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Pageable;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
@@ -239,6 +240,22 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
 
         verify(lmsUserBatchProcessingRepository).save(existing);
         assertEquals(LmsUserBatchStatus.COMPLETED, existing.getStatus());
+    }
+
+    // when refreshParticipants actually ran as part of prepareParticipation, its own
+    // LmsUserBatchAsyncServiceImpl completion event (on a separate async thread) can race this
+    // same-batchId write and win first, bumping entity_version out from under this save - that
+    // must not blow up the whole async task with an uncaught ObjectOptimisticLockingFailureException
+    @Test
+    public void testPrepareParticipationAsyncToleratesLostOptimisticLockRaceOnCompletion() throws Exception {
+        UUID batchId = UUID.randomUUID();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
+        when(lmsUserBatchProcessingRepository.save(any(LmsUserBatchProcessing.class)))
+            .thenThrow(new ObjectOptimisticLockingFailureException(LmsUserBatchProcessing.class, batchId));
+
+        assertDoesNotThrow(() -> participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId));
+
+        verify(participantService).prepareParticipation(1L, securedInfo, batchId);
     }
 
 }
