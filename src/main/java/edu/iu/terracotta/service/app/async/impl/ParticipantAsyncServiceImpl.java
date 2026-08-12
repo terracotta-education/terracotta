@@ -10,6 +10,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -190,7 +191,17 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
 
         lmsUserBatchProcessing.setStatus(status);
         lmsUserBatchProcessing.setMessage(message);
-        lmsUserBatchProcessingRepository.save(lmsUserBatchProcessing);
+
+        try {
+            lmsUserBatchProcessingRepository.save(lmsUserBatchProcessing);
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // when refreshParticipants actually ran, LmsUserBatchAsyncServiceImpl's
+            // @TransactionalEventListener already raced this same row to its final
+            // status/cleanup (it also deletes the batchId's staging lms_user_batch rows, which
+            // this write does not) - losing this race just means that authoritative update won
+            // first, so this now-stale write is redundant, not a lost update
+            log.debug("Skipped batch status update for batch ID: [{}] - already updated by the LMS sync's own completion handler", batchId, e);
+        }
     }
 
 }
