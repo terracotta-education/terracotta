@@ -60,25 +60,27 @@ public class LmsUserBatchWriteServiceImpl implements LmsUserBatchWriteService {
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateStatus(UUID batchId, LmsUserBatchStatus status, String message) {
-        // NOTE: deliberately does not catch ObjectOptimisticLockingFailureException here - with
-        // plain save() (not saveAndFlush()), the actual UPDATE/version check is deferred to this
-        // REQUIRES_NEW transaction's commit, which Spring's @Transactional AOP advice runs AFTER
-        // this method body returns. A try/catch in here cannot see that failure. Callers on a
-        // DIFFERENT bean calling this method DO see it synchronously (the proxy's commit is part
-        // of their call), so they're the right place to catch a lost race - see
-        // ParticipantAsyncServiceImpl.updateBatchStatus / LmsUserBatchAsyncServiceImpl.handleBatchEvent
-        LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(batchId)
-            .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(batchId).build());
+        // more than one writer can independently report "done" for the same batchId (e.g. the
+        // LMS sync's own completion event and the outer async task that kicked it off) - a
+        // read-then-save() of the @Version-checked entity would let whichever one commits second
+        // fail with ObjectOptimisticLockingFailureException, and that failure surfaces at this
+        // REQUIRES_NEW transaction's AOP-driven commit, AFTER this method body returns - not
+        // catchable by a caller-side try/catch around individual statements. A direct UPDATE
+        // bypasses that check entirely: every such writer for a given batchId writes an
+        // equivalent final state, so whichever one runs last simply wins, with no exception.
+        int updated = lmsUserBatchProcessingRepository.updateStatusAndMessage(batchId, status, message);
 
-        lmsUserBatchProcessing.setStatus(status);
-
-        // null means "leave whatever message is already there" (e.g. a blank event message
-        // shouldn't blow away a previously recorded error) - pass an empty string to clear it
-        if (message != null) {
-            lmsUserBatchProcessing.setMessage(message);
+        if (updated == 0) {
+            // no row exists yet for this batchId (e.g. markFailed called before startBatch ever
+            // ran) - fall back to creating one
+            lmsUserBatchProcessingRepository.save(
+                LmsUserBatchProcessing.builder()
+                    .batchId(batchId)
+                    .status(status)
+                    .message(message)
+                    .build()
+            );
         }
-
-        lmsUserBatchProcessingRepository.save(lmsUserBatchProcessing);
     }
 
 }

@@ -23,12 +23,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Pageable;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProjection;
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
@@ -218,21 +216,6 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         assertDoesNotThrow(() -> participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId));
 
         verify(lmsUserBatchWriteService).updateStatus(batchId, LmsUserBatchStatus.FAILED, "boom");
-    }
-
-    // when refreshParticipants actually ran as part of prepareParticipation, its own
-    // LmsUserBatchAsyncServiceImpl completion event (on a separate async thread) can race this
-    // same-batchId write and win first, bumping entity_version out from under this write - that
-    // must not blow up the whole async task with an uncaught ObjectOptimisticLockingFailureException
-    @Test
-    public void testPrepareParticipationAsyncToleratesLostOptimisticLockRaceOnCompletion() throws Exception {
-        UUID batchId = UUID.randomUUID();
-        doThrow(new ObjectOptimisticLockingFailureException(LmsUserBatchProcessing.class, batchId))
-            .when(lmsUserBatchWriteService).updateStatus(any(UUID.class), any(LmsUserBatchStatus.class), any());
-
-        assertDoesNotThrow(() -> participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId));
-
-        verify(participantService).prepareParticipation(1L, securedInfo, batchId);
     }
 
 }
