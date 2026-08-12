@@ -10,7 +10,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -177,26 +176,14 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     public void prepareParticipationAsync(long experimentId, SecuredInfo securedInfo, UUID batchId) {
         try {
             participantService.prepareParticipation(experimentId, securedInfo, batchId);
-            updateBatchStatus(batchId, LmsUserBatchStatus.COMPLETED, null);
+            // updateStatus uses a direct UPDATE that bypasses the entity's optimistic-lock check,
+            // so it can't fail here even if refreshParticipants's own completion event (see
+            // LmsUserBatchAsyncServiceImpl.handleBatchEvent) races this same batchId - see
+            // LmsUserBatchWriteServiceImpl.updateStatus
+            lmsUserBatchWriteService.updateStatus(batchId, LmsUserBatchStatus.COMPLETED, null);
         } catch (ParticipantNotUpdatedException | ExperimentNotMatchingException | TerracottaConnectorException | RuntimeException e) {
             log.error("Failed to prepare participation for experiment ID: [{}]", experimentId, e);
-            updateBatchStatus(batchId, LmsUserBatchStatus.FAILED, e.getMessage());
-        }
-    }
-
-    private void updateBatchStatus(UUID batchId, LmsUserBatchStatus status, String message) {
-        try {
-            // a genuine cross-bean call into LmsUserBatchWriteServiceImpl's own REQUIRES_NEW
-            // transaction - its commit (and any optimistic-lock failure) happens synchronously
-            // as part of this call, so it's catchable here
-            lmsUserBatchWriteService.updateStatus(batchId, status, message);
-        } catch (ObjectOptimisticLockingFailureException e) {
-            // when refreshParticipants actually ran, LmsUserBatchAsyncServiceImpl's
-            // @TransactionalEventListener already raced this same row to its final
-            // status/cleanup (it also deletes the batchId's staging lms_user_batch rows, which
-            // this write does not) - losing this race just means that authoritative update won
-            // first, so this now-stale write is redundant, not a lost update
-            log.debug("Skipped batch status update for batch ID: [{}] - already updated by the LMS sync's own completion handler", batchId, e);
+            lmsUserBatchWriteService.updateStatus(batchId, LmsUserBatchStatus.FAILED, e.getMessage());
         }
     }
 
