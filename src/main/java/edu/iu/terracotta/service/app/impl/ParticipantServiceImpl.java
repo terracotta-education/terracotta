@@ -128,6 +128,17 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Value("${app.participant.refresh.throttle.min-participants:1000}")
     private long refreshThrottleMinParticipants;
 
+    // last_participant_sync stays permanently null for courses at/below the min-participants
+    // threshold, so isParticipantSyncFresh alone would always call them stale - meaning several
+    // independent entry points hit in quick succession for the same course (e.g. picking a
+    // participation type, then landing on the next page, which each check staleness separately)
+    // would each kick off their own full sync and its own LmsUserBatchProcessing row. This is a
+    // short, always-on debounce against the most recently attempted sync for the course,
+    // regardless of participant count, so those near-simultaneous checks collapse onto the one
+    // sync already under way or just finished, instead of each starting a fresh one
+    @Value("${app.participant.refresh.debounce.seconds:60}")
+    private long refreshDebounceSeconds;
+
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
         return participantRepository.findByExperiment_ExperimentId(experimentId);
@@ -405,7 +416,18 @@ public class ParticipantServiceImpl implements ParticipantService {
     private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity) {
         Instant lastSync = ltiContextEntity.getLastParticipantSync();
 
-        return lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)));
+        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+            return true;
+        }
+
+        // lastSync is null either because this course has never synced, or because it's at/below
+        // the min-participants threshold and so never gets a real timestamp recorded - either
+        // way, treat a just-attempted sync for this same course as "fresh enough" so a second,
+        // independent staleness check moments later doesn't start a redundant one
+        return lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(ltiContextEntity.getContextId())
+            .map(LmsUserBatchProcessing::getCreatedAt)
+            .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
+            .orElse(false);
     }
 
     /**

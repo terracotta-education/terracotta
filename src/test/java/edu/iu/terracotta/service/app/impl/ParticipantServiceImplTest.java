@@ -131,6 +131,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         ReflectionTestUtils.setField(participantService, "entityManager", entityManager);
         ReflectionTestUtils.setField(participantService, "refreshThrottleHours", 24L);
         ReflectionTestUtils.setField(participantService, "refreshThrottleMinParticipants", 1000L);
+        ReflectionTestUtils.setField(participantService, "refreshDebounceSeconds", 60L);
 
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
@@ -739,6 +740,41 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(ltiContextEntity).setLastParticipantSync(null);
         verify(ltiContextRepository).save(ltiContextEntity);
+    }
+
+    // last_participant_sync stays permanently null for a course at/below the min-participants
+    // threshold, so it alone can't prevent a second, independent staleness check (e.g. the
+    // manual-participation page's own refresh=true fetch, moments after the participation-type
+    // wizard's own refresh already ran) from starting its own redundant sync and its own
+    // LmsUserBatchProcessing row. The debounce against the most recent sync attempt for the
+    // course - regardless of participant count - is what actually prevents that second sync.
+    @Test
+    public void testRefreshParticipantsIfStaleSkipsWhenRecentSyncAttemptExistsForContext() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+
+        LmsUserBatchProcessing recentAttempt = new LmsUserBatchProcessing();
+        recentAttempt.setCreatedAt(Timestamp.from(Instant.now()));
+        when(lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(1L)).thenReturn(Optional.of(recentAttempt));
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService, never()).refreshParticipants(anyLong(), any());
+        verify(ltiContextRepository, never()).save(any(LtiContextEntity.class));
+    }
+
+    @Test
+    public void testRefreshParticipantsIfStaleRefreshesWhenPriorSyncAttemptOutsideDebounceWindow() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong(), any(UUID.class));
+
+        LmsUserBatchProcessing staleAttempt = new LmsUserBatchProcessing();
+        staleAttempt.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(61)));
+        when(lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(1L)).thenReturn(Optional.of(staleAttempt));
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService).refreshParticipants(eq(1L), any(UUID.class));
     }
 
     // refreshParticipantsIfStale(experimentId, batchId) must reuse the exact batchId a caller
