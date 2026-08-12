@@ -31,8 +31,8 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProj
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInCourseOptions;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
@@ -41,7 +41,7 @@ import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 
 public class ParticipantAsyncServiceImplTest extends BaseTest {
 
-    @Mock private LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
+    @Mock private LmsUserBatchWriteService lmsUserBatchWriteService;
     @Mock private LmsUserBatchRepository lmsUserBatchRepository;
     @Mock private LmsUserBatchAsyncService lmsUserBatchAsyncService;
     @Mock private FeatureService featureService;
@@ -55,7 +55,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         setup();
 
         participantAsyncService = new ParticipantAsyncServiceImpl(
-            lmsUserBatchProcessingRepository,
+            lmsUserBatchWriteService,
             lmsUserBatchRepository,
             ltiContextRepository,
             ltiUserRepository,
@@ -203,55 +203,32 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
     @Test
     public void testPrepareParticipationAsyncMarksCompletedOnSuccess() throws Exception {
         UUID batchId = UUID.randomUUID();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
 
         participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId);
 
         verify(participantService).prepareParticipation(1L, securedInfo, batchId);
-
-        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
-        verify(lmsUserBatchProcessingRepository).save(captor.capture());
-        assertEquals(batchId, captor.getValue().getBatchId());
-        assertEquals(LmsUserBatchStatus.COMPLETED, captor.getValue().getStatus());
+        verify(lmsUserBatchWriteService).updateStatus(batchId, LmsUserBatchStatus.COMPLETED, null);
     }
 
     @Test
     public void testPrepareParticipationAsyncMarksFailedOnException() throws Exception {
         UUID batchId = UUID.randomUUID();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
         doThrow(new ParticipantNotUpdatedException("boom")).when(participantService).prepareParticipation(1L, securedInfo, batchId);
 
         assertDoesNotThrow(() -> participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId));
 
-        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
-        verify(lmsUserBatchProcessingRepository).save(captor.capture());
-        assertEquals(batchId, captor.getValue().getBatchId());
-        assertEquals(LmsUserBatchStatus.FAILED, captor.getValue().getStatus());
-        assertEquals("boom", captor.getValue().getMessage());
-    }
-
-    @Test
-    public void testPrepareParticipationAsyncUpdatesExistingRecordRatherThanCreatingNew() throws Exception {
-        UUID batchId = UUID.randomUUID();
-        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
-
-        participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId);
-
-        verify(lmsUserBatchProcessingRepository).save(existing);
-        assertEquals(LmsUserBatchStatus.COMPLETED, existing.getStatus());
+        verify(lmsUserBatchWriteService).updateStatus(batchId, LmsUserBatchStatus.FAILED, "boom");
     }
 
     // when refreshParticipants actually ran as part of prepareParticipation, its own
     // LmsUserBatchAsyncServiceImpl completion event (on a separate async thread) can race this
-    // same-batchId write and win first, bumping entity_version out from under this save - that
+    // same-batchId write and win first, bumping entity_version out from under this write - that
     // must not blow up the whole async task with an uncaught ObjectOptimisticLockingFailureException
     @Test
     public void testPrepareParticipationAsyncToleratesLostOptimisticLockRaceOnCompletion() throws Exception {
         UUID batchId = UUID.randomUUID();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
-        when(lmsUserBatchProcessingRepository.save(any(LmsUserBatchProcessing.class)))
-            .thenThrow(new ObjectOptimisticLockingFailureException(LmsUserBatchProcessing.class, batchId));
+        doThrow(new ObjectOptimisticLockingFailureException(LmsUserBatchProcessing.class, batchId))
+            .when(lmsUserBatchWriteService).updateStatus(any(UUID.class), any(LmsUserBatchStatus.class), any());
 
         assertDoesNotThrow(() -> participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId));
 

@@ -543,8 +543,18 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Transactional
     public LmsUserBatchStatusDto startPrepareParticipation(long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        Long contextId = experiment == null ? null : experiment.getLtiContextEntity().getContextId();
 
-        if (!isParticipantSyncStale(experiment)) {
+        // a real DB row lock (see refreshParticipantsIfStale) so a rapid double-submit or a
+        // second overlapping request for the same course serializes its "is this stale" decision
+        // here, instead of each one independently deciding "stale" and creating its own
+        // LmsUserBatchProcessing row before either async refresh has had a chance to mark the
+        // roster fresh - reentrant if this ends up calling refreshParticipantsIfStale below via
+        // self-invocation, since InnoDB row locks are held per-transaction, not per-statement
+        LtiContextEntity ltiContextEntity = contextId == null ? null : ltiContextRepository.findByContextIdForUpdate(contextId);
+        boolean fresh = ltiContextEntity == null ? !isParticipantSyncStale(experiment) : isParticipantSyncFresh(ltiContextEntity);
+
+        if (fresh) {
             UUID batchId = UUID.randomUUID();
             prepareParticipation(experimentId, securedInfo, batchId);
 
@@ -554,12 +564,26 @@ public class ParticipantServiceImpl implements ParticipantService {
                 .build();
         }
 
+        if (contextId != null) {
+            // reuse whichever batch is already in flight for this LTI context instead of
+            // creating a second, independently-tracked row for what is the same underlying
+            // refresh
+            Optional<LmsUserBatchProcessing> inProgress = lmsUserBatchProcessingRepository.findFirstByContextIdAndStatus(contextId, LmsUserBatchStatus.IN_PROGRESS);
+
+            if (inProgress.isPresent()) {
+                return LmsUserBatchStatusDto.builder()
+                    .batchId(inProgress.get().getBatchId())
+                    .status(LmsUserBatchStatus.IN_PROGRESS)
+                    .build();
+            }
+        }
+
         UUID batchId = UUID.randomUUID();
 
         lmsUserBatchProcessingRepository.save(
             LmsUserBatchProcessing.builder()
                 .batchId(batchId)
-                .contextId(experiment == null ? null : experiment.getLtiContextEntity().getContextId())
+                .contextId(contextId)
                 .status(LmsUserBatchStatus.IN_PROGRESS)
                 .build()
         );

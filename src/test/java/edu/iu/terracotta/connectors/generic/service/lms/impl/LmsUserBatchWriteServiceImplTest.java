@@ -109,4 +109,46 @@ public class LmsUserBatchWriteServiceImplTest {
         assertEquals("canvas error", captor.getValue().getMessage());
     }
 
+    @Test
+    public void testUpdateStatusSetsStatusAndMessageOnExistingRecord() {
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
+
+        lmsUserBatchWriteService.updateStatus(batchId, LmsUserBatchStatus.COMPLETED, "done");
+
+        verify(lmsUserBatchProcessingRepository).save(existing);
+        assertEquals(LmsUserBatchStatus.COMPLETED, existing.getStatus());
+        assertEquals("done", existing.getMessage());
+    }
+
+    @Test
+    public void testUpdateStatusCreatesRecordWhenNoneExists() {
+        UUID batchId = UUID.randomUUID();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
+
+        lmsUserBatchWriteService.updateStatus(batchId, LmsUserBatchStatus.COMPLETED, null);
+
+        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
+        verify(lmsUserBatchProcessingRepository).save(captor.capture());
+        assertEquals(batchId, captor.getValue().getBatchId());
+        assertEquals(LmsUserBatchStatus.COMPLETED, captor.getValue().getStatus());
+    }
+
+    // a null message means "leave whatever is already there alone" - e.g. a blank event message
+    // must not blow away a previously recorded error message (see
+    // LmsUserBatchAsyncServiceImpl.handleBatchEvent, which normalizes blank to null before
+    // calling this)
+    @Test
+    public void testUpdateStatusPreservesExistingMessageWhenMessageArgIsNull() {
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).message("original").build();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
+
+        lmsUserBatchWriteService.updateStatus(batchId, LmsUserBatchStatus.PROCESSED, null);
+
+        assertEquals(LmsUserBatchStatus.PROCESSED, existing.getStatus());
+        assertEquals("original", existing.getMessage());
+    }
+
 }
