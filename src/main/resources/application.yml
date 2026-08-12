@@ -264,6 +264,14 @@ app:
       # just near-simultaneous requests
       debounce:
         seconds: 300
+    messaging:
+      sync:
+        # debounce for ParticipantAsyncServiceImpl.updateParticipantData, which runs on every
+        # Home.vue load (via getExperiments' syncWithLms) with no throttle of its own - separate
+        # from the debounce above since it guards a different sync (LMS user ID matching for
+        # messaging, not the participant roster)
+        debounce:
+          seconds: 300
     status:
       poll:
         max:
