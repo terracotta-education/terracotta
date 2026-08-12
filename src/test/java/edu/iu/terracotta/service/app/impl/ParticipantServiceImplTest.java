@@ -131,7 +131,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         ReflectionTestUtils.setField(participantService, "entityManager", entityManager);
         ReflectionTestUtils.setField(participantService, "refreshThrottleHours", 24L);
         ReflectionTestUtils.setField(participantService, "refreshThrottleMinParticipants", 1000L);
-        ReflectionTestUtils.setField(participantService, "refreshDebounceSeconds", 60L);
+        ReflectionTestUtils.setField(participantService, "refreshDebounceSeconds", 300L);
 
         when(condition.getDefaultCondition()).thenReturn(true);
         when(experiment.getDistributionType()).thenReturn(DistributionTypes.CUSTOM);
@@ -768,7 +768,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         doNothing().when(participantService).refreshParticipants(anyLong(), any(UUID.class));
 
         LmsUserBatchProcessing staleAttempt = new LmsUserBatchProcessing();
-        staleAttempt.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(61)));
+        staleAttempt.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(301)));
         when(lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(1L)).thenReturn(Optional.of(staleAttempt));
         when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
 

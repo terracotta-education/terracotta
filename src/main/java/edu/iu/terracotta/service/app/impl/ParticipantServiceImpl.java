@@ -130,13 +130,15 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     // last_participant_sync stays permanently null for courses at/below the min-participants
     // threshold, so isParticipantSyncFresh alone would always call them stale - meaning several
-    // independent entry points hit in quick succession for the same course (e.g. picking a
-    // participation type, then landing on the next page, which each check staleness separately)
-    // would each kick off their own full sync and its own LmsUserBatchProcessing row. This is a
-    // short, always-on debounce against the most recently attempted sync for the course,
-    // regardless of participant count, so those near-simultaneous checks collapse onto the one
-    // sync already under way or just finished, instead of each starting a fresh one
-    @Value("${app.participant.refresh.debounce.seconds:60}")
+    // independent entry points hit while a user clicks through the participation-type wizard
+    // (e.g. picking a type on SelectionMethod.vue, then landing on the manual-selection page,
+    // which each check staleness separately) would each kick off their own full sync and its own
+    // LmsUserBatchProcessing row. This is an always-on debounce against the most recently
+    // attempted sync for the course, regardless of participant count, so those checks collapse
+    // onto the one sync already under way or just finished, instead of each starting a fresh
+    // one. 5 minutes rather than a handful of seconds - this needs to comfortably cover how long
+    // a real user takes to read a page and click through, not just near-simultaneous requests
+    @Value("${app.participant.refresh.debounce.seconds:300}")
     private long refreshDebounceSeconds;
 
     @Override
