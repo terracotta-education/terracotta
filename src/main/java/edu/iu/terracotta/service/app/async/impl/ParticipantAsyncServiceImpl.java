@@ -152,12 +152,21 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
                     .toList()
             );
 
+            List<String> participantEmails = participants.stream()
+                .map(p -> p.getLtiUserEntity().getEmail())
+                .toList();
+
             List<LmsUserBatchEmailProjection> batchEmails = lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailIn(
                 batchId,
-                participants.stream()
-                    .map(p -> p.getLtiUserEntity().getEmail())
-                    .toList(),
+                participantEmails,
                 PageRequest.of(0, batchSize)
+            );
+
+            log.debug(
+                "Looking up batch ID: [{}] for participant emails: {} - found staged emails: {}",
+                batchId,
+                participantEmails,
+                batchEmails.stream().map(LmsUserBatchEmailProjection::getEmail).toList()
             );
 
             // Update participants without LTI user IDs based on email matching
