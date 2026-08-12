@@ -252,6 +252,10 @@ app:
       throttle:
         # 1 week
         hours: 168
+        # only throttle the next refresh (via last_participant_sync) when the roster is large
+        # enough that a full sync is actually expensive - courses at or below this size just
+        # refresh every time instead
+        min-participants: 1000
     status:
       poll:
         max:
