@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -365,10 +366,18 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             String experimentTitle = Strings.CS.replace(experiment.getTitle(), " ", "_");
             experimentTitle = lmsUtils.sanitize(experimentTitle);
 
+            // the trailing UUID segment guarantees a unique filename/directory even when the
+            // same experiment is exported more than once within the same minute (e.g. a
+            // double-click, or a retry after a slow response) - createExperimentExportFile
+            // below fails with FileExistsException if two exports ever land on the same path
             String exportFilename = String.format(
                 Export.EXPORT_FILE_NAME,
                 experimentTitle,
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm"))
+                String.format(
+                    "%s-%s",
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm")),
+                    UUID.randomUUID().toString().substring(0, 8)
+                )
             );
 
             ExportDto transferExportDto = ExportDto.builder()
