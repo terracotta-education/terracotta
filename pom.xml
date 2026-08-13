@@ -20,11 +20,11 @@
         <byte-buddy.version>1.18.11</byte-buddy.version>
         <caliper.version>1.1.2</caliper.version>
         <canvas-api.version>2.0.1</canvas-api.version>
-        <commons-collections4.version>4.5.0</commons-collections4.version>
+        <commons-collections4.version>4.6.0</commons-collections4.version>
         <commons-io.version>2.22.0</commons-io.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <commons-math3.version>3.6.1</commons-math3.version>
-        <commons-validator.version>1.10.1</commons-validator.version>
+        <commons-validator.version>1.11.0</commons-validator.version>
         <db-scheduler.version>16.12.0</db-scheduler.version>
         <frontend-maven-plugin.version>1.15.4</frontend-maven-plugin.version>
         <guava.version>33.6.0-jre</guava.version>
@@ -32,9 +32,9 @@
         <jacoco.version>0.8.15</jacoco.version>
         <java.version>25</java.version>
         <jjwt.version>0.13.0</jjwt.version>
-        <joda-time.version>2.14.2</joda-time.version>
-        <json.version>20260522</json.version>
-        <jsoup.version>1.22.2</jsoup.version>
+        <joda-time.version>2.14.3</joda-time.version>
+        <json.version>20260719</json.version>
+        <jsoup.version>1.23.1</jsoup.version>
         <lombok.version>1.18.46</lombok.version>
         <mysql-connector-j.version>9.7.0</mysql-connector-j.version>
         <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
