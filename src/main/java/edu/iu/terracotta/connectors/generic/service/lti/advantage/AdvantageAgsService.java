@@ -7,7 +7,6 @@ import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -23,7 +22,6 @@ public interface AdvantageAgsService {
     boolean deleteLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException, TerracottaConnectorException;
     LineItems getLineItems(LtiToken ltiToken, LtiContextEntity context) throws ConnectionException, TerracottaConnectorException;
     LineItems postLineItems(LtiToken ltiToken, LtiContextEntity context, LineItems lineItems) throws ConnectionException;
-    Results getResults(LtiToken ltiTokenResults, LtiContextEntity context, String lineItemId) throws ConnectionException;
     void postScore(LtiToken ltiTokenScores, LtiToken ltiTokenResults, LtiContextEntity context, String lineItemId, Score score) throws ConnectionException, TerracottaConnectorException;
 
 }
