@@ -18,7 +18,6 @@ import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -160,11 +159,6 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
     @Override
     public LineItems postLineItems(LtiToken ltiToken, LtiContextEntity context, LineItems lineItems) throws ConnectionException {
         throw new UnsupportedOperationException("Unimplemented method 'postLineItems'");
-    }
-
-    @Override
-    public Results getResults(LtiToken ltiTokenResults, LtiContextEntity context, String lineItemId) throws ConnectionException {
-        throw new UnsupportedOperationException("Unimplemented method 'getResults'");
     }
 
     @Override

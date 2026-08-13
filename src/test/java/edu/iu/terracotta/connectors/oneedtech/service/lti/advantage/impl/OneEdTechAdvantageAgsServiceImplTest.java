@@ -162,11 +162,6 @@ public class OneEdTechAdvantageAgsServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testGetResultsUnsupported() {
-        assertThrows(UnsupportedOperationException.class, () -> oneEdTechAdvantageAgsService.getResults(ltiToken, ltiContextEntity, "lineItemId"));
-    }
-
-    @Test
     public void testPostScoreSuccess() {
         // A real Score instance is used here (rather than the inherited `score` mock) because
         // postScore() serializes it with a real (non-mocked) JsonMapper call. Serializing a raw
