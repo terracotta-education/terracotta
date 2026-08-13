@@ -776,7 +776,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         LmsUserBatchProcessing recentAttempt = new LmsUserBatchProcessing();
         recentAttempt.setCreatedAt(Timestamp.from(Instant.now()));
-        when(lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(1L)).thenReturn(Optional.of(recentAttempt));
+        when(lmsUserBatchProcessingRepository.findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(eq(1L), any(UUID.class))).thenReturn(Optional.of(recentAttempt));
 
         participantService.refreshParticipantsIfStale(1L);
 
@@ -791,12 +791,33 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         LmsUserBatchProcessing staleAttempt = new LmsUserBatchProcessing();
         staleAttempt.setCreatedAt(Timestamp.from(Instant.now().minusSeconds(301)));
-        when(lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(1L)).thenReturn(Optional.of(staleAttempt));
+        when(lmsUserBatchProcessingRepository.findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(eq(1L), any(UUID.class))).thenReturn(Optional.of(staleAttempt));
         when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
 
         participantService.refreshParticipantsIfStale(1L);
 
         verify(participantService).refreshParticipants(eq(1L), any(UUID.class));
+    }
+
+    // startPrepareParticipation creates the IN_PROGRESS row and hands its batch ID to
+    // prepareParticipationAsync, which reuses it here - the debounce lookup must exclude that
+    // exact batch ID, or this method would find its own just-created row (created moments ago,
+    // for this very call) and wrongly conclude the context was already synced, skipping the sync
+    // it was actually supposed to perform and leaving the batch's message perpetually null
+    @Test
+    public void testRefreshParticipantsIfStaleIgnoresItsOwnJustCreatedRowInDebounceCheck() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        doNothing().when(participantService).refreshParticipants(anyLong(), any(UUID.class));
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
+
+        UUID batchId = UUID.randomUUID();
+        // no other row exists for this context once the current batch is excluded
+        when(lmsUserBatchProcessingRepository.findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(1L, batchId)).thenReturn(Optional.empty());
+
+        participantService.refreshParticipantsIfStale(1L, batchId);
+
+        verify(participantService).refreshParticipants(1L, batchId);
+        verify(lmsUserBatchProcessingRepository, never()).findFirstByContextIdOrderByCreatedAtDesc(anyLong());
     }
 
     // refreshParticipantsIfStale(experimentId, batchId) must reuse the exact batchId a caller

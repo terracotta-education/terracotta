@@ -17,6 +17,9 @@ public interface LmsUserBatchProcessingRepository extends JpaRepository<LmsUserB
     Optional<LmsUserBatchProcessing> findByBatchId(UUID batchId);
     Optional<LmsUserBatchProcessing> findFirstByContextIdAndStatus(Long contextId, LmsUserBatchStatus status);
     Optional<LmsUserBatchProcessing> findFirstByContextIdOrderByCreatedAtDesc(Long contextId);
+    // excludes the batch currently being processed - used by the debounce check so a batch's own
+    // just-created IN_PROGRESS row doesn't make it look like the context was already synced
+    Optional<LmsUserBatchProcessing> findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(Long contextId, UUID batchId);
 
     /**
      * More than one writer can race to record the same batchId's terminal status (e.g. the LMS

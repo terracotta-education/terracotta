@@ -411,7 +411,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
         }
 
-        if (isParticipantSyncFresh(experiment.getLtiContextEntity())) {
+        if (isParticipantSyncFresh(experiment.getLtiContextEntity(), batchId)) {
             return;
         }
 
@@ -425,7 +425,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         // simply never reaches the write that marks it synced, leaving it correctly untouched.
         LtiContextEntity ltiContextEntity = ltiContextRepository.findByContextIdForUpdate(experiment.getLtiContextEntity().getContextId());
 
-        if (isParticipantSyncFresh(ltiContextEntity)) {
+        if (isParticipantSyncFresh(ltiContextEntity, batchId)) {
             return;
         }
 
@@ -451,6 +451,23 @@ public class ParticipantServiceImpl implements ParticipantService {
         // way, treat a just-attempted sync for this same course as "fresh enough" so a second,
         // independent staleness check moments later doesn't start a redundant one
         return lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(ltiContextEntity.getContextId())
+            .map(LmsUserBatchProcessing::getCreatedAt)
+            .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
+            .orElse(false);
+    }
+
+    // same as above, but excludes currentBatchId from the debounce lookup - a caller that reused
+    // an already-created IN_PROGRESS row's batch ID (see startPrepareParticipation) would
+    // otherwise find that very row (created moments ago, for this same operation) and conclude
+    // the context was "already synced", skipping the sync it was actually supposed to perform
+    private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity, UUID currentBatchId) {
+        Instant lastSync = ltiContextEntity.getLastParticipantSync();
+
+        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+            return true;
+        }
+
+        return lmsUserBatchProcessingRepository.findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(ltiContextEntity.getContextId(), currentBatchId)
             .map(LmsUserBatchProcessing::getCreatedAt)
             .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
             .orElse(false);
