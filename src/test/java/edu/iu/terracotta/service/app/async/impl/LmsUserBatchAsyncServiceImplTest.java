@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
 import java.util.UUID;
@@ -13,6 +15,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
@@ -93,15 +96,20 @@ public class LmsUserBatchAsyncServiceImplTest {
         assertEquals("LMS error", captor.getValue().message());
     }
 
+    // success() never sets a message of its own - handleBatchEvent fills one in reporting how
+    // many users this sync actually retrieved, counted before the staging rows are deleted
     @Test
-    public void testHandleBatchEventDelegatesStatusUpdateToWriteService() {
+    public void testHandleBatchEventSetsRetrievedUserCountMessageOnCompleted() {
         UUID batchId = UUID.randomUUID();
         LmsUserBatchEvent event = LmsUserBatchEvent.builder().batchId(batchId).status(LmsUserBatchStatus.COMPLETED).build();
+        when(lmsUserBatchRepository.countByBatchId(batchId)).thenReturn(42L);
 
         lmsUserBatchAsyncService.handleBatchEvent(event);
 
-        verify(lmsUserBatchRepository).deleteByBatchId(batchId);
-        verify(lmsUserBatchWriteService).updateStatus(batchId, LmsUserBatchStatus.COMPLETED, null);
+        InOrder inOrder = inOrder(lmsUserBatchRepository, lmsUserBatchWriteService);
+        inOrder.verify(lmsUserBatchRepository).countByBatchId(batchId);
+        inOrder.verify(lmsUserBatchRepository).deleteByBatchId(batchId);
+        inOrder.verify(lmsUserBatchWriteService).updateStatus(batchId, LmsUserBatchStatus.COMPLETED, "Retrieved 42 users from LMS");
     }
 
     @Test

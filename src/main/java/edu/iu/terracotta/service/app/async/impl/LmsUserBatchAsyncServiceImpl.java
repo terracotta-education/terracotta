@@ -36,16 +36,24 @@ public class LmsUserBatchAsyncServiceImpl implements LmsUserBatchAsyncService {
     // invoked when the transaction they were registered against rolls back instead of commits.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMPLETION)
     public void handleBatchEvent(LmsUserBatchEvent lmsUserBatchEvent) {
-        lmsUserBatchRepository.deleteByBatchId(lmsUserBatchEvent.batchId());
+        UUID batchId = lmsUserBatchEvent.batchId();
+
+        // success() never sets a message of its own - report how many users this sync actually
+        // retrieved, counted before the staging rows below are deleted
+        String message = lmsUserBatchEvent.status() == LmsUserBatchStatus.COMPLETED ?
+            String.format("Retrieved %d users from LMS", lmsUserBatchRepository.countByBatchId(batchId)) :
+            lmsUserBatchEvent.message();
+
+        lmsUserBatchRepository.deleteByBatchId(batchId);
 
         // updateStatus uses a direct UPDATE that bypasses the entity's optimistic-lock check, so
         // it can't fail here even if prepareParticipationAsync's own completion write (see
         // ParticipantAsyncServiceImpl) races this same batchId - see
         // LmsUserBatchWriteServiceImpl.updateStatus
         lmsUserBatchWriteService.updateStatus(
-            lmsUserBatchEvent.batchId(),
+            batchId,
             lmsUserBatchEvent.status(),
-            StringUtils.isNotBlank(lmsUserBatchEvent.message()) ? lmsUserBatchEvent.message() : null
+            StringUtils.isNotBlank(message) ? message : null
         );
     }
 
