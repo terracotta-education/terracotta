@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 import { apiService } from "@/services";
 import { userInfo } from "../helpers";
