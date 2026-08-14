@@ -187,6 +187,28 @@ describe("StudentSubmissionGrading", () => {
     expect(checkedValues).toEqual(["12"]);
   });
 
+  it("does not mark the correct answer as wrong when the student selected it", async () => {
+    submissionService.studentResponse.mockResolvedValue({ data: [
+      {
+        questionId: 1,
+        questionSubmissionId: 21,
+        answerSubmissionDtoList: [{ answerId: 11, answerSubmissionId: 31 }],
+        alteredGrade: 5,
+        calculatedPoints: 5
+      },
+      studentResponseFixture[1]
+    ] });
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find(".correct-answer").exists()).toBe(true);
+    expect(wrapper.find(".wrong-answer").exists()).toBe(false);
+  });
+
   it("flags the ungraded essay question with a manual-grade chip and notice", async () => {
     const wrapper = mount();
     await flushPromises();

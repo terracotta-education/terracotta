@@ -13,6 +13,7 @@ export default createVuetify({
       color: 'primary',
       style: '--v-selection-control-color: #0077d2;'
     },
+    VRadio: { color: 'primary' },
   },
   icons: {
     defaultSet: "mdi",
