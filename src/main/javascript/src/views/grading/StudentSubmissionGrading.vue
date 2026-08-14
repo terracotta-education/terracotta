@@ -1080,10 +1080,10 @@ defineExpose({
   min-width: 100%;
 }
 .wrong-answer {
-  border: 1px solid map.get($red, "base");
+  border: 1px solid map.get($red, "base") !important;
 }
 .correct-answer {
-  border: 1px solid map.get($green, "base");
+  border: 1px solid map.get($green, "base") !important;
 }
 .student-response {
   color: map.get($red, "base");
