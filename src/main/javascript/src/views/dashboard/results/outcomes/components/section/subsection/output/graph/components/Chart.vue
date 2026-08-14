@@ -226,6 +226,10 @@ const series = computed(() => [means.value, scores.value]);
 
 const xAxis = computed(() => ({
   categories: [...new Set(computedGraphData.value.map(cgd => cgd.title))],
+  // Highcharts 13 defaults axis label fill to var(--highcharts-neutral-color-80), which
+  // this app never defines, so it falls through to a faded, inherited text color. Pin the
+  // pre-v13 default explicitly (matches Highcharts' own light-theme palette value).
+  labels: { style: { color: "#333333" } },
   title: {
     style: { color: "#fff", fontSize: 0.0 },
     text: chartDataType.value
@@ -246,14 +250,15 @@ const yAxis = computed(() => {
       return {
         min,
         max: (allScores.length ? allScores.reduce((prev, curr) => (prev > curr ? prev : curr)) : 99) + 1,
+        labels: { style: { color: "#333333" } },
         title: { text: "Time (minutes)" }
       };
     }
     case "AVERAGE_ASSIGNMENT_SCORE":
     case "STANDARD":
-      return { min: null, max: null, title: { text: "Percentage" } };
+      return { min: null, max: null, labels: { style: { color: "#333333" } }, title: { text: "Percentage" } };
     default:
-      return { min: 0, max: 100, title: { text: "" } };
+      return { min: 0, max: 100, labels: { style: { color: "#333333" } }, title: { text: "" } };
   }
 });
 
