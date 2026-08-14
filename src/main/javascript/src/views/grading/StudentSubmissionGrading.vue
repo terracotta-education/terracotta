@@ -259,7 +259,7 @@
                 <div
                   v-for="(answer, index) in question.answers"
                   :key="answer.answerId"
-                  class="w-100"
+                  class="w-100 mb-3"
                 >
                   <v-row>
                     <v-col
