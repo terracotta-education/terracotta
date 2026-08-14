@@ -19,6 +19,13 @@ export default defineConfig({
     // instead of forcing pointless splits on already-optimally-isolated dependencies.
     chunkSizeWarningLimit: 2600,
     rolldownOptions: {
+      // The plugin-timings report is pure build-time profiling info (Vuetify's own
+      // auto-import resolveId hook is inherently called for every component reference,
+      // not a real problem), and Maven's frontend-maven-plugin logs all subprocess
+      // stderr at ERROR level - so it reads as a build failure when it's neither.
+      checks: {
+        pluginTimings: false
+      },
       input: {
         index: fileURLToPath(new URL("./index.html", import.meta.url)),
         app: fileURLToPath(new URL("./app.html", import.meta.url)),
