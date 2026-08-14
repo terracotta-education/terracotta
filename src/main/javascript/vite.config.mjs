@@ -12,6 +12,12 @@ export default defineConfig({
     target: "esnext",
     reportCompressedSize: false,
     sourcemap: true,
+    // pdfjs-dist (~2.4MB) is deliberately left out of manualChunks below so it stays
+    // in its own lazy, async-loaded chunk - it's never referenced by any entry's
+    // <script> tags and only loads when a PDF viewer is actually used. Vite's default
+    // 500kB warning doesn't know that, so raise it above the vendor chunks' real sizes
+    // instead of forcing pointless splits on already-optimally-isolated dependencies.
+    chunkSizeWarningLimit: 2600,
     rolldownOptions: {
       input: {
         index: fileURLToPath(new URL("./index.html", import.meta.url)),

@@ -2,7 +2,6 @@ import { createApp } from "vue";
 import { pinia } from "@/pinia";
 
 import DeepLink from "./DeepLink.vue";
-import router from "./router";
 import vuetify from "./plugins/vuetify";
 
 import "vuetify/styles";
@@ -18,6 +17,5 @@ createApp(
   }
 )
 .use(pinia)
-.use(router)
 .use(vuetify)
 .mount("#app");
