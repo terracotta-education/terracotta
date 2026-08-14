@@ -181,6 +181,10 @@ describe("StudentSubmissionGrading", () => {
     expect(wrapper.text()).toContain("Correct Response");
     expect(wrapper.text()).toContain("Student Response");
     expect(wrapper.find(".wrong-answer").exists()).toBe(true);
+
+    const radios = wrapper.findAll(".radio-button input[type=radio]");
+    const checkedValues = radios.filter(r => r.element.checked).map(r => r.element.value);
+    expect(checkedValues).toEqual(["12"]);
   });
 
   it("flags the ungraded essay question with a manual-grade chip and notice", async () => {

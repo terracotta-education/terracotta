@@ -285,7 +285,7 @@
                             >
                               <!-- Radio Button -->
                               <v-radio-group
-                                :value="studentSubmittedAnswers[question.questionId].find((a) => a === answer.answerId)"
+                                :model-value="studentSubmittedAnswers[question.questionId].find((a) => a === answer.answerId)"
                                 :aria-label="`answer group for question ${question.html}`"
                               >
                                 <v-radio
