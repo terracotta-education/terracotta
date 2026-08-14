@@ -259,6 +259,9 @@ const yAxis = computed(() => {
 
 const options = computed(() => ({
   chart: {
+    // Highcharts 13 defaults chart.backgroundColor to var(--highcharts-background-color), which
+    // this app never defines, so it falls through to black. Pin the pre-v13 default explicitly.
+    backgroundColor: "#ffffff",
     accessibility: {
       keyboardNavigation: {
         focusBorder: {
