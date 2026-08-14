@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -142,8 +143,24 @@ public class OneEdTechAdvantageAgsServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testDeleteLineItemUnsupported() {
-        assertThrows(UnsupportedOperationException.class, () -> oneEdTechAdvantageAgsService.deleteLineItem(ltiToken, ltiContextEntity, "lineItemId"));
+    public void testDeleteLineItem() throws ConnectionException {
+        boolean ret = oneEdTechAdvantageAgsService.deleteLineItem(ltiToken, ltiContextEntity, "lineItemId");
+
+        assertTrue(ret);
+    }
+
+    @Test
+    public void testDeleteLineItemThrowsConnectionExceptionOnBadStatus() {
+        when(stringResponseEntity.getStatusCode()).thenReturn(HttpStatusCode.valueOf(404));
+
+        assertThrows(ConnectionException.class, () -> oneEdTechAdvantageAgsService.deleteLineItem(ltiToken, ltiContextEntity, "lineItemId"));
+    }
+
+    @Test
+    public void testDeleteLineItemWrapsUnexpectedException() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.DELETE), any(HttpEntity.class), eq(String.class))).thenThrow(new RuntimeException("boom"));
+
+        assertThrows(ConnectionException.class, () -> oneEdTechAdvantageAgsService.deleteLineItem(ltiToken, ltiContextEntity, "lineItemId"));
     }
 
     @Test
