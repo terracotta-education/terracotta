@@ -67,7 +67,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
 public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
     private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
