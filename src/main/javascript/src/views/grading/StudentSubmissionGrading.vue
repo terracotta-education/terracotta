@@ -280,7 +280,7 @@
                         :class="[
                           'abc',
                           answer.correct ? 'correct-answer' : '',
-                          studentSubmittedAnswers[question.questionId].includes(answer.answerId) ? 'wrong-answer' : '',
+                          !answer.correct && studentSubmittedAnswers[question.questionId].includes(answer.answerId) ? 'wrong-answer' : '',
                         ]"
                         outlined
                       >

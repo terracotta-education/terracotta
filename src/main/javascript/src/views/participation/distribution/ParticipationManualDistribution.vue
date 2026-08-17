@@ -216,7 +216,7 @@ export default {
   },
   async created() {
     await this.fetchExposures(this.experiment.experimentId);
-    await this.fetchParticipants(this.experiment.experimentId);
+    await this.fetchParticipants([this.experiment.experimentId]);
   },
   mounted() {
     deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
@@ -225,7 +225,7 @@ export default {
     //  load participant data before selection screen
     return (
       store
-        .dispatch("participants/fetchParticipants", to.params.experimentId)
+        .dispatch("participants/fetchParticipants", [to.params.experimentId])
         .then(next, next)
     );
   }

@@ -117,6 +117,22 @@ public class OneEdTechAdvantageMembershipServiceImplTest extends BaseTest {
         assertEquals(ltiContextEntity.getContextId(), captor.getValue().getContextId());
     }
 
+    // a caller (e.g. startPrepareParticipation) may have already created the
+    // LmsUserBatchProcessing row for this batchId - callMembershipService must update that row
+    // in place rather than inserting a second one for the same logical operation
+    @Test
+    public void testCallMembershipServiceReusesExistingRecordRatherThanCreatingNew() throws ConnectionException, TerracottaConnectorException {
+        UUID batchId = UUID.randomUUID();
+        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
+        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
+
+        oneEdTechAdvantageMembershipService.callMembershipService(ltiToken, ltiContextEntity, batchId, true);
+
+        verify(lmsUserBatchProcessingRepository).saveAndFlush(existing);
+        assertEquals(LmsUserBatchStatus.IN_PROGRESS, existing.getStatus());
+        assertEquals(ltiContextEntity.getContextId(), existing.getContextId());
+    }
+
     @Test
     public void testCallMembershipServiceOnlyStudentsTrueFiltersNonLearners() throws ConnectionException, TerracottaConnectorException {
         CourseUser learner = CourseUser.builder().userId("learnerId").name("Learner One").email("learner@example.com").roles(List.of(Roles.LEARNER)).build();
