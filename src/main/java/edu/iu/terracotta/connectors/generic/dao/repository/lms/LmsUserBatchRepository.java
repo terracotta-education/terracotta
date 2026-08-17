@@ -15,6 +15,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchEmailProj
 public interface LmsUserBatchRepository extends JpaRepository<LmsUserBatch, UUID> {
 
     List<LmsUserBatch> findByBatchId(UUID batchId, Pageable pageable);
+    long countByBatchId(UUID batchId);
     void deleteByBatchId(UUID batchId);
 
     @Query("""

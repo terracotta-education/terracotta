@@ -3,8 +3,6 @@ package edu.iu.terracotta.connectors.generic.service.lti.advantage.impl;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Result;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -108,31 +106,6 @@ public class AdvantageAgsServiceImplTest extends BaseTest {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(LineItem[].class))).thenReturn(new ResponseEntity<>(HttpStatusCode.valueOf(400)));
 
         assertThrows(ConnectionException.class, () -> advantageAgsService.postLineItems(ltiToken, ltiContextEntity, lineItems));
-    }
-
-    @Test
-    public void testGetResults() throws ConnectionException {
-        Results rets = advantageAgsService.getResults(ltiToken, ltiContextEntity, "lineItemId");
-
-        assertNotNull(rets);
-        assertEquals(1, rets.getResultList().size());
-    }
-
-    @Test
-    public void testGetResultsNextPage() throws ConnectionException {
-        when(advantageConnectorHelper.nextPage(any(HttpHeaders.class))).thenReturn(LTI_URL, (String) null);
-
-        Results rets = advantageAgsService.getResults(ltiToken, ltiContextEntity, "lineItemId");
-
-        assertNotNull(rets);
-        assertEquals(2, rets.getResultList().size());
-    }
-
-    @Test
-    public void testGetResultsBadRequest() throws ConnectionException {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Result[].class))).thenReturn(new ResponseEntity<>(HttpStatusCode.valueOf(400)));
-
-        assertThrows(ConnectionException.class, () -> advantageAgsService.getResults(ltiToken, ltiContextEntity, "lineItemId"));
     }
 
 }

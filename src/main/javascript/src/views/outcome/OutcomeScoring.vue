@@ -216,7 +216,7 @@ export default {
   },
   async created() {
     await this.fetchOutcomeById([this.experimentId, this.exposureId, this.outcomeId]);
-    await this.fetchParticipants(this.experimentId);
+    await this.fetchParticipants([this.experimentId]);
     await this.fetchOutcomeScores([this.experimentId, this.exposureId, this.outcomeId]);
   }
 }

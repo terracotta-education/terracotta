@@ -236,6 +236,14 @@ app:
   # Help link
   help:
     url: https://terracotta-education.atlassian.net/wiki/x/xwDjCw
+  # @Async task executor (LMS roster syncs, exports, imports, etc.) - waits for in-flight tasks
+  # to finish on shutdown instead of letting them race a mid-flight EntityManagerFactory close
+  async:
+    core-pool-size: 4
+    max-pool-size: 8
+    queue-capacity: 100
+    # 30 minutes, matching db-scheduler's shutdown-max-wait below
+    await-termination-seconds: 1800
   # LTI User Participant batch handling
   participant:
     batch:
@@ -244,6 +252,26 @@ app:
       throttle:
         # 1 week
         hours: 168
+        # only throttle the next refresh (via last_participant_sync) when the roster is large
+        # enough that a full sync is actually expensive - courses at or below this size just
+        # refresh every time instead
+        min-participants: 1000
+      # an always-on debounce (independent of min-participants above) against the most recently
+      # attempted sync for a course, so multiple staleness checks while a user clicks through the
+      # participation-type wizard (e.g. picking a type, then landing on the next page) collapse
+      # onto the one sync already under way or just finished, instead of each starting - and
+      # tracking - its own. 5 minutes to comfortably cover realistic click-through pacing, not
+      # just near-simultaneous requests
+      debounce:
+        seconds: 300
+    messaging:
+      sync:
+        # debounce for ParticipantAsyncServiceImpl.updateParticipantData, which runs on every
+        # Home.vue load (via getExperiments' syncWithLms) with no throttle of its own - separate
+        # from the debounce above since it guards a different sync (LMS user ID matching for
+        # messaging, not the participant roster)
+        debounce:
+          seconds: 300
     status:
       poll:
         max:

@@ -10,6 +10,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
@@ -148,8 +149,15 @@ public class CanvasAdvantageMembershipServiceImpl implements AdvantageMembership
         lmsUserBatchWriteService.saveUsers(usersToSave);
     }
 
+    // READ_COMMITTED (rather than MySQL's default REPEATABLE READ): callMembershipService below
+    // writes lms_user_batch via LmsUserBatchWriteService.startBatch/saveUsers in REQUIRES_NEW
+    // sub-transactions, which commit independently and before this method's own later plain read
+    // of that same table (findByBatchId). Under REPEATABLE READ, this transaction's
+    // consistent-read snapshot is fixed as of its first query, so that later read would still see
+    // the pre-sync (empty) state despite the sub-transactions having already committed - see the
+    // identical fix on ParticipantAsyncServiceImpl.updateParticipantData.
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<LmsUserBatch> getAllLmsUsers(LtiToken ltiToken, LtiContextEntity context) throws ConnectionException, TerracottaConnectorException {
         UUID batchId = UUID.randomUUID();
         callMembershipService(ltiToken, context, batchId, false);

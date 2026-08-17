@@ -2,34 +2,34 @@ package edu.iu.terracotta.service.app.async.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.event.LmsUserBatchEvent;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 
 public class LmsUserBatchAsyncServiceImplTest {
 
-    @Mock private LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
+    @Mock private LmsUserBatchWriteService lmsUserBatchWriteService;
     @Mock private LmsUserBatchRepository lmsUserBatchRepository;
     @Mock private ApplicationEventPublisher applicationEventPublisher;
 
@@ -40,7 +40,7 @@ public class LmsUserBatchAsyncServiceImplTest {
         MockitoAnnotations.openMocks(this);
 
         lmsUserBatchAsyncService = new LmsUserBatchAsyncServiceImpl(
-            lmsUserBatchProcessingRepository,
+            lmsUserBatchWriteService,
             lmsUserBatchRepository,
             applicationEventPublisher
         );
@@ -96,63 +96,54 @@ public class LmsUserBatchAsyncServiceImplTest {
         assertEquals("LMS error", captor.getValue().message());
     }
 
+    // success() never sets a message of its own - handleBatchEvent fills one in reporting how
+    // many users this sync actually retrieved, counted before the staging rows are deleted
     @Test
-    public void testHandleBatchEventCreatesNewProcessingRecordWhenNoneExists() {
+    public void testHandleBatchEventSetsRetrievedUserCountMessageOnCompleted() {
         UUID batchId = UUID.randomUUID();
         LmsUserBatchEvent event = LmsUserBatchEvent.builder().batchId(batchId).status(LmsUserBatchStatus.COMPLETED).build();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
-        when(lmsUserBatchProcessingRepository.save(any(LmsUserBatchProcessing.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(lmsUserBatchRepository.countByBatchId(batchId)).thenReturn(42L);
 
         lmsUserBatchAsyncService.handleBatchEvent(event);
 
-        verify(lmsUserBatchRepository).deleteByBatchId(batchId);
-        ArgumentCaptor<LmsUserBatchProcessing> captor = ArgumentCaptor.forClass(LmsUserBatchProcessing.class);
-        verify(lmsUserBatchProcessingRepository).save(captor.capture());
-        assertEquals(batchId, captor.getValue().getBatchId());
-        assertEquals(LmsUserBatchStatus.COMPLETED, captor.getValue().getStatus());
-        assertNull(captor.getValue().getMessage());
+        InOrder inOrder = inOrder(lmsUserBatchRepository, lmsUserBatchWriteService);
+        inOrder.verify(lmsUserBatchRepository).countByBatchId(batchId);
+        inOrder.verify(lmsUserBatchRepository).deleteByBatchId(batchId);
+        inOrder.verify(lmsUserBatchWriteService).updateStatus(batchId, LmsUserBatchStatus.COMPLETED, "Retrieved 42 users from LMS");
     }
 
     @Test
-    public void testHandleBatchEventUpdatesExistingProcessingRecord() {
+    public void testHandleBatchEventPassesThroughNonBlankMessage() {
         UUID batchId = UUID.randomUUID();
         LmsUserBatchEvent event = LmsUserBatchEvent.builder().batchId(batchId).status(LmsUserBatchStatus.FAILED).message("LMS error").build();
-        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
-        when(lmsUserBatchProcessingRepository.save(any(LmsUserBatchProcessing.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         lmsUserBatchAsyncService.handleBatchEvent(event);
 
         verify(lmsUserBatchRepository).deleteByBatchId(eq(batchId));
-        verify(lmsUserBatchProcessingRepository).save(existing);
-        assertEquals(LmsUserBatchStatus.FAILED, existing.getStatus());
-        assertEquals("LMS error", existing.getMessage());
+        verify(lmsUserBatchWriteService).updateStatus(batchId, LmsUserBatchStatus.FAILED, "LMS error");
     }
 
+    // a blank event message must not blow away a previously recorded error message -
+    // LmsUserBatchWriteServiceImpl.updateStatus treats a null message as "leave it alone", so a
+    // blank one must be normalized to null before calling it, not passed through as-is
     @Test
-    public void testHandleBatchEventDoesNotOverwriteMessageWhenBlank() {
+    public void testHandleBatchEventNormalizesBlankMessageToNull() {
         UUID batchId = UUID.randomUUID();
         LmsUserBatchEvent event = LmsUserBatchEvent.builder().batchId(batchId).status(LmsUserBatchStatus.PROCESSED).message(" ").build();
-        LmsUserBatchProcessing existing = LmsUserBatchProcessing.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).message("original").build();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.of(existing));
-        when(lmsUserBatchProcessingRepository.save(any(LmsUserBatchProcessing.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         lmsUserBatchAsyncService.handleBatchEvent(event);
 
-        assertEquals("original", existing.getMessage());
+        verify(lmsUserBatchWriteService).updateStatus(eq(batchId), eq(LmsUserBatchStatus.PROCESSED), isNull());
     }
 
     @Test
-    public void testHandleBatchEventDeletesBeforeUpdatingStatus() {
+    public void testHandleBatchEventDeletesStagingRowsRegardlessOfStatusUpdateOutcome() {
         UUID batchId = UUID.randomUUID();
         LmsUserBatchEvent event = LmsUserBatchEvent.builder().batchId(batchId).status(LmsUserBatchStatus.COMPLETED).build();
-        when(lmsUserBatchProcessingRepository.findByBatchId(batchId)).thenReturn(Optional.empty());
-        when(lmsUserBatchProcessingRepository.save(any(LmsUserBatchProcessing.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         lmsUserBatchAsyncService.handleBatchEvent(event);
 
         verify(lmsUserBatchRepository, times(1)).deleteByBatchId(batchId);
-        verify(lmsUserBatchProcessingRepository, times(1)).findByBatchId(batchId);
     }
 
 }

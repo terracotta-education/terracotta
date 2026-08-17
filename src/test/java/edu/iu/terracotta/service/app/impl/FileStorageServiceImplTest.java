@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.util.Optional;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -628,6 +629,27 @@ public class FileStorageServiceImplTest extends BaseTest {
         assertTrue(result.exists());
         assertTrue(result.isDirectory());
         assertEquals("import content", Files.readString(result.toPath().resolve("data.txt")));
+    }
+
+    // compressDirectory (zip4j addFolder) nests everything inside a folder named after the
+    // ORIGINAL export's directory - a re-uploaded file's own name (e.g. a browser-disambiguated
+    // "export (1).zip" on a duplicate download, or a manual rename) commonly differs from that,
+    // so getExperimentImportFile must locate experiment.json rather than assume the two match.
+    @Test
+    public void testGetExperimentImportFileFindsJsonFileWhenReuploadedNameDiffersFromZipInternalFolder() throws IOException {
+        Path folder = Files.createDirectories(experimentExportRoot.resolve("sub/originalExportName"));
+        Files.writeString(folder.resolve(ExperimentImport.JSON_FILE_NAME), "{}");
+        assertTrue(fileStorageService.compressDirectory(experimentExportRoot.resolve("sub/originalExportName").toString(), "", ".zip", false));
+        Files.move(experimentExportRoot.resolve("sub/originalExportName.zip"), experimentExportRoot.resolve("sub/renamedOnReupload.zip"));
+
+        ExperimentImport experimentImportEntity = new ExperimentImport();
+        experimentImportEntity.setFileUri("sub/renamedOnReupload.zip");
+        experimentImportEntity.setFileName("renamedOnReupload.zip");
+        when(experimentImportRepository.findById(anyLong())).thenReturn(Optional.of(experimentImportEntity));
+
+        File result = fileStorageService.getExperimentImportFile(1L);
+
+        assertTrue(FileUtils.getFile(result, ExperimentImport.JSON_FILE_NAME).isFile());
     }
 
     @Test

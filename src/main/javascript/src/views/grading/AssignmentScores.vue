@@ -361,7 +361,7 @@ export default {
         this.assignmentId,
         true,
       ]);
-      await this.fetchParticipants(this.experimentId);
+      await this.fetchParticipants([this.experimentId]);
       await this.pollFileRequest([
         this.experimentId,
         this.exposureId,
