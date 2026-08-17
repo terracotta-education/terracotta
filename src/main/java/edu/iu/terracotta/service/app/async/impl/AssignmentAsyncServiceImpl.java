@@ -106,11 +106,6 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             return;
         }
 
-        log.info("Checking Terracotta assignment IDs for context ID: [{}] in the LMS: [{}]",
-            securedInfo.getContextId(),
-            Arrays.toString(assignmentsToCheck.stream().map(Assignment::getLmsAssignmentId).toArray())
-        );
-
         List<String> lmsAssignmentIds = CollectionUtils.emptyIfNull(lmsAssignments).stream()
             .map(LmsAssignment::getId)
             .toList();
@@ -172,8 +167,6 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     public void handleObsoleteAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         // get assignments that currently exist in Terracotta for this context
         List<Assignment> terracottaAssignments = assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
-
-        log.info("Checking for obsolete Terracotta assignments in LMS for context ID: [{}]", securedInfo.getContextId());
 
         List<String> terracottaLmsAssignmentIds = terracottaAssignments.stream()
             .map(Assignment::getLmsAssignmentId)
