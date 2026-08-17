@@ -31,16 +31,6 @@ public final class StatisticsUtils {
     }
 
     /**
-     * Calculate the Standard Deviation for the given list
-     *
-     * @param values
-     * @return
-     */
-    public static double calculateStandardDeviation(List<Double> values) {
-        return calculateStandardDeviation(values, calculateStatistics(values).getAverage());
-    }
-
-    /**
      * Calculate the Standard Deviation for the given list and mean
      *
      * @param values

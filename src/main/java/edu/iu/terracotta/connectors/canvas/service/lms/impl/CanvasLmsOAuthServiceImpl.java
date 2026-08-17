@@ -157,15 +157,37 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
             return false; // need to get a new token with all necessary scopes
         }
 
-        // if exists, refresh and save the token, return true
-        try {
-            refreshAccessToken(canvasApiTokenEntity.get());
-
+        if (isAccessTokenFresh(canvasApiTokenEntity.get())) {
             return true;
-        } catch (LmsOAuthException e) {
-            log.error(MessageFormat.format("Failed to refresh token {0}", canvasApiTokenEntity.get().getTokenId()), e);
+        }
 
-            return false;
+        // synchronize per user so concurrent callers don't each fire an OAuth refresh_token
+        // request for the same token; Canvas rotates the refresh token on use, so a second
+        // concurrent refresh with the now-stale token would fail
+        Object lock = refreshLocks.computeIfAbsent(user.getUserId(), userId -> new Object());
+
+        synchronized (lock) {
+            Optional<ApiTokenEntity> currentOptional = apiTokenRepository.findByUser(user);
+
+            if (currentOptional.isEmpty()) {
+                return false;
+            }
+
+            ApiTokenEntity current = currentOptional.get();
+
+            if (isAccessTokenFresh(current)) {
+                return true;
+            }
+
+            try {
+                refreshAccessToken(current);
+
+                return true;
+            } catch (LmsOAuthException e) {
+                log.error(MessageFormat.format("Failed to refresh token {0}", current.getTokenId()), e);
+
+                return false;
+            }
         }
     }
 

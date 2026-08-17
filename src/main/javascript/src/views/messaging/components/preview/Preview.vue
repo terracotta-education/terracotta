@@ -202,7 +202,7 @@ export default {
     },
     async initialize() {
       this.setPreview(null);
-      await this.fetchParticipants(this.experimentId);
+      await this.fetchParticipants([this.experimentId]);
       // strip participantId
       this.setParticipants(
         this.participants.map(

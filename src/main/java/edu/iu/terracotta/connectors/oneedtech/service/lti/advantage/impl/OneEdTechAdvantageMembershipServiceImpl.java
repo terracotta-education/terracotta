@@ -89,13 +89,15 @@ public class OneEdTechAdvantageMembershipServiceImpl implements AdvantageMembers
                 CourseUsers.class
             );
 
-            LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.saveAndFlush(
-                LmsUserBatchProcessing.builder()
-                    .batchId(batchId)
-                    .contextId(context.getContextId())
-                    .status(LmsUserBatchStatus.IN_PROGRESS)
-                    .build()
-            );
+            // reuse the existing row if the caller already created one for this batchId (see
+            // ParticipantServiceImpl.startPrepareParticipation) instead of always inserting a new
+            // one, which previously left two LmsUserBatchProcessing rows behind for one logical
+            // refresh
+            LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(batchId)
+                .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(batchId).build());
+            lmsUserBatchProcessing.setContextId(context.getContextId());
+            lmsUserBatchProcessing.setStatus(LmsUserBatchStatus.IN_PROGRESS);
+            lmsUserBatchProcessing = lmsUserBatchProcessingRepository.saveAndFlush(lmsUserBatchProcessing);
 
             if (!membershipGetResponse.getStatusCode().is2xxSuccessful()) {
                 String errorMessage = String.format("Can't get the membership for context ID: [%s]", context.getContextId());

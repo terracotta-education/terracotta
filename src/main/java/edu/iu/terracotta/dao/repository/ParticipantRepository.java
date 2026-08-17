@@ -33,6 +33,14 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     @Query("SELECT p.group.groupId AS groupId, COUNT(p) AS participantCount FROM Participant p WHERE p.experiment.experimentId = :experimentId AND p.group IS NOT NULL GROUP BY p.group.groupId")
     List<GroupParticipantCount> countByExperiment_ExperimentIdGroupByGroup(@Param("experimentId") Long experimentId);
 
+    // LIMIT/OFFSET are embedded directly in the SQL (rather than passed as a Pageable) so
+    // Hibernate never has to rewrite this query's text to inject pagination - its regex-based
+    // AbstractLimitHandler.insertBeforeForUpdate is pathologically slow (effectively hangs,
+    // spinning at 100% CPU) against this query's shape (JOINs + GROUP BY + nested functions).
+    // Positional (?1/?2/?3) rather than named (:limit/:offset) parameters are required here -
+    // Hibernate's native-query grammar for MySQL rejects a named parameter in the LIMIT/OFFSET
+    // position ("no viable alternative at input"), and Spring Data JPA doesn't allow mixing
+    // named and positional parameters within the same query, so all three are positional.
     @NativeQuery(
         value = """
             SELECT
@@ -45,14 +53,24 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
             JOIN lti_user lu
                 ON p.lti_user_entity_user_id = lu.user_id
             WHERE
-                lme.context_id = :contextId AND
+                lme.context_id = ?1 AND
                 NULLIF(TRIM(lu.lms_user_id), '') IS NULL
             GROUP BY lu.email
             ORDER BY id ASC
-            """,
-        countQuery = """
-            SELECT COUNT(*) FROM (
-                SELECT MIN(p.id)
+            LIMIT ?2 OFFSET ?3
+            """
+    )
+    List<LmsParticipantSummary> findLmsParticipantSummaryToUpdateByContextId(long contextId, int limit, long offset);
+
+    // cheap existence check so a full LMS course-membership fetch isn't kicked off (see
+    // ParticipantAsyncServiceImpl.updateParticipantData) when nothing is actually missing an LMS
+    // user ID for this context. MySQL's EXISTS(...) evaluates to a 1/0 BIGINT, not a real
+    // boolean - the JDBC driver hands that back as a Long, so the return type here has to be
+    // Long (not boolean/Boolean) or Spring Data's proxy fails trying to cast it directly.
+    @NativeQuery(
+        value = """
+            SELECT EXISTS (
+                SELECT 1
                 FROM terr_participant p
                 JOIN lti_membership lme
                     ON p.lti_membership_entity_membership_id = lme.membership_id
@@ -61,11 +79,10 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
                 WHERE
                     lme.context_id = :contextId AND
                     NULLIF(TRIM(lu.lms_user_id), '') IS NULL
-                GROUP BY lu.email
-            ) AS cnt
+            )
             """
     )
-    List<LmsParticipantSummary> findLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId, Pageable pageable);
+    Long existsLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId);
 
     @NativeQuery(
         value = """

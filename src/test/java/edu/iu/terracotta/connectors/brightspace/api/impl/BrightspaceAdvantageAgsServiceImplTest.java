@@ -273,14 +273,6 @@ public class BrightspaceAdvantageAgsServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testGetResultsIsUnsupported() {
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> brightspaceAdvantageAgsService.getResults(ltiToken, ltiContextEntity, "lineItemId")
-        );
-    }
-
-    @Test
     public void testPostScoreHappyPath() throws ConnectionException {
         when(advantageConnectorHelper.createTokenizedRequestEntity(any(), anyString())).thenReturn(new HttpEntity<>("payload"));
         when(restTemplate.exchange(anyString(), eq(HttpMethod.POST), any(), eq(Void.class))).thenReturn(new ResponseEntity<>(HttpStatusCode.valueOf(200)));

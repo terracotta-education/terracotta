@@ -11,11 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.event.LmsUserBatchEvent;
-import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class LmsUserBatchAsyncServiceImpl implements LmsUserBatchAsyncService {
 
-    private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
+    private final LmsUserBatchWriteService lmsUserBatchWriteService;
     private final LmsUserBatchRepository lmsUserBatchRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -37,20 +36,25 @@ public class LmsUserBatchAsyncServiceImpl implements LmsUserBatchAsyncService {
     // invoked when the transaction they were registered against rolls back instead of commits.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMPLETION)
     public void handleBatchEvent(LmsUserBatchEvent lmsUserBatchEvent) {
-        // delete the data rows
-        lmsUserBatchRepository.deleteByBatchId(lmsUserBatchEvent.batchId());
+        UUID batchId = lmsUserBatchEvent.batchId();
 
-        // set the batch status; if one is not available, create it
-        LmsUserBatchProcessing lmsUserBatchProcessing = lmsUserBatchProcessingRepository.findByBatchId(lmsUserBatchEvent.batchId())
-            .orElseGet(() -> LmsUserBatchProcessing.builder().batchId(lmsUserBatchEvent.batchId()).build());
+        // success() never sets a message of its own - report how many users this sync actually
+        // retrieved, counted before the staging rows below are deleted
+        String message = lmsUserBatchEvent.status() == LmsUserBatchStatus.COMPLETED ?
+            String.format("Retrieved %d users from LMS", lmsUserBatchRepository.countByBatchId(batchId)) :
+            lmsUserBatchEvent.message();
 
-        lmsUserBatchProcessing.setStatus(lmsUserBatchEvent.status());
+        lmsUserBatchRepository.deleteByBatchId(batchId);
 
-        if (StringUtils.isNotBlank(lmsUserBatchEvent.message())) {
-            lmsUserBatchProcessing.setMessage(lmsUserBatchEvent.message());
-        }
-
-        lmsUserBatchProcessingRepository.save(lmsUserBatchProcessing);
+        // updateStatus uses a direct UPDATE that bypasses the entity's optimistic-lock check, so
+        // it can't fail here even if prepareParticipationAsync's own completion write (see
+        // ParticipantAsyncServiceImpl) races this same batchId - see
+        // LmsUserBatchWriteServiceImpl.updateStatus
+        lmsUserBatchWriteService.updateStatus(
+            batchId,
+            lmsUserBatchEvent.status(),
+            StringUtils.isNotBlank(message) ? message : null
+        );
     }
 
     @Override

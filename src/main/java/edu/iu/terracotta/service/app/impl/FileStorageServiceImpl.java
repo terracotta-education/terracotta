@@ -732,6 +732,17 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         // decompress file and then return it
         try {
+            File extractionRoot = new File(
+                String.format(
+                    "%s/%s",
+                    decompressedExperimentImportTempDirectory,
+                    org.apache.commons.lang3.StringUtils.substringBeforeLast(
+                        experimentImport.get().getFileUri(),
+                        "/"
+                    )
+                )
+            );
+
             decompressFile(
                 Paths.get(
                     String.format(
@@ -742,35 +753,33 @@ public class FileStorageServiceImpl implements FileStorageService {
                 )
                 .toString(),
                 "",
-                Path.of(
-                    String.format(
-                        "%s/%s",
-                        decompressedExperimentImportTempDirectory,
-                        org.apache.commons.lang3.StringUtils.substringBeforeLast(
-                            experimentImport.get().getFileUri(),
-                            "/"
-                        )
-                    )
-                )
+                extractionRoot.toPath()
             );
 
-            return new File(
-                String.format(
-                    "%s/%s/%s",
-                    decompressedExperimentImportTempDirectory,
-                    org.apache.commons.lang3.StringUtils.substringBeforeLast(
-                            experimentImport.get().getFileUri(),
-                            "/"
-                    ),
-                    org.apache.commons.lang3.StringUtils.substringBeforeLast(
-                        experimentImport.get().getFileName(),
-                        ".zip"
-                    )
-                )
-            );
+            return resolveExperimentImportDirectory(extractionRoot);
         } catch (FileStorageException e) {
             throw e;
         }
+    }
+
+    // createExperimentExportFile zips its directory via compressDirectory (zip4j addFolder),
+    // which nests everything one level down inside a folder named after the ORIGINAL export's
+    // directory - not necessarily this re-uploaded file's own name, which the browser/OS/user
+    // may have changed (e.g. a disambiguating "(1)" suffix on a duplicate download, or a manual
+    // rename). Locate the folder that actually contains experiment.json instead of assuming it
+    // matches this file's name.
+    private File resolveExperimentImportDirectory(File extractionRoot) {
+        if (FileUtils.getFile(extractionRoot, ExperimentImport.JSON_FILE_NAME).isFile()) {
+            return extractionRoot;
+        }
+
+        File[] subdirectories = extractionRoot.listFiles(File::isDirectory);
+
+        if (subdirectories != null && subdirectories.length == 1) {
+            return subdirectories[0];
+        }
+
+        return extractionRoot;
     }
 
     @Override

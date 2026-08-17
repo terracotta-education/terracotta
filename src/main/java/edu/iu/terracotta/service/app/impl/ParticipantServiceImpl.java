@@ -69,6 +69,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -120,6 +121,26 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Value("${app.participant.refresh.throttle.hours:168}")
     private long refreshThrottleHours;
 
+    // a full roster sync is only expensive enough to be worth throttling for courses with a
+    // large enough participant count - smaller courses just refresh every time (last_participant_sync
+    // is left null, which isParticipantSyncFresh always treats as stale) since a fresh sync is
+    // cheap for them and there's no accuracy benefit to skipping it
+    @Value("${app.participant.refresh.throttle.min-participants:1000}")
+    private long refreshThrottleMinParticipants;
+
+    // last_participant_sync stays permanently null for courses at/below the min-participants
+    // threshold, so isParticipantSyncFresh alone would always call them stale - meaning several
+    // independent entry points hit while a user clicks through the participation-type wizard
+    // (e.g. picking a type on SelectionMethod.vue, then landing on the manual-selection page,
+    // which each check staleness separately) would each kick off their own full sync and its own
+    // LmsUserBatchProcessing row. This is an always-on debounce against the most recently
+    // attempted sync for the course, regardless of participant count, so those checks collapse
+    // onto the one sync already under way or just finished, instead of each starting a fresh
+    // one. 5 minutes rather than a handful of seconds - this needs to comfortably cover how long
+    // a real user takes to read a page and click through, not just near-simultaneous requests
+    @Value("${app.participant.refresh.debounce.seconds:300}")
+    private long refreshDebounceSeconds;
+
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
         return participantRepository.findByExperiment_ExperimentId(experimentId);
@@ -134,7 +155,11 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         if (!student) {
             if (refresh) {
-                refreshParticipants(experimentId);
+                // throttled - the manual-participation selection page (the only caller that
+                // passes refresh=true) was forcing a full synchronous LMS roster sync on every
+                // instructor page load, blocking the request for however long that took (several
+                // minutes for a large course) with no throttle at all
+                refreshParticipantsIfStale(experimentId);
             }
 
             int page = 0;
@@ -294,11 +319,15 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void refreshParticipants(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
-        Instant startTime = Instant.now();
+        refreshParticipants(experimentId, UUID.randomUUID());
+    }
 
-        // We don't want to delete participants if they drop the course, so keep the all participants. But we will need to mark them as
-        // dropped if they are not in the course roster.
-        UUID batchId = UUID.randomUUID();
+    // batchId is a parameter (rather than always generated here) so callers that already have a
+    // tracking batch ID for this operation (see startPrepareParticipation/prepareParticipation)
+    // can reuse it instead of ending up with two separate LmsUserBatchProcessing rows for what is,
+    // from the caller's perspective, a single logical refresh
+    void refreshParticipants(long experimentId, UUID batchId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        Instant startTime = Instant.now();
 
         try {
             Optional<Experiment> experiment = experimentRepository.findById(experimentId);
@@ -350,13 +379,19 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public void refreshParticipantsIfStale(long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        refreshParticipantsIfStale(experimentId, UUID.randomUUID());
+    }
+
+    // see refreshParticipants(long, UUID) - batchId lets a caller that already has a tracking
+    // batch ID for this operation reuse it instead of ending up with two rows
+    void refreshParticipantsIfStale(long experimentId, UUID batchId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
 
         if (experiment == null) {
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
         }
 
-        if (isParticipantSyncFresh(experiment.getLtiContextEntity())) {
+        if (isParticipantSyncFresh(experiment.getLtiContextEntity(), batchId)) {
             return;
         }
 
@@ -370,20 +405,52 @@ public class ParticipantServiceImpl implements ParticipantService {
         // simply never reaches the write that marks it synced, leaving it correctly untouched.
         LtiContextEntity ltiContextEntity = ltiContextRepository.findByContextIdForUpdate(experiment.getLtiContextEntity().getContextId());
 
-        if (isParticipantSyncFresh(ltiContextEntity)) {
+        if (isParticipantSyncFresh(ltiContextEntity, batchId)) {
             return;
         }
 
-        refreshParticipants(experimentId);
+        refreshParticipants(experimentId, batchId);
 
-        ltiContextEntity.setLastParticipantSync(Instant.now());
+        // only worth throttling the next refresh if this one was actually expensive - a small
+        // course stays perpetually "stale" (null) so it keeps refreshing every time, which is
+        // cheap and keeps it maximally accurate
+        long participantCount = participantRepository.countByExperiment_ExperimentId(experimentId);
+        ltiContextEntity.setLastParticipantSync(participantCount > refreshThrottleMinParticipants ? Instant.now() : null);
         ltiContextRepository.save(ltiContextEntity);
     }
 
     private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity) {
         Instant lastSync = ltiContextEntity.getLastParticipantSync();
 
-        return lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)));
+        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+            return true;
+        }
+
+        // lastSync is null either because this course has never synced, or because it's at/below
+        // the min-participants threshold and so never gets a real timestamp recorded - either
+        // way, treat a just-attempted sync for this same course as "fresh enough" so a second,
+        // independent staleness check moments later doesn't start a redundant one
+        return lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(ltiContextEntity.getContextId())
+            .map(LmsUserBatchProcessing::getCreatedAt)
+            .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
+            .orElse(false);
+    }
+
+    // same as above, but excludes currentBatchId from the debounce lookup - a caller that reused
+    // an already-created IN_PROGRESS row's batch ID (see startPrepareParticipation) would
+    // otherwise find that very row (created moments ago, for this same operation) and conclude
+    // the context was "already synced", skipping the sync it was actually supposed to perform
+    private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity, UUID currentBatchId) {
+        Instant lastSync = ltiContextEntity.getLastParticipantSync();
+
+        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
+            return true;
+        }
+
+        return lmsUserBatchProcessingRepository.findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(ltiContextEntity.getContextId(), currentBatchId)
+            .map(LmsUserBatchProcessing::getCreatedAt)
+            .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
+            .orElse(false);
     }
 
     /**
@@ -479,11 +546,14 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     @Transactional
-    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+    public void prepareParticipation(Long experimentId, SecuredInfo securedInfo, UUID batchId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         // throttled, so picking/re-picking a participation type doesn't always force a full LMS
         // roster sync; still proactively populates the roster (rather than waiting for each
-        // student's own lazy-create-on-launch) as long as the last sync isn't recent
-        refreshParticipantsIfStale(experimentId);
+        // student's own lazy-create-on-launch) as long as the last sync isn't recent. batchId is
+        // reused (rather than generated fresh) so this shares the same LmsUserBatchProcessing row
+        // as the caller's own tracking record instead of creating a second one - see
+        // startPrepareParticipation
+        refreshParticipantsIfStale(experimentId, batchId);
 
         // reset consent for participants who already exist - covers both the case where the
         // above was skipped as not-yet-stale, and is a harmless no-op otherwise, since a
@@ -526,18 +596,49 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param securedInfo
      * @return
      */
+    // READ_COMMITTED (see the comment on getParticipants) - a genuine entry point
+    // (StepsController calls it directly). The row lock below only serializes execution order
+    // against a concurrently-committing call; under the default REPEATABLE READ this method's own
+    // consistent-read snapshot (fixed at ITS first query, before that other call may have
+    // committed) would still be stale for the plain findFirstByContextIdAndStatus read that
+    // follows it, missing a just-committed in-progress row and creating a second one anyway.
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public LmsUserBatchStatusDto startPrepareParticipation(long experimentId, SecuredInfo securedInfo) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        Long contextId = experiment == null ? null : experiment.getLtiContextEntity().getContextId();
 
-        if (!isParticipantSyncStale(experiment)) {
-            prepareParticipation(experimentId, securedInfo);
+        // a real DB row lock (see refreshParticipantsIfStale) so a rapid double-submit or a
+        // second overlapping request for the same course serializes its "is this stale" decision
+        // here, instead of each one independently deciding "stale" and creating its own
+        // LmsUserBatchProcessing row before either async refresh has had a chance to mark the
+        // roster fresh - reentrant if this ends up calling refreshParticipantsIfStale below via
+        // self-invocation, since InnoDB row locks are held per-transaction, not per-statement
+        LtiContextEntity ltiContextEntity = contextId == null ? null : ltiContextRepository.findByContextIdForUpdate(contextId);
+        boolean fresh = ltiContextEntity == null ? !isParticipantSyncStale(experiment) : isParticipantSyncFresh(ltiContextEntity);
+
+        if (fresh) {
+            UUID batchId = UUID.randomUUID();
+            prepareParticipation(experimentId, securedInfo, batchId);
 
             return LmsUserBatchStatusDto.builder()
-                .batchId(UUID.randomUUID())
+                .batchId(batchId)
                 .status(LmsUserBatchStatus.COMPLETED)
                 .build();
+        }
+
+        if (contextId != null) {
+            // reuse whichever batch is already in flight for this LTI context instead of
+            // creating a second, independently-tracked row for what is the same underlying
+            // refresh
+            Optional<LmsUserBatchProcessing> inProgress = lmsUserBatchProcessingRepository.findFirstByContextIdAndStatus(contextId, LmsUserBatchStatus.IN_PROGRESS);
+
+            if (inProgress.isPresent()) {
+                return LmsUserBatchStatusDto.builder()
+                    .batchId(inProgress.get().getBatchId())
+                    .status(LmsUserBatchStatus.IN_PROGRESS)
+                    .build();
+            }
         }
 
         UUID batchId = UUID.randomUUID();
@@ -545,7 +646,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         lmsUserBatchProcessingRepository.save(
             LmsUserBatchProcessing.builder()
                 .batchId(batchId)
-                .contextId(experiment == null ? null : experiment.getLtiContextEntity().getContextId())
+                .contextId(contextId)
                 .status(LmsUserBatchStatus.IN_PROGRESS)
                 .build()
         );
