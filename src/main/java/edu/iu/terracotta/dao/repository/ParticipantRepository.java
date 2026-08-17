@@ -36,7 +36,11 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     // LIMIT/OFFSET are embedded directly in the SQL (rather than passed as a Pageable) so
     // Hibernate never has to rewrite this query's text to inject pagination - its regex-based
     // AbstractLimitHandler.insertBeforeForUpdate is pathologically slow (effectively hangs,
-    // spinning at 100% CPU) against this query's shape (JOINs + GROUP BY + nested functions)
+    // spinning at 100% CPU) against this query's shape (JOINs + GROUP BY + nested functions).
+    // Positional (?1/?2/?3) rather than named (:limit/:offset) parameters are required here -
+    // Hibernate's native-query grammar for MySQL rejects a named parameter in the LIMIT/OFFSET
+    // position ("no viable alternative at input"), and Spring Data JPA doesn't allow mixing
+    // named and positional parameters within the same query, so all three are positional.
     @NativeQuery(
         value = """
             SELECT
@@ -49,14 +53,14 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
             JOIN lti_user lu
                 ON p.lti_user_entity_user_id = lu.user_id
             WHERE
-                lme.context_id = :contextId AND
+                lme.context_id = ?1 AND
                 NULLIF(TRIM(lu.lms_user_id), '') IS NULL
             GROUP BY lu.email
             ORDER BY id ASC
-            LIMIT :limit OFFSET :offset
+            LIMIT ?2 OFFSET ?3
             """
     )
-    List<LmsParticipantSummary> findLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId, @Param("limit") int limit, @Param("offset") long offset);
+    List<LmsParticipantSummary> findLmsParticipantSummaryToUpdateByContextId(long contextId, int limit, long offset);
 
     // cheap existence check so a full LMS course-membership fetch isn't kicked off (see
     // ParticipantAsyncServiceImpl.updateParticipantData) when nothing is actually missing an LMS
