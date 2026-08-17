@@ -18,7 +18,6 @@ import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -144,7 +143,26 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
 
     @Override
     public boolean deleteLineItem(LtiToken ltiToken, LtiContextEntity context, String id) throws ConnectionException {
-        throw new UnsupportedOperationException("Unimplemented method 'deleteLineItem'");
+        try {
+            ResponseEntity<String> lineItemsGetResponse = advantageConnectorHelper.createRestTemplate().exchange(
+                id,
+                HttpMethod.DELETE,
+                advantageConnectorHelper.createTokenizedRequestEntity(ltiToken),
+                String.class
+            );
+
+            if (lineItemsGetResponse.getStatusCode().is2xxSuccessful()) {
+                return true;
+            }
+
+            String exceptionMsg = String.format("Can't delete the lineitem with ID: [%s]", id);
+            log.error(exceptionMsg);
+            throw new ConnectionException(exceptionMsg);
+        } catch (Exception e) {
+            String exceptionMsg = String.format("Can't delete the lineitem with ID: [%s]", id);
+            log.error(exceptionMsg, e);
+            throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg, e));
+        }
     }
 
     @Override
@@ -160,11 +178,6 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
     @Override
     public LineItems postLineItems(LtiToken ltiToken, LtiContextEntity context, LineItems lineItems) throws ConnectionException {
         throw new UnsupportedOperationException("Unimplemented method 'postLineItems'");
-    }
-
-    @Override
-    public Results getResults(LtiToken ltiTokenResults, LtiContextEntity context, String lineItemId) throws ConnectionException {
-        throw new UnsupportedOperationException("Unimplemented method 'getResults'");
     }
 
     @Override

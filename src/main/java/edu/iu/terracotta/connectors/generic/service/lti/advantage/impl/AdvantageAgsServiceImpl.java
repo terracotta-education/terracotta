@@ -5,8 +5,6 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItems;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Result;
-import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Results;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -38,7 +36,7 @@ import java.util.Objects;
 @Primary
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement", "PMD.UnusedPrivateMethod"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.UnusedPrivateMethod"})
 public class AdvantageAgsServiceImpl implements AdvantageAgsService {
 
     private final ConnectorService<AdvantageAgsService> connectorService;
@@ -167,46 +165,6 @@ public class AdvantageAgsServiceImpl implements AdvantageAgsService {
             String exceptionMsg = "Can't post lineitems";
             log.error(exceptionMsg, e);
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg, e));
-        }
-    }
-
-    @Override
-    public Results getResults(LtiToken ltiTokenResults, LtiContextEntity context, String lineItemId) throws ConnectionException {
-        try {
-            RestTemplate restTemplate = advantageConnectorHelper.createRestTemplate();
-            HttpEntity request = advantageConnectorHelper.createTokenizedRequestEntity(ltiTokenResults);
-            ResponseEntity<Result[]> resultsGetResponse = restTemplate.exchange(
-                String.format("%s/results", lineItemId),
-                HttpMethod.GET,
-                request,
-                Result[].class
-            );
-
-            if (!resultsGetResponse.getStatusCode().is2xxSuccessful()) {
-                String exceptionMsg = "Can't get the AGS";
-                log.error(exceptionMsg);
-                throw new ConnectionException(exceptionMsg);
-            }
-
-            List<Result> resultList = new ArrayList<>(Arrays.asList(Objects.requireNonNull(resultsGetResponse.getBody())));
-            String nextPage = advantageConnectorHelper.nextPage(resultsGetResponse.getHeaders());
-
-            while (nextPage != null) {
-                ResponseEntity<Result[]> responseForNextPage = restTemplate.exchange(nextPage, HttpMethod.GET, request, Result[].class);
-                List<Result> nextResults = new ArrayList<>(Arrays.asList(Objects.requireNonNull(responseForNextPage.getBody())));
-                resultList.addAll(nextResults);
-                nextPage = advantageConnectorHelper.nextPage(responseForNextPage.getHeaders());
-            }
-
-            Results results = new Results();
-            results.getResultList().addAll(resultList);
-
-            return results;
-        } catch (Exception e) {
-            StringBuilder exceptionMsg = new StringBuilder();
-            exceptionMsg.append("Can't get the AGS");
-            log.error(exceptionMsg.toString(), e);
-            throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
     }
 

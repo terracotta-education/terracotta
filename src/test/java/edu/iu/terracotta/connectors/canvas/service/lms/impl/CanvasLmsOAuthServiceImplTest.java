@@ -377,6 +377,23 @@ public class CanvasLmsOAuthServiceImplTest {
     }
 
     @Test
+    public void testIsAccessTokenAvailableReturnsTrueWithoutRefreshingWhenTokenFresh() {
+        ApiTokenEntity token = ApiTokenEntity.builder()
+            .accessToken("fresh-access-token")
+            .refreshToken("refresh-token")
+            .expiresAt(Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)))
+            .scopes("scope1 scope2")
+            .user(user)
+            .build();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(token));
+        when(apiScopeService.getNecessaryScopes(1L)).thenReturn(Set.of("scope1", "scope2"));
+
+        assertTrue(canvasLmsOAuthService.isAccessTokenAvailable(user));
+        verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any());
+        verify(apiTokenRepository, never()).save(any(ApiTokenEntity.class));
+    }
+
+    @Test
     public void testIsAccessTokenAvailableRefreshesAndReturnsTrueWhenScopesPresent() {
         ApiTokenEntity token = ApiTokenEntity.builder()
             .accessToken("stale-access-token")

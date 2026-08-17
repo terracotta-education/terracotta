@@ -92,7 +92,7 @@ public class StepsControllerTest extends BaseTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(lmsUserBatchStatusDto, response.getBody());
         verify(participantAsyncService).prepareParticipationAsync(1L, securedInfo, batchId);
-        verify(participantService, never()).prepareParticipation(anyLong(), any());
+        verify(participantService, never()).prepareParticipation(anyLong(), any(), any());
     }
 
     // when the roster isn't due for a sync, startPrepareParticipation already ran

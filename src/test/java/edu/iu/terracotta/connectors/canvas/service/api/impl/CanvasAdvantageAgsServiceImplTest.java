@@ -73,14 +73,6 @@ public class CanvasAdvantageAgsServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testGetResults() {
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> canvasAdvantageAgsService.getResults(ltiToken, ltiContextEntity, "lineItemId")
-        );
-    }
-
-    @Test
     public void testGetLineItemsSinglePage() throws ConnectionException {
         LineItems ret = canvasAdvantageAgsService.getLineItems(ltiToken, ltiContextEntity);
 
