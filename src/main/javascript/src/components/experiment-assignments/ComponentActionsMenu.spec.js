@@ -63,6 +63,15 @@ describe("ComponentActionsMenu", () => {
     expect(wrapper.findComponent({ name: "VBtn" }).exists()).toBe(true);
   });
 
+  // TCOTA-1010: the menu must pop up above and to the left of the actions button, rather than
+  // covering/overflowing past it - matching the "top start" convention already used for other
+  // "opens above" menus in this codebase (e.g. QuestionTypeMenu.vue, CopyTreatmentMenu.vue)
+  it("opens above and to the left (top start) of the activator", async () => {
+    await mountMenu();
+
+    expect(wrapper.findComponent({ name: "VMenu" }).props("location")).toBe("top start");
+  });
+
   it("always shows Edit and Duplicate for an assignment row", async () => {
     await mountMenu();
     const titles = itemTitles();

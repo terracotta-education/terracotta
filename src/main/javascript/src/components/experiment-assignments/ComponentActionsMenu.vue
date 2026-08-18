@@ -2,7 +2,7 @@
   <v-menu
     v-model="isOpen"
     class="component-actions-menu"
-    location="start"
+    location="top start"
   >
     <template #activator="{ props: menuProps }">
       <v-btn
