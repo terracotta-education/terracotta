@@ -751,6 +751,9 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Test
     public void testRefreshParticipantsIfStaleSkipsWhenRecentSyncAttemptExistsForContext() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        // this experiment already has participants, so the course-level freshness check applies
+        // instead of being bypassed as a first-ever sync
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
 
         LmsUserBatchProcessing recentAttempt = new LmsUserBatchProcessing();
         recentAttempt.setCreatedAt(Timestamp.from(Instant.now()));
@@ -813,9 +816,26 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(participantService).refreshParticipants(1L, batchId);
     }
 
+    // a brand-new experiment sharing a course with another, already-synced experiment must still
+    // get its own first sync - last_participant_sync being "fresh" describes the course's LMS
+    // roster, not whether this specific experiment has any Participant rows yet
+    @Test
+    public void testRefreshParticipantsIfStaleRefreshesNewExperimentDespiteFreshCourseSync() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(0L);
+        doNothing().when(participantService).refreshParticipants(anyLong(), any(UUID.class));
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService).refreshParticipants(eq(1L), any(UUID.class));
+    }
+
     @Test
     public void testRefreshParticipantsIfStaleSkipsWhenRecentlySynced() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+        // this experiment already has participants, so the course-level freshness check applies
+        // instead of being bypassed as a first-ever sync
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
 
         participantService.refreshParticipantsIfStale(1L);
 
@@ -912,6 +932,9 @@ public class ParticipantServiceImplTest extends BaseTest {
         when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
         when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
         when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+        // this experiment already has participants, so the course-level freshness check applies
+        // instead of being bypassed as a first-ever sync
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
 
         assertDoesNotThrow(() -> participantService.prepareParticipation(1L, securedInfo, UUID.randomUUID()));
 

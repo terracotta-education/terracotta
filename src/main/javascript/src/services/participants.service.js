@@ -82,6 +82,12 @@ function handleResponse(response) {
     .then((text) => {
       const data = (text && isJson(text)) ? JSON.parse(text) : text
 
+      if (response.status === 204) {
+        // no participants exist yet for this experiment - a genuine empty result, not a
+        // failure, but the body is empty so there's nothing for JSON.parse to return an array
+        return []
+      }
+
       if (!response || !response.ok) {
         if (
           response.status === 402 ||
