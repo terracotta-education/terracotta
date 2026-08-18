@@ -41,12 +41,26 @@ describe("participants store", () => {
       expect(store.hasParticipants).toBe(true);
     });
 
-    it("falls back to empty array when data is falsy", async () => {
+    it("clears participants and returns null when data is falsy", async () => {
       participantService.getAll.mockResolvedValue(null);
 
       const result = await store.fetchParticipants([1]);
 
-      expect(result).toEqual([]);
+      expect(result).toBeNull();
+      expect(store.participants).toEqual([]);
+    });
+
+    it("clears participants and returns null when the service resolves a non-array error object instead of throwing", async () => {
+      // a failed HTTP response (e.g. 401/403/500) resolves to an object like
+      // {status, error} rather than rejecting - this must be treated as a fetch
+      // failure too, or components calling .filter()/.map() on store.participants
+      // would throw
+      store.setParticipants([{ participantId: 1 }]);
+      participantService.getAll.mockResolvedValue({ status: 403, error: "Forbidden" });
+
+      const result = await store.fetchParticipants([1]);
+
+      expect(result).toBeNull();
       expect(store.participants).toEqual([]);
     });
 

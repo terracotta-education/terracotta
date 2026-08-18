@@ -21,7 +21,20 @@ export const participants = defineStore("participants", {
       try {
         const data = await participantService.getAll(...payload);
 
-        this.participants = data || [];
+        // a failed HTTP response resolves to an error object (e.g. {status, error}) rather than
+        // throwing, so an array check is needed here to catch that case as a failure too
+        if (!Array.isArray(data)) {
+          console.error(
+            "participants/fetchParticipants | non-array response",
+            { data }
+          );
+
+          this.participants = [];
+
+          return null;
+        }
+
+        this.participants = data;
 
         return this.participants;
       } catch (error) {
