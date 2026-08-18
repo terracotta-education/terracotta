@@ -362,8 +362,9 @@
                   <v-menu
                     v-model="actionsMenuOpen[row.assignmentId]"
                     class="component-actions-menu"
+                    offset-y
+                    top
                     left
-                    offset-x
                     attach
                   >
                     <template
