@@ -545,6 +545,9 @@ public class ParticipantServiceImplTest extends BaseTest {
     public void testGetParticipantsNonStudentWithRefreshSkipsSyncWhenRecentlySynced() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
         when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+        // this experiment already has participants, so the course-level freshness check applies
+        // instead of being bypassed as a first-ever sync
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
 
         List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, false, securedInfo, true);
 
