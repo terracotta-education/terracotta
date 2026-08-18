@@ -35,6 +35,7 @@ import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.ConversationExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FileExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FolderExtended;
+import edu.iu.terracotta.connectors.canvas.dao.model.extended.options.GetSubmissionsOptionsExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentWriterExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.ConversationReaderExtended;
@@ -739,6 +740,24 @@ public class CanvasApiClientImplTest extends BaseTest {
         }
 
         assertEquals(1, result.size());
+    }
+
+    // without student_ids[]=all, Canvas defaults to the calling user's own submission and
+    // rejects the request as unauthorized for an instructor who isn't enrolled as a student -
+    // see the "User is not authorized to perform this action" production incident this fixes
+    @Test
+    void testListSubmissionsForMultipleAssignmentsRequestsAllStudentIds() throws Exception {
+        when(submissionReaderExtended.listSubmissionsForMultipleAssignments(any())).thenReturn(List.of(canvasSubmissionExtended));
+        when(canvasSubmissionExtended.from()).thenReturn(lmsSubmission);
+
+        ArgumentCaptor<GetSubmissionsOptionsExtended> optionsCaptor = ArgumentCaptor.forClass(GetSubmissionsOptionsExtended.class);
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            canvasApiClientService.listSubmissionsForMultipleAssignments(ltiUserEntity, "course1", List.of("1", "2"));
+        }
+
+        verify(submissionReaderExtended).listSubmissionsForMultipleAssignments(optionsCaptor.capture());
+        assertEquals(List.of("all"), optionsCaptor.getValue().getOptionsMap().get("student_ids[]"));
     }
 
     @Test
