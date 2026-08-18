@@ -1,5 +1,7 @@
 package edu.iu.terracotta.connectors.generic.dao.repository.lms;
 
+import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +22,10 @@ public interface LmsUserBatchProcessingRepository extends JpaRepository<LmsUserB
     // excludes the batch currently being processed - used by the debounce check so a batch's own
     // just-created IN_PROGRESS row doesn't make it look like the context was already synced
     Optional<LmsUserBatchProcessing> findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(Long contextId, UUID batchId);
+    // a row left in this status past the given threshold means whatever was processing it (an
+    // @Async task) never reached its own completion code - e.g. an app restart/crash mid-sync, or
+    // an uncaught Error - see LmsUserBatchCleanerSchedulerServiceImpl
+    List<LmsUserBatchProcessing> findAllByStatusAndUpdatedAtBefore(LmsUserBatchStatus status, Timestamp threshold);
 
     /**
      * More than one writer can race to record the same batchId's terminal status (e.g. the LMS
