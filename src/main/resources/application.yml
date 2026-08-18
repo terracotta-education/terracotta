@@ -381,3 +381,19 @@ api:
         expiration:
           ttl:
             days: 30
+
+# LMS user batch cleaner scheduler - catches lms_user_batch_processing rows left IN_PROGRESS by
+# an @Async sync task that never reached its own completion code (app restart/crash mid-sync, an
+# uncaught Error, etc.), marks them FAILED, and deletes their orphaned lms_user_batch staging rows
+lms:
+  user:
+    batch:
+      cleaner:
+        scheduler:
+          enabled: true
+          check:
+            interval:
+              minutes: 60
+          stale:
+            ttl:
+              minutes: 60
