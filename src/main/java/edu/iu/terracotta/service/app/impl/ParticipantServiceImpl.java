@@ -411,7 +411,15 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING);
         }
 
-        if (isParticipantSyncFresh(experiment.getLtiContextEntity(), batchId)) {
+        // the freshness checks below are keyed by LTI context (course), not experiment, since the
+        // LMS roster itself is a property of the course - but Participant rows are created
+        // per-experiment (see refreshParticipants -> syncParticipantsPage). A brand-new
+        // experiment sharing a course with another, already-synced experiment must still get its
+        // own first sync regardless of how "fresh" the course is, or it silently keeps zero
+        // participants until the course-level throttle window happens to expire.
+        boolean neverSyncedForThisExperiment = participantRepository.countByExperiment_ExperimentId(experimentId) == 0;
+
+        if (!neverSyncedForThisExperiment && isParticipantSyncFresh(experiment.getLtiContextEntity(), batchId)) {
             return;
         }
 
@@ -425,7 +433,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         // simply never reaches the write that marks it synced, leaving it correctly untouched.
         LtiContextEntity ltiContextEntity = ltiContextRepository.findByContextIdForUpdate(experiment.getLtiContextEntity().getContextId());
 
-        if (isParticipantSyncFresh(ltiContextEntity, batchId)) {
+        if (!neverSyncedForThisExperiment && isParticipantSyncFresh(ltiContextEntity, batchId)) {
             return;
         }
 
