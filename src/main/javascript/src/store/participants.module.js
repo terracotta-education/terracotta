@@ -1,7 +1,7 @@
 import { participantService } from "@/services"
 
 const state = {
-  participants: null,
+  participants: [],
   participant: null,
   groups: null,
 }
@@ -12,10 +12,19 @@ const actions = {
     return participantService
       .getAll(...payload)
       .then((data) => {
+        // a failed HTTP response resolves to an error object (e.g. {status, error}) rather than
+        // rejecting, so an array check is needed here to catch that case as a failure too
+        if (!Array.isArray(data)) {
+          console.error("fetchParticipants | non-array response", { data })
+          commit("setParticipants", [])
+          return
+        }
+
         commit("setParticipants", data)
       })
       .catch((response) => {
         console.log("fetchParticipants | catch", { response })
+        commit("setParticipants", [])
       })
   },
 
