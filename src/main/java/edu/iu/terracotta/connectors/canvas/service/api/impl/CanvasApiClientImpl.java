@@ -429,6 +429,11 @@ public class CanvasApiClientImpl implements ApiClient {
     public List<LmsSubmission> listSubmissionsForMultipleAssignments(LtiUserEntity apiUser, String canvasCourseId, List<String> canvasAssignmentIds) throws ApiException, IOException, TerracottaConnectorException {
         GetSubmissionsOptionsExtended submissionsOptions = new GetSubmissionsOptionsExtended(canvasCourseId, canvasAssignmentIds);
         submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
+        // without student_ids[], Canvas defaults to the calling user's own submission - since the
+        // instructor calling this isn't a student in the course, Canvas rejects that as
+        // unauthorized rather than returning an empty list (see the single-assignment
+        // listSubmissions above, which already sets this)
+        submissionsOptions.userIds(List.of(GetSubmissionsOptionsExtended.UserId.ALL.toString()));
 
         try {
             return castList(
