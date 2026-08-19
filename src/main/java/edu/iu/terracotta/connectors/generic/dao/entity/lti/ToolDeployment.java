@@ -41,6 +41,14 @@ public class ToolDeployment extends BaseEntity {
     @Column(nullable = false)
     private String ltiDeploymentId;
 
+    // whether the LTI Platform Notification Service course-copy handler has already been
+    // registered with the platform for this deployment (see
+    // CanvasAdvantageNoticeServiceImpl.ensureNoticeHandlerRegistered) - registration is an extra
+    // outbound call to the platform, so this makes it a one-time cost per deployment instead of
+    // repeating it on every launch
+    @Column(nullable = false)
+    private boolean noticeHandlerRegistered;
+
     @JsonIgnore
     @ManyToOne(optional = false)
     @JoinColumn(

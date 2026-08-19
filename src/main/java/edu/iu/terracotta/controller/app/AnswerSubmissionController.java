@@ -26,6 +26,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -48,6 +49,7 @@ import jakarta.transaction.Transactional;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -352,7 +354,7 @@ public class AnswerSubmissionController {
         return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(fileResponseDto.getMimeType()))
                     .contentLength(fileResponseDto.getFile().length())
-                    .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", fileResponseDto.getFileName()))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(fileResponseDto.getFileName(), StandardCharsets.UTF_8).build().toString())
                     .body(new InputStreamResource(new FileInputStream(fileResponseDto.getFile())));
     }
 

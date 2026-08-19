@@ -576,7 +576,7 @@ public class AnswerSubmissionControllerTest extends BaseTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(MediaType.TEXT_PLAIN, response.getHeaders().getContentType());
         assertEquals(realFile.length(), response.getHeaders().getContentLength());
-        assertEquals("attachment; filename=answer.txt", response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
+        assertEquals("attachment; filename=\"answer.txt\"; filename*=UTF-8''answer.txt", response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
         assertTrue(response.getBody() instanceof InputStreamResource);
     }
 
