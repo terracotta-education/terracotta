@@ -141,9 +141,13 @@ public class ParticipantServiceImplTest extends BaseTest {
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.AUTO);
         when(participant.getDateGiven()).thenReturn(Timestamp.from(Instant.now()));
         when(participant.getDateRevoked()).thenReturn(Timestamp.from(Instant.now()));
-        // the pessimistic-lock re-fetch in refreshParticipantsIfStale; defaults to returning the
-        // same mock the freshness pre-check already used
-        when(ltiContextRepository.findByContextIdForUpdate(anyLong())).thenReturn(ltiContextEntity);
+        // startPrepareParticipation's lookup of the LTI context to check freshness under lock
+        when(ltiContextRepository.findById(anyLong())).thenReturn(Optional.of(ltiContextEntity));
+        // the named-lock GET_LOCK/RELEASE_LOCK native queries acquireRosterSyncLock/
+        // releaseRosterSyncLock issue - defaults to "lock acquired" (1) for every call
+        when(entityManager.createNativeQuery(anyString())).thenReturn(query);
+        when(query.setParameter(anyString(), any())).thenReturn(query);
+        when(query.getSingleResult()).thenReturn(1);
     }
 
     @Test
@@ -881,9 +885,9 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     // a failed sync must not leave last_participant_sync showing a partial-failure value. Since
     // the field is only ever written on the success path (below the refreshParticipants call),
-    // and findByContextIdForUpdate's row lock guarantees nothing else can have changed it out
-    // from under this method, a failure simply never reaches that write - correctly leaving
-    // whatever value was there before this attempt (including null, if never synced before).
+    // and the named roster-sync lock guarantees nothing else can have changed it out from under
+    // this method, a failure simply never reaches that write - correctly leaving whatever value
+    // was there before this attempt (including null, if never synced before).
     @Test
     public void testRefreshParticipantsIfStaleLeavesSyncTimestampUntouchedOnFailureWhenNeverSyncedBefore() throws Exception {
         when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
@@ -915,20 +919,34 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     // the freshness pre-check (before acquiring the lock) avoids the DB round trip entirely when
-    // clearly fresh; the re-check (after acquiring the lock, via the freshly-locked row) is what
-    // actually prevents a double-refresh - covered by the "refreshes when never synced"/"skips
-    // when recently synced" tests already exercising isParticipantSyncFresh, plus this explicit
-    // check that the locked query is what's used for the real serialization guarantee.
+    // clearly fresh; the re-check (after acquiring the lock, via the freshly-refreshed entity) is
+    // what actually prevents a double-refresh - covered by the "refreshes when never synced"/
+    // "skips when recently synced" tests already exercising isParticipantSyncFresh, plus this
+    // explicit check that the named lock is what's used for the real serialization guarantee.
     @Test
-    public void testRefreshParticipantsIfStaleAcquiresRowLockBeforeRefreshing() throws Exception {
+    public void testRefreshParticipantsIfStaleAcquiresNamedLockBeforeRefreshing() throws Exception {
         when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
         doNothing().when(participantService).refreshParticipants(anyLong(), any(UUID.class));
 
         participantService.refreshParticipantsIfStale(1L);
 
-        verify(ltiContextRepository).findByContextIdForUpdate(1L);
+        verify(query, atLeastOnce()).setParameter("lockName", "terracotta_participant_roster_sync_context_" + ltiContextEntity.getContextId());
+        verify(entityManager).refresh(ltiContextEntity);
 
         verify(participantService, times(1)).refreshParticipants(eq(1L), any(UUID.class));
+    }
+
+    // if another sync for this course is already in progress and holding the lock, skip rather
+    // than waiting indefinitely or duplicating its work
+    @Test
+    public void testRefreshParticipantsIfStaleSkipsWhenLockNotAcquired() throws Exception {
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
+        when(query.getSingleResult()).thenReturn(0);
+
+        participantService.refreshParticipantsIfStale(1L);
+
+        verify(participantService, never()).refreshParticipants(anyLong(), any(UUID.class));
+        verify(ltiContextRepository, never()).save(any(LtiContextEntity.class));
     }
 
     // prepareParticipation should throttle the roster sync (rather than always syncing) and
@@ -1005,17 +1023,31 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(lmsUserBatchProcessingRepository, never()).save(any(LmsUserBatchProcessing.class));
     }
 
-    // the freshness pre-check happens under the LTI context's row lock (see
+    // the freshness pre-check happens under the LTI context's named roster-sync lock (see
     // refreshParticipantsIfStale) rather than the unlocked read that isParticipantSyncStale would
     // otherwise use - so a rapid double-submit or a second overlapping request for the same
     // course serializes here instead of each independently deciding "stale"
     @Test
-    public void testStartPrepareParticipationAcquiresRowLockBeforeDecidingStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+    public void testStartPrepareParticipationAcquiresNamedLockBeforeDecidingStale() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(ltiContextEntity.getLastParticipantSync()).thenReturn(null);
 
         participantService.startPrepareParticipation(1L, securedInfo);
 
-        verify(ltiContextRepository).findByContextIdForUpdate(ltiContextEntity.getContextId());
+        verify(query, atLeastOnce()).setParameter("lockName", "terracotta_participant_roster_sync_context_" + ltiContextEntity.getContextId());
+        verify(ltiContextRepository).findById(ltiContextEntity.getContextId());
+    }
+
+    // a lock acquisition timeout (another sync already in progress for this context) must
+    // surface as a clean, typed failure rather than an uncaught DB timeout exception reaching
+    // the controller
+    @Test
+    public void testStartPrepareParticipationThrowsWhenLockNotAcquired() {
+        when(query.getSingleResult()).thenReturn(0);
+
+        assertThrows(
+            ParticipantNotUpdatedException.class,
+            () -> participantService.startPrepareParticipation(1L, securedInfo)
+        );
     }
 
     // a rapid double-submit or a second overlapping request for the same course can each reach
