@@ -27,8 +27,10 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.ui.Model;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.canvas.service.lti.advantage.CanvasAdvantageNoticeService;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiDeepLink;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
@@ -52,6 +54,7 @@ public class Lti3ControllerTest extends BaseTest {
 
     @Mock private AdvantageDeepLinkService advantageDeepLinkService;
     @Mock private LmsOAuthServiceManager lmsOAuthServiceManager;
+    @Mock private CanvasAdvantageNoticeService canvasAdvantageNoticeService;
 
     private Lti3Controller lti3Controller;
 
@@ -68,7 +71,7 @@ public class Lti3ControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        lti3Controller = new Lti3Controller(ltiLinkRepository, apiJwtService, advantageDeepLinkService, caliperService, ltiDataService, ltiJwtService, lmsOAuthServiceManager);
+        lti3Controller = new Lti3Controller(ltiLinkRepository, apiJwtService, advantageDeepLinkService, caliperService, ltiDataService, ltiJwtService, lmsOAuthServiceManager, canvasAdvantageNoticeService);
 
         when(httpServletRequest.getParameter("state")).thenReturn("state123");
         when(httpServletRequest.getParameter("link")).thenReturn(null);
@@ -105,6 +108,28 @@ public class Lti3ControllerTest extends BaseTest {
 
             assertEquals("redirect:/app/app.html?token=oneTimeToken123", result);
         }
+    }
+
+    @Test
+    void homeRegistersNoticeHandlerForCanvasDeploymentTest() throws Exception {
+        when(platformDeployment.getLmsConnector()).thenReturn(LmsConnector.CANVAS);
+
+        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+            callHome();
+        }
+
+        verify(canvasAdvantageNoticeService).ensureNoticeHandlerRegistered(toolDeployment);
+    }
+
+    @Test
+    void homeSkipsNoticeHandlerRegistrationForNonCanvasDeploymentTest() throws Exception {
+        when(platformDeployment.getLmsConnector()).thenReturn(LmsConnector.BRIGHTSPACE);
+
+        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+            callHome();
+        }
+
+        verify(canvasAdvantageNoticeService, never()).ensureNoticeHandlerRegistered(any());
     }
 
     @Test

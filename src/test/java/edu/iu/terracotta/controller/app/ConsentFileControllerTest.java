@@ -112,7 +112,7 @@ public class ConsentFileControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(MediaType.APPLICATION_PDF, response.getHeaders().getContentType());
-        assertEquals("attachment; filename=\"consent.pdf\"", response.getHeaders().getFirst("Content-Disposition"));
+        assertEquals("attachment; filename=\"consent.pdf\"; filename*=UTF-8''consent.pdf", response.getHeaders().getFirst("Content-Disposition"));
         assertEquals(resource, response.getBody());
     }
 

@@ -134,6 +134,7 @@ public class RegistrationControllerTest extends BaseTest {
         assertEquals(platformDeployment.getLocalUrl() + "/jwks/jwk", toolRegistrationDto.getJwks_uri());
         assertEquals("private_key_jwt", toolRegistrationDto.getToken_endpoint_auth_method());
         assertTrue(toolRegistrationDto.getScope().contains("openid"));
+        assertTrue(toolRegistrationDto.getScope().contains("https://purl.imsglobal.org/spec/lti/scope/noticehandlers"));
         assertNotNull(toolRegistrationDto.getToolConfiguration());
         assertEquals("lti.url", toolRegistrationDto.getToolConfiguration().getDomain());
         assertEquals("Terracotta description", toolRegistrationDto.getToolConfiguration().getDescription());
