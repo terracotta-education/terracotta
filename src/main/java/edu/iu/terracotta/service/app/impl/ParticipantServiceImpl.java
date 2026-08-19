@@ -141,6 +141,12 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Value("${app.participant.refresh.debounce.seconds:300}")
     private long refreshDebounceSeconds;
 
+    // how long to wait to acquire the per-context roster sync lock before giving up and skipping
+    // this attempt (see acquireRosterSyncLock) - generous enough to cover a legitimately slow,
+    // large-course sync already in progress rather than another caller
+    @Value("${app.participant.refresh.lock.timeout.seconds:60}")
+    private int rosterSyncLockTimeoutSeconds;
+
     @Override
     public List<Participant> findAllByExperimentId(long experimentId) {
         return participantRepository.findByExperiment_ExperimentId(experimentId);
@@ -403,28 +409,67 @@ public class ParticipantServiceImpl implements ParticipantService {
             return;
         }
 
-        // take a real DB row lock (rather than an in-process-only one) so concurrent callers for
-        // the same course (a double-click, a slow request the user retried, or - since this is a
-        // DB lock - a concurrent request handled by a different app instance entirely) don't each
-        // fire a full roster sync at once. Concurrent bulk inserts into lms_user_batch from
-        // separate transactions can otherwise lock each other out entirely ("Lock wait timeout
-        // exceeded" was observed in production). Held for this whole method, so nothing else can
-        // change last_participant_sync out from under it - a failed refreshParticipants below
-        // simply never reaches the write that marks it synced, leaving it correctly untouched.
-        LtiContextEntity ltiContextEntity = ltiContextRepository.findByContextIdForUpdate(experiment.getLtiContextEntity().getContextId());
+        // a MySQL named lock (rather than a real DB row lock) so concurrent callers for the same
+        // course (a double-click, a slow request the user retried, or - since this is a
+        // session-scoped DB lock - a concurrent request handled by a different app instance
+        // entirely) don't each fire a full roster sync at once. A PESSIMISTIC_WRITE row lock on
+        // lti_context was used here previously, but syncParticipantsPage's REQUIRES_NEW page
+        // transactions insert lti_membership/lti_user rows carrying a foreign key to this same
+        // lti_context row - InnoDB takes a shared lock on the FK-referenced parent for every such
+        // insert, which self-deadlocked against this method's own exclusive hold on that row
+        // ("Lock wait timeout exceeded" was observed in production, on the lti_membership insert
+        // itself). A named lock doesn't participate in row/FK locking at all, so it can't
+        // self-block against the sub-transactions it spawns.
+        long contextId = experiment.getLtiContextEntity().getContextId();
 
-        if (!neverSyncedForThisExperiment && isParticipantSyncFresh(ltiContextEntity, batchId)) {
+        if (!acquireRosterSyncLock(contextId)) {
+            // another sync for this course is already in progress (this app instance or another)
+            // - let it finish rather than duplicating its work
+            log.info("Skipping participant roster sync for LTI context ID: [{}] - another sync is already in progress", contextId);
             return;
         }
 
-        refreshParticipants(experimentId, batchId);
+        try {
+            // the already-loaded entity may be stale if another caller just finished a sync and
+            // released the lock we just acquired - refresh in place (rather than a fresh query)
+            // since it's saved back below and callers may hold their own reference to it
+            LtiContextEntity ltiContextEntity = experiment.getLtiContextEntity();
+            entityManager.refresh(ltiContextEntity);
 
-        // only worth throttling the next refresh if this one was actually expensive - a small
-        // course stays perpetually "stale" (null) so it keeps refreshing every time, which is
-        // cheap and keeps it maximally accurate
-        long participantCount = participantRepository.countByExperiment_ExperimentId(experimentId);
-        ltiContextEntity.setLastParticipantSync(participantCount > refreshThrottleMinParticipants ? Instant.now() : null);
-        ltiContextRepository.save(ltiContextEntity);
+            if (!neverSyncedForThisExperiment && isParticipantSyncFresh(ltiContextEntity, batchId)) {
+                return;
+            }
+
+            refreshParticipants(experimentId, batchId);
+
+            // only worth throttling the next refresh if this one was actually expensive - a small
+            // course stays perpetually "stale" (null) so it keeps refreshing every time, which is
+            // cheap and keeps it maximally accurate
+            long participantCount = participantRepository.countByExperiment_ExperimentId(experimentId);
+            ltiContextEntity.setLastParticipantSync(participantCount > refreshThrottleMinParticipants ? Instant.now() : null);
+            ltiContextRepository.save(ltiContextEntity);
+        } finally {
+            releaseRosterSyncLock(contextId);
+        }
+    }
+
+    private boolean acquireRosterSyncLock(long contextId) {
+        Number acquired = (Number) entityManager.createNativeQuery("SELECT GET_LOCK(:lockName, :timeoutSeconds)")
+            .setParameter("lockName", rosterSyncLockName(contextId))
+            .setParameter("timeoutSeconds", rosterSyncLockTimeoutSeconds)
+            .getSingleResult();
+
+        return acquired != null && acquired.intValue() == 1;
+    }
+
+    private void releaseRosterSyncLock(long contextId) {
+        entityManager.createNativeQuery("SELECT RELEASE_LOCK(:lockName)")
+            .setParameter("lockName", rosterSyncLockName(contextId))
+            .getSingleResult();
+    }
+
+    private String rosterSyncLockName(long contextId) {
+        return "terracotta_participant_roster_sync_context_" + contextId;
     }
 
     private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity) {
@@ -616,53 +661,63 @@ public class ParticipantServiceImpl implements ParticipantService {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         Long contextId = experiment == null ? null : experiment.getLtiContextEntity().getContextId();
 
-        // a real DB row lock (see refreshParticipantsIfStale) so a rapid double-submit or a
+        // a MySQL named lock (see refreshParticipantsIfStale) so a rapid double-submit or a
         // second overlapping request for the same course serializes its "is this stale" decision
         // here, instead of each one independently deciding "stale" and creating its own
         // LmsUserBatchProcessing row before either async refresh has had a chance to mark the
-        // roster fresh - reentrant if this ends up calling refreshParticipantsIfStale below via
-        // self-invocation, since InnoDB row locks are held per-transaction, not per-statement
-        LtiContextEntity ltiContextEntity = contextId == null ? null : ltiContextRepository.findByContextIdForUpdate(contextId);
-        boolean fresh = ltiContextEntity == null ? !isParticipantSyncStale(experiment) : isParticipantSyncFresh(ltiContextEntity);
+        // roster fresh - reentrant (GET_LOCK reference-counts repeat acquisitions by the same
+        // session) if this ends up calling refreshParticipantsIfStale below via self-invocation
+        if (contextId != null && !acquireRosterSyncLock(contextId)) {
+            throw new ParticipantNotUpdatedException(String.format("Timed out waiting to start participant preparation for LTI context ID: [%d]", contextId));
+        }
 
-        if (fresh) {
+        try {
+            LtiContextEntity ltiContextEntity = contextId == null ? null : ltiContextRepository.findById(contextId).orElse(null);
+            boolean fresh = ltiContextEntity == null ? !isParticipantSyncStale(experiment) : isParticipantSyncFresh(ltiContextEntity);
+
+            if (fresh) {
+                UUID batchId = UUID.randomUUID();
+                prepareParticipation(experimentId, securedInfo, batchId);
+
+                return LmsUserBatchStatusDto.builder()
+                    .batchId(batchId)
+                    .status(LmsUserBatchStatus.COMPLETED)
+                    .build();
+            }
+
+            if (contextId != null) {
+                // reuse whichever batch is already in flight for this LTI context instead of
+                // creating a second, independently-tracked row for what is the same underlying
+                // refresh
+                Optional<LmsUserBatchProcessing> inProgress = lmsUserBatchProcessingRepository.findFirstByContextIdAndStatus(contextId, LmsUserBatchStatus.IN_PROGRESS);
+
+                if (inProgress.isPresent()) {
+                    return LmsUserBatchStatusDto.builder()
+                        .batchId(inProgress.get().getBatchId())
+                        .status(LmsUserBatchStatus.IN_PROGRESS)
+                        .build();
+                }
+            }
+
             UUID batchId = UUID.randomUUID();
-            prepareParticipation(experimentId, securedInfo, batchId);
+
+            lmsUserBatchProcessingRepository.save(
+                LmsUserBatchProcessing.builder()
+                    .batchId(batchId)
+                    .contextId(contextId)
+                    .status(LmsUserBatchStatus.IN_PROGRESS)
+                    .build()
+            );
 
             return LmsUserBatchStatusDto.builder()
                 .batchId(batchId)
-                .status(LmsUserBatchStatus.COMPLETED)
+                .status(LmsUserBatchStatus.IN_PROGRESS)
                 .build();
-        }
-
-        if (contextId != null) {
-            // reuse whichever batch is already in flight for this LTI context instead of
-            // creating a second, independently-tracked row for what is the same underlying
-            // refresh
-            Optional<LmsUserBatchProcessing> inProgress = lmsUserBatchProcessingRepository.findFirstByContextIdAndStatus(contextId, LmsUserBatchStatus.IN_PROGRESS);
-
-            if (inProgress.isPresent()) {
-                return LmsUserBatchStatusDto.builder()
-                    .batchId(inProgress.get().getBatchId())
-                    .status(LmsUserBatchStatus.IN_PROGRESS)
-                    .build();
+        } finally {
+            if (contextId != null) {
+                releaseRosterSyncLock(contextId);
             }
         }
-
-        UUID batchId = UUID.randomUUID();
-
-        lmsUserBatchProcessingRepository.save(
-            LmsUserBatchProcessing.builder()
-                .batchId(batchId)
-                .contextId(contextId)
-                .status(LmsUserBatchStatus.IN_PROGRESS)
-                .build()
-        );
-
-        return LmsUserBatchStatusDto.builder()
-            .batchId(batchId)
-            .status(LmsUserBatchStatus.IN_PROGRESS)
-            .build();
     }
 
     private boolean isParticipantSyncStale(Experiment experiment) {
