@@ -69,6 +69,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -427,22 +428,20 @@ public class CanvasApiClientImpl implements ApiClient {
 
     @Override
     public List<LmsSubmission> listSubmissionsForMultipleAssignments(LtiUserEntity apiUser, String canvasCourseId, List<String> canvasAssignmentIds) throws ApiException, IOException, TerracottaConnectorException {
-        GetSubmissionsOptionsExtended submissionsOptions = new GetSubmissionsOptionsExtended(canvasCourseId, canvasAssignmentIds);
-        submissionsOptions.includes(Collections.singletonList(GetSubmissionsOptions.Include.USER));
-        // without student_ids[], Canvas defaults to the calling user's own submission - since the
-        // instructor calling this isn't a student in the course, Canvas rejects that as
-        // unauthorized rather than returning an empty list (see the single-assignment
-        // listSubmissions above, which already sets this)
-        submissionsOptions.userIds(List.of(GetSubmissionsOptionsExtended.UserId.ALL.toString()));
+        // Canvas's bulk "list submissions for multiple assignments" endpoint
+        // (GET .../students/submissions) requires a Canvas API scope that can't be granted
+        // retroactively on an already-configured Developer Key at any existing Canvas instance -
+        // each institution's admin would need to check that scope themselves - so it always
+        // 401s ("User is not authorized to perform this action") in practice. Fetch each
+        // assignment's submissions separately instead, via the single-assignment endpoint above,
+        // which is already granted and working.
+        List<LmsSubmission> submissions = new ArrayList<>();
 
-        try {
-            return castList(
-                getReader(apiUser, SubmissionReaderExtended.class)
-                    .listSubmissionsForMultipleAssignments(submissionsOptions)
-            );
-        } catch (Exception e) {
-            throw new ApiException(String.format("Failed to list submissions for the assignments with IDs: [%s] in the course with ID: [%s] in Canvas", String.join(",", canvasAssignmentIds), canvasCourseId), e);
+        for (String canvasAssignmentId : canvasAssignmentIds) {
+            submissions.addAll(listSubmissions(apiUser, canvasAssignmentId, canvasCourseId));
         }
+
+        return submissions;
     }
 
     @Override

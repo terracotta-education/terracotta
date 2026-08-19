@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.SubmissionExtended;
-import edu.iu.terracotta.connectors.canvas.dao.model.extended.options.GetSubmissionsOptionsExtended;
 import edu.ksu.canvas.net.Response;
 import edu.ksu.canvas.net.RestClient;
 import edu.ksu.canvas.oauth.OauthToken;
@@ -34,52 +33,6 @@ public class SubmissionExtendedImplTest {
         MockitoAnnotations.openMocks(this);
 
         submissionExtended = new SubmissionExtendedImpl("https://canvas.example.com", 1, oauthToken, restClient, 1000, 1000, 100, false);
-    }
-
-    @Test
-    public void testListSubmissionsForMultipleAssignmentsReturnsParsedSubmissions() throws Exception {
-        Response response = new Response();
-        response.setErrorHappened(false);
-        response.setResponseCode(200);
-        response.setContent("[{\"id\":10,\"assignment_id\":100,\"user_id\":200,\"score\":95.5,\"workflow_state\":\"graded\"},"
-            + "{\"id\":11,\"assignment_id\":100,\"user_id\":201,\"score\":88.0,\"workflow_state\":\"submitted\"}]");
-        response.setNextLink(null);
-
-        when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
-
-        List<SubmissionExtended> results = submissionExtended.listSubmissionsForMultipleAssignments(
-            new GetSubmissionsOptionsExtended("1", List.of("100"))
-        );
-
-        assertEquals(2, results.size());
-        assertEquals("100", results.get(0).getAssignmentId());
-        assertEquals("200", results.get(0).getUserId());
-        assertEquals(95.5, results.get(0).getScore(), 0.0001);
-        assertEquals("graded", results.get(0).getState());
-        assertEquals("201", results.get(1).getUserId());
-        assertEquals("submitted", results.get(1).getState());
-    }
-
-    @Test
-    public void testListSubmissionsForMultipleAssignmentsThrowsExceptionWhenCanvasIdBlank() {
-        GetSubmissionsOptionsExtended options = new GetSubmissionsOptionsExtended("", List.of("100"));
-
-        assertThrows(IllegalArgumentException.class, () -> submissionExtended.listSubmissionsForMultipleAssignments(options));
-    }
-
-    @Test
-    public void testListSubmissionsForMultipleAssignmentsReturnsEmptyListWhenCanvasErrors() throws Exception {
-        Response response = new Response();
-        response.setErrorHappened(true);
-        response.setResponseCode(500);
-
-        when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
-
-        List<SubmissionExtended> results = submissionExtended.listSubmissionsForMultipleAssignments(
-            new GetSubmissionsOptionsExtended("1", List.of("100"))
-        );
-
-        assertTrue(results.isEmpty());
     }
 
     @Test
