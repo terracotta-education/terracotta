@@ -70,7 +70,7 @@ public class LmsUserBatchWriteServiceImplTest {
 
     @Test
     public void testSaveUsersSavesAllWhenNonEmpty() {
-        List<LmsUserBatch> users = List.of(LmsUserBatch.builder().build());
+        List<LmsUserBatch> users = List.of(LmsUserBatch.builder().userKey("user-key").build());
 
         lmsUserBatchWriteService.saveUsers(users);
 
@@ -80,6 +80,29 @@ public class LmsUserBatchWriteServiceImplTest {
     @Test
     public void testSaveUsersSkipsRepositoryWhenEmpty() {
         lmsUserBatchWriteService.saveUsers(List.of());
+
+        verify(lmsUserBatchRepository, never()).saveAll(any());
+    }
+
+    // a roster entry with no usable identifier (e.g. a pending/placeholder LMS enrollment) must
+    // not reach LtiUserEntity's constructor, which asserts on a blank userKey and would take down
+    // the whole page's transaction - see ParticipantRosterWriteServiceImpl.syncParticipantsPage
+    @Test
+    public void testSaveUsersFiltersOutBlankUserKeys() {
+        LmsUserBatch valid = LmsUserBatch.builder().userKey("user-key").build();
+        LmsUserBatch blank = LmsUserBatch.builder().userKey("").lmsUserId("999").build();
+        LmsUserBatch nullKey = LmsUserBatch.builder().userKey(null).lmsUserId("1000").build();
+
+        lmsUserBatchWriteService.saveUsers(List.of(valid, blank, nullKey));
+
+        ArgumentCaptor<List<LmsUserBatch>> captor = ArgumentCaptor.forClass(List.class);
+        verify(lmsUserBatchRepository).saveAll(captor.capture());
+        assertEquals(List.of(valid), captor.getValue());
+    }
+
+    @Test
+    public void testSaveUsersSkipsRepositoryWhenAllUserKeysBlank() {
+        lmsUserBatchWriteService.saveUsers(List.of(LmsUserBatch.builder().userKey("").build()));
 
         verify(lmsUserBatchRepository, never()).saveAll(any());
     }

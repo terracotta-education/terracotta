@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +16,12 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProce
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class LmsUserBatchWriteServiceImpl implements LmsUserBatchWriteService {
 
     private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
@@ -45,7 +49,30 @@ public class LmsUserBatchWriteServiceImpl implements LmsUserBatchWriteService {
             return;
         }
 
-        lmsUserBatchRepository.saveAll(usersToSave);
+        // the LMS occasionally returns a roster entry with no usable user identifier (e.g. a
+        // pending/placeholder enrollment) - LtiUserEntity's constructor asserts on a blank
+        // userKey, and letting one through here would blow up the whole page's transaction
+        // (ParticipantRosterWriteServiceImpl.syncParticipantsPage), silently dropping every other
+        // participant in that page along with it
+        List<LmsUserBatch> validUsersToSave = usersToSave.stream()
+            .filter(
+                user -> {
+                    if (StringUtils.isNotBlank(user.getUserKey())) {
+                        return true;
+                    }
+
+                    log.warn("Skipping LMS user batch row with a blank user key; lmsUserId: [{}]", user.getLmsUserId());
+
+                    return false;
+                }
+            )
+            .toList();
+
+        if (CollectionUtils.isEmpty(validUsersToSave)) {
+            return;
+        }
+
+        lmsUserBatchRepository.saveAll(validUsersToSave);
     }
 
     @Override
