@@ -3,7 +3,6 @@ package edu.iu.terracotta.connectors.canvas.service.extended.impl;
 import com.google.gson.reflect.TypeToken;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.SubmissionExtended;
-import edu.iu.terracotta.connectors.canvas.dao.model.extended.options.GetSubmissionsOptionsExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.SubmissionReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.SubmissionWriterExtended;
 import edu.ksu.canvas.impl.BaseImpl;
@@ -25,11 +24,6 @@ public class SubmissionExtendedImpl extends BaseImpl<SubmissionExtended, Submiss
     public SubmissionExtendedImpl(String canvasBaseUrl, Integer apiVersion, OauthToken oauthToken, RestClient restClient, int connectTimeout, int readTimeout, Integer paginationPageSize, Boolean serializeNulls) {
         super(canvasBaseUrl, apiVersion, oauthToken, restClient, connectTimeout, readTimeout, paginationPageSize, serializeNulls);
         this.submissionImpl = new SubmissionImpl(canvasBaseUrl, apiVersion, oauthToken, restClient, connectTimeout, readTimeout, paginationPageSize, serializeNulls);
-    }
-
-    @Override
-    public List<SubmissionExtended> listSubmissionsForMultipleAssignments(GetSubmissionsOptionsExtended options) throws IOException {
-        return parseList(submissionImpl.listCourseSubmissionsForMultipleAssignments(options));
     }
 
     @Override
