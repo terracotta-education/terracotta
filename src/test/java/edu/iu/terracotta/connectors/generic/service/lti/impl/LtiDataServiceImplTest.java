@@ -688,6 +688,50 @@ public class LtiDataServiceImplTest {
         assertEquals(toSave, result);
     }
 
+    // a real LTI launch and a roster sync can race to create the same (user_id, context_id)
+    // membership - whichever loses the unique-constraint race must use the winner's row rather
+    // than failing whatever it was part of.
+    @Test
+    public void testSaveLtiMembershipEntityReturnsExistingRowOnDuplicateKeyConflict() {
+        LtiUserEntity u = new LtiUserEntity("user1", new Date(), null);
+        LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
+        LtiMembershipEntity toSave = new LtiMembershipEntity(c, u, 1);
+        LtiMembershipEntity winner = new LtiMembershipEntity(c, u, 1);
+        when(ltiMembershipRepository.save(toSave)).thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"));
+        when(ltiMembershipRepository.findByUserAndContext(u, c)).thenReturn(winner);
+
+        LtiMembershipEntity result = ltiDataService.saveLtiMembershipEntity(toSave);
+
+        assertEquals(winner, result);
+    }
+
+    @Test
+    public void testSaveLtiMembershipEntityReturnsExistingRowOnLockWaitTimeout() {
+        LtiUserEntity u = new LtiUserEntity("user1", new Date(), null);
+        LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
+        LtiMembershipEntity toSave = new LtiMembershipEntity(c, u, 1);
+        LtiMembershipEntity winner = new LtiMembershipEntity(c, u, 1);
+        when(ltiMembershipRepository.save(toSave)).thenThrow(new org.springframework.dao.CannotAcquireLockException("lock wait timeout"));
+        when(ltiMembershipRepository.findByUserAndContext(u, c)).thenReturn(winner);
+
+        LtiMembershipEntity result = ltiDataService.saveLtiMembershipEntity(toSave);
+
+        assertEquals(winner, result);
+    }
+
+    // if the conflict wasn't actually caused by a concurrent winner (e.g. a genuinely different
+    // problem), rethrow rather than silently returning null and pushing an NPE onto the caller.
+    @Test
+    public void testSaveLtiMembershipEntityRethrowsWhenNoExistingRowFound() {
+        LtiUserEntity u = new LtiUserEntity("user1", new Date(), null);
+        LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
+        LtiMembershipEntity toSave = new LtiMembershipEntity(c, u, 1);
+        when(ltiMembershipRepository.save(toSave)).thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"));
+        when(ltiMembershipRepository.findByUserAndContext(u, c)).thenReturn(null);
+
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> ltiDataService.saveLtiMembershipEntity(toSave));
+    }
+
     @Test
     public void testFindAllByUserKeysAndPlatformDeploymentDelegatesToRepository() {
         LtiUserEntity expected = new LtiUserEntity("user1", new Date(), null);
