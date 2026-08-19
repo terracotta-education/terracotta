@@ -41,6 +41,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiMembershipRepo
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiMembershipWriteService;
 import edu.iu.terracotta.dao.repository.LtiNonceRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.utils.LtiStrings;
@@ -54,6 +55,7 @@ public class LtiDataServiceImplTest {
     private LtiContextRepository ltiContextRepository;
     private LtiLinkRepository ltiLinkRepository;
     private LtiMembershipRepository ltiMembershipRepository;
+    private LtiMembershipWriteService ltiMembershipWriteService;
     private LtiUserRepository ltiUserRepository;
     private ToolDeploymentRepository toolDeploymentRepository;
     private PlatformDeploymentRepository platformDeploymentRepository;
@@ -67,6 +69,7 @@ public class LtiDataServiceImplTest {
         ltiContextRepository = mock(LtiContextRepository.class);
         ltiLinkRepository = mock(LtiLinkRepository.class);
         ltiMembershipRepository = mock(LtiMembershipRepository.class);
+        ltiMembershipWriteService = mock(LtiMembershipWriteService.class);
         ltiUserRepository = mock(LtiUserRepository.class);
         toolDeploymentRepository = mock(ToolDeploymentRepository.class);
         platformDeploymentRepository = mock(PlatformDeploymentRepository.class);
@@ -78,6 +81,7 @@ public class LtiDataServiceImplTest {
                 ltiContextRepository,
                 ltiLinkRepository,
                 ltiMembershipRepository,
+                ltiMembershipWriteService,
                 ltiUserRepository,
                 toolDeploymentRepository,
                 platformDeploymentRepository,
@@ -681,7 +685,7 @@ public class LtiDataServiceImplTest {
         LtiUserEntity u = new LtiUserEntity("user1", new Date(), null);
         LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
         LtiMembershipEntity toSave = new LtiMembershipEntity(c, u, 1);
-        when(ltiMembershipRepository.save(toSave)).thenReturn(toSave);
+        when(ltiMembershipWriteService.insert(toSave)).thenReturn(toSave);
 
         LtiMembershipEntity result = ltiDataService.saveLtiMembershipEntity(toSave);
 
@@ -697,7 +701,7 @@ public class LtiDataServiceImplTest {
         LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
         LtiMembershipEntity toSave = new LtiMembershipEntity(c, u, 1);
         LtiMembershipEntity winner = new LtiMembershipEntity(c, u, 1);
-        when(ltiMembershipRepository.save(toSave)).thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"));
+        when(ltiMembershipWriteService.insert(toSave)).thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"));
         when(ltiMembershipRepository.findByUserAndContext(u, c)).thenReturn(winner);
 
         LtiMembershipEntity result = ltiDataService.saveLtiMembershipEntity(toSave);
@@ -711,7 +715,7 @@ public class LtiDataServiceImplTest {
         LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
         LtiMembershipEntity toSave = new LtiMembershipEntity(c, u, 1);
         LtiMembershipEntity winner = new LtiMembershipEntity(c, u, 1);
-        when(ltiMembershipRepository.save(toSave)).thenThrow(new org.springframework.dao.CannotAcquireLockException("lock wait timeout"));
+        when(ltiMembershipWriteService.insert(toSave)).thenThrow(new org.springframework.dao.CannotAcquireLockException("lock wait timeout"));
         when(ltiMembershipRepository.findByUserAndContext(u, c)).thenReturn(winner);
 
         LtiMembershipEntity result = ltiDataService.saveLtiMembershipEntity(toSave);
@@ -726,7 +730,7 @@ public class LtiDataServiceImplTest {
         LtiUserEntity u = new LtiUserEntity("user1", new Date(), null);
         LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
         LtiMembershipEntity toSave = new LtiMembershipEntity(c, u, 1);
-        when(ltiMembershipRepository.save(toSave)).thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"));
+        when(ltiMembershipWriteService.insert(toSave)).thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate key"));
         when(ltiMembershipRepository.findByUserAndContext(u, c)).thenReturn(null);
 
         assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> ltiDataService.saveLtiMembershipEntity(toSave));
