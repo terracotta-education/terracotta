@@ -3,12 +3,14 @@ package edu.iu.terracotta.controller.app.distribute;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.lang3.Strings;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -81,7 +83,7 @@ public class DistributeController {
             return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(transferExportDto.getMimeType()))
                 .contentLength(transferExportDto.getFile().length())
-                .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", transferExportDto.getFilename()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(transferExportDto.getFilename(), StandardCharsets.UTF_8).build().toString())
                 .body(new InputStreamResource(new FileInputStream(transferExportDto.getFile())));
         } catch (ExperimentExportException | FileNotFoundException e) {
             return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
