@@ -139,7 +139,10 @@ public class CanvasAdvantageMembershipServiceImpl implements AdvantageMembership
                 LmsUserBatch.builder()
                     .batchId(batchId)
                     .email(courseUser.getEmail())
-                    .lmsUserId(String.valueOf(courseUser.getUserId()))
+                    // NOT the LMS's own internal user ID - NRPS's user_id is the LTI-scoped
+                    // opaque identifier (already captured as userKey below). Getting the real
+                    // LMS user ID would require a resource-link-scoped request (rlid), which
+                    // doesn't apply to a course-wide roster sync.
                     .name(courseUser.getName())
                     .userKey(courseUser.getUserId())
                     .build()
