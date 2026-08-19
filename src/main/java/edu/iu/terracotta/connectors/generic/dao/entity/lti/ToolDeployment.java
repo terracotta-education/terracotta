@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.generic.dao.entity.lti;
 
+import java.sql.Timestamp;
 import java.util.Set;
 
 import jakarta.persistence.Column;
@@ -48,6 +49,12 @@ public class ToolDeployment extends BaseEntity {
     // repeating it on every launch
     @Column(nullable = false)
     private boolean noticeHandlerRegistered;
+
+    // last time a notice handler registration attempt was made (success or failure) - lets
+    // CanvasAdvantageNoticeServiceImpl back off for a cooldown period instead of retrying on
+    // every single launch when the platform keeps rejecting the request (e.g. an institution's
+    // Canvas Developer Key doesn't have the noticehandlers scope granted yet)
+    private Timestamp noticeHandlerRegistrationAttemptedAt;
 
     @JsonIgnore
     @ManyToOne(optional = false)
