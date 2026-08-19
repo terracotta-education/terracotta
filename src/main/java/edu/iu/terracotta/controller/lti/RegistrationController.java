@@ -219,6 +219,11 @@ public class RegistrationController {
         scopes.add("https://purl.imsglobal.org/spec/lti-ags/scope/score");
         scopes.add("https://purl.imsglobal.org/spec/lti-reg/scope/registration");
         scopes.add("https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly");
+        // Platform Notification Service - lets this tool register itself as a handler for
+        // Canvas's course-copy notice (see CanvasAdvantageNoticeServiceImpl/NoticeController). A
+        // Canvas admin still has to explicitly check this scope on the resulting Developer Key
+        // if "Enforce Scopes" is enabled for it - requesting it here only makes Canvas offer it.
+        scopes.add("https://purl.imsglobal.org/spec/lti/scope/noticehandlers");
         toolRegistrationDto.setScope(scopes);
 
         return toolRegistrationDto;

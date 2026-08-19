@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -229,6 +230,61 @@ public class LtiJwtServiceImplTest extends BaseTest {
     @Test
     public void testValidateJWTNoJwtSectionsThrows() {
         assertThrows(Exception.class, () -> ltiJwtService.validateJWT("not-a-jwt", "client1"));
+    }
+
+    // validateJWT(jwt) - no independently-known clientId (e.g. an LTI notice, which arrives with
+    // no accompanying state/session to source one from)
+
+    @Test
+    public void testValidateJWTNoClientIdReadsAudAsSingleString() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        File jwksFile = File.createTempFile("lti-jwt-service-test-aud-string", ".json");
+        jwksFile.deleteOnExit();
+        String jwksEndpoint = writeJwksFile(jwksFile, "kid-aud-string", keyPair.getPublic());
+
+        String jwt = Jwts.builder()
+            .header().add("kid", "kid-aud-string").and()
+            .claim("iss", "issuer-aud-string")
+            .claim("aud", "client-from-aud")
+            .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
+            .compact();
+
+        when(platformDeployment.getJwksEndpoint()).thenReturn(jwksEndpoint);
+        when(platformDeploymentRepository.findByIssAndClientId(anyString(), anyString())).thenReturn(List.of(platformDeployment));
+
+        Jws<Claims> result = ltiJwtService.validateJWT(jwt);
+
+        assertNotNull(result);
+        assertEquals("issuer-aud-string", result.getPayload().getIssuer());
+        verify(platformDeploymentRepository).findByIssAndClientId("issuer-aud-string", "client-from-aud");
+    }
+
+    @Test
+    public void testValidateJWTNoClientIdReadsFirstAudFromArray() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        File jwksFile = File.createTempFile("lti-jwt-service-test-aud-array", ".json");
+        jwksFile.deleteOnExit();
+        String jwksEndpoint = writeJwksFile(jwksFile, "kid-aud-array", keyPair.getPublic());
+
+        String jwt = Jwts.builder()
+            .header().add("kid", "kid-aud-array").and()
+            .claim("iss", "issuer-aud-array")
+            .audience().add("client-first").add("client-second").and()
+            .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
+            .compact();
+
+        when(platformDeployment.getJwksEndpoint()).thenReturn(jwksEndpoint);
+        when(platformDeploymentRepository.findByIssAndClientId(anyString(), anyString())).thenReturn(List.of(platformDeployment));
+
+        Jws<Claims> result = ltiJwtService.validateJWT(jwt);
+
+        assertNotNull(result);
+        verify(platformDeploymentRepository).findByIssAndClientId("issuer-aud-array", "client-first");
+    }
+
+    @Test
+    public void testValidateJWTNoClientIdMalformedJwtThrows() {
+        assertThrows(IllegalStateException.class, () -> ltiJwtService.validateJWT("not-a-jwt"));
     }
 
 }

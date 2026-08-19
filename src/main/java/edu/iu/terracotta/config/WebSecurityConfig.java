@@ -166,7 +166,8 @@ public class WebSecurityConfig {
                             "/ags/**",
                             "/files/**",
                             "/lms/oauth2/**",
-                            "/preview/**"
+                            "/preview/**",
+                            "/notice/**"
                         )
                         .permitAll()
                         .anyRequest()
