@@ -10,8 +10,11 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
 public interface CanvasAdvantageNoticeService {
 
     /**
-     * A no-op once already done for this deployment (see ToolDeployment.noticeHandlerRegistered)
-     * - safe to call on every launch.
+     * A no-op unless the PLATFORM_NOTIFICATIONS feature is enabled for this deployment's platform
+     * deployment (see FeatureService), or once already done for this deployment (see
+     * ToolDeployment.noticeHandlerRegistered) - safe to call on every launch. A failed attempt is
+     * retried on a cooldown rather than on every launch (see
+     * ToolDeployment.noticeHandlerRegistrationAttemptedAt).
      */
     void ensureNoticeHandlerRegistered(ToolDeployment toolDeployment);
 

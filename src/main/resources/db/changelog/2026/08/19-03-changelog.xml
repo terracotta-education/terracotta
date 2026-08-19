@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+    http://www.liquibase.org/xml/ns/pro
+    http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd"
+>
+  <!--
+    No terr_feature_platform_deployments rows are inserted here - as with MESSAGING, a platform
+    deployment only gets this feature once a row linking it to this Feature is added, done
+    per-institution rather than by default.
+  -->
+  <changeSet author="rlong" id="1787112000-05">
+    <insert tableName="terr_feature">
+      <column name="type" value="PLATFORM_NOTIFICATIONS"/>
+      <column name="enabled" valueBoolean="true"/>
+      <column name="entity_version" value="0"/>
+    </insert>
+  </changeSet>
+
+</databaseChangeLog>
