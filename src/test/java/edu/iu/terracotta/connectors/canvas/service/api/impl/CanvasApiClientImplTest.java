@@ -35,7 +35,6 @@ import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.ConversationExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FileExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FolderExtended;
-import edu.iu.terracotta.connectors.canvas.dao.model.extended.options.GetSubmissionsOptionsExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentWriterExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.ConversationReaderExtended;
@@ -727,10 +726,16 @@ public class CanvasApiClientImplTest extends BaseTest {
     }
 
     // listSubmissionsForMultipleAssignments
+    //
+    // Canvas's bulk "list submissions for multiple assignments" endpoint requires a Canvas API
+    // scope that can't be granted retroactively on an already-configured Developer Key at any
+    // existing Canvas instance, so it always 401s in practice ("User is not authorized to
+    // perform this action") - see the production incident this fixes. It's implemented as a
+    // loop over the already-working, already-granted single-assignment endpoint instead.
 
     @Test
     void testListSubmissionsForMultipleAssignmentsSuccess() throws Exception {
-        when(submissionReaderExtended.listSubmissionsForMultipleAssignments(any())).thenReturn(List.of(canvasSubmissionExtended));
+        when(submissionReaderExtended.getCourseSubmissions(any())).thenReturn(List.of(canvasSubmissionExtended));
         when(canvasSubmissionExtended.from()).thenReturn(lmsSubmission);
 
         List<LmsSubmission> result;
@@ -739,30 +744,13 @@ public class CanvasApiClientImplTest extends BaseTest {
             result = canvasApiClientService.listSubmissionsForMultipleAssignments(ltiUserEntity, "course1", List.of("1", "2"));
         }
 
-        assertEquals(1, result.size());
-    }
-
-    // without student_ids[]=all, Canvas defaults to the calling user's own submission and
-    // rejects the request as unauthorized for an instructor who isn't enrolled as a student -
-    // see the "User is not authorized to perform this action" production incident this fixes
-    @Test
-    void testListSubmissionsForMultipleAssignmentsRequestsAllStudentIds() throws Exception {
-        when(submissionReaderExtended.listSubmissionsForMultipleAssignments(any())).thenReturn(List.of(canvasSubmissionExtended));
-        when(canvasSubmissionExtended.from()).thenReturn(lmsSubmission);
-
-        ArgumentCaptor<GetSubmissionsOptionsExtended> optionsCaptor = ArgumentCaptor.forClass(GetSubmissionsOptionsExtended.class);
-
-        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
-            canvasApiClientService.listSubmissionsForMultipleAssignments(ltiUserEntity, "course1", List.of("1", "2"));
-        }
-
-        verify(submissionReaderExtended).listSubmissionsForMultipleAssignments(optionsCaptor.capture());
-        assertEquals(List.of("all"), optionsCaptor.getValue().getOptionsMap().get("student_ids[]"));
+        assertEquals(2, result.size());
+        verify(submissionReaderExtended, times(2)).getCourseSubmissions(any());
     }
 
     @Test
     void testListSubmissionsForMultipleAssignmentsWrapsException() throws Exception {
-        when(submissionReaderExtended.listSubmissionsForMultipleAssignments(any())).thenThrow(new IOException("fail"));
+        when(submissionReaderExtended.getCourseSubmissions(any())).thenThrow(new IOException("fail"));
 
         try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
             assertThrows(ApiException.class, () -> canvasApiClientService.listSubmissionsForMultipleAssignments(ltiUserEntity, "course1", List.of("1", "2")));
