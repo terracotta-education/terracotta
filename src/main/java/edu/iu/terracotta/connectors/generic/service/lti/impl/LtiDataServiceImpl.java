@@ -13,6 +13,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiMembershipWriteService;
 import edu.iu.terracotta.dao.repository.LtiNonceRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.utils.LtiStrings;
@@ -47,6 +48,7 @@ public class LtiDataServiceImpl implements LtiDataService {
     private final LtiContextRepository ltiContextRepository;
     private final LtiLinkRepository ltiLinkRepository;
     private final LtiMembershipRepository ltiMembershipRepository;
+    private final LtiMembershipWriteService ltiMembershipWriteService;
     private final LtiUserRepository ltiUserRepository;
     private final ToolDeploymentRepository toolDeploymentRepository;
 
@@ -452,7 +454,11 @@ public class LtiDataServiceImpl implements LtiDataService {
     @Override
     public LtiMembershipEntity saveLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity) {
         try {
-            return ltiMembershipRepository.save(ltiMembershipEntity);
+            // runs in its own transaction (see LtiMembershipWriteServiceImpl) - if the insert
+            // below loses a race on the unique (user_id, context_id) constraint, only that
+            // isolated transaction/session is left in a broken state, not this method's own
+            // caller-provided one
+            return ltiMembershipWriteService.insert(ltiMembershipEntity);
         } catch (DataIntegrityViolationException | CannotAcquireLockException e) {
             // a concurrent writer can race to create the same (user_id, context_id) membership -
             // e.g. this same user's real LTI launch landing while a roster sync is independently
