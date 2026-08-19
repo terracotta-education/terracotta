@@ -79,7 +79,9 @@ public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
         ArgumentCaptor<List<LmsUserBatch>> captor = ArgumentCaptor.forClass(List.class);
         verify(lmsUserBatchWriteService).saveUsers(captor.capture());
         assertEquals(1, captor.getValue().size());
-        assertEquals("user_id", captor.getValue().get(0).getLmsUserId());
+        // NRPS's user_id is the LTI-scoped opaque identifier, not Canvas's own internal user ID -
+        // must not be mistaken for one (see userKey, which correctly captures it)
+        assertNull(captor.getValue().get(0).getLmsUserId());
         assertEquals(batchId, captor.getValue().get(0).getBatchId());
     }
 
