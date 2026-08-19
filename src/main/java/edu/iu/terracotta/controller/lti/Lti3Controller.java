@@ -5,6 +5,8 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiLinkEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiLinkRepository;
+import edu.iu.terracotta.connectors.canvas.service.lti.advantage.CanvasAdvantageNoticeService;
+import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
@@ -62,6 +64,7 @@ public class Lti3Controller {
     private final LtiDataService ltiDataService;
     private final LtiJwtService ltiJwtService;
     private final LmsOAuthServiceManager lmsOAuthServiceManager;
+    private final CanvasAdvantageNoticeService canvasAdvantageNoticeService;
 
     @RequestMapping({"", "/"})
     public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, ApiException, ConnectionException, LmsOAuthException, TerracottaConnectorException {
@@ -97,6 +100,15 @@ public class Lti3Controller {
                 model.addAttribute(TextConstants.ERROR, " Bad Deployment Id");
 
                 return TextConstants.LTI3ERROR;
+            }
+
+            // best-effort, fire-and-forget: registers this tool as an LTI Platform Notification
+            // Service course-copy handler with Canvas, if not already done for this deployment -
+            // see CanvasAdvantageNoticeServiceImpl and NoticeController. A no-op after the first
+            // successful launch for a given deployment (see ToolDeployment.noticeHandlerRegistered),
+            // and never blocks or fails the launch itself either way.
+            if (LmsConnector.CANVAS == lti3Request.getToolDeployment().getPlatformDeployment().getLmsConnector()) {
+                canvasAdvantageNoticeService.ensureNoticeHandlerRegistered(lti3Request.getToolDeployment());
             }
 
             // We add the request to the model so it can be displayed. But, in a real application, we would start processing it here to generate the right answer.

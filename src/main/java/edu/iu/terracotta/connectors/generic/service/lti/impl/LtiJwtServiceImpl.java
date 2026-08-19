@@ -179,6 +179,25 @@ public class LtiJwtServiceImpl implements LtiJwtService {
         .parseSignedClaims(jwt);
     }
 
+    @Override
+    public Jws<Claims> validateJWT(String jwt) {
+        String clientId;
+
+        try {
+            String[] jwtSections = jwt.split("\\.");
+            String jwtPayload = new String(Base64.getUrlDecoder().decode(jwtSections[1]));
+            Map<String, Object> jwtClaims = JSON_MAPPER.readValue(jwtPayload, new TypeReference<Map<String, Object>>() {});
+            Object aud = jwtClaims.get(LtiStrings.AUD);
+            // per the JWT spec, "aud" may be a single string or an array of strings - LTI
+            // notices only ever carry one audience (this tool's clientId), so just the first
+            clientId = aud instanceof List<?> audienceList ? (String) audienceList.get(0) : (String) aud;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not read the clientId (aud claim) from the JWT.", ex);
+        }
+
+        return validateJWT(jwt, clientId);
+    }
+
     /**
      * This JWT will contain the token request
      */
