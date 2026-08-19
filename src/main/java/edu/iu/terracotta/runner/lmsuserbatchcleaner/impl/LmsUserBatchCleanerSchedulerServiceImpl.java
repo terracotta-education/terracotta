@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
@@ -32,6 +33,9 @@ public class LmsUserBatchCleanerSchedulerServiceImpl implements LmsUserBatchClea
     private final LmsUserBatchWriteService lmsUserBatchWriteService;
 
     @Override
+    // the db-scheduler task thread that invokes cleanup() has no surrounding Spring transaction,
+    // and lmsUserBatchRepository.deleteByBatchId is a derived delete query that requires one
+    @Transactional
     public Optional<LmsUserBatchCleanerScheduleResult> cleanup(int staleTtlMinutes) {
         // a row still IN_PROGRESS past this threshold means whatever @Async task was processing
         // it never reached its own completion code - e.g. an app restart/crash mid-sync, or an
