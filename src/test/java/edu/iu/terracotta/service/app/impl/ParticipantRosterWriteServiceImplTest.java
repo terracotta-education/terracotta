@@ -134,6 +134,24 @@ public class ParticipantRosterWriteServiceImplTest extends BaseTest {
         assertEquals(ltiMembershipEntity, participantCaptor.getValue().getLtiMembershipEntity());
     }
 
+    // a roster entry with no usable user identifier (e.g. a pending/placeholder LMS enrollment)
+    // must be skipped rather than reaching LtiUserEntity's constructor, which asserts on a blank
+    // userKey and would take down this whole page's transaction along with every other
+    // participant in it.
+    @Test
+    public void testSyncParticipantsPageSkipsBlankUserKeysWithoutAffectingOthers() {
+        LmsUserBatch validBatchUser = LmsUserBatch.builder().userKey(USER_ID).email(EMAIL).name(DISPLAY_NAME).build();
+        LmsUserBatch blankBatchUser = LmsUserBatch.builder().userKey("").email("blank@example.com").name("Blank User").build();
+
+        when(participantRepository.findAllByExperiment_ExperimentIdAndLtiUserEntity_UserKeyIn(anyLong(), anyList())).thenReturn(List.of(participant));
+
+        assertDoesNotThrow(() -> participantRosterWriteService.syncParticipantsPage(experiment, List.of(validBatchUser, blankBatchUser)));
+
+        verify(participant).setDropped(false);
+        verify(participantRepository).save(participant);
+        verify(ltiDataService, never()).saveLtiUserEntity(any());
+    }
+
     // userKey matching (both against existing participants and the batched LtiUserEntity lookup)
     // must be case-insensitive, same as the single-user queries this replaced.
     @Test

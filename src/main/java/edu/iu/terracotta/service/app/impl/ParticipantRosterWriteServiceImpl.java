@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -25,9 +26,12 @@ import edu.iu.terracotta.utils.ParticipantConsentUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({"PMD.GuardLogStatement"})
 public class ParticipantRosterWriteServiceImpl implements ParticipantRosterWriteService {
 
     private final ParticipantRepository participantRepository;
@@ -38,6 +42,18 @@ public class ParticipantRosterWriteServiceImpl implements ParticipantRosterWrite
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void syncParticipantsPage(Experiment experiment, List<LmsUserBatch> batchUsers) {
+        // the LMS occasionally returns a roster entry with no usable user identifier (e.g. a
+        // pending/placeholder enrollment) - LtiUserEntity's constructor asserts on a blank
+        // userKey, and letting one through would blow up this whole page's transaction, silently
+        // dropping every other participant in the page along with it. One summary line rather
+        // than one per row, since a course missing this field tends to be missing it for every row.
+        long skipped = batchUsers.stream().filter(batchUser -> StringUtils.isBlank(batchUser.getUserKey())).count();
+
+        if (skipped > 0) {
+            log.warn("Skipped [{}] LMS user batch row(s) with a blank user key for experiment ID: [{}]", skipped, experiment.getExperimentId());
+            batchUsers = batchUsers.stream().filter(batchUser -> StringUtils.isNotBlank(batchUser.getUserKey())).toList();
+        }
+
         // retrieve batch of participants; reset dropped value and will set to false later, if found in the course roster
         List<Participant> participants = participantRepository.findAllByExperiment_ExperimentIdAndLtiUserEntity_UserKeyIn(
             experiment.getExperimentId(),
