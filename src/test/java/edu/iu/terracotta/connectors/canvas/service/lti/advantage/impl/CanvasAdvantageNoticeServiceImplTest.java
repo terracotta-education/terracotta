@@ -2,6 +2,7 @@ package edu.iu.terracotta.connectors.canvas.service.lti.advantage.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -21,8 +23,12 @@ import org.springframework.http.ResponseEntity;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.canvas.dao.model.lti.advantage.CanvasNoticeHandlerDto;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.dao.model.enums.FeatureType;
+import edu.iu.terracotta.service.app.FeatureService;
 
 public class CanvasAdvantageNoticeServiceImplTest extends BaseTest {
+
+    @Mock private FeatureService featureService;
 
     @InjectMocks private CanvasAdvantageNoticeServiceImpl canvasAdvantageNoticeService;
 
@@ -35,6 +41,17 @@ public class CanvasAdvantageNoticeServiceImplTest extends BaseTest {
         when(toolDeployment.getPlatformDeployment()).thenReturn(platformDeployment);
         when(platformDeployment.getBaseUrl()).thenReturn("https://canvas.example.com");
         when(platformDeployment.getLocalUrl()).thenReturn("https://terracotta.example.com");
+        when(featureService.isFeatureEnabled(eq(FeatureType.PLATFORM_NOTIFICATIONS), anyLong())).thenReturn(true);
+    }
+
+    @Test
+    public void testEnsureNoticeHandlerRegisteredNoOpWhenFeatureNotEnabled() throws ConnectionException {
+        when(featureService.isFeatureEnabled(eq(FeatureType.PLATFORM_NOTIFICATIONS), anyLong())).thenReturn(false);
+
+        canvasAdvantageNoticeService.ensureNoticeHandlerRegistered(toolDeployment);
+
+        verify(advantageConnectorHelper, never()).getToken(any(), anyString());
+        verify(toolDeploymentRepository, never()).save(any());
     }
 
     @Test
@@ -106,7 +123,36 @@ public class CanvasAdvantageNoticeServiceImplTest extends BaseTest {
         canvasAdvantageNoticeService.ensureNoticeHandlerRegistered(toolDeployment);
 
         verify(toolDeployment, never()).setNoticeHandlerRegistered(true);
+        // the failed attempt is still recorded (see ToolDeployment.noticeHandlerRegistrationAttemptedAt)
+        // so this backs off on a cooldown instead of retrying on every single launch
+        verify(toolDeployment).setNoticeHandlerRegistrationAttemptedAt(any());
+        verify(toolDeploymentRepository).save(toolDeployment);
+    }
+
+    @Test
+    public void testEnsureNoticeHandlerRegisteredSkipsWhenWithinRetryCooldown() throws ConnectionException {
+        when(toolDeployment.isNoticeHandlerRegistered()).thenReturn(false);
+        when(toolDeployment.getNoticeHandlerRegistrationAttemptedAt())
+            .thenReturn(java.sql.Timestamp.from(java.time.Instant.now().minus(java.time.Duration.ofHours(1))));
+
+        canvasAdvantageNoticeService.ensureNoticeHandlerRegistered(toolDeployment);
+
+        verify(advantageConnectorHelper, never()).getToken(any(), anyString());
         verify(toolDeploymentRepository, never()).save(any());
+    }
+
+    @Test
+    public void testEnsureNoticeHandlerRegisteredRetriesWhenCooldownExpired() throws ConnectionException {
+        when(toolDeployment.isNoticeHandlerRegistered()).thenReturn(false);
+        when(toolDeployment.getNoticeHandlerRegistrationAttemptedAt())
+            .thenReturn(java.sql.Timestamp.from(java.time.Instant.now().minus(java.time.Duration.ofHours(25))));
+        when(toolDeployment.getLtiDeploymentId()).thenReturn("37:b82229c6e10bcb87beb1f1b287faee560ddc3109");
+        doThrow(new RuntimeException("connection failed")).when(advantageConnectorHelper).getToken(any(), anyString());
+
+        canvasAdvantageNoticeService.ensureNoticeHandlerRegistered(toolDeployment);
+
+        verify(advantageConnectorHelper).getToken(any(), anyString());
+        verify(toolDeploymentRepository).save(toolDeployment);
     }
 
 }
