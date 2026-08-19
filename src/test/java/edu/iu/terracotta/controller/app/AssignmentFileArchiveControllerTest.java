@@ -153,7 +153,7 @@ public class AssignmentFileArchiveControllerTest extends BaseTest {
         ResponseEntity<Resource> response = assignmentFileArchiveController.retrieve(EXPERIMENT_ID, EXPOSURE_ID, ASSIGNMENT_ID, FILE_ID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("attachment; filename=archive.zip", response.getHeaders().getFirst("Content-Disposition"));
+        assertEquals("attachment; filename=\"archive.zip\"; filename*=UTF-8''archive.zip", response.getHeaders().getFirst("Content-Disposition"));
         assertEquals(realFile.length(), response.getHeaders().getContentLength());
         assertTrue(response.getBody() instanceof InputStreamResource);
     }

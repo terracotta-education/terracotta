@@ -2,10 +2,12 @@ package edu.iu.terracotta.controller.app;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -116,7 +118,7 @@ public class AssignmentFileArchiveController {
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(assignmentFileArchiveDto.getMimeType()))
             .contentLength(assignmentFileArchiveDto.getFile().length())
-            .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=%s", assignmentFileArchiveDto.getFileName()))
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(assignmentFileArchiveDto.getFileName(), StandardCharsets.UTF_8).build().toString())
             .body(new InputStreamResource(new FileInputStream(assignmentFileArchiveDto.getFile())));
     }
 
