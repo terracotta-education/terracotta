@@ -736,6 +736,25 @@ public class LtiDataServiceImplTest {
         assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> ltiDataService.saveLtiMembershipEntity(toSave));
     }
 
+    // a CannotAcquireLockException means we already waited out MySQL's own lock-wait timeout
+    // (~50s) before reaching the fallback - but the winning writer isn't guaranteed to have
+    // committed by then if it's itself slow, so the fallback polls a few times rather than
+    // checking once.
+    @Test
+    public void testSaveLtiMembershipEntityReturnsExistingRowWhenFoundOnRetry() {
+        LtiUserEntity u = new LtiUserEntity("user1", new Date(), null);
+        LtiContextEntity c = new LtiContextEntity("ctx1", ToolDeployment.builder().build(), "title", "json");
+        LtiMembershipEntity toSave = new LtiMembershipEntity(c, u, 1);
+        LtiMembershipEntity winner = new LtiMembershipEntity(c, u, 1);
+        when(ltiMembershipWriteService.insert(toSave)).thenThrow(new org.springframework.dao.CannotAcquireLockException("lock wait timeout"));
+        when(ltiMembershipRepository.findByUserAndContext(u, c)).thenReturn(null, null, winner);
+
+        LtiMembershipEntity result = ltiDataService.saveLtiMembershipEntity(toSave);
+
+        assertEquals(winner, result);
+        verify(ltiMembershipRepository, times(3)).findByUserAndContext(u, c);
+    }
+
     @Test
     public void testFindAllByUserKeysAndPlatformDeploymentDelegatesToRepository() {
         LtiUserEntity expected = new LtiUserEntity("user1", new Date(), null);

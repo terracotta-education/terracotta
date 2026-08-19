@@ -45,6 +45,11 @@ import java.util.List;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class LtiDataServiceImpl implements LtiDataService {
 
+    // see awaitConcurrentlyInsertedMembership - bounded polling for a concurrent writer's row
+    // after losing the unique-constraint race in saveLtiMembershipEntity
+    private static final int MEMBERSHIP_CONFLICT_RETRY_ATTEMPTS = 5;
+    private static final long MEMBERSHIP_CONFLICT_RETRY_DELAY_MILLIS = 300L;
+
     private final LtiContextRepository ltiContextRepository;
     private final LtiLinkRepository ltiLinkRepository;
     private final LtiMembershipRepository ltiMembershipRepository;
@@ -462,10 +467,14 @@ public class LtiDataServiceImpl implements LtiDataService {
         } catch (DataIntegrityViolationException | CannotAcquireLockException e) {
             // a concurrent writer can race to create the same (user_id, context_id) membership -
             // e.g. this same user's real LTI launch landing while a roster sync is independently
-            // creating their membership, or vice versa. Whichever commits first wins; the loser
-            // should use that row instead of failing whatever it was part of (a whole roster sync
-            // page, or the launch itself)
-            LtiMembershipEntity existing = ltiMembershipRepository.findByUserAndContext(ltiMembershipEntity.getUser(), ltiMembershipEntity.getContext());
+            // creating their membership, or vice versa (the roster sync path is otherwise
+            // serialized against itself, but not against a real launch, which is deliberately
+            // left unlocked - see ParticipantServiceImpl.refreshParticipantsIfStale). A
+            // CannotAcquireLockException means we already waited out MySQL's own lock-wait
+            // timeout (~50s), so the winner has likely committed by now - but isn't guaranteed to
+            // have, if it's itself a slow write. Poll briefly for its row rather than checking
+            // once, before concluding this wasn't actually a race and giving up.
+            LtiMembershipEntity existing = awaitConcurrentlyInsertedMembership(ltiMembershipEntity.getUser(), ltiMembershipEntity.getContext());
 
             if (existing != null) {
                 return existing;
@@ -473,6 +482,31 @@ public class LtiDataServiceImpl implements LtiDataService {
 
             throw e;
         }
+    }
+
+    // after losing the unique-constraint race in saveLtiMembershipEntity, the winning writer may
+    // not have committed yet even though we already waited out MySQL's own lock-wait timeout (it
+    // could itself be a slow write) - poll briefly rather than checking once before giving up
+    private LtiMembershipEntity awaitConcurrentlyInsertedMembership(LtiUserEntity user, LtiContextEntity context) {
+        for (int attempt = 0; attempt < MEMBERSHIP_CONFLICT_RETRY_ATTEMPTS; attempt++) {
+            LtiMembershipEntity existing = ltiMembershipRepository.findByUserAndContext(user, context);
+
+            if (existing != null) {
+                return existing;
+            }
+
+            if (attempt < MEMBERSHIP_CONFLICT_RETRY_ATTEMPTS - 1) {
+                try {
+                    Thread.sleep(MEMBERSHIP_CONFLICT_RETRY_DELAY_MILLIS);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+
+                    return null;
+                }
+            }
+        }
+
+        return null;
     }
 
     @Override
