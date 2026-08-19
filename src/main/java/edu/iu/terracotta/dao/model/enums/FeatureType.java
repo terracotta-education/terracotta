@@ -4,6 +4,7 @@ public enum FeatureType {
 
     DEFAULT,
     INTEGRATIONS,
-    MESSAGING
+    MESSAGING,
+    PLATFORM_NOTIFICATIONS
 
 }
