@@ -23,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -449,7 +451,22 @@ public class LtiDataServiceImpl implements LtiDataService {
 
     @Override
     public LtiMembershipEntity saveLtiMembershipEntity(LtiMembershipEntity ltiMembershipEntity) {
-        return ltiMembershipRepository.save(ltiMembershipEntity);
+        try {
+            return ltiMembershipRepository.save(ltiMembershipEntity);
+        } catch (DataIntegrityViolationException | CannotAcquireLockException e) {
+            // a concurrent writer can race to create the same (user_id, context_id) membership -
+            // e.g. this same user's real LTI launch landing while a roster sync is independently
+            // creating their membership, or vice versa. Whichever commits first wins; the loser
+            // should use that row instead of failing whatever it was part of (a whole roster sync
+            // page, or the launch itself)
+            LtiMembershipEntity existing = ltiMembershipRepository.findByUserAndContext(ltiMembershipEntity.getUser(), ltiMembershipEntity.getContext());
+
+            if (existing != null) {
+                return existing;
+            }
+
+            throw e;
+        }
     }
 
     @Override
