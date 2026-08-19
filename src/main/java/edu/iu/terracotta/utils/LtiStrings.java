@@ -125,6 +125,13 @@ public final class LtiStrings {
     public static final String LTI_NAMES_ROLE_SERVICE_CONTEXT = "context_memberships_url";
     public static final String LTI_NAMES_ROLE_SERVICE_VERSIONS = "service_versions";
 
+    // Platform Notification Service - the notice JWT's own claim identifying which notice type it
+    // is (e.g. {"type": "LtiContextCopyNotice"}), distinct from the launch-time claim a platform
+    // uses to advertise PNS support/available notice types
+    public static final String LTI_NOTICE = "https://purl.imsglobal.org/spec/lti/claim/notice";
+    public static final String LTI_NOTICE_TYPE = "type";
+    public static final String LTI_NOTICE_TYPE_COURSE_COPY = "LtiContextCopyNotice";
+
     public static final String LTI_CALIPER_ENDPOINT_SERVICE = "https://purl.imsglobal.org/spec/lti-ces/claim/caliper-endpoint-service";
     public static final String LTI_CALIPER_ENDPOINT_SERVICE_SCOPES = "scopes";
     public static final String LTI_CALIPER_ENDPOINT_SERVICE_URL = "caliper_endpoint_url";
