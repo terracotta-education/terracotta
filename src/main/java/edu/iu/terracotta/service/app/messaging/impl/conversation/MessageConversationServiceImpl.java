@@ -55,12 +55,17 @@ public class MessageConversationServiceImpl implements MessageConversationServic
 
         try {
             log.info("Sending conversations to LMS for LMS course ID: [{}] and instructor LMS ID: [{}]", lmsCourseId, message.getOwner().getLmsUserId());
-            List<LtiUserEntity> recipients = messageSendService.getRecipients(message);
 
-            // get all uploaded attachment IDs
+            // must be read before getRecipients() below - it flushes/clears the shared
+            // persistence context between participant batches, which detaches this message
+            // entity. content.attachments is a lazy collection; reading it here (its first
+            // access) while message is still attached avoids a LazyInitializationException
+            // ("no session") when it's read afterward instead.
             List<String> attachmentIds = CollectionUtils.emptyIfNull(message.getContent().getAttachments()).stream()
                 .map(MessageContentAttachment::getLmsId)
                 .toList();
+
+            List<LtiUserEntity> recipients = messageSendService.getRecipients(message);
 
             Map<String, List<LmsSubmission>> lmsSubmissions;
 
