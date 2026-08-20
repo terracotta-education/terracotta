@@ -35,6 +35,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInC
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
@@ -61,6 +62,7 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
             lmsUserBatchWriteService,
             lmsUserBatchRepository,
             lmsUserBatchProcessingRepository,
+            experimentRepository,
             ltiContextRepository,
             ltiUserRepository,
             participantRepository,
@@ -264,6 +266,29 @@ public class ParticipantAsyncServiceImplTest extends BaseTest {
         assertDoesNotThrow(() -> participantAsyncService.prepareParticipationAsync(1L, securedInfo, batchId));
 
         verify(lmsUserBatchWriteService).updateStatus(batchId, LmsUserBatchStatus.FAILED, "boom");
+    }
+
+    @Test
+    public void testRefreshParticipantsForContextRefreshesEveryExperimentInContext() throws Exception {
+        participantAsyncService.refreshParticipantsForContext(ltiContextEntity);
+
+        verify(experimentRepository).findAllByLtiContextEntity_ContextId(ltiContextEntity.getContextId());
+        verify(participantService).refreshParticipantsIfStale(experiment.getExperimentId());
+    }
+
+    // one experiment's failed refresh must not be thrown from this @Async method (which would
+    // just be logged by SimpleAsyncUncaughtExceptionHandler and stop the loop, silently skipping
+    // every other experiment in the same course)
+    @Test
+    public void testRefreshParticipantsForContextContinuesAfterOneExperimentFails() throws Exception {
+        Experiment secondExperiment = mock(Experiment.class);
+        when(secondExperiment.getExperimentId()).thenReturn(2L);
+        when(experimentRepository.findAllByLtiContextEntity_ContextId(ltiContextEntity.getContextId())).thenReturn(List.of(experiment, secondExperiment));
+        doThrow(new ParticipantNotUpdatedException("boom")).when(participantService).refreshParticipantsIfStale(1L);
+
+        assertDoesNotThrow(() -> participantAsyncService.refreshParticipantsForContext(ltiContextEntity));
+
+        verify(participantService).refreshParticipantsIfStale(2L);
     }
 
 }
