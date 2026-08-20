@@ -59,9 +59,13 @@ async function sendTest(
   );
 }
 
-async function getAssignments() {
+async function getAssignments(
+  experimentId,
+  exposureId,
+  containerId
+) {
   return request(
-    "/api/experiments/0/exposures/0/messaging/container/0/message/assignments"
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/assignments`
   );
 }
 

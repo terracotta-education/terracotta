@@ -79,11 +79,11 @@ export const message = defineStore("messagingMessage", {
       }
     },
 
-    async getAssignments() {
+    async getAssignments(payload) {
       try {
         this.isLoading = true;
 
-        const response = await messageService.getAssignments();
+        const response = await messageService.getAssignments(...payload);
         const assignmentsData = Array.isArray(response) ? response : [];
 
         this.assignments = assignmentsData;

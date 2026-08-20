@@ -1043,7 +1043,11 @@ const saveExit = async () => {
 };
 
 const initialize = async () => {
-  messagingMessageStore.getAssignments();
+  messagingMessageStore.getAssignments([
+    experimentId.value,
+    exposureId.value,
+    containerId.value
+  ]);
   messagingConditionalTextStore.reset();
 
   initialContent.value = html.value;

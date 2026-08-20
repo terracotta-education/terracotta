@@ -109,8 +109,9 @@ describe("message store", () => {
       const data = [{ id: 1 }];
       messageService.getAssignments.mockResolvedValue(data);
 
-      const result = await store.getAssignments();
+      const result = await store.getAssignments([1, 2, "c"]);
 
+      expect(messageService.getAssignments).toHaveBeenCalledWith(1, 2, "c");
       expect(result).toEqual(data);
       expect(store.assignments).toEqual(data);
       expect(store.hasAssignments).toBe(true);
@@ -120,7 +121,7 @@ describe("message store", () => {
     it("falls back to [] when response is not an array", async () => {
       messageService.getAssignments.mockResolvedValue(null);
 
-      const result = await store.getAssignments();
+      const result = await store.getAssignments([1, 2, "c"]);
 
       expect(result).toEqual([]);
       expect(store.assignments).toEqual([]);
@@ -129,7 +130,7 @@ describe("message store", () => {
     it("clears assignments, returns [] and resets isLoading on error", async () => {
       messageService.getAssignments.mockRejectedValue(new Error("fail"));
 
-      const result = await store.getAssignments();
+      const result = await store.getAssignments([1, 2, "c"]);
 
       expect(result).toEqual([]);
       expect(store.assignments).toEqual([]);
