@@ -36,11 +36,13 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUtils;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.projection.LmsParticipantSummary;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ParticipantNotUpdatedException;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.FeatureService;
@@ -61,6 +63,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     private final LmsUserBatchWriteService lmsUserBatchWriteService;
     private final LmsUserBatchRepository lmsUserBatchRepository;
     private final LmsUserBatchProcessingRepository lmsUserBatchProcessingRepository;
+    private final ExperimentRepository experimentRepository;
     private final LtiContextRepository ltiContextRepository;
     private final LtiUserRepository ltiUserRepository;
     private final ParticipantRepository participantRepository;
@@ -238,6 +241,22 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
         } catch (ParticipantNotUpdatedException | ExperimentNotMatchingException | TerracottaConnectorException | RuntimeException e) {
             log.error("Failed to prepare participation for experiment ID: [{}]", experimentId, e);
             lmsUserBatchWriteService.updateStatus(batchId, LmsUserBatchStatus.FAILED, e.getMessage());
+        }
+    }
+
+    @Async
+    @Override
+    public void refreshParticipantsForContext(LtiContextEntity ltiContextEntity) {
+        List<Experiment> experiments = experimentRepository.findAllByLtiContextEntity_ContextId(ltiContextEntity.getContextId());
+
+        for (Experiment experiment : experiments) {
+            try {
+                participantService.refreshParticipantsIfStale(experiment.getExperimentId());
+            } catch (ParticipantNotUpdatedException | ExperimentNotMatchingException | TerracottaConnectorException | RuntimeException e) {
+                // best-effort - one experiment's failed refresh shouldn't stop the others in the
+                // same course, and none of this should ever affect the launch that triggered it
+                log.error("Failed to refresh participants on launch for experiment ID: [{}]", experiment.getExperimentId(), e);
+            }
         }
     }
 
