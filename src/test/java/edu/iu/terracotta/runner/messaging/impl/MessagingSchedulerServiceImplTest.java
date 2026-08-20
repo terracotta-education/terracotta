@@ -293,6 +293,55 @@ public class MessagingSchedulerServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testSendUsesFreshlyFetchedMessageForEachSendCall() throws Exception {
+        // simulates a prior message's getRecipients() clearing the shared persistence context
+        // mid-batch: messageRepository.findById returns a distinct, freshly-attached instance
+        // for each message, and that instance - not the one from the initial batch query -
+        // must be what's passed to the send services.
+        MessageContainer container = buildContainer(MessageStatus.PUBLISHED);
+        Message message1 = buildMessage(container, MessageStatus.READY, MessageType.CONVERSATION, Timestamp.from(Instant.now().minusSeconds(600)), 0, KEY_ID);
+        Message message2 = buildMessage(container, MessageStatus.READY, MessageType.EMAIL, Timestamp.from(Instant.now().minusSeconds(600)), 0, KEY_ID);
+        Message freshMessage1 = spy(Message.builder().configuration(message1.getConfiguration()).container(container).build());
+        Message freshMessage2 = spy(Message.builder().configuration(message2.getConfiguration()).container(container).build());
+
+        when(messageRepository.findAllByContainer_Configuration_StatusAndConfiguration_Status(MessageStatus.PUBLISHED, MessageStatus.READY))
+            .thenReturn(List.of(message1, message2));
+        when(featureService.isFeatureEnabled(FeatureType.MESSAGING, KEY_ID)).thenReturn(true);
+        when(messageRepository.findById(message1.getId())).thenReturn(Optional.of(freshMessage1));
+        when(messageRepository.findById(message2.getId())).thenReturn(Optional.of(freshMessage2));
+
+        Optional<MessagingScheduleResult> result = messagingSchedulerService.send();
+
+        assertTrue(result.isPresent());
+        assertEquals(2, result.get().getProcessed().size());
+        verify(messageConversationService, times(1)).send(freshMessage1);
+        verify(messageConversationService, never()).send(message1);
+        verify(messageEmailService, times(1)).send(freshMessage2);
+        verify(messageEmailService, never()).send(message2);
+        // status mutations still apply to the original batch instances, since those are the
+        // ones saveAll() below persists
+        assertEquals(MessageStatus.SENT, message1.getConfiguration().getStatus());
+        assertEquals(MessageStatus.SENT, message2.getConfiguration().getStatus());
+    }
+
+    @Test
+    public void testSendFallsBackToOriginalMessageWhenFindByIdReturnsEmpty() throws Exception {
+        // findById is not stubbed in most other tests in this class, so it defaults to
+        // Optional.empty(); the send call must still fall back to the original instance
+        MessageContainer container = buildContainer(MessageStatus.PUBLISHED);
+        Message message = buildMessage(container, MessageStatus.READY, MessageType.CONVERSATION, Timestamp.from(Instant.now().minusSeconds(600)), 0, KEY_ID);
+
+        when(messageRepository.findAllByContainer_Configuration_StatusAndConfiguration_Status(MessageStatus.PUBLISHED, MessageStatus.READY))
+            .thenReturn(List.of(message));
+        when(featureService.isFeatureEnabled(FeatureType.MESSAGING, KEY_ID)).thenReturn(true);
+
+        Optional<MessagingScheduleResult> result = messagingSchedulerService.send();
+
+        assertTrue(result.isPresent());
+        verify(messageConversationService, times(1)).send(message);
+    }
+
+    @Test
     public void testProcessContainerStatusesMixedStatusDoesNotSaveContainer() {
         MessageContainer container = buildContainer(MessageStatus.PUBLISHED);
         Message sentMessage = buildMessage(container, MessageStatus.READY, MessageType.CONVERSATION, Timestamp.from(Instant.now().minusSeconds(600)), 0, KEY_ID);
