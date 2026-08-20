@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
@@ -42,7 +43,7 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
     private final MessageEmailService messageEmailService;
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<MessagingScheduleResult> send() {
         List<Message> messagesMarkedReadyToSend = messageRepository.findAllByContainer_Configuration_StatusAndConfiguration_Status(
             MessageStatus.PUBLISHED,
@@ -105,10 +106,19 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
                         .sendAt(messageReadyToSend.getConfiguration().getSendAt())
                         .build();
 
+                    // a prior message's send (below) flushes/clears the shared persistence
+                    // context (see MessageSendServiceImpl.getRecipients), detaching every entity
+                    // in it - including messages later in this same list that haven't been
+                    // processed yet. Re-fetch a fresh, attached copy for the actual send calls,
+                    // regardless of what an earlier iteration's clear() did; status updates below
+                    // still apply to messageReadyToSend, since that's the instance saveAll() below
+                    // persists.
+                    Message freshMessage = messageRepository.findById(messageReadyToSend.getId()).orElse(messageReadyToSend);
+
                     switch (messageReadyToSend.getConfiguration().getType()) {
                         case CONVERSATION:
                             try {
-                                messageConversationService.send(messageReadyToSend);
+                                messageConversationService.send(freshMessage);
                                 messageReadyToSend.getConfiguration().setStatus(MessageStatus.SENT);
                             } catch (Exception e) {
                                 processedMessage.addError(e.getMessage());
@@ -119,7 +129,7 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
                             break;
                         case EMAIL:
                             try {
-                                messageEmailService.send(messageReadyToSend);
+                                messageEmailService.send(freshMessage);
                                 messageReadyToSend.getConfiguration().setStatus(MessageStatus.SENT);
                             } catch (Exception e) {
                                 processedMessage.addError(e.getMessage());
