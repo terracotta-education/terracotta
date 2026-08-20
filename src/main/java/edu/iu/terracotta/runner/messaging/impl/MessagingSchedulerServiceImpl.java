@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
@@ -42,7 +43,7 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
     private final MessageEmailService messageEmailService;
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<MessagingScheduleResult> send() {
         List<Message> messagesMarkedReadyToSend = messageRepository.findAllByContainer_Configuration_StatusAndConfiguration_Status(
             MessageStatus.PUBLISHED,
