@@ -176,6 +176,36 @@ public class MessageEmailServiceImplTest extends BaseTest {
         ArgumentCaptor<MessageLog> captor = ArgumentCaptor.forClass(MessageLog.class);
         verify(messageLogRepository, times(1)).save(captor.capture());
         assertEquals(MessageProcessingStatus.ERROR, captor.getValue().getStatus());
+        // a failure before the per-recipient loop starts has no recipient to attribute the error
+        // to yet - falls back to the message owner rather than violating MessageLog.recipient's
+        // not-null constraint (see message's owner setup in beforeEach)
+        assertEquals(ltiUserEntity, captor.getValue().getRecipient());
+    }
+
+    // getRecipients() flushes/clears the shared persistence context between participant batches
+    // in production, which would detach a real (non-mocked) message entity - replyTo must be read
+    // before that call, not after, or it would throw LazyInitializationException on a real
+    // Hibernate-managed message instead of the plain POJO used here
+    @Test
+    public void testSendReadsReplyToBeforeGettingRecipients() throws Exception {
+        message.getConfiguration().getReplyTo().add(MessageEmailReplyTo.builder().email("valid@terracotta.edu").build());
+        when(sesClient.sendRawEmail(any(SendRawEmailRequest.class))).thenReturn(SendRawEmailResponse.builder().messageId("ses-id-4").build());
+
+        // simulates getRecipients()'s real production side effect (entityManager.clear()) by
+        // clearing message's collections directly as part of the same call - if send() read
+        // replyTo AFTER this instead of before, the reply-to header below would come back empty
+        when(messageSendService.getRecipients(message)).thenAnswer(
+            invocation -> {
+                message.getConfiguration().getReplyTo().clear();
+
+                return new ArrayList<>(List.of(ltiUserEntity));
+            }
+        );
+
+        messageEmailService.send(message);
+
+        assertEquals(1, mimeMessage.getReplyTo().length);
+        assertEquals("valid@terracotta.edu", mimeMessage.getReplyTo()[0].toString());
     }
 
     @Test
@@ -218,6 +248,28 @@ public class MessageEmailServiceImplTest extends BaseTest {
         ArgumentCaptor<MessageLog> captor = ArgumentCaptor.forClass(MessageLog.class);
         verify(messageLogRepository, times(1)).save(captor.capture());
         assertEquals(MessageProcessingStatus.ERROR, captor.getValue().getStatus());
+        // the failure happened mid-loop (SES call), so the error log must attribute it to the
+        // actual recipient being processed, not fall back to the message owner
+        assertEquals(ltiUserEntity, captor.getValue().getRecipient());
+    }
+
+    @Test
+    public void testSendMidBatchSesFailureAttributesErrorToCorrectRecipient() throws Exception {
+        LtiUserEntity recipient2 = mock(LtiUserEntity.class);
+        when(recipient2.getLmsUserId()).thenReturn("lms-user-2");
+        when(recipient2.getEmail()).thenReturn("second@terracotta.edu");
+        when(messageSendService.getRecipients(message)).thenReturn(new ArrayList<>(List.of(ltiUserEntity, recipient2)));
+        when(sesClient.sendRawEmail(any(SendRawEmailRequest.class)))
+            .thenReturn(SendRawEmailResponse.builder().messageId("ses-id-1").build())
+            .thenThrow(SdkClientException.create("ses unreachable"));
+
+        assertThrows(MessageSendEmailException.class, () -> messageEmailService.send(message));
+
+        ArgumentCaptor<MessageLog> captor = ArgumentCaptor.forClass(MessageLog.class);
+        verify(messageLogRepository, times(2)).save(captor.capture());
+        MessageLog errorLog = captor.getAllValues().get(1);
+        assertEquals(MessageProcessingStatus.ERROR, errorLog.getStatus());
+        assertEquals(recipient2, errorLog.getRecipient());
     }
 
     @Test
