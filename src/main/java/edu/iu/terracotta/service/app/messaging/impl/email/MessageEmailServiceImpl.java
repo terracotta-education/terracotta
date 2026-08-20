@@ -90,6 +90,17 @@ public class MessageEmailServiceImpl implements MessageEmailService {
 
         try {
             log.info("Sending emails for message ID: [{}]", message.getId());
+
+            // must be read before getRecipients() below - it flushes/clears the shared
+            // persistence context between participant batches, which detaches this message
+            // entity. replyTo and content.attachments are both lazy collections; reading them
+            // here (their first access) while message is still attached avoids a
+            // LazyInitializationException ("no session") when they're read afterward instead.
+            List<String> messageReplyTos = CollectionUtils.emptyIfNull(message.getReplyTo()).stream()
+                .map(replyTo -> replyTo.getEmail())
+                .collect(Collectors.toList());
+            List<MessageContentAttachment> messageAttachments = new ArrayList<>(message.getContent().getAttachments());
+
             List<LtiUserEntity> recipients = messageSendService.getRecipients(message);
 
             emailMessage = new MimeMessageHelper(
@@ -98,10 +109,6 @@ public class MessageEmailServiceImpl implements MessageEmailService {
             );
             emailMessage.setFrom(sender(message));
             emailMessage.setSubject(message.getSubject());
-
-            List<String> messageReplyTos = CollectionUtils.emptyIfNull(message.getReplyTo()).stream()
-                .map(replyTo -> replyTo.getEmail())
-                .collect(Collectors.toList());
 
             emailMessage.getMimeMessage().setReplyTo(
                 CollectionUtils.emptyIfNull(messageReplyTos).stream()
@@ -122,7 +129,7 @@ public class MessageEmailServiceImpl implements MessageEmailService {
             // add any attachments to the email (stored in the LMS)
             List<Map<String, ByteArrayResource>> attachments = new ArrayList<>();
 
-            for (MessageContentAttachment attachment : message.getContent().getAttachments()) {
+            for (MessageContentAttachment attachment : messageAttachments) {
                 try (InputStream inputStream = URI.create(attachment.getUrl()).toURL().openStream()) {
                     attachments.add(
                         Collections.singletonMap(
@@ -180,6 +187,9 @@ public class MessageEmailServiceImpl implements MessageEmailService {
 
                 for (LtiUserEntity recipient : recipientBatch) {
                     log.info("Sending email message to terracotta user ID: [{}]", recipient.getUserId());
+                    // tracks who was being processed if the catch block below needs to record an
+                    // error MessageLog for this attempt
+                    ltiUserEntity = recipient;
                     messageLog = null;
                     Map<String, List<LmsSubmission>> participantSubmissions = lmsSubmissions.entrySet().stream()
                         .collect(
@@ -211,7 +221,11 @@ public class MessageEmailServiceImpl implements MessageEmailService {
                 messageLog = MessageLog.builder()
                     .body(body)
                     .message(message)
-                    .recipient(ltiUserEntity)
+                    // ltiUserEntity is only set once the per-recipient loop starts - a failure
+                    // before then (e.g. building the message itself) has no recipient to
+                    // attribute the error to, so fall back to the message owner rather than
+                    // violating MessageLog.recipient's not-null constraint
+                    .recipient(ltiUserEntity != null ? ltiUserEntity : message.getOwner())
                     .status(MessageProcessingStatus.ERROR)
                     .build();
 
