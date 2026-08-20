@@ -20,6 +20,7 @@ import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageDeepL
 import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -65,6 +66,7 @@ public class Lti3Controller {
     private final LtiJwtService ltiJwtService;
     private final LmsOAuthServiceManager lmsOAuthServiceManager;
     private final CanvasAdvantageNoticeService canvasAdvantageNoticeService;
+    private final ParticipantAsyncService participantAsyncService;
 
     @RequestMapping({"", "/"})
     public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, ApiException, ConnectionException, LmsOAuthException, TerracottaConnectorException {
@@ -109,6 +111,15 @@ public class Lti3Controller {
             // and never blocks or fails the launch itself either way.
             if (LmsConnector.CANVAS == lti3Request.getToolDeployment().getPlatformDeployment().getLmsConnector()) {
                 canvasAdvantageNoticeService.ensureNoticeHandlerRegistered(lti3Request.getToolDeployment());
+            }
+
+            // best-effort, fire-and-forget: keeps the participant roster reasonably fresh on an
+            // instructor's launch (throttled internally - see
+            // ParticipantService.refreshParticipantsIfStale), instead of only refreshing when
+            // someone opens the manual-participation-selection screen. Never blocks or fails the
+            // launch itself either way.
+            if (lti3Request.isRoleInstructor()) {
+                participantAsyncService.refreshParticipantsForContext(lti3Request.getContext());
             }
 
             // We add the request to the model so it can be displayed. But, in a real application, we would start processing it here to generate the right answer.

@@ -37,6 +37,7 @@ import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
 import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageDeepLinkService;
 import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
+import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.Lti3Request;
@@ -55,6 +56,7 @@ public class Lti3ControllerTest extends BaseTest {
     @Mock private AdvantageDeepLinkService advantageDeepLinkService;
     @Mock private LmsOAuthServiceManager lmsOAuthServiceManager;
     @Mock private CanvasAdvantageNoticeService canvasAdvantageNoticeService;
+    @Mock private ParticipantAsyncService participantAsyncService;
 
     private Lti3Controller lti3Controller;
 
@@ -71,7 +73,7 @@ public class Lti3ControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        lti3Controller = new Lti3Controller(ltiLinkRepository, apiJwtService, advantageDeepLinkService, caliperService, ltiDataService, ltiJwtService, lmsOAuthServiceManager, canvasAdvantageNoticeService);
+        lti3Controller = new Lti3Controller(ltiLinkRepository, apiJwtService, advantageDeepLinkService, caliperService, ltiDataService, ltiJwtService, lmsOAuthServiceManager, canvasAdvantageNoticeService, participantAsyncService);
 
         when(httpServletRequest.getParameter("state")).thenReturn("state123");
         when(httpServletRequest.getParameter("link")).thenReturn(null);
@@ -381,6 +383,33 @@ public class Lti3ControllerTest extends BaseTest {
             assertEquals("redirect:/app/app.html?token=oneTimeToken123", result);
             verify(lmsOAuthServiceManager, never()).getLmsOAuthService(any(PlatformDeployment.class));
         }
+    }
+
+    @Test
+    void homeRefreshesParticipantsForInstructorLaunchTest() throws Exception {
+        when(lti3Request.isRoleInstructor()).thenReturn(true);
+        when(lti3Request.getContext()).thenReturn(ltiContextEntity);
+        when(lti3Request.getKey()).thenReturn(platformDeployment);
+        when(lti3Request.getUser()).thenReturn(ltiUserEntity);
+        doReturn(lmsOAuthService).when(lmsOAuthServiceManager).getLmsOAuthService(platformDeployment);
+        when(lmsOAuthService.isConfigured(platformDeployment)).thenReturn(false);
+
+        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+            callHome();
+        }
+
+        verify(participantAsyncService).refreshParticipantsForContext(ltiContextEntity);
+    }
+
+    @Test
+    void homeSkipsParticipantRefreshWhenNotInstructorTest() throws Exception {
+        when(lti3Request.isRoleInstructor()).thenReturn(false);
+
+        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+            callHome();
+        }
+
+        verify(participantAsyncService, never()).refreshParticipantsForContext(any());
     }
 
 }
