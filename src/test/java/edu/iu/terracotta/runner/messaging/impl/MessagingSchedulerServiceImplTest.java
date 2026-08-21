@@ -363,4 +363,25 @@ public class MessagingSchedulerServiceImplTest extends BaseTest {
         verify(messageContainerRepository, never()).save(any());
     }
 
+    @Test
+    public void testProcessContainerStatusesDisabledSiblingDoesNotBlockSentStatus() {
+        // a DISABLED sibling ("include a message for this treatment" turned off) never gets
+        // sent and never returned by the repository query; it must not block the container
+        // from being marked SENT once every other message in it has actually sent
+        MessageContainer container = buildContainer(MessageStatus.PUBLISHED);
+        Message sentMessage = buildMessage(container, MessageStatus.READY, MessageType.CONVERSATION, Timestamp.from(Instant.now().minusSeconds(600)), 0, KEY_ID);
+        buildMessage(container, MessageStatus.DISABLED, MessageType.CONVERSATION, Timestamp.from(Instant.now().minusSeconds(600)), 0, KEY_ID);
+
+        when(messageRepository.findAllByContainer_Configuration_StatusAndConfiguration_Status(MessageStatus.PUBLISHED, MessageStatus.READY))
+            .thenReturn(List.of(sentMessage));
+        when(featureService.isFeatureEnabled(FeatureType.MESSAGING, KEY_ID)).thenReturn(true);
+
+        Optional<MessagingScheduleResult> result = messagingSchedulerService.send();
+
+        assertTrue(result.isPresent());
+        assertEquals(MessageStatus.SENT, sentMessage.getConfiguration().getStatus());
+        assertEquals(MessageStatus.SENT, container.getConfiguration().getStatus());
+        verify(messageContainerRepository, times(1)).save(container);
+    }
+
 }
