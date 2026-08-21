@@ -34,10 +34,11 @@ const actions = {
       console.error("sendTest catch", {e});
     }
   },
-  async getAssignments({ commit }) {
+  async getAssignments({ commit }, payload) {
+    // payload: experimentId, exposureId, containerId
     try {
       commit("setIsLoading", true);
-      const response = await messageService.getAssignments();
+      const response = await messageService.getAssignments(...payload);
       commit("setAssignments", response);
     } catch (e) {
       console.error("update catch", {e});
