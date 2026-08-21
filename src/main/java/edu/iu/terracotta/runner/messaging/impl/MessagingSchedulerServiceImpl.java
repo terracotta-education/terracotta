@@ -172,8 +172,10 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
     private void processContainerStatuses(Set<MessageContainer> messageContainers) {
         messageContainers.forEach(
             messageContainer -> {
+                // a DISABLED message ("include a message for this treatment" turned off) will
+                // never be sent; it shouldn't block the container from being marked SENT
                 boolean isAllSent = messageContainer.getMessages().stream()
-                    .allMatch(message -> message.getStatus() == MessageStatus.SENT);
+                    .allMatch(message -> message.getStatus() == MessageStatus.SENT || message.getStatus() == MessageStatus.DISABLED);
 
                 if (isAllSent) {
                     // all messages sent successfully; update group to SENT status
