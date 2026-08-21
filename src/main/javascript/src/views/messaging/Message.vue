@@ -1130,7 +1130,11 @@ export default {
       });
     },
     async initialize() {
-      this.fetchMessageRuleAssignments();
+      this.fetchMessageRuleAssignments([
+        this.experimentId,
+        this.exposureId,
+        this.containerId
+      ]);
       this.resetConditionalTexts();
       this.initialContent = this.html;
       this.setMessageConditionalTexts(this.content.conditionalTexts);

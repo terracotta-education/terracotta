@@ -56,13 +56,13 @@ async function sendTest(experimentId, exposureId, containerId, messageId, messag
 /**
  * Get all assignments for messaging rules
  */
-async function getAssignments() {
+async function getAssignments(experimentId, exposureId, containerId) {
   const requestOptions = {
     method: "GET",
     headers: { ...authHeader() }
   }
 
-  return fetch(`${store.getters["api/aud"]}/api/experiments/0/exposures/0/messaging/container/0/message/assignments`, requestOptions).then(handleResponse);
+  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/message/assignments`, requestOptions).then(handleResponse);
 }
 
 /**
