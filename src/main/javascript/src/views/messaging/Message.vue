@@ -306,9 +306,8 @@
 
                       <v-overlay
                         v-model="showPipedTextUploader"
-                        :opacity="0.75"
+                        :opacity="0.5"
                         location="center center"
-                        scrim="white"
                       >
                         <PipedTextFileUploader
                           :experiment-id="experimentId"
