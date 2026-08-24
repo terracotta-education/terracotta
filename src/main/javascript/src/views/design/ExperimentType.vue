@@ -61,7 +61,7 @@
 
       <v-card
         v-if="!hasSelectedExposureType"
-        class="pt-5 px-5 mx-auto bg-blue-lighten-5 rounded-lg card-warning"
+        class="pt-5 px-5 mx-auto rounded-lg card-warning"
         variant="outlined"
       >
         <p>
@@ -80,7 +80,7 @@
 
       <v-card
         v-if="hasSelectedExposureType"
-        class="pt-5 px-5 mx-auto bg-blue-lighten-5 rounded-lg card-warning"
+        class="pt-5 px-5 mx-auto rounded-lg card-warning"
         variant="outlined"
       >
         <p>
@@ -269,6 +269,13 @@ defineExpose({
 <style lang="scss" scoped>
 .v-expansion-panel {
   margin-bottom: 30px !important;
+}
+
+// bg-blue-lighten-5 (a Vuetify color utility class) never generates any CSS in this
+// project's build - vite-plugin-vuetify's configFile-based recompile doesn't reach the
+// $color-pack-gated utility classes - so set the background directly instead.
+.card-warning {
+  background-color: map.get($blue, "lighten-5");
 }
 
 .panel-selected {
