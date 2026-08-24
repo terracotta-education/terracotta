@@ -645,7 +645,7 @@ public class CanvasApiClientImpl implements ApiClient {
     private OauthToken getOauthToken(LtiUserEntity apiUser) throws ApiException {
         String accessToken = getAccessToken(apiUser, null);
 
-        return new RefreshableCanvasOauthToken(() -> getAccessToken(apiUser, null), accessToken);
+        return new RefreshableCanvasOauthToken(rejectedAccessToken -> getAccessToken(apiUser, null, rejectedAccessToken), accessToken);
     }
 
     private OauthToken getOauthToken(LtiUserEntity apiUser, String tokenOverride) throws ApiException {
@@ -653,6 +653,10 @@ public class CanvasApiClientImpl implements ApiClient {
     }
 
     private String getAccessToken(LtiUserEntity apiUser, String tokenOverride) throws ApiException {
+        return getAccessToken(apiUser, tokenOverride, null);
+    }
+
+    private String getAccessToken(LtiUserEntity apiUser, String tokenOverride, String rejectedAccessToken) throws ApiException {
         if (tokenOverride != null) {
             if (tokenLoggingEnabled) {
                 log.debug("Using API token override: [{}]", tokenOverride);
@@ -665,7 +669,7 @@ public class CanvasApiClientImpl implements ApiClient {
 
         if (canvasLmsOAuthService.isConfigured(apiUser.getPlatformDeployment())) {
             try {
-                ApiTokenEntity canvasApiTokenEntity = canvasLmsOAuthService.getAccessToken(apiUser);
+                ApiTokenEntity canvasApiTokenEntity = canvasLmsOAuthService.getAccessToken(apiUser, rejectedAccessToken);
 
                 if (tokenLoggingEnabled) {
                     log.debug("Using access token for user {}", apiUser.getUserKey());

@@ -154,6 +154,52 @@ public class CanvasLmsOAuthServiceImplTest {
     }
 
     @Test
+    public void testGetAccessTokenWithRejectedTokenForcesRefreshEvenWhenLocallyFresh() throws LmsOAuthException {
+        // Canvas just rejected "fresh-access-token" out-of-band (revoked, dev key rotated, etc.),
+        // even though our own cached expiresAt says it's still good for another hour
+        ApiTokenEntity fresh = freshToken();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(fresh));
+        when(apiTokenRepository.save(any(ApiTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CanvasApiToken refreshedToken = CanvasApiToken.builder()
+            .accessToken("new-access-token")
+            .refreshToken("new-refresh-token")
+            .expiresIn(3600)
+            .build();
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any())).thenReturn(ResponseEntity.ok(refreshedToken));
+
+        ApiTokenEntity result = canvasLmsOAuthService.getAccessToken(user, "fresh-access-token");
+
+        assertEquals("new-access-token", result.getAccessToken());
+        verify(restTemplate, times(1)).postForEntity(anyString(), any(HttpEntity.class), any());
+    }
+
+    @Test
+    public void testGetAccessTokenWithRejectedTokenSkipsRefreshWhenAlreadyRefreshedConcurrently() throws LmsOAuthException {
+        // another concurrent caller already refreshed past the token Canvas rejected on us;
+        // the stored token no longer matches what was rejected, so use it as-is
+        ApiTokenEntity fresh = freshToken();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(fresh));
+
+        ApiTokenEntity result = canvasLmsOAuthService.getAccessToken(user, "some-other-already-rejected-token");
+
+        assertEquals("fresh-access-token", result.getAccessToken());
+        verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any());
+        verify(apiTokenRepository, never()).save(any(ApiTokenEntity.class));
+    }
+
+    @Test
+    public void testGetAccessTokenWithNullRejectedTokenBehavesLikeNormalLookup() throws LmsOAuthException {
+        ApiTokenEntity fresh = freshToken();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(fresh));
+
+        ApiTokenEntity result = canvasLmsOAuthService.getAccessToken(user, null);
+
+        assertEquals("fresh-access-token", result.getAccessToken());
+        verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any());
+    }
+
+    @Test
     public void testGetAccessTokenConcurrentCallsOnlyRefreshOnce() throws Exception {
         // a single mutable ApiTokenEntity backs every findByUser() call, so once one thread's
         // refresh saves a fresh expiry, the other thread's double-check under the lock sees it

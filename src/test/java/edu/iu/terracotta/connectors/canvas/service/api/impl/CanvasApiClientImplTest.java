@@ -206,7 +206,7 @@ public class CanvasApiClientImplTest extends BaseTest {
         }
 
         assertEquals(1, result.size());
-        verify(canvasLmsOAuthService).getAccessToken(ltiUserEntity);
+        verify(canvasLmsOAuthService).getAccessToken(ltiUserEntity, null);
     }
 
     @Test
@@ -225,7 +225,7 @@ public class CanvasApiClientImplTest extends BaseTest {
 
     @Test
     void testListAssignmentsByExperimentWrapsLmsOAuthExceptionFromTokenRetrieval() throws LmsOAuthException {
-        when(canvasLmsOAuthService.getAccessToken(ltiUserEntity)).thenThrow(new LmsOAuthException("no token"));
+        when(canvasLmsOAuthService.getAccessToken(ltiUserEntity, null)).thenThrow(new LmsOAuthException("no token"));
 
         ApiException ex = assertThrows(ApiException.class, () -> canvasApiClientService.listAssignments(ltiUserEntity, experiment));
         assertNotNull(ex.getCause());
@@ -248,6 +248,7 @@ public class CanvasApiClientImplTest extends BaseTest {
 
         assertEquals(1, result.size());
         verify(canvasLmsOAuthService, never()).getAccessToken(any());
+        verify(canvasLmsOAuthService, never()).getAccessToken(any(), any());
     }
 
     @Test
@@ -896,7 +897,7 @@ public class CanvasApiClientImplTest extends BaseTest {
             canvasApiClientService.listUsersForCourse(options, ltiUserEntity);
         }
 
-        verify(canvasLmsOAuthService, times(1)).getAccessToken(ltiUserEntity);
+        verify(canvasLmsOAuthService, times(1)).getAccessToken(ltiUserEntity, null);
 
         OauthToken token = tokenCaptor.getValue();
         assertTrue(token instanceof RefreshableCanvasOauthToken);
@@ -904,7 +905,9 @@ public class CanvasApiClientImplTest extends BaseTest {
 
         token.refresh();
 
-        verify(canvasLmsOAuthService, times(2)).getAccessToken(ltiUserEntity);
+        // refresh() passes the just-rejected access token, not null, so it forces an actual
+        // refresh_token call regardless of what our own cached expiry thinks
+        verify(canvasLmsOAuthService, times(1)).getAccessToken(ltiUserEntity, ACCESS_TOKEN);
         assertEquals(ACCESS_TOKEN, token.getAccessToken());
     }
 
