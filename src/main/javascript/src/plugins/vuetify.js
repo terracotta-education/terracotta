@@ -14,6 +14,7 @@ export default createVuetify({
       style: '--v-selection-control-color: #0077d2;'
     },
     VRadio: { color: 'primary' },
+    VSwitch: { color: 'primary' },
   },
   icons: {
     defaultSet: "mdi",
