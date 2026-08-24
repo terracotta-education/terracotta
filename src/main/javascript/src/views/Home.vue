@@ -1005,17 +1005,11 @@ onBeforeRouteLeave((to, from, next) => {
 </script>
 
 <style lang="scss">
-// scoped to this page's own table (not .v-data-table generally) - unscoped, this used
-// to leak globally into every v-data-table in the app (this <style> block isn't
-// `scoped`), overriding e.g. ComponentTable.vue's .label-treatment-incomplete red text
-// with black via higher selector specificity.
-.table-experiments {
+.v-data-table {
   *:not(.v-icon) {
     color: black !important;
     font-size: 16px !important;
   }
-}
-.v-data-table {
   &__link {
     text-decoration: none;
     background-color: transparent;

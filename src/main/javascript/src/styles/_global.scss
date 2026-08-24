@@ -97,8 +97,13 @@ body {
   color: rgba(0,0,0,0.87);
 }
 
-.icon-treatment-incomplete,
-.label-treatment-incomplete {
+// qualified with two of ComponentTable.vue's own table classes (the only place these
+// classes are used) so this reliably outweighs Home.vue's broader
+// .v-data-table *:not(.v-icon) { color: black !important; }. A single qualifying
+// class only ties that rule's specificity (both become two class-level selectors),
+// leaving the winner to depend on source order rather than intent.
+.v-data-table-alt.data-table-assignments .icon-treatment-incomplete,
+.v-data-table-alt.data-table-assignments .label-treatment-incomplete {
   text-transform: none !important;
   opacity: 0.87 !important;
   color: map.get($red, "base") !important;
