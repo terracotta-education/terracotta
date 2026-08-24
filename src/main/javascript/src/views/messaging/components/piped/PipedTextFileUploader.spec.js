@@ -80,6 +80,26 @@ describe("PipedTextFileUploader", () => {
     expect(wrapper.text()).toContain("tags.csv");
   });
 
+  it("accepts a file dropped onto the overlaid file input (real drop target) and shows the selected file view", async () => {
+    // the file <input> is absolutely positioned over the whole drop zone, so a real
+    // browser drop event's target is the input, not the drop-zone div - and the
+    // input's own .files is an empty (but truthy) FileList, since the @drop.prevent
+    // above suppresses the browser's native "set input.files from drop" behavior.
+    // dataTransfer.files (checked by length, not truthiness) must still be used.
+    const pinia = setupStores();
+
+    wrapper = mountComponent(PipedTextFileUploader, { props: baseProps, pinia });
+
+    const file = makeFile("tags.csv", "text/csv");
+
+    await wrapper.find("input[type='file']").trigger("drop", {
+      dataTransfer: { files: [file] }
+    });
+
+    expect(wrapper.find(".drop-zone__uploaded").exists()).toBe(true);
+    expect(wrapper.text()).toContain("tags.csv");
+  });
+
   it("rejects a non-CSV file with an error status alert and does not show the selected file view", async () => {
     const pinia = setupStores();
 
