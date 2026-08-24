@@ -68,6 +68,28 @@ describe("FileDropZone", () => {
     expect(wrapper.find(".drop-zone__uploaded").exists()).toBe(true);
   });
 
+  it("accepts a file dropped onto the overlaid file input (real drop target) and emits update", async () => {
+    // the file <input> is absolutely positioned over the whole drop zone, so a real
+    // browser drop event's target is the input, not the drop-zone div - and the
+    // input's own .files is an empty (but truthy) FileList, since the @drop.prevent
+    // above suppresses the browser's native "set input.files from drop" behavior.
+    // dataTransfer.files (checked by length, not truthiness) must still be used.
+    const wrapper = mountComponent(FileDropZone);
+
+    const file = makeFile("consent.pdf", "application/pdf");
+
+    await wrapper.find("input[type='file']").trigger("drop", {
+      dataTransfer: { files: [file] }
+    });
+
+    await wrapper.vm.$nextTick();
+    await new Promise(resolve => setTimeout(resolve));
+
+    expect(wrapper.emitted("update")?.[0]).toEqual([file]);
+    expect(wrapper.emitted("newUpload")?.[0]).toEqual([true]);
+    expect(wrapper.find(".drop-zone__uploaded").exists()).toBe(true);
+  });
+
   it("rejects a non-pdf file via Swal and does not emit update", async () => {
     const wrapper = mountComponent(FileDropZone);
 

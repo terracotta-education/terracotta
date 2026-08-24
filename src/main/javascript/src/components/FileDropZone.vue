@@ -109,9 +109,14 @@ watch(
 );
 
 const onChange = event => {
-  const files =
-    event.target?.files ||
-    event.dataTransfer?.files;
+  // event.target is the overlaid file <input> even for a drop (it's what's actually
+  // under the pointer) - its .files is an empty-but-truthy FileList here, since the
+  // @drop.prevent above suppresses the browser's native "set input.files from drop"
+  // behavior. Check dataTransfer.files (populated for drag-and-drop) by length, not
+  // truthiness, before falling back to target.files (populated for the native picker).
+  const files = event.dataTransfer?.files?.length
+    ? event.dataTransfer.files
+    : event.target?.files;
 
   if (!files?.length) {
     dragging.value = false;
