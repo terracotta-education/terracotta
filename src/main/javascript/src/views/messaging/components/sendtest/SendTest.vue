@@ -11,7 +11,10 @@
 
       <v-expansion-panel-text>
         <v-row>
-          <v-col cols="9">
+          <v-col
+            cols="12"
+            sm="9"
+          >
             <span>
               This test message won't contain your content; its purpose is
               to ensure that your message sends properly.
@@ -21,7 +24,10 @@
             </span>
           </v-col>
 
-          <v-col cols="3">
+          <v-col
+            cols="12"
+            sm="3"
+          >
             <v-btn
               :disabled="!isValidEmail || isSending"
               class="d-flex mt-4"
