@@ -10,6 +10,7 @@
         aria-label="actions"
         icon="mdi-dots-horizontal"
         variant="text"
+        density="compact"
       />
     </template>
 

@@ -35,6 +35,7 @@
           color="#d3d3d3"
           class="v-chip--only-one"
           variant="flat"
+          density="compact"
           label
         >
           Only One Version
