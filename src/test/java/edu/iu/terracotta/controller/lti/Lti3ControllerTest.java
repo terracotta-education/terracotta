@@ -146,6 +146,20 @@ public class Lti3ControllerTest extends BaseTest {
     }
 
     @Test
+    void homeInvalidLtiRequestReturnsErrorViewInsteadOfNpeTest() throws Exception {
+        // Lti3Request.getInstance() returns null (rather than throwing) for a request that
+        // isn't a valid LTI3 request - e.g. a missing/expired id_token
+        try (MockedStatic<Lti3Request> mockedStatic = mockStatic(Lti3Request.class)) {
+            mockedStatic.when(() -> Lti3Request.getInstance(any())).thenReturn(null);
+
+            String result = callHome();
+
+            assertEquals(TextConstants.LTI3ERROR, result);
+            verify(model).addAttribute(eq(TextConstants.ERROR), anyString());
+        }
+    }
+
+    @Test
     void homeBadClientIdTest() throws Exception {
         when(claims.get("clientId")).thenReturn("different-aud");
 
