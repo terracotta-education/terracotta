@@ -122,21 +122,14 @@
         }
       }
 
+      // outline (not a positioned ::before overlay) so the rounded border tracks the
+      // tbody's actual box instead of assuming a fixed header height - see the identical
+      // technique/rationale in ComponentTable.vue
       > tbody {
-        &::before {
-          content: "";
-          position: absolute;
-          bottom: 0;
-          left: -1px;
-          display: block;
-          width: calc(100% + 2px);
-          height: calc(100% - 52px);
-          border-radius: 10px;
-          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
-          -webkit-box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
-          z-index: 1;
-          pointer-events: none;
-        }
+        display: table-row-group;
+        outline: 1px solid rgba(0, 0, 0, 0.12);
+        outline-offset: -1px;
+        border-radius: 10px;
 
         > tr {
           &:hover {
@@ -146,22 +139,38 @@
           &:first-child {
             > td {
               padding-top: 8px !important;
+
+              // clip the hover fill (Vuetify paints it as a per-td ::after, not a plain
+              // background - it won't otherwise respect the tbody outline's rounded corner
+              &:first-child {
+                border-top-left-radius: 10px;
+                overflow: hidden;
+              }
+
+              &:last-child {
+                border-top-right-radius: 10px;
+                overflow: hidden;
+              }
             }
           }
 
           &:last-child {
             > td {
               padding-bottom: 8px !important;
+
+              &:first-child {
+                border-bottom-left-radius: 10px;
+                overflow: hidden;
+              }
+
+              &:last-child {
+                border-bottom-right-radius: 10px;
+                overflow: hidden;
+              }
             }
           }
 
           > td {
-            padding: 0 !important;
-
-            &:first-child {
-              padding-left: 0 !important;
-            }
-
             .v-data-table {
               margin-top: -6px;
             }
