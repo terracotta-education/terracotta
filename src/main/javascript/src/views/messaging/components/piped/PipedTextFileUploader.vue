@@ -256,6 +256,14 @@ const handleUpload = async () => {
   min-width: 600px;
   max-width: 600px;
 
+  // Vuetify 3's .v-card-title defaults to display: block (Vuetify 2's is flex), so
+  // the title's mx-auto - relying on flex auto-margins to center itself and push the
+  // close button to the far edge - had no effect without this.
+  & > .v-card-title {
+    display: flex;
+    align-items: center;
+  }
+
   & h2 {
     max-width: fit-content;
   }
