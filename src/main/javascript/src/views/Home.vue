@@ -1010,6 +1010,19 @@ onBeforeRouteLeave((to, from, next) => {
     color: black !important;
     font-size: 16px !important;
   }
+  // Vuetify 3 dims disabled buttons via opacity on the whole button (no !important),
+  // which multiplies on top of the color: black above and can't be undone by any
+  // child rule - unlike Vuetify 2's plain (overridable) disabled text color, this
+  // left disabled button text looking washed out even with the color forced. Reset
+  // the button's own opacity and re-apply the dimming to just its icon instead, so
+  // text renders fully solid/legible while the icon still looks disabled.
+  .v-btn--disabled {
+    opacity: 1 !important;
+
+    .v-icon {
+      opacity: 0.26 !important;
+    }
+  }
   &__link {
     text-decoration: none;
     background-color: transparent;
