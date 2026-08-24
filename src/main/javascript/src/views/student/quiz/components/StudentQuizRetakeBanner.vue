@@ -24,7 +24,7 @@
     <v-row v-if="cantTryAgainMessage">
       <v-col>
         <v-card
-          class="pt-5 px-5 mx-auto bg-yellow-lighten-5 rounded-lg"
+          class="pt-5 px-5 mx-auto rounded-lg card-warning"
           variant="outlined"
         >
           <p
@@ -54,3 +54,14 @@ defineProps({
 
 defineEmits(["try-again"]);
 </script>
+
+<style lang="scss" scoped>
+// bg-yellow-lighten-5 (a Vuetify color utility class) generates no CSS in this
+// project's build - see ExperimentType.vue's .card-warning for the full explanation.
+// Vuetify's own yellow-lighten-5 (#fffde7) doesn't have a project $yellow map
+// equivalent (the project's $yellow is a different, darker/amber shade), so use the
+// literal palette value directly.
+.card-warning {
+  background-color: #fffde7;
+}
+</style>

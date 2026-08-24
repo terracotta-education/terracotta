@@ -132,7 +132,12 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+// bg-red-lighten-5 (a Vuetify color utility class) generates no CSS in this project's
+// build - see ExperimentType.vue's .card-warning for the full explanation. The project's
+// own $red map has no "lighten-5"-equivalent pale variant (its "base" is used below,
+// as the border color, not the fill), so use Vuetify's literal palette value directly.
 .v-card.bg-red-lighten-5 {
+  background-color: #ffebee;
   border-color: map.get($red, "base") !important;
 }
 

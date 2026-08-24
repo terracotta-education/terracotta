@@ -1050,6 +1050,12 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+// text-red (a Vuetify color utility class) generates no CSS in this project's build -
+// see ExperimentType.vue's .card-warning for the full explanation.
+.unsaved-warn .text-red {
+  color: map.get($red, "base");
+}
+
 .question-section {
   display: flex;
   flex-direction: column;

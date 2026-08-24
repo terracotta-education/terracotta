@@ -150,10 +150,17 @@ const grade = item => percent(item.averageGrade);
 const sd = item => percent(item.standardDeviation);
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 td.treatment-row {
   > .v-data-table {
     margin: 0 auto;
+
+    // bg-grey-lighten-5 (a Vuetify color utility class) generates no CSS in this
+    // project's build - see ExperimentType.vue's .card-warning for the full
+    // explanation. Unlike ComponentTable.vue's identical-looking treatment-row (whose
+    // wrapper already forces its own background), nothing else covers this one.
+    background-color: map.get($grey, "lightest");
+
     & .v-table__wrapper {
       border: none;
       border-bottom: thin solid #e0e0e0;

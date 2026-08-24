@@ -3,7 +3,7 @@
     <v-col>
       <v-card
         v-if="muted"
-        class="pt-5 px-5 mx-auto bg-yellow-lighten-5 rounded-lg"
+        class="pt-5 px-5 mx-auto rounded-lg card-warning"
         variant="outlined"
       >
         <h3>Your assignment is muted</h3>
@@ -30,3 +30,14 @@ defineProps({
 
 defineEmits(["select-submission"]);
 </script>
+
+<style lang="scss" scoped>
+// bg-yellow-lighten-5 (a Vuetify color utility class) generates no CSS in this
+// project's build - see ExperimentType.vue's .card-warning for the full explanation.
+// Vuetify's own yellow-lighten-5 (#fffde7) doesn't have a project $yellow map
+// equivalent (the project's $yellow is a different, darker/amber shade), so use the
+// literal palette value directly.
+.card-warning {
+  background-color: #fffde7;
+}
+</style>

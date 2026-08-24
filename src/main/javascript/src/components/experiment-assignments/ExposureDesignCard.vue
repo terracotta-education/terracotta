@@ -85,3 +85,12 @@ const visibleGroups = computed(() => {
   return allGroups.value.slice(0, props.maxDesignGroups);
 });
 </script>
+
+<style lang="scss" scoped>
+// text-blue (a Vuetify color utility class) generates no CSS in this project's build -
+// see ExperimentType.vue's .card-warning for the full explanation. Matches the adjacent
+// v-icon's color="blue" prop (a runtime mechanism, unaffected by this bug).
+.text-blue {
+  color: #2196f3;
+}
+</style>

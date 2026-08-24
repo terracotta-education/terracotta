@@ -402,6 +402,12 @@ const handleFileDownload = fileResponse => {
 </script>
 
 <style lang="scss" scoped>
+// bg-grey-lighten-3 (a Vuetify color utility class) generates no CSS in this project's
+// build - see ExperimentType.vue's .card-warning for the full explanation.
+.bg-grey-lighten-3 {
+  background-color: #eeeeee;
+}
+
 iframe {
   margin: 0 auto;
   min-height: 600px;
