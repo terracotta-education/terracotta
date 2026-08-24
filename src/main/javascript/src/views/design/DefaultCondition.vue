@@ -9,7 +9,7 @@
 
     <form
       v-if="experiment"
-      class="my-5 mx-auto w-50"
+      class="my-5 mx-auto"
       @submit.prevent="saveConditions"
     >
       <fieldset

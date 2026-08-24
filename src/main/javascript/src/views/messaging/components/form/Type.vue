@@ -1,5 +1,5 @@
 <template>
-  <div class="type-radio mb-2">
+  <div class="type-radio mb-0">
     <h4>{{ label }}</h4>
 
     <v-radio-group
@@ -16,7 +16,7 @@
         :value="messageType.value"
         :label="messageType.label"
         color="blue"
-        class="mb-5"
+        class="mb-2"
       />
     </v-radio-group>
   </div>

@@ -925,7 +925,7 @@ td.treatments-table-container td span {
 }
 
 td.treatments-table-container .v-table__wrapper table {
-  padding: 0 35px !important;
+  padding: 0 !important;
 }
 
 .v-locale--is-ltr .v-data-table > .v-table__wrapper > table > tbody > tr > th,

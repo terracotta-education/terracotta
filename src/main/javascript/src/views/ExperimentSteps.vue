@@ -289,7 +289,6 @@ onBeforeRouteUpdate(async (to, from, next) => {
   > article {
     grid-area: article;
     padding: 0;
-    padding-top: 100px !important;
   }
 
   &__sidebar {

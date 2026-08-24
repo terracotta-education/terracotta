@@ -1,6 +1,10 @@
 <template>
-  <div class="mt-2 mb-5 py-2">
-    <h4>Scheduler</h4>
+  <div class="my-0 py-2">
+    <h4
+     class="my-0"
+    >
+      Scheduler
+    </h4>
 
     <p class="text-medium-emphasis pb-0">
       {{ label }}

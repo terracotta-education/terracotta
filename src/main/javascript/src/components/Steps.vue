@@ -214,6 +214,10 @@ ul.component-steps {
   > li {
     text-align: left;
   }
+
+  & .text-green {
+    color: map.get($green, "base") !important;
+  }
 }
 
 .steps-list {

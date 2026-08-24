@@ -5,7 +5,7 @@
     </h1>
 
     <div
-      class="w-50 mx-auto my-0"
+      class="mx-auto my-0"
     >
       <v-row class="mx-2">
         <v-col cols="9" class="label">

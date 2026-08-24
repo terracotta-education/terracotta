@@ -5,7 +5,7 @@
     </h1>
 
     <div
-      class="w-50 mx-auto my-0"
+      class="mx-auto my-0"
     >
       <p>Conditions</p>
 

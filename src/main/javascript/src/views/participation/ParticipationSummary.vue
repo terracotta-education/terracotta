@@ -13,7 +13,7 @@
     <template v-if="experiment">
       <v-expansion-panels
         v-if="experiment.participationType"
-        class="w-50 mx-auto my-0"
+        class="mx-auto my-0"
       >
         <v-expansion-panel
           class="py-3 mb-3"
@@ -31,7 +31,7 @@
 
       <v-expansion-panels
         v-if="experiment.participationType === 'CONSENT'"
-        class="w-50 mx-auto my-0"
+        class="mx-auto my-0"
       >
         <v-expansion-panel
           class="py-3 mb-3"
@@ -49,7 +49,7 @@
 
       <v-expansion-panels
         v-if="experiment.participationType === 'CONSENT'"
-        class="w-50 mx-auto my-0"
+        class="mx-auto my-0"
       >
         <v-expansion-panel
           class="py-3 mb-3"

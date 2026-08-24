@@ -54,12 +54,6 @@
 
   .v-table__wrapper > table {
     padding-top: 0 !important;
-
-    > tbody > tr > td,
-    > thead > tr > td,
-    > tfoot > tr > td {
-      height: 40px;
-    }
   }
 
   th {

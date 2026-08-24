@@ -20,7 +20,7 @@
 
     <v-expansion-panels
       v-model="expanded"
-      class="v-expansion-panels--icon w-50 mx-auto my-0"
+      class="v-expansion-panels--icon mx-auto my-0"
       multiple
     >
       <v-expansion-panel

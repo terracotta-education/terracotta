@@ -6,7 +6,7 @@
       </h1>
 
       <v-expansion-panels
-        class="v-expansion-panels--icon w-50 mx-auto my-0"
+        class="v-expansion-panels--icon mx-auto my-0"
       >
         <v-expansion-panel
           :class="{
