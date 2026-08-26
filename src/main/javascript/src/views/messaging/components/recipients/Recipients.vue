@@ -742,6 +742,15 @@ onMounted(async () => {
   }
 
   & .rule-row {
+    /* Vuetify 3's default v-row column-gap (24px) doesn't exist in Vuetify 2 -
+       with 4 flex children here (variable/comparison/value/actions) that's 3
+       gaps (~72px) on top of the percentage widths below, which was enough to
+       overflow the row and wrap the last item (actions) onto its own line. Even
+       after zeroing the gap the four items' widths plus each v-input's own 5px
+       side margins leave only a few px of slack (browser-rounding-fragile), so
+       also force nowrap rather than rely on that margin never running out. */
+    gap: 0;
+    flex-wrap: nowrap;
     justify-content: space-between;
 
     & .rule-variable {

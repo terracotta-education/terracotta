@@ -21,6 +21,15 @@
   </v-btn-toggle>
 </template>
 
+<style scoped>
+/* Vuetify 2's v-btn-toggle gives every button a thin rgba(0,0,0,.12) border by
+   default; Vuetify 3's doesn't, so the unselected button (white background, no
+   shadow) was invisible against a white card. */
+.v-btn {
+  border: thin solid rgba(0, 0, 0, 0.12);
+}
+</style>
+
 <script setup>
 import {
   ref,
