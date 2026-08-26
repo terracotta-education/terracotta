@@ -225,4 +225,30 @@ describe("PipedTextFileUploader", () => {
     );
     expect(wrapper.text()).not.toContain("Uploading...");
   });
+
+  it("shows an error alert instead of a success one when the upload fails", async () => {
+    // message.module's uploadPipedText catches its own errors and resolves with
+    // null rather than rejecting, so this is the failure shape handleUpload sees.
+    const pinia = setupStores();
+    useMessageStore().uploadPipedText = vi.fn().mockResolvedValue(null);
+
+    wrapper = mountComponent(PipedTextFileUploader, { props: baseProps, pinia });
+
+    const file = makeFile("tags.csv", "text/csv");
+
+    await wrapper.find(".drop-zone").trigger("drop", {
+      dataTransfer: { files: [file] }
+    });
+
+    const uploadButtons = wrapper
+      .findAllComponents({ name: "VBtn" })
+      .filter(b => b.text() === "Upload CSV");
+    await uploadButtons[0].trigger("click");
+    await flushPromises();
+
+    expect(useAlertStore().alertType).toBe("error");
+    expect(useAlertStore().alertMessage).toBe(
+      "Piped text file failed to upload. Please try again."
+    );
+  });
 });

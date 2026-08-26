@@ -248,7 +248,7 @@ const handleUpload = async () => {
   isUploading.value = true;
 
   try {
-    await messagingMessageStore.uploadPipedText([
+    const response = await messagingMessageStore.uploadPipedText([
       props.experimentId,
       props.exposureId,
       props.containerId,
@@ -257,11 +257,12 @@ const handleUpload = async () => {
       newFile.value
     ]);
 
+    // uploadPipedText catches its own errors and resolves with null rather than
+    // rejecting, so a failed upload has to be detected from the return value here.
     createStatusAlert(
-      statusAlert(
-        alertStatuses.value.success,
-        "Piped text file uploaded successfully"
-      )
+      response
+        ? statusAlert(alertStatuses.value.success, "Piped text file uploaded successfully")
+        : statusAlert(alertStatuses.value.error, "Piped text file failed to upload. Please try again.")
     );
   } finally {
     isUploading.value = false;
