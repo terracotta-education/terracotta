@@ -147,6 +147,25 @@ describe("DateTimePicker", () => {
     await expect(wrapper.trigger("click")).resolves.not.toThrow();
   });
 
+  it("prevents the calendar icon's mousedown default so clicking it doesn't steal focus from the input", () => {
+    // Browsers focus the nearest focusable ancestor on mousedown of a non-focusable
+    // descendant. Without preventing this, clicking the icon focuses the tabindex=0
+    // wrapper div instead of the flatpickr input, so a later click on a calendar day
+    // (rendered outside the wrapper) blurs the div and closes the picker before the
+    // selection is saved. jsdom doesn't simulate that browser default-focus behavior,
+    // so this only verifies the fix's mechanism (preventDefault on the icon's
+    // mousedown), not the full end-to-end symptom.
+    const wrapper = mountComponent(DateTimePicker, {
+      props: { modelValue: null }
+    });
+
+    const icon = wrapper.find(".v-icon").element;
+    const event = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
+    icon.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it("applies custom classes to both the container and the flatpickr input", () => {
     const wrapper = mountComponent(DateTimePicker, {
       props: {

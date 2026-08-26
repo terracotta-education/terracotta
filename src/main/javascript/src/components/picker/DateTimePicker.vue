@@ -22,7 +22,7 @@
       @on-change="handleDateChange"
     />
 
-    <v-icon>
+    <v-icon @mousedown.prevent>
       mdi-calendar-clock
     </v-icon>
   </div>
