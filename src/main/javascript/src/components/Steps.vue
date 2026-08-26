@@ -146,7 +146,11 @@ const generateSteps = () => {
     selectionType === "any" ||
     selectionType === "consent" ||
     selectionType === "manual" ||
-    selectionType === "auto"
+    selectionType === "auto" ||
+    // ParticipationSummary's route has no selectionType meta (unlike every other
+    // participation-flow route), so fall back to the experiment's own participationType -
+    // by the time the summary page is reached, distribution has already happened
+    ["CONSENT", "MANUAL", "AUTO"].includes(props.participationType)
   ) {
     steps.push({
       key: "participation_distribution",

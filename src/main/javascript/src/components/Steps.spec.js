@@ -132,6 +132,29 @@ describe("Steps", () => {
     expect(designSpan.classes()).toContain("text-green");
   });
 
+  it("includes the Distribution step on ParticipationSummary despite its route having no selectionType meta", () => {
+    // matches router/index.js's actual ParticipationSummary route meta - no selectionType,
+    // unlike every other participation-flow route
+    useRoute.mockReturnValue({
+      name: "ParticipationSummary",
+      meta: { currentSection: "participation", currentStep: "select_participants" }
+    });
+
+    const wrapper = mountComponent(Steps, {
+      props: {
+        currentSection: "participation",
+        currentStep: "select_participants",
+        participationType: "AUTO"
+      }
+    });
+
+    const stepLabels = wrapper
+      .findAll(".steps-list__label")
+      .map(l => l.text());
+
+    expect(stepLabels).toContain("Distribution");
+  });
+
   it("applies the finished/text-green treatment on summary routes", () => {
     useRoute.mockReturnValue({
       name: "ExperimentDesignSummary",
