@@ -112,7 +112,7 @@
                     :ripple="false"
                     label="Include a message for this treatment"
                     messages="(Turning this off means students in this treatment group will not receive a message.)"
-                    class="enabled-switch"
+                    :class="['enabled-switch', { 'enabled-switch--on': enabled }]"
                     inset
                   />
                 </div>
@@ -1209,6 +1209,14 @@ defineExpose({
     line-height: 20px;
     font-size: 16px;
     color: rgba(0, 0, 0, 0.6);
+  }
+
+  // Vuetify 2's selection-control messages picked up the input's own color automatically
+  // once checked; Vuetify 3 doesn't carry that over, so match it explicitly here.
+  &.enabled-switch--on {
+    :deep(.v-messages__message) {
+      color: rgb(var(--v-theme-primary));
+    }
   }
 }
 

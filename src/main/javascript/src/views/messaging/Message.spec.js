@@ -158,6 +158,40 @@ describe("Message", () => {
     expect(wrapper.text()).toContain("Only One Version");
   });
 
+  it("marks the enabled-switch as 'on' when the message is enabled, matching Vuetify 2's automatic primary-color-when-checked behavior for selection controls", async () => {
+    const { wrapper } = mount({
+      containers: [
+        buildContainer({
+          messages: [
+            buildMessage({
+              configuration: {
+                id: "config-1",
+                enabled: true,
+                type: "CONVERSATION",
+                subject: null,
+                replyTo: [],
+                sendAt: null,
+                status: "READY",
+                toConsentedOnly: false,
+                matchType: "INCLUDE"
+              }
+            })
+          ]
+        })
+      ]
+    });
+    await settle(wrapper);
+
+    expect(wrapper.find(".enabled-switch").classes()).toContain("enabled-switch--on");
+  });
+
+  it("does not mark the enabled-switch as 'on' when the message is disabled", async () => {
+    const { wrapper } = mount();
+    await settle(wrapper);
+
+    expect(wrapper.find(".enabled-switch").classes()).not.toContain("enabled-switch--on");
+  });
+
   it("shows a condition chip instead of 'Only One Version' when there are multiple treatments", async () => {
     const { wrapper } = mount({
       containers: [
