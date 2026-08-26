@@ -778,8 +778,22 @@ onMounted(async () => {
 }
 
 .v-row {
-  margin: 0;
+  /* Vuetify 3 automatically adds margin-top between adjacent sibling v-rows
+     (.v-row + .v-row, part of its gap-based grid system); Vuetify 2 didn't, and
+     none of the rows here want it - every intentional gap in this component
+     comes from an explicit spacing utility class on the row itself instead.
+     Not margin-left/right too: Vuetify 3's .v-row has no default left/right
+     margin to begin with (unlike Vuetify 2's negative-margin gutters), and the
+     nested Toggle row below relies on ml-1 for its own left indent. */
+  margin-top: 0;
   min-width: 100%;
+}
+
+.v-row.my-2 {
+  /* restore my-2's own top margin - the blanket reset above exists only to
+     cancel Vuetify 3's unwanted auto-margin between sibling rows, not to
+     override an explicit spacing utility that's actually wanted here. */
+  margin-top: 8px;
 }
 
 .v-card {
