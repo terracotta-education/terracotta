@@ -1098,6 +1098,14 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+// development zeroed this via a legacy `.container` class Vuetify 2's v-container also
+// applied alongside v-container; Vuetify 3's v-container only applies v-container (whose
+// default padding: 16px on every side - see VGrid/_mixins.sass make-container - then went
+// unopposed once that selector stopped matching anything during the migration).
+.v-container {
+  padding-top: 0 !important;
+}
+
 .header {
   display: flex;
   flex-direction: row;
