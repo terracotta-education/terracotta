@@ -753,6 +753,25 @@ onMounted(async () => {
     flex-wrap: nowrap;
     justify-content: space-between;
 
+    /* ...except when the nested operator Toggle row (rendered when the rule has
+       an AND/OR operator) is also present as a direct flex child here - it
+       inherits min-width: 100% from the blanket .v-row rule above, and nowrap
+       stops it from wrapping onto its own line the way it needs to, forcing
+       variable/comparison/value/actions off the visible edge of the row entirely
+       instead of onto a shared second line. Re-enable wrapping only then; the
+       nowrap-fitting math above still holds once the toggle has its own line. */
+    &:has(> .v-row) {
+      flex-wrap: wrap;
+    }
+
+    /* the global .v-input margin (10px total per input) plus the four items'
+       percentage widths (95% combined) leaves only a few px of slack across the
+       row - enough to still wrap .rule-actions alone even with the fixes above,
+       so trim it specifically here rather than touch .v-input's margin globally. */
+    & .v-input {
+      margin: 0 2px !important;
+    }
+
     & .rule-variable {
       max-width: 45%;
       min-width: 45%;
