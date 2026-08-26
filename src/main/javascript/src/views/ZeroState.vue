@@ -78,9 +78,8 @@
           CREATE AN EXPERIMENT
         </v-btn>
       </v-row>
-      <v-row>
+      <v-row v-if="experimentExportEnabled">
         <v-btn
-          v-if="experimentExportEnabled"
           @click="handleImportExperiment"
           class="experiment-btn"
           color="primary"
