@@ -392,16 +392,16 @@ onMounted(initSortable);
       }
 
       > td:first-child {
-        border-left: 1px solid rgba(0, 0, 0, 0.12);
+        border-left: 1px solid rgba(0, 0, 0, 0.3);
       }
 
       > td:last-child {
-        border-right: 1px solid rgba(0, 0, 0, 0.12);
+        border-right: 1px solid rgba(0, 0, 0, 0.3);
       }
 
       &:first-child > td {
         padding-top: 8px !important;
-        border-top: 1px solid rgba(0, 0, 0, 0.12);
+        border-top: 1px solid rgba(0, 0, 0, 0.3);
 
         &:first-child {
           border-top-left-radius: 10px;
@@ -414,7 +414,7 @@ onMounted(initSortable);
 
       &:last-child > td {
         padding-bottom: 8px !important;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.3);
 
         &:first-child {
           border-bottom-left-radius: 10px;
