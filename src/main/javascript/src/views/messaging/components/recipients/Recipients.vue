@@ -743,31 +743,20 @@ onMounted(async () => {
 
   & .rule-row {
     /* Vuetify 3's default v-row column-gap (24px) doesn't exist in Vuetify 2 -
-       with 4 flex children here (variable/comparison/value/actions) that's 3
-       gaps (~72px) on top of the percentage widths below, which was enough to
-       overflow the row and wrap the last item (actions) onto its own line. Even
-       after zeroing the gap the four items' widths plus each v-input's own 5px
-       side margins leave only a few px of slack (browser-rounding-fragile), so
-       also force nowrap rather than rely on that margin never running out. */
+       with up to 5 flex children here (the optional operator Toggle row, plus
+       variable/comparison/value/actions) that's up to 4 gaps (~96px) on top of
+       the percentage widths below, easily enough to force an unwanted wrap even
+       at comfortable widths. Zero it and let flex-wrap: wrap (the default) do
+       its normal job - comparison/value/actions should move below variable as
+       the row narrows, they just shouldn't be forced there by leftover gap. */
     gap: 0;
-    flex-wrap: nowrap;
     justify-content: space-between;
-
-    /* ...except when the nested operator Toggle row (rendered when the rule has
-       an AND/OR operator) is also present as a direct flex child here - it
-       inherits min-width: 100% from the blanket .v-row rule above, and nowrap
-       stops it from wrapping onto its own line the way it needs to, forcing
-       variable/comparison/value/actions off the visible edge of the row entirely
-       instead of onto a shared second line. Re-enable wrapping only then; the
-       nowrap-fitting math above still holds once the toggle has its own line. */
-    &:has(> .v-row) {
-      flex-wrap: wrap;
-    }
 
     /* the global .v-input margin (10px total per input) plus the four items'
        percentage widths (95% combined) leaves only a few px of slack across the
-       row - enough to still wrap .rule-actions alone even with the fixes above,
-       so trim it specifically here rather than touch .v-input's margin globally. */
+       row at comfortable widths - enough to trigger the same unwanted-wrap
+       issue as the gap above, so trim it specifically here rather than touch
+       .v-input's margin globally. */
     & .v-input {
       margin: 0 2px !important;
     }
