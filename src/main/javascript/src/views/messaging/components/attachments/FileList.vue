@@ -236,6 +236,13 @@ onMounted(async () => {
   max-width: 500px;
 
   & .file-list-subtitle {
+    /* Vuetify's v-list-item-subtitle defaults to a single-line webkit-line-clamp,
+       which was silently clipping this multi-line instructional text (and hiding
+       the Refresh File List button below it) after the first ~16px line. */
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
     white-space: normal;
     flex-direction: column;
     align-items: center;
