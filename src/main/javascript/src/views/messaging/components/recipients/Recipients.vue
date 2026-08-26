@@ -709,6 +709,9 @@ onMounted(async () => {
 
 <style scoped>
 .v-expansion-panels {
+  border: 1px solid #9e9e9e;
+  border-radius: 4px;
+
   :deep(.v-expansion-panel) {
     margin-bottom: 0 !important;
     border: none !important;
