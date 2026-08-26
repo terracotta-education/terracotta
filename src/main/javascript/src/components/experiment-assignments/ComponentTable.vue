@@ -412,6 +412,13 @@ onMounted(initSortable);
         }
       }
 
+      // divider under each component's row group. Vuetify's own CSS zeroes
+      // border-bottom on .v-data-table__tr--expanded from its "overrides" layer, so
+      // this unlayered rule is needed just to win it back
+      &.v-data-table__tr--expanded > td {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+      }
+
       &:last-child > td {
         padding-bottom: 8px !important;
         border-bottom: 1px solid rgba(0, 0, 0, 0.3);
