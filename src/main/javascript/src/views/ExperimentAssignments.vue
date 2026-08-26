@@ -788,10 +788,17 @@ onMounted(async () => {
   }
 }
 
+// Vuetify 2's expanded-item slot auto-wrapped the consumer's <td> in
+// tr.v-data-table__expanded__content. Vuetify 3 renamed the slot to expanded-row and
+// stopped auto-wrapping - the consumer (ComponentTable.vue) now provides its own <tr>
+// (class v-data-table__tr--expanded, matching Vuetify 3's naming for the equivalent
+// internal case) - without which this selector had nothing valid to match at all (the
+// migrated template omitted the <tr> entirely until this fix, producing invalid markup:
+// a <td> with no <tr> parent).
 .v-data-table
   > .v-table__wrapper
   tbody
-  tr.v-data-table__expanded__content {
+  tr.v-data-table__tr--expanded {
   box-shadow: none;
   border-bottom: 0 !important;
 

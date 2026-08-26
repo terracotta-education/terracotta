@@ -181,6 +181,15 @@ describe("ComponentTable", () => {
     expect(wrapper.findAllComponents({ name: "TreatmentRow" }).length).toBeGreaterThan(0);
   });
 
+  it("wraps the expanded-row slot content in its own <tr> (required by Vuetify 3's expanded-row slot contract, unlike Vuetify 2's auto-wrapping expanded-item slot)", () => {
+    mountTable([assignmentRow()]);
+
+    const expandedTr = wrapper.find("tr.v-data-table__tr--expanded");
+
+    expect(expandedTr.exists()).toBe(true);
+    expect(expandedTr.find("td.treatments-table-container").exists()).toBe(true);
+  });
+
   it("re-initializes expandedRows when the rows prop changes", async () => {
     mountTable([assignmentRow()]);
 

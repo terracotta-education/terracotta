@@ -43,34 +43,36 @@
       </template>
 
       <template #expanded-row="{ item: row, columns }">
-        <td
-          :colspan="columns.length"
-          class="treatments-table-container"
-        >
-          <v-data-table
-            :headers="treatmentHeaders"
-            :items="row.treatments"
-            :items-per-page="-1"
-            item-value="treatmentId"
-            class="treatment-row bg-grey-lighten-5"
-            hide-default-header
-            hide-default-footer
+        <tr class="v-data-table__tr--expanded">
+          <td
+            :colspan="columns.length"
+            class="treatments-table-container"
           >
-            <template #item.title="{ item: treatment }">
-              <TreatmentRow
-                :row="row"
-                :treatment="treatment"
-                :exposure="exposure"
-                :conditions="conditions"
-                :condition-color-mapping="conditionColorMapping"
-                :single-condition-experiment="singleConditionExperiment"
-                :display-treatment-menu="displayTreatmentMenu"
-                @edit-treatment="$emit('edit-treatment', $event)"
-                @preview-treatment="$emit('preview-treatment', $event)"
-              />
-            </template>
-          </v-data-table>
-        </td>
+            <v-data-table
+              :headers="treatmentHeaders"
+              :items="row.treatments"
+              :items-per-page="-1"
+              item-value="treatmentId"
+              class="treatment-row bg-grey-lighten-5"
+              hide-default-header
+              hide-default-footer
+            >
+              <template #item.title="{ item: treatment }">
+                <TreatmentRow
+                  :row="row"
+                  :treatment="treatment"
+                  :exposure="exposure"
+                  :conditions="conditions"
+                  :condition-color-mapping="conditionColorMapping"
+                  :single-condition-experiment="singleConditionExperiment"
+                  :display-treatment-menu="displayTreatmentMenu"
+                  @edit-treatment="$emit('edit-treatment', $event)"
+                  @preview-treatment="$emit('preview-treatment', $event)"
+                />
+              </template>
+            </v-data-table>
+          </td>
+        </tr>
       </template>
 
       <template #item.treatments="{ item: row }">
