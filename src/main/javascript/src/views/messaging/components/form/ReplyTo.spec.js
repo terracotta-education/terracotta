@@ -119,6 +119,27 @@ describe("ReplyTo", () => {
     expect(wrapper.vm.isValid()).toBe(true);
   });
 
+  it("disables the combobox when read-only, matching the other message form components (Type/ToConsentedOnly/Scheduler all use :disabled)", async () => {
+    wrapper = await mountReplyTo({
+      replyTos: [{ id: 1, email: "a@example.com" }],
+      readOnly: true
+    });
+
+    expect(wrapper.findComponent({ name: "VCombobox" }).props("disabled")).toBe(true);
+  });
+
+  it("does not render closable chips when read-only, even with multiple reply-to addresses", async () => {
+    wrapper = await mountReplyTo({
+      replyTos: [
+        { id: 1, email: "a@example.com" },
+        { id: 2, email: "b@example.com" }
+      ],
+      readOnly: true
+    });
+
+    expect(wrapper.findAll(".v-chip__close").length).toBe(0);
+  });
+
   it("removes the chip from the combobox on close-button click and emits the updated list", async () => {
     wrapper = await mountReplyTo({
       replyTos: [

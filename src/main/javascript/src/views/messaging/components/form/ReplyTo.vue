@@ -13,7 +13,7 @@
       v-model="replyToSelection"
       v-model:search="newEmail"
       :items="replyTo"
-      :readonly="readOnly"
+      :disabled="readOnly"
       :persistent-hint="true"
       :hide-no-data="true"
 
@@ -86,7 +86,7 @@ const hasErrors = ref(false);
 const isLoaded = ref(false);
 
 const allowRemoveReplyTo = computed(() => {
-  return replyTo.value.length > 1;
+  return !props.readOnly && replyTo.value.length > 1;
 });
 
 const errorMessages = computed(() => {
