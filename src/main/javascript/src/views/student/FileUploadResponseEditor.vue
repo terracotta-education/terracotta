@@ -20,6 +20,7 @@
               class="d-flex flex-column"
               align="center"
               justify="center"
+              dense
             >
               <v-btn
                 :loading="isSelecting"
@@ -46,6 +47,7 @@
               class="d-flex flex-column"
               align="center"
               justify="center"
+              dense
             >
               <p class="drag-drop-text">
                 or drag and drop here
@@ -64,6 +66,7 @@
               class="d-flex flex-column"
               align="center"
               justify="center"
+              dense
             >
               <h2 v-if="isUploading">
                 Uploading...
@@ -112,6 +115,7 @@
         class="d-flex flex-column"
         align="center"
         justify="center"
+        dense
       >
         <p>
           Uploaded files cannot be larger than 10MB
@@ -127,6 +131,7 @@
               class="d-flex flex-column"
               align="center"
               justify="center"
+              dense
             >
               <h2>
                 File submitted:
