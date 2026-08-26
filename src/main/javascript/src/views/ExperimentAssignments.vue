@@ -803,7 +803,11 @@ onMounted(async () => {
   border-bottom: 0 !important;
 
   > td {
-    background-color: #fafafa !important;
+    // matches the nested treatment table's own background (map.get($grey, "lightest"),
+    // set in ComponentTable.vue) - a mismatched shade here was visible as a lighter
+    // strip wherever this td has padding the nested table doesn't fill (e.g. the last
+    // row's added bottom padding for the rounded card corner)
+    background-color: map.get($grey, "lightest") !important;
 
     .v-table__wrapper {
       border: none !important;
