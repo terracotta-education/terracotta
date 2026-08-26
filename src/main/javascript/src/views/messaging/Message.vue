@@ -1205,9 +1205,16 @@ defineExpose({
 }
 
 .enabled-switch {
+  // Vuetify 3's .v-input__details adds a structural padding-top/min-height that
+  // pushes extra empty space above the text (Vuetify 2 had no such gap here).
+  :deep(.v-input__details) {
+    padding-top: 0;
+    min-height: 0;
+  }
+
   :deep(.v-messages__message) {
-    line-height: 20px;
-    font-size: 16px;
+    line-height: 16px;
+    font-size: 12px;
     color: rgba(0, 0, 0, 0.6);
   }
 
