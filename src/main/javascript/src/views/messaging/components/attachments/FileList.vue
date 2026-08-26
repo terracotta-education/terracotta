@@ -46,6 +46,7 @@
 
               <v-btn
                 :disabled="isRefreshingFiles || readOnly"
+                :loading="isRefreshingFiles"
                 color="primary"
                 class="mt-3 px-0"
                 variant="text"
@@ -246,6 +247,13 @@ onMounted(async () => {
     white-space: normal;
     flex-direction: column;
     align-items: center;
+    /* v-list-item-subtitle defaults to medium-emphasis opacity (~0.6), which was
+       muting the link's color below - a child's opacity can never exceed 1 to
+       counteract it, so reset it here and replicate the dimming via color
+       instead (which the link's own color declaration can independently win over,
+       unlike opacity). Keeps the paragraph text at the same dimmer look as before. */
+    opacity: 1;
+    color: rgba(0, 0, 0, 0.6);
 
     a {
       color: rgb(var(--v-theme-primary));

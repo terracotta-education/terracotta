@@ -156,6 +156,30 @@ describe("FileList", () => {
     expect(messageContentAttachmentService.getAll).toHaveBeenCalledTimes(1);
   });
 
+  it("shows a loading spinner on the Refresh File List button while the fetch is in flight", async () => {
+    const wrapper = mountWithContainer();
+    await flushPromises();
+    await openMenu(wrapper);
+
+    let resolveFetch;
+    messageContentAttachmentService.getAll.mockReturnValue(
+      new Promise(resolve => { resolveFetch = resolve; })
+    );
+
+    const refreshButton = wrapper
+      .findAllComponents({ name: "VBtn" })
+      .find(btn => btn.text().includes("Refresh File List"));
+
+    await refreshButton.trigger("click");
+
+    expect(refreshButton.props("loading")).toBe(true);
+
+    resolveFetch([]);
+    await flushPromises();
+
+    expect(refreshButton.props("loading")).toBe(false);
+  });
+
   it("disables the checkboxes and refresh button when readOnly", async () => {
     const wrapper = mountWithContainer({ readOnly: true });
     await flushPromises();
