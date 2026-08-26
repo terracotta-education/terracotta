@@ -769,7 +769,12 @@ onMounted(async () => {
     & .rule-comparison,
     & .rule-value {
       max-width: 20%;
-      min-width: 20%;
+      /* not a plain 20% - that never varies relative to the row, so these two
+         could never individually run out of room and wrap on their own, no
+         matter how narrow the row got. A pixel floor lets them behave like
+         rule-actions already does: fit inline while there's room, wrap below
+         once the row can no longer fit their minimum usable width. */
+      min-width: max(20%, 120px);
     }
   }
 
