@@ -56,9 +56,8 @@
         </div>
       </v-row>
 
-      <v-row>
+      <v-row v-if="experimentDataExportRequest.showAlert">
         <div
-          v-if="experimentDataExportRequest.showAlert"
           class="alert-data-export-request pb-2 px-3"
         >
           <v-alert
