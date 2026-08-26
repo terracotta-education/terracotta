@@ -1212,6 +1212,13 @@ defineExpose({
     min-height: 0;
   }
 
+  // Vuetify 3's .v-messages applies opacity: medium-emphasis (~0.6) by default,
+  // washing out the explicit color set below on top of it. Reset it so the color
+  // values here are the actual rendered color, not further dimmed.
+  :deep(.v-messages) {
+    opacity: 1;
+  }
+
   :deep(.v-messages__message) {
     line-height: 16px;
     font-size: 12px;
