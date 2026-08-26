@@ -133,6 +133,64 @@ describe("PipedTextFileUploader", () => {
     expect(useAlertStore().alertMessage).toBe("Piped text file removed");
   });
 
+  it("disables the Select CSV button and file input when read-only", () => {
+    const pinia = setupStores();
+
+    wrapper = mountComponent(PipedTextFileUploader, {
+      props: { ...baseProps, readOnly: true },
+      pinia
+    });
+
+    const selectBtn = wrapper
+      .findAllComponents({ name: "VBtn" })
+      .find(b => b.text() === "Select CSV");
+
+    expect(selectBtn.props("disabled")).toBe(true);
+    expect(wrapper.find("input[type='file']").attributes("disabled")).toBeDefined();
+  });
+
+  it("does not toggle drop-zone--over or accept a dropped file when read-only", async () => {
+    const pinia = setupStores();
+
+    wrapper = mountComponent(PipedTextFileUploader, {
+      props: { ...baseProps, readOnly: true },
+      pinia
+    });
+
+    const dropZone = wrapper.find(".drop-zone");
+
+    await dropZone.trigger("dragenter");
+    expect(dropZone.classes()).not.toContain("drop-zone--over");
+
+    const file = makeFile("tags.csv", "text/csv");
+
+    await dropZone.trigger("drop", { dataTransfer: { files: [file] } });
+
+    expect(wrapper.find(".drop-zone__uploaded").exists()).toBe(false);
+  });
+
+  it("disables the remove and upload buttons for an already-selected file once read-only", async () => {
+    const pinia = setupStores();
+
+    wrapper = mountComponent(PipedTextFileUploader, { props: baseProps, pinia });
+
+    const file = makeFile("tags.csv", "text/csv");
+
+    await wrapper.find(".drop-zone").trigger("drop", {
+      dataTransfer: { files: [file] }
+    });
+
+    await wrapper.setProps({ readOnly: true });
+
+    const removeBtn = wrapper.find(".icon-file-remove");
+    const uploadBtn = wrapper
+      .findAllComponents({ name: "VBtn" })
+      .find(b => b.text() === "Upload CSV");
+
+    expect(removeBtn.attributes("disabled")).toBeDefined();
+    expect(uploadBtn.props("disabled")).toBe(true);
+  });
+
   it("uploads the selected file with the correct payload and shows a success alert", async () => {
     const pinia = setupStores();
     useMessageStore().uploadPipedText = vi.fn().mockResolvedValue({

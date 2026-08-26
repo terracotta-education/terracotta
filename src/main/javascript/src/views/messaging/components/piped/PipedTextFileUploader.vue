@@ -24,13 +24,14 @@
             'drop-zone',
             dragging ? 'drop-zone--over' : ''
           ]"
-          @dragenter.prevent="dragging = true"
+          @dragenter.prevent="handleDragEnter"
           @dragover.prevent
           @dragleave.prevent="dragging = false"
           @drop.prevent="onChange"
         >
           <div class="drop-zone__info">
             <v-btn
+              :disabled="readOnly"
               class="mb-3"
               elevation="0"
               color="primary"
@@ -46,6 +47,7 @@
             ref="fileInput"
             type="file"
             accept=".csv,text/csv"
+            :disabled="readOnly"
             @change="onChange"
           >
         </div>
@@ -66,6 +68,7 @@
 
               <div>
                 <v-btn
+                  :disabled="readOnly"
                   class="icon-file-remove"
                   elevation="0"
                   icon="mdi-close"
@@ -78,7 +81,7 @@
 
           <div class="btn-upload mx-auto">
             <v-btn
-              :disabled="isUploading"
+              :disabled="isUploading || readOnly"
               class="my-3"
               elevation="0"
               color="primary"
@@ -172,7 +175,22 @@ const isCsvFile = file => {
   );
 };
 
+const handleDragEnter = () => {
+  if (props.readOnly) {
+    return;
+  }
+
+  dragging.value = true;
+};
+
 const onChange = event => {
+  // the drop-zone <div> has no native way to block a drop while read-only (unlike
+  // the file input's disabled attribute), so guard here too.
+  if (props.readOnly) {
+    dragging.value = false;
+    return;
+  }
+
   // event.target is the overlaid file <input> even for a drop (it's what's actually
   // under the pointer) - its .files is an empty-but-truthy FileList here, since the
   // @drop.prevent above suppresses the browser's native "set input.files from drop"
