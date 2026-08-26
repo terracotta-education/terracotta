@@ -16,7 +16,7 @@
         <v-chip
           class="ml-4"
           color="primary"
-          label
+          variant="flat"
           size="small"
         >
           {{ ruleCount }} rule{{ ruleCount !== 1 ? "s" : "" }} applied
@@ -707,19 +707,23 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .v-expansion-panels {
   border: 1px solid #9e9e9e;
   border-radius: 4px;
+}
 
-  :deep(.v-expansion-panel) {
-    margin-bottom: 0 !important;
-    border: none !important;
-  }
+// .v-expansion-panel is <v-expansion-panel>'s own root, rendered directly in this
+// template, so it already carries this component's scope attribute - :deep() here
+// would require a scoped ancestor further up, which doesn't exist for a root element,
+// and never matches.
+.v-expansion-panel {
+  margin-bottom: 0 !important;
+  border: none !important;
+}
 
-  :deep(.v-expansion-panel-text__wrapper) {
-    padding: 10px 20px;
-  }
+:deep(.v-expansion-panel-text__wrapper) {
+  padding: 10px 20px;
 }
 
 .recipients-header {
