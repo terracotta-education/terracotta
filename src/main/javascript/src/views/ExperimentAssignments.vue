@@ -22,7 +22,7 @@
               :value="eidx"
               class="section-components py-3 px-3"
             >
-              <div class="d-flex justify-space-between">
+              <div class="d-flex justify-space-between align-center">
                 <h3>Components</h3>
 
                 <div
