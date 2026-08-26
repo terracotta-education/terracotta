@@ -64,15 +64,13 @@
             v-for="file in files"
             :key="file.lmsId"
           >
-            <template #prepend>
-              <v-checkbox
-                v-model="selectedFiles"
-                :label="label(file)"
-                :value="file.lmsId"
-                :disabled="readOnly"
-                hide-details
-              />
-            </template>
+            <v-checkbox
+              v-model="selectedFiles"
+              :label="label(file)"
+              :value="file.lmsId"
+              :disabled="readOnly"
+              hide-details
+            />
           </v-list-item>
         </v-list>
 
@@ -241,6 +239,10 @@ onMounted(async () => {
     white-space: normal;
     flex-direction: column;
     align-items: center;
+
+    a {
+      color: rgb(var(--v-theme-primary));
+    }
   }
 }
 </style>

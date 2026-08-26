@@ -172,6 +172,16 @@ describe("FileList", () => {
     });
   });
 
+  it("does not render the checkbox inside the prepend slot, which doesn't get flex-constrained to the list item's width and let long filenames overflow past the menu instead of wrapping", async () => {
+    const wrapper = mountWithContainer();
+    await flushPromises();
+    await openMenu(wrapper);
+
+    // the menu's content teleports outside wrapper's own DOM subtree, like the
+    // "links to the container's My Files URL" test below has to account for too.
+    expect(document.querySelector(".v-list-item__prepend")).toBeNull();
+  });
+
   it("links to the container's My Files URL", async () => {
     const wrapper = mountWithContainer();
     await flushPromises();
