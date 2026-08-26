@@ -783,7 +783,13 @@ onMounted(async () => {
     align-items: center;
     justify-content: left;
     max-width: 10%;
-    min-width: 10%;
+    /* same fix as rule-comparison/rule-value: a plain 10% never varies relative
+       to the row, so its two fit-content buttons (Clear + the delete icon, natural
+       combined width ~130px) would overflow past the row's right edge rather
+       than the row wrapping this below - not fitting inside its own box, but
+       still declared as "fitting" the row from the flex algorithm's point of
+       view since 10% was satisfied regardless of the overflowing content. */
+    min-width: max(10%, 130px);
     max-height: 56px;
 
     & .v-btn {
