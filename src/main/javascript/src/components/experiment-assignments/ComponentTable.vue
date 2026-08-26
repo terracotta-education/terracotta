@@ -382,23 +382,47 @@ onMounted(initSortable);
     padding-right: 0;
   }
 
+  // real per-cell borders (not outline+border-radius on the tbody itself) so the
+  // rounded card border renders reliably across browsers - table-row-group boxes
+  // don't consistently honor border-radius on an outline
   > tbody {
-    display: table-row-group;
-    outline: 1px solid rgba(0, 0, 0, 0.12);
-    outline-offset: -1px;
-    border-radius: 10px;
-
     > tr {
       &:hover {
         background: unset !important;
       }
 
+      > td:first-child {
+        border-left: 1px solid rgba(0, 0, 0, 0.12);
+      }
+
+      > td:last-child {
+        border-right: 1px solid rgba(0, 0, 0, 0.12);
+      }
+
       &:first-child > td {
         padding-top: 8px !important;
+        border-top: 1px solid rgba(0, 0, 0, 0.12);
+
+        &:first-child {
+          border-top-left-radius: 10px;
+        }
+
+        &:last-child {
+          border-top-right-radius: 10px;
+        }
       }
 
       &:last-child > td {
         padding-bottom: 8px !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+
+        &:first-child {
+          border-bottom-left-radius: 10px;
+        }
+
+        &:last-child {
+          border-bottom-right-radius: 10px;
+        }
       }
     }
   }

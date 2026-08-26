@@ -122,26 +122,31 @@
         }
       }
 
-      // outline (not a positioned ::before overlay) so the rounded border tracks the
-      // tbody's actual box instead of assuming a fixed header height - see the identical
+      // real per-cell borders (not outline+border-radius on the tbody itself) so the
+      // rounded card border renders reliably across browsers - table-row-group boxes
+      // don't consistently honor border-radius on an outline - see the identical
       // technique/rationale in ComponentTable.vue
       > tbody {
-        display: table-row-group;
-        outline: 1px solid rgba(0, 0, 0, 0.12);
-        outline-offset: -1px;
-        border-radius: 10px;
-
         > tr {
           &:hover {
             background: unset !important;
           }
 
+          > td:first-child {
+            border-left: 1px solid rgba(0, 0, 0, 0.12);
+          }
+
+          > td:last-child {
+            border-right: 1px solid rgba(0, 0, 0, 0.12);
+          }
+
           &:first-child {
             > td {
               padding-top: 8px !important;
+              border-top: 1px solid rgba(0, 0, 0, 0.12);
 
               // clip the hover fill (Vuetify paints it as a per-td ::after, not a plain
-              // background - it won't otherwise respect the tbody outline's rounded corner
+              // background - it won't otherwise respect the cell's own rounded corner)
               &:first-child {
                 border-top-left-radius: 10px;
                 overflow: hidden;
@@ -157,6 +162,7 @@
           &:last-child {
             > td {
               padding-bottom: 8px !important;
+              border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 
               &:first-child {
                 border-bottom-left-radius: 10px;
