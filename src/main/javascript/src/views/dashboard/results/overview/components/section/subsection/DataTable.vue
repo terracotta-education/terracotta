@@ -198,15 +198,22 @@
             </div>
           </td>
         </tr>
-      </template>
-      <template
-        v-slot:expanded-row="{ item, columns }"
-      >
-        <data-table-treatment
-          v-if="hasTreatments(item)"
-          :headers="columns"
-          :item="item"
-        />
+
+        <!--
+          Vuetify 3's #expanded-row slot is only invoked by its own built-in
+          per-row rendering - a monolithic #item override like this one (as
+          opposed to per-column #item.<key> slots, e.g. ComponentTable.vue)
+          replaces that rendering entirely, so #expanded-row is silently never
+          called at all. Rendering the expanded content as an extra sibling
+          <tr> here, gated on the same isExpanded(item) the toggle button
+          uses, is what #expanded-row was supposed to do.
+        -->
+        <tr v-if="isExpanded(item) && hasTreatments(item)">
+          <data-table-treatment
+            :headers="columns"
+            :item="item"
+          />
+        </tr>
       </template>
       <template #bottom></template>
     </v-data-table>
