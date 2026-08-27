@@ -43,7 +43,7 @@
       </template>
 
       <template #expanded-row="{ item: row, columns }">
-        <tr class="v-data-table__tr--expanded">
+        <tr :class="['v-data-table__tr--expanded', { 'expanded-row--mobile': isMobile }]">
           <td
             :colspan="columns.length"
             class="treatments-table-container"
@@ -447,10 +447,17 @@ onMounted(initSortable);
         &:first-child {
           border-top-left-radius: 10px;
         }
+      }
 
-        &:last-child {
-          border-top-right-radius: 10px;
-        }
+      // desktop only: rounds the top-right corner of the table's very first
+      // row. In mobile view that same row is "Component Name" - already
+      // rounded (both corners, since it's the only visually full-width
+      // element at the top of the stack) by the per-component rule below.
+      // Applying this there instead rounded the expand chevron's own small
+      // box, since that's the row's structurally-last td in mobile - a
+      // stray rounded corner with nothing else around it to make sense of.
+      &:first-child:not(.v-data-table__tr--mobile) > td:last-child {
+        border-top-right-radius: 10px;
       }
 
       // in mobile view, one component's row-of-fields (Component Name,
@@ -499,6 +506,21 @@ onMounted(initSortable);
         &:last-child {
           border-bottom-right-radius: 10px;
         }
+      }
+
+      // mobile only: round every component's bottom corners (not just the
+      // table's very last row) so each one reads as a complete, distinct
+      // card - mirroring the per-component top-rounding above. <tr> can't
+      // take a margin to put real whitespace between cards, so a thick
+      // white "spacer" border stands in for one instead of the thin 1px
+      // divider above; with both corners now rounded on every card, that
+      // divider line isn't needed to tell them apart anymore. Written after
+      // the :last-child rule above so it also wins (equal specificity, so
+      // source order decides) for the table's actual last component too.
+      &.expanded-row--mobile > td {
+        border-bottom: 16px solid white;
+        border-bottom-left-radius: 10px;
+        border-bottom-right-radius: 10px;
       }
     }
   }
