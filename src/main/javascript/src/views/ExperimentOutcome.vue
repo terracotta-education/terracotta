@@ -119,6 +119,8 @@ onBeforeRouteUpdate(async to => {
     flex-shrink: 0;
     padding: 30px;
     display: flex;
+    flex-wrap: wrap;
+    row-gap: 16px;
     justify-content: space-between;
 
     a {
