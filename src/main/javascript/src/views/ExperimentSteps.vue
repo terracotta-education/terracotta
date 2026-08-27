@@ -236,10 +236,12 @@ onBeforeRouteUpdate(async (to, from, next) => {
     position: -webkit-sticky;
     top: 0;
     width: 100%;
-    height: 50px;
+    min-height: 50px;
     grid-area: nav;
     padding: 30px;
     display: flex;
+    flex-wrap: wrap;
+    row-gap: 8px;
     justify-content: space-between;
     align-items: center;
     z-index: 100;

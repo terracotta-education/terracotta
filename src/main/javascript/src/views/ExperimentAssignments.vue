@@ -22,7 +22,7 @@
               :value="eidx"
               class="section-components py-3 px-3"
             >
-              <div class="d-flex justify-space-between align-center">
+              <div class="components-header d-flex justify-space-between align-center">
                 <h3>Components</h3>
 
                 <div
@@ -980,8 +980,21 @@ a.integration-preview-link {
   color: rgba(0, 0, 0, 0.54) !important;
 }
 
+div.components-header {
+  /* the heading and the Add Message/Add Assignment buttons have nowhere to
+     go at narrow widths without this - the buttons row's max-width:
+     fit-content held its own preferred size regardless of available space,
+     pushing it off-screen to the right instead of dropping below. */
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
 div.component-buttons {
   max-width: fit-content;
+  /* lets Add Message/Add Assignment stack instead of overflowing off-screen
+     once the two buttons together no longer fit even on their own row. */
+  flex-wrap: wrap;
+  row-gap: 8px;
 }
 
 .swal2-styled {
