@@ -428,6 +428,18 @@ onMounted(initSortable);
         border-right: 1px solid rgba(0, 0, 0, 0.2);
       }
 
+      // in mobile view every field is its own full-width stacked block, not
+      // a column sharing the row's left/right edge with its siblings - the
+      // two rules above only reach the row's structurally-first/last td
+      // (Component Name at the top, the expand chevron at the bottom),
+      // leaving Treatments/Due Date/Status/Actions in between with no side
+      // border at all. Every mobile td needs its own left/right border for
+      // the card's sides to read as one continuous line down the stack.
+      &.v-data-table__tr--mobile > td {
+        border-left: 1px solid rgba(0, 0, 0, 0.2);
+        border-right: 1px solid rgba(0, 0, 0, 0.2);
+      }
+
       &:first-child > td {
         padding-top: 8px !important;
         border-top: 1px solid rgba(0, 0, 0, 0.2);
@@ -443,16 +455,28 @@ onMounted(initSortable);
 
       // in mobile view, one component's row-of-fields (Component Name,
       // Treatments, Due Date, ...) stacks as several full-width label:value
-      // lines instead of a single compact row, so the table's usual
-      // component-to-component divider (the border-bottom below, on the
-      // *previous* component's expanded row) reads as just another routine
-      // line between two fields - nothing marks where a NEW component's
-      // stack begins. Give every mobile row (not just the table's very
-      // first) the same top border/rounded-corner treatment above, so each
-      // component still reads as its own card the way it does on desktop.
+      // lines instead of a single compact row. Vuetify's own CSS zeroes
+      // border-bottom on every non-last mobile td, so without this, only the
+      // table's literal first <tr> got dividers between its own fields - as
+      // an accidental side effect of the border-top rule below applying to
+      // ALL of that one row's children, not because it was actually meant to
+      // provide inter-field dividers. Every mobile td needs its own explicit
+      // top divider so every component's fields separate consistently, not
+      // just the first component's.
+      &.v-data-table__tr--mobile > td {
+        border-top: 1px solid rgba(0, 0, 0, 0.2);
+      }
+
+      // component-to-component boundary: the divider above accounts for
+      // fields *within* one component, but nothing marked where a NEW
+      // component's stack begins - the divider after the *previous*
+      // component's expanded content just looked like another routine
+      // field-to-field line. Give every mobile row's first field the same
+      // rounded-card treatment the table's very first row already had, so
+      // each component still reads as its own card the way it does on
+      // desktop.
       &.v-data-table__tr--mobile.assignment-row > td:first-child {
         padding-top: 8px !important;
-        border-top: 1px solid rgba(0, 0, 0, 0.2);
         border-top-left-radius: 10px;
         border-top-right-radius: 10px;
       }
