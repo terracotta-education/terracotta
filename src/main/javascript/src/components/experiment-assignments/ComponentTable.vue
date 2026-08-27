@@ -517,10 +517,15 @@ onMounted(initSortable);
       // divider line isn't needed to tell them apart anymore. Written after
       // the :last-child rule above so it also wins (equal specificity, so
       // source order decides) for the table's actual last component too.
+      // overflow: hidden clips the nested treatments <v-data-table>'s own
+      // grey background to this radius - without it, that background's
+      // square corners painted right over the curve, so the bottom edge
+      // looked flat even with the radius correctly set.
       &.expanded-row--mobile > td {
-        border-bottom: 16px solid white;
+        border-bottom: 32px solid white;
         border-bottom-left-radius: 10px;
         border-bottom-right-radius: 10px;
+        overflow: hidden;
       }
     }
   }
