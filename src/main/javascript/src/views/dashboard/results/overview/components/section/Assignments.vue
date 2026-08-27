@@ -60,7 +60,14 @@ const rows = computed(() => {
           border-bottom: none !important;
         }
       }
-      & tr:last-child {
+      /* excludes Vuetify's own "No data available" placeholder row - it's
+         also technically tr:last-child when the table is empty, but isn't
+         the real "Overall" summary row this highlight is meant for. Without
+         this, the deliberate 20px box-shadow overflow below (meant to reach
+         the table's own outer rounded border from a genuine last data row)
+         overshot past the placeholder row's border instead, since it isn't
+         sitting in that same surrounding row context. */
+      & tr:last-child:not(.v-data-table-rows-no-data) {
         position: relative;
         background-color: #f6fbff !important;
         border-bottom-left-radius: 10px;
