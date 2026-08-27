@@ -158,12 +158,18 @@
                 border-top-left-radius: 10px;
                 overflow: hidden;
               }
-
-              &:last-child {
-                border-top-right-radius: 10px;
-                overflow: hidden;
-              }
             }
+          }
+
+          // desktop only: in a table whose rows can switch to Vuetify's mobile card
+          // layout (e.g. ComponentTable.vue's data-table-assignments), this row's
+          // structurally-last td in mobile is a small expand-chevron toggle, not a
+          // meaningful visual "right edge" - rounding it produces a stray corner with
+          // nothing else around it to make sense of. See the identical fix/rationale
+          // in ComponentTable.vue's own scoped styles.
+          &:first-child:not(.v-data-table__tr--mobile) > td:last-child {
+            border-top-right-radius: 10px;
+            overflow: hidden;
           }
 
           // divider under each component's row group. Vuetify's own CSS zeroes
