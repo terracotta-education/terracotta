@@ -12,7 +12,7 @@
 
     <template v-if="experiment">
       <div class="summary-panels">
-        <v-expansion-panels>
+        <v-expansion-panels flat>
           <v-expansion-panel
             class="py-3 mb-3"
             @click="panelExpansion"
@@ -27,7 +27,7 @@
           </v-expansion-panel>
         </v-expansion-panels>
 
-        <v-expansion-panels>
+        <v-expansion-panels flat>
           <v-expansion-panel
             class="py-3 mb-3"
             @click="panelExpansion"
@@ -42,7 +42,7 @@
           </v-expansion-panel>
         </v-expansion-panels>
 
-        <v-expansion-panels v-if="conditions.length > 0">
+        <v-expansion-panels v-if="conditions.length > 0" flat>
           <v-expansion-panel
             class="py-3 mb-3"
             @click="panelExpansion"
@@ -76,7 +76,7 @@
           </v-expansion-panel>
         </v-expansion-panels>
 
-        <v-expansion-panels>
+        <v-expansion-panels flat>
           <v-expansion-panel
             class="py-3 mb-6"
             @click="panelExpansion"
