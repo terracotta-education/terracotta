@@ -297,5 +297,21 @@ onBeforeRouteUpdate(async (to, from, next) => {
     background: map.get($grey, "lightest");
     padding: 30px 45px;
   }
+
+  // below this, the "auto" sidebar column doesn't have room for its step
+  // labels ("Section 1: Design", "Selection Method", etc.) next to the 1fr
+  // article column, and a CSS grid's "auto" track won't shrink/wrap below
+  // its content's own width - it forced the whole page to scroll
+  // horizontally instead. Stack the sidebar above the article as a normal
+  // (non-sticky, non-100vh) block so it collapses down instead. 636px
+  // matches this app's existing mobile-table breakpoint (ComponentTable.vue).
+  @media (max-width: 636px) {
+    display: block;
+
+    > aside {
+      position: static;
+      height: auto;
+    }
+  }
 }
 </style>
