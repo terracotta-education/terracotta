@@ -748,8 +748,14 @@ onMounted(async () => {
        the percentage widths below, easily enough to force an unwanted wrap even
        at comfortable widths. Zero it and let flex-wrap: wrap (the default) do
        its normal job - comparison/value/actions should move below variable as
-       the row narrows, they just shouldn't be forced there by leftover gap. */
-    gap: 0;
+       the row narrows, they just shouldn't be forced there by leftover gap.
+       Only the column-gap (horizontal, between items sharing a line) needs to
+       be zero though - row-gap (vertical, between wrapped lines) should match
+       the Toggle row's own my-2 margin-bottom (8px) above it, not collapse to
+       nothing once variable/comparison/value/actions start wrapping onto their
+       own lines at narrow widths. */
+    column-gap: 0;
+    row-gap: 8px;
     justify-content: space-between;
 
     /* the global .v-input margin (10px total per input) plus the four items'
@@ -759,6 +765,14 @@ onMounted(async () => {
        .v-input's margin globally. */
     & .v-input {
       margin: 0 2px !important;
+    }
+
+    /* the Toggle row's own my-2 margin-bottom (8px) would otherwise compound
+       with row-gap above (also 8px) for this one transition only, making the
+       gap below the Toggle row twice as tall as every other wrapped-line gap
+       in this row. row-gap alone is enough once this is zeroed. */
+    & > .v-row.my-2 {
+      margin-bottom: 0;
     }
 
     & .rule-variable {
