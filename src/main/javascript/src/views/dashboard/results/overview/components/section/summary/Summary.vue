@@ -76,12 +76,15 @@ const resultsOverviewSummaryConditionsCount = computed(() => {
 <style lang="scss" scoped>
 div.row-summary {
   justify-content: space-between;
-  // space-between already distributes all the spacing between cards - Vuetify
-  // 3's own default v-row gap (24px) stacked on top of that, quietly eating
-  // into the slack this row needs to fit 4 cards at exactly 24% each without
-  // wrapping (min-width below is a hard floor once gap eats past what
-  // space-between leaves for it).
-  gap: 0;
+  // space-between already distributes the horizontal spacing between cards -
+  // Vuetify 3's own default v-row gap (24px) stacked on top of that, quietly
+  // eating into the slack this row needs to fit 4 cards at exactly 24% each
+  // without wrapping (min-width below is a hard floor once gap eats past
+  // what space-between leaves for it). row-gap is unrelated to that slack -
+  // kept (at the same 24px default) so cards that wrap to their own line
+  // don't end up touching the row above.
+  column-gap: 0;
+  row-gap: 24px;
   > .v-col {
     // max-width alone had no floor, so these 4 columns always fit
     // side-by-side no matter how narrow the row got - each one just kept
