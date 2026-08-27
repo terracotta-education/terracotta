@@ -1068,5 +1068,15 @@ a {
 }
 .right-side {
   min-width: fit-content;
+  // Import Experiment/New Experiment/Help wrap via plain inline reflow with
+  // no way to control the gap between wrapped lines - once they no longer
+  // fit on one line, they stack with the buttons touching directly. Make
+  // this an actual wrapping flex row so row-gap can put real space between
+  // them.
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  row-gap: 16px;
 }
 </style>
