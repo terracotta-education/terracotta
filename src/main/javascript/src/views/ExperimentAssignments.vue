@@ -986,7 +986,7 @@ div.components-header {
      fit-content held its own preferred size regardless of available space,
      pushing it off-screen to the right instead of dropping below. */
   flex-wrap: wrap;
-  row-gap: 8px;
+  row-gap: 16px;
 }
 
 div.component-buttons {
@@ -994,7 +994,7 @@ div.component-buttons {
   /* lets Add Message/Add Assignment stack instead of overflowing off-screen
      once the two buttons together no longer fit even on their own row. */
   flex-wrap: wrap;
-  row-gap: 8px;
+  row-gap: 16px;
 }
 
 .swal2-styled {

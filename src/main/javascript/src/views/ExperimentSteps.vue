@@ -241,7 +241,7 @@ onBeforeRouteUpdate(async (to, from, next) => {
     padding: 30px;
     display: flex;
     flex-wrap: wrap;
-    row-gap: 8px;
+    row-gap: 16px;
     justify-content: space-between;
     align-items: center;
     z-index: 100;

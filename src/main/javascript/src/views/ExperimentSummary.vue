@@ -1109,6 +1109,12 @@ defineExpose({
   display: flex;
   flex-direction: row;
   align-items: center;
+  /* the Export Data/Export Experiment/Help/Save & Exit button group didn't
+     wrap between its own children, so once the outer v-row wrapped it below
+     the title it still overflowed off the right edge on its own line
+     instead of stacking further. */
+  flex-wrap: wrap;
+  row-gap: 16px;
 }
 
 .panel-overview {
@@ -1236,7 +1242,9 @@ div.container-section-summary {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100px;
+  /* min-height (not height): once .header wraps to more than one line at
+     narrow widths, this needs to grow to fit it instead of clipping. */
+  min-height: 100px;
   padding: 30px 0;
   z-index: 100;
   background: white;
