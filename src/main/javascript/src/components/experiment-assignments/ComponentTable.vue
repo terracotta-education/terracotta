@@ -441,6 +441,22 @@ onMounted(initSortable);
         }
       }
 
+      // in mobile view, one component's row-of-fields (Component Name,
+      // Treatments, Due Date, ...) stacks as several full-width label:value
+      // lines instead of a single compact row, so the table's usual
+      // component-to-component divider (the border-bottom below, on the
+      // *previous* component's expanded row) reads as just another routine
+      // line between two fields - nothing marks where a NEW component's
+      // stack begins. Give every mobile row (not just the table's very
+      // first) the same top border/rounded-corner treatment above, so each
+      // component still reads as its own card the way it does on desktop.
+      &.v-data-table__tr--mobile.assignment-row > td:first-child {
+        padding-top: 8px !important;
+        border-top: 1px solid rgba(0, 0, 0, 0.2);
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+      }
+
       // divider under each component's row group. Vuetify's own CSS zeroes
       // border-bottom on .v-data-table__tr--expanded from its "overrides" layer, so
       // this unlayered rule is needed just to win it back
