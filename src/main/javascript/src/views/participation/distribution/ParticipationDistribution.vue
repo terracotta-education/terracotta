@@ -268,7 +268,13 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.v-expansion-panel--disabled {
-  opacity: 0.3 !important;
+.v-expansion-panel {
+  &--disabled {
+    opacity: 0.3 !important;
+  }
+
+  &-title {
+    justify-content: left !important;
+  }
 }
 </style>
