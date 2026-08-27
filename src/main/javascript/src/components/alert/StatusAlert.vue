@@ -29,5 +29,9 @@ const handleDismiss = () => {
 .status-alert {
   max-width: fit-content;
   margin: 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  background-color: white;
 }
 </style>
