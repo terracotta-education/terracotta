@@ -94,6 +94,7 @@
           <v-tabs
             v-model="tab"
             elevation="0"
+            :show-arrows="true"
           >
             <v-tab
               v-for="item in setupTabs"
