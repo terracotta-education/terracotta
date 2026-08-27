@@ -128,7 +128,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { useDisplay } from "vuetify";
 import Sortable from "sortablejs";
 import dayjs from "@/plugins/dayjs";
 
@@ -190,15 +191,29 @@ const expandedRows = ref([]);
 const actionsMenuOpen = ref({});
 
 const mobileBreakpoint = 636;
-const assignmentHeaders = [
-  { title: "", align: "start", sortable: false, key: "drag" },
-  { title: "Component Name", align: "start", sortable: false, key: "title" },
-  { title: "Treatments", sortable: false, key: "treatments" },
-  { title: "Due Date", sortable: false, key: "dueDate" },
-  { title: "Status", sortable: false, key: "published" },
-  { title: "Actions", align: "center", sortable: false, key: "actions" },
-  { title: "", sortable: false, key: "data-table-expand" }
-];
+const { width } = useDisplay();
+// mirrors mobileBreakpoint (not Vuetify's own global mobile breakpoint) so this
+// switches in step with the table's own mobile-row transform.
+const isMobile = computed(() => width.value < mobileBreakpoint);
+
+// the drag-to-reorder handle has no title, so Vuetify's mobile card layout
+// rendered it as its own orphaned label-less row (just a lone dot-grid icon) -
+// drop it in mobile view entirely, since a tiny drag handle is a poor touch
+// target anyway and SortableJS's `handle: ".dragger"` simply won't find
+// anything to bind to once it's gone, so dragging is just unavailable there.
+const assignmentHeaders = computed(() => {
+  const headers = [
+    { title: "", align: "start", sortable: false, key: "drag" },
+    { title: "Component Name", align: "start", sortable: false, key: "title" },
+    { title: "Treatments", sortable: false, key: "treatments" },
+    { title: "Due Date", sortable: false, key: "dueDate" },
+    { title: "Status", sortable: false, key: "published" },
+    { title: "Actions", align: "center", sortable: false, key: "actions" },
+    { title: "", sortable: false, key: "data-table-expand" }
+  ];
+
+  return isMobile.value ? headers.filter(header => header.key !== "drag") : headers;
+});
 const treatmentHeaders = [
   { title: "Treatment Name", align: "start", sortable: false, key: "title" }
 ];
@@ -363,6 +378,15 @@ onMounted(initSortable);
   border: none !important;
 }
 
+// Vuetify's mobile card layout right-aligns every cell's value by default
+// (fine for short single-line values like a status or date), but that makes
+// a wrapped multi-line value - the component title plus the "Only One
+// Version" chip - read as ragged, hard-to-follow right-aligned lines. Left-
+// align just this table's mobile values so wrapped text reads naturally.
+:deep(.data-table-assignments .v-data-table__tr--mobile .v-data-table__td-value) {
+  text-align: start;
+}
+
 // this table already draws its own border via the tbody outline below (rows expand to
 // variable heights, unlike .v-data-table-alt's ::before box-shadow which assumes a fixed
 // row height) - disable the alt class's border so the two don't double up
@@ -375,8 +399,13 @@ onMounted(initSortable);
     border-bottom: none !important;
   }
 
+  // 1px-wide drag-handle column - only meaningful for the desktop row-of-
+  // columns layout. In mobile mode the drag column is dropped entirely (see
+  // assignmentHeaders above) and each row's first <td> is actually
+  // "Component Name" instead - excluding mobile rows here keeps this rule
+  // from mistakenly shrinking that cell down to the handle's 1px width.
   > thead > tr > th:first-child,
-  > tbody > tr > td:first-child {
+  > tbody > tr:not(.v-data-table__tr--mobile) > td:first-child {
     width: 1px;
     padding-left: 0;
     padding-right: 0;
