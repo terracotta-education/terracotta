@@ -55,10 +55,17 @@
   .v-table__wrapper > table {
     padding-top: 0 !important;
 
+    // min-height (not height): this rule lives outside any @layer, so it beats
+    // Vuetify's own layered CSS regardless of specificity - including the
+    // mobile-row override (`.v-data-table__tr--mobile > td { height: fit-content }`)
+    // that lets a stacked label/value cell grow past this row height once its
+    // content (e.g. a wrapped title plus the "Only One Version" chip) needs
+    // more room. A hard `height` here clipped/overlapped that content at
+    // narrow widths instead of letting the cell grow to fit it.
     > tbody > tr > td,
     > thead > tr > td,
     > tfoot > tr > td {
-      height: 40px;
+      min-height: 40px;
     }
   }
 
