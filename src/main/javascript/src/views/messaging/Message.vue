@@ -1171,10 +1171,19 @@ defineExpose({
 
   & .treatment-tab {
     min-width: 100%;
+    /* the editor (flex: 1 1 auto) and the fixed 33% conditional-text panel
+       below had nowhere to go at narrow widths - the panel's flex-shrink: 0
+       either squeezed it illegibly or pushed it off-screen entirely. Let the
+       row wrap so the panel drops below the editor and takes the full width
+       instead, once both no longer fit comfortably side by side. */
+    flex-wrap: wrap;
 
     & .treatment-tab-message {
       flex: 1 1 auto;
-      min-width: 0;
+      /* a real floor (not 0) so this column stops shrinking once the editor
+         itself would become unusably narrow, letting the wrap above trigger
+         instead of squeezing forever. */
+      min-width: 320px;
 
       & .treatment-tab-message-container {
         min-width: 100%;
@@ -1194,8 +1203,11 @@ defineExpose({
     }
 
     & .treatment-tab-conditional-text {
-      flex: 0 0 33%;
-      min-width: 0;
+      /* flex-grow: 1 (not 0) so this panel expands to fill its own full-width
+         line once wrapped, rather than staying pinned at a narrow 33% even
+         when it's no longer sharing the row with the editor. */
+      flex: 1 1 33%;
+      min-width: 260px;
       background-color: map.get($grey, "extreme-light");
       padding: 10px;
       border: 1px solid rgba(0, 0, 0, 0.12);
