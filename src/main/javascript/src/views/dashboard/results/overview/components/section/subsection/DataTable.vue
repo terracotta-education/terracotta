@@ -212,6 +212,7 @@
           <data-table-treatment
             :headers="columns"
             :item="item"
+            :is-mobile="isMobile"
           />
         </tr>
       </template>
