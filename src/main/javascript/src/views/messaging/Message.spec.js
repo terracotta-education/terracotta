@@ -14,6 +14,10 @@ vi.mock("sweetalert2", () => ({
   default: { fire: vi.fn() }
 }));
 
+// jsdom does not implement scrollIntoView; Message calls it when the
+// conditional-text panel opens.
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
 vi.mock("@/services", () => ({
   messageService: {
     getAssignments: vi.fn(),
@@ -183,6 +187,32 @@ describe("Message", () => {
     await settle(wrapper);
 
     expect(wrapper.find(".enabled-switch").classes()).toContain("enabled-switch--on");
+  });
+
+  it("scrolls the conditional-text panel into view when it's opened to add new text", async () => {
+    window.HTMLElement.prototype.scrollIntoView.mockClear();
+
+    const { wrapper } = mount();
+    await settle(wrapper);
+
+    await wrapper.findComponent({ name: "EditorSubMenu" }).vm.$emit("add-conditional-text");
+    await settle(wrapper);
+
+    expect(wrapper.find(".treatment-tab-conditional-text").exists()).toBe(true);
+    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("scrolls the conditional-text panel into view when it's opened to edit existing text", async () => {
+    window.HTMLElement.prototype.scrollIntoView.mockClear();
+
+    const { wrapper } = mount();
+    await settle(wrapper);
+
+    await wrapper.findComponent({ name: "EditorSubMenu" }).vm.$emit("edit-conditional-text", "ct-1");
+    await settle(wrapper);
+
+    expect(wrapper.find(".treatment-tab-conditional-text").exists()).toBe(true);
+    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
   });
 
   it("does not mark the enabled-switch as 'on' when the message is disabled", async () => {

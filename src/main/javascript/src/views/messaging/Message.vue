@@ -345,6 +345,7 @@
 
               <div
                 v-if="openConditionalTextEditor"
+                ref="conditionalTextPanel"
                 class="treatment-tab-conditional-text"
               >
                 <ConditionalText
@@ -473,6 +474,7 @@ const initialContent = ref(null);
 const messagesAvailableToCopy = ref([]);
 const copyMenuOpen = ref(false);
 const openConditionalTextEditor = ref(false);
+const conditionalTextPanel = ref(null);
 const addingNewConditionalText = ref(false);
 const conditionalTextToPlace = ref(null);
 const pipedTextToPlace = ref(null);
@@ -734,16 +736,28 @@ const hasMessagesNotCurrent = messages => {
   return messages.some(currentMessage => currentMessage.id !== messageId.value);
 };
 
+const scrollToConditionalTextPanel = async () => {
+  await nextTick();
+  conditionalTextPanel.value?.scrollIntoView({
+    behavior: "smooth",
+    block: "nearest"
+  });
+};
+
 const addConditionalText = async () => {
   addingNewConditionalText.value = true;
   messagingConditionalTextStore.setMessageConditionalTextEditId(null);
   openConditionalTextEditor.value = true;
+
+  await scrollToConditionalTextPanel();
 };
 
-const editConditionalText = conditionalTextId => {
+const editConditionalText = async conditionalTextId => {
   messagingConditionalTextStore.setMessageConditionalTextEditId(conditionalTextId);
   openConditionalTextEditor.value = true;
   addingNewConditionalText.value = false;
+
+  await scrollToConditionalTextPanel();
 };
 
 const insertConditionalText = value => {
