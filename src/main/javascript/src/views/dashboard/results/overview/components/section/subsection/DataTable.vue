@@ -7,7 +7,7 @@
       :items="tableData"
       :items-per-page="-1"
       :show-expand="displayExpand"
-      class="data-table v-data-table-alt"
+      :class="['data-table', isMobile ? 'data-table--mobile' : 'v-data-table-alt']"
       item-value="title"
     >
       <template
@@ -30,7 +30,7 @@
       <template
         v-slot:item="{ item, isExpanded, toggleExpand, columns }"
       >
-        <tr>
+        <tr v-if="!isMobile">
           <td
             class="text-start"
           >
@@ -107,6 +107,97 @@
             </span>
           </td>
         </tr>
+
+        <tr
+          v-else
+          class="mobile-row"
+        >
+          <td
+            :colspan="columns.length"
+            class="mobile-card-container"
+          >
+            <div class="mobile-card">
+              <div class="mobile-field">
+                <span class="mobile-label">{{ titleHeader }}</span>
+                <span class="mobile-value">
+                  {{ title(item) }}
+                  <v-chip
+                    v-if="item.treatments && item.treatments.rows && item.treatments.rows.length == 1"
+                    color="lightgrey"
+                    class="label-one-version"
+                    density="compact"
+                  >
+                    Only One Version
+                  </v-chip>
+                </span>
+              </div>
+
+              <template v-if="hasSubmissions(item)">
+                <div class="mobile-field">
+                  <span class="mobile-label">Number of submissions</span>
+                  <span class="mobile-value">{{ item.submissionCount }}</span>
+                </div>
+                <div class="mobile-field">
+                  <span class="mobile-label">
+                    Submissions per participant
+                    <tool-tip
+                      v-if="submissionRateTooltip"
+                      :header="submissionRateTooltip.header"
+                      :content="submissionRateTooltip.message"
+                      :icon="submissionRateTooltip.icon"
+                      size="compact"
+                      icon-color="primary"
+                      alignment="top"
+                      aria-label="Submission rate tooltip"
+                    />
+                  </span>
+                  <span class="mobile-value">{{ rate(item) }}</span>
+                </div>
+                <div class="mobile-field">
+                  <span class="mobile-label">Average grade</span>
+                  <span class="mobile-value">
+                    <span v-if="item.averageGrade >= 0.0">
+                      {{ grade(item) }}%
+                    </span>
+                    <span v-else>
+                      &#8212;
+                      <tool-tip
+                        content="This component includes items that must be graded manually. Data will appear when those items have been graded."
+                        icon="mdi-information-outline"
+                        icon-color="primary"
+                        aria-label="Average grade explanation tooltip"
+                      />
+                    </span>
+                  </span>
+                </div>
+                <div class="mobile-field">
+                  <span class="mobile-label">Standard deviation</span>
+                  <span class="mobile-value">{{ sd(item) }}%</span>
+                </div>
+                <div
+                  v-if="hasTreatments(item) && !isSingleTreatment(item)"
+                  class="mobile-field"
+                >
+                  <span class="mobile-label">Treatments</span>
+                  <v-btn
+                    @click="toggleExpand(item)"
+                    :class="{'v-data-table__expand-icon--active': isExpanded(item)}"
+                    class="v-data-table__expand-icon"
+                    variant="text"
+                    icon="mdi-chevron-down"
+                  />
+                </div>
+              </template>
+
+              <div
+                v-else
+                class="mobile-field mobile-no-submissions"
+              >
+                <span class="no-submissions-text">{{ noSubmissionsText }}</span>
+              </div>
+            </div>
+          </td>
+        </tr>
       </template>
       <template
         v-slot:expanded-row="{ item, columns }"
@@ -130,6 +221,8 @@
 
 <script setup>
 import { computed } from "vue";
+import { useDisplay } from "vuetify";
+
 import DataTableTreatment from "./DataTableTreatment.vue";
 import ToolTip from "@/components/ToolTip.vue";
 import { round, percent } from "@/helpers/dashboard/utils.js";
@@ -169,6 +262,14 @@ const props = defineProps({
   }
 });
 
+const mobileBreakpoint = 636;
+const { width } = useDisplay();
+// this table's #item slot fully replaces Vuetify's own row rendering (see the
+// mobile-row branch below), so its automatic mobile-card transform never
+// applies here regardless of :mobile-breakpoint - this mirrors that same
+// breakpoint by hand instead.
+const isMobile = computed(() => width.value < mobileBreakpoint);
+
 const dataColumnWidth = "15%";
 const expandColumnWidth = "5%";
 const displayNote = computed(() => props.includeNote || false);
@@ -178,6 +279,24 @@ const displayExpand = computed(() => props.showExpand || false);
 // sums to 100% (35% + expand's 5% when shown, or 40% when there's no expand column at all)
 const titleColumnWidth = computed(() => displayExpand.value ? "35%" : "40%");
 const tableHeaders = computed(() => {
+  // mobile's #item branch lays every field out by hand in one card instead
+  // of per-column cells, so the desktop widths below have nothing to size -
+  // worse, Vuetify still builds the underlying <table>'s column layout from
+  // them regardless of which row template is active, forcing the table wide
+  // enough for all 6 desktop columns and leaving mobile scrolling sideways
+  // inside its own wrapper instead of actually collapsing. Same header
+  // count/keys (colspan below still needs columns.length), just no width.
+  if (isMobile.value) {
+    return [
+      { title: props.titleHeader, key: "title", align: "start", sortable: false },
+      { title: "Number of submissions", key: "submissionCount", align: "center", sortable: false },
+      { title: "Submissions per participant", key: "submissionRate", align: "center", sortable: false },
+      { title: "Average grade", key: "averageGrade", align: "center", sortable: false },
+      { title: "Standard deviation", key: "standardDeviation", align: "center", sortable: false },
+      ...(displayExpand.value ? [{ title: "", key: "data-table-expand", sortable: false }] : [])
+    ];
+  }
+
   const headers = [
     { title: props.titleHeader, key: "title", align: "start", width: titleColumnWidth.value, sortable: false },
     { title: "Number of submissions", key: "submissionCount", align: "center", width: dataColumnWidth, sortable: false },
@@ -221,5 +340,68 @@ const sd = item => percent(item.standardDeviation);
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+}
+
+// mobile only: each row renders its own independent card (see the
+// .mobile-row branch in the #item template) instead of one shared
+// desktop-style table body, so this table's own outer border/corner
+// treatment (normally .v-data-table-alt, swapped out for this class in
+// mobile - see the template) stays out of the way entirely.
+:deep(.data-table--mobile) {
+  .v-table__wrapper {
+    border: none !important;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody > tr.mobile-row {
+    background: transparent !important;
+
+    > td.mobile-card-container {
+      border: none !important;
+      padding: 0 0 24px 0;
+    }
+  }
+}
+
+.mobile-card {
+  border: thin solid rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 4px 16px;
+  background: white;
+}
+
+.mobile-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: thin solid rgba(0, 0, 0, 0.08);
+  text-align: right;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.mobile-label {
+  flex: 0 0 auto;
+  font-weight: 500;
+  text-align: left;
+}
+
+// right-aligned wrapped text (e.g. a long component title) reads as ragged,
+// hard-to-follow lines - left-align it instead, same fix as
+// ComponentTable.vue's mobile card values.
+.mobile-value {
+  text-align: left;
+}
+
+.mobile-no-submissions {
+  justify-content: flex-start;
+  text-align: left;
 }
 </style>
