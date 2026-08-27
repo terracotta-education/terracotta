@@ -76,7 +76,21 @@ const resultsOverviewSummaryConditionsCount = computed(() => {
 <style lang="scss" scoped>
 div.row-summary {
   justify-content: space-between;
+  // space-between already distributes all the spacing between cards - Vuetify
+  // 3's own default v-row gap (24px) stacked on top of that, quietly eating
+  // into the slack this row needs to fit 4 cards at exactly 24% each without
+  // wrapping (min-width below is a hard floor once gap eats past what
+  // space-between leaves for it).
+  gap: 0;
   > .v-col {
+    // max-width alone had no floor, so these 4 columns always fit
+    // side-by-side no matter how narrow the row got - each one just kept
+    // shrinking until its text wrapped one letter per line instead of ever
+    // dropping to fewer per row. min-width wins over a smaller max-width
+    // (per spec), so this stays 24% on wide rows but stops shrinking below
+    // 220px, letting flex-wrap collapse to fewer columns once they no
+    // longer fit.
+    min-width: max(24%, 220px);
     max-width: 24%;
     border: thin solid map.get($grey, "lighter");
     border-radius: 10px;
