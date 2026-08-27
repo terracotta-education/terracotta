@@ -53,7 +53,7 @@
               :items="row.treatments"
               :items-per-page="-1"
               item-value="treatmentId"
-              class="treatment-row bg-grey-lighten-5"
+              :class="['treatment-row', 'bg-grey-lighten-5', { 'treatment-row--mobile': isMobile }]"
               hide-default-header
               hide-default-footer
             >
@@ -374,6 +374,25 @@ onMounted(initSortable);
   }
 }
 
+// mobile only: round this wrapper's own bottom corners, rather than the
+// outer <td>'s (see the mobile-only rule on .expanded-row--mobile > td
+// below). Confirmed empirically (a standalone, Vuetify-free reproduction)
+// that a <td> doesn't reliably render a curved BORDER in this browser even
+// when border-radius/overflow:hidden compute correctly - background-color
+// clips to the curve fine, but the border edge itself renders as a sharp
+// rectangle regardless. A plain div, like this v-table__wrapper, doesn't
+// have that limitation. !important: needed to beat the blanket
+// .treatment-row rule above (border-radius: 0 !important), which still
+// applies here too since this element keeps the plain .treatment-row class
+// alongside .treatment-row--mobile.
+.treatment-row--mobile {
+  :deep(.v-table__wrapper) {
+    border-bottom-left-radius: 10px !important;
+    border-bottom-right-radius: 10px !important;
+    overflow: hidden;
+  }
+}
+
 :deep(.data-table-assignments > .v-table__wrapper) {
   border: none !important;
 }
@@ -490,8 +509,11 @@ onMounted(initSortable);
 
       // divider under each component's row group. Vuetify's own CSS zeroes
       // border-bottom on .v-data-table__tr--expanded from its "overrides" layer, so
-      // this unlayered rule is needed just to win it back
-      &.v-data-table__tr--expanded > td {
+      // this unlayered rule is needed just to win it back. Desktop only - in
+      // mobile view this would draw a stray 1px line floating in the middle
+      // of the white gap between cards; the gap and rounded corners already
+      // tell them apart there.
+      &.v-data-table__tr--expanded:not(.expanded-row--mobile) > td {
         border-bottom: 1px solid rgba(0, 0, 0, 0.2);
       }
 
@@ -508,24 +530,21 @@ onMounted(initSortable);
         }
       }
 
-      // mobile only: round every component's bottom corners (not just the
-      // table's very last row) so each one reads as a complete, distinct
-      // card - mirroring the per-component top-rounding above. <tr> can't
-      // take a margin to put real whitespace between cards, so a thick
-      // white "spacer" border stands in for one instead of the thin 1px
-      // divider above; with both corners now rounded on every card, that
-      // divider line isn't needed to tell them apart anymore. Written after
-      // the :last-child rule above so it also wins (equal specificity, so
-      // source order decides) for the table's actual last component too.
-      // overflow: hidden clips the nested treatments <v-data-table>'s own
-      // grey background to this radius - without it, that background's
-      // square corners painted right over the curve, so the bottom edge
-      // looked flat even with the radius correctly set.
+      // mobile only: space every component's card apart (not just relying
+      // on the thin 1px divider above) so each one reads as a complete,
+      // distinct card - the actual rounded-corner look now comes from the
+      // nested v-table__wrapper itself (see .treatment-row--mobile above),
+      // since a <td> doesn't reliably render a curved border in this
+      // browser. padding (not a thick border) creates the gap here - the
+      // outer <td>'s own background needs to be plain white (not the grey
+      // ExperimentAssignments.vue forces via !important) for that padding
+      // area to actually read as empty space rather than more grey. Written
+      // after the :last-child rule above so it also wins (equal
+      // specificity, so source order decides) for the table's actual last
+      // component too.
       &.expanded-row--mobile > td {
-        border-bottom: 32px solid white;
-        border-bottom-left-radius: 10px;
-        border-bottom-right-radius: 10px;
-        overflow: hidden;
+        padding-bottom: 32px;
+        background-color: white !important;
       }
     }
   }

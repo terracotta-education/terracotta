@@ -174,8 +174,11 @@
 
           // divider under each component's row group. Vuetify's own CSS zeroes
           // border-bottom on .v-data-table__tr--expanded from its "overrides" layer,
-          // so this unlayered rule is needed just to win it back
-          &.v-data-table__tr--expanded > td {
+          // so this unlayered rule is needed just to win it back. Excludes
+          // ComponentTable.vue's own expanded-row--mobile state, where this would
+          // draw a stray 1px line in the middle of the white gap between cards -
+          // see the identical exclusion/rationale in ComponentTable.vue.
+          &.v-data-table__tr--expanded:not(.expanded-row--mobile) > td {
             border-bottom: 1px solid rgba(0, 0, 0, 0.2);
           }
 

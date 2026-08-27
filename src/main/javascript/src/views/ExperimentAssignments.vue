@@ -811,7 +811,7 @@ onMounted(async () => {
     border-bottom: 0 !important;
   }
 
-  > td {
+  &:not(.expanded-row--mobile) > td {
     // matches the nested treatment table's own background (map.get($grey, "lightest"),
     // set in ComponentTable.vue) - a mismatched shade here was visible as a lighter
     // strip wherever this td has padding the nested table doesn't fill (e.g. the last
@@ -822,6 +822,14 @@ onMounted(async () => {
       border: none !important;
       border-radius: 0;
     }
+  }
+
+  // mobile only: the outer <td> stays plain white (ComponentTable.vue's own
+  // scoped rule) so its padding-bottom reads as a real gap between cards,
+  // and the nested v-table__wrapper keeps its own rounded bottom corners
+  // (also ComponentTable.vue) instead of being flattened back to 0 here.
+  &.expanded-row--mobile > td .v-table__wrapper {
+    border: none !important;
   }
 }
 
