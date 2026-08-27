@@ -800,7 +800,16 @@ onMounted(async () => {
   tbody
   tr.v-data-table__tr--expanded {
   box-shadow: none;
-  border-bottom: 0 !important;
+
+  // desktop only: ComponentTable.vue's mobile-card view puts a real 32px
+  // white "spacer" border-bottom on each expanded row (see its own scoped
+  // styles) to space component cards apart - this !important unconditionally
+  // zeroed that back out. Kept for desktop, where a thin 1px divider
+  // (ComponentTable.vue's own unlayered border-bottom rule) is what's wanted
+  // instead of Vuetify's own default border/shadow.
+  &:not(.expanded-row--mobile) {
+    border-bottom: 0 !important;
+  }
 
   > td {
     // matches the nested treatment table's own background (map.get($grey, "lightest"),
