@@ -1185,15 +1185,24 @@ defineExpose({
 
   & .treatment-tab {
     min-width: 100%;
-    /* the editor (flex: 1 1 auto) and the fixed 33% conditional-text panel
+    /* the editor (flex: 1 1 66%) and the fixed 33% conditional-text panel
        below had nowhere to go at narrow widths - the panel's flex-shrink: 0
        either squeezed it illegibly or pushed it off-screen entirely. Let the
        row wrap so the panel drops below the editor and takes the full width
        instead, once both no longer fit comfortably side by side. */
     flex-wrap: wrap;
+    /* lets .treatment-tab-conditional-text's container query below measure
+       this row's own width, independent of the viewport. */
+    container-type: inline-size;
 
     & .treatment-tab-message {
-      flex: 1 1 auto;
+      /* a percentage basis (matching the panel's 33% below) so the row's
+         wrap decision is driven only by these two numbers and each side's
+         min-width floor - NOT by "auto", which resolves to this column's
+         max-content size (e.g. the editor toolbar's un-wrapped icon row)
+         and forced a wrap even at ample widths regardless of actual
+         available space. */
+      flex: 1 1 66%;
       /* a real floor (not 0) so this column stops shrinking once the editor
          itself would become unusably narrow, letting the wrap above trigger
          instead of squeezing forever. */
@@ -1226,6 +1235,17 @@ defineExpose({
       padding: 10px;
       border: 1px solid rgba(0, 0, 0, 0.12);
       border-top: none;
+
+      /* .treatment-tab-message's 66% min-width (320px) and this panel's 33%
+         min-width (260px) stop fitting on one line once the row is narrower
+         than 260px / (1 - 0.66) =~ 765px (verified empirically against the
+         actual flex-basis/min-width values above via a Playwright harness).
+         Below that width this panel wraps onto its own full-width line and
+         needs its own top border to look like a complete box, since it's no
+         longer flush against the (border-top: none) side of the editor. */
+      @container (max-width: 764px) {
+        border-top: 1px solid rgba(0, 0, 0, 0.12);
+      }
     }
   }
 }
