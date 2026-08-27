@@ -60,6 +60,10 @@ div.spinner-container {
   left: 50%;
   transform: translate(-50%, -50%);
   width: 600px;
+  // fixed 600px overflowed off both edges on narrower screens, since this box
+  // has no responsive sizing at all - max-width lets it shrink to fit instead,
+  // with a little breathing room (20px) on each side.
+  max-width: calc(100% - 40px);
   height: fit-content;
   z-index: 1000;
   padding: 20px;
