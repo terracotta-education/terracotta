@@ -48,6 +48,7 @@ public interface SubmissionService {
     void validateDto(Long experimentId, String userId, SubmissionDto submissionDto) throws InvalidUserException, ParticipantNotMatchingException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId);
     void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException;
+    boolean isOwnSubmission(Long submissionId, SecuredInfo securedInfo);
     Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);
     // one query for all participants instead of one query per participant; keyed by participant ID
     Map<Long, Float> getScoresFromMultipleSubmissions(List<Participant> participants, Assessment assessment);
