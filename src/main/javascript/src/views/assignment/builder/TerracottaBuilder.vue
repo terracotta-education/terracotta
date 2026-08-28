@@ -1001,7 +1001,13 @@ v-expansion-panels {
     border-bottom: 1px solid map.get($grey, "lighter");
   }
 
-  :deep(.v-btn:not(.v-btn--active):not(.v-btn--loading):not(:focus):not(:hover) .v-btn__content) {
+  // excludes MultipleChoiceQuestionEditor.vue's correct-answer checkmark and
+  // delete-option buttons, which set their own deliberate colors (green when
+  // checked, grey for delete) - this rule's blue !important otherwise wins
+  // over those regardless of specificity, since it targets .v-btn__content
+  // (a more specific descendant) rather than the outer .v-btn those rules
+  // target.
+  :deep(.v-btn:not(.v-btn--active):not(.v-btn--loading):not(:focus):not(:hover):not(.correct):not(.delete_option) .v-btn__content) {
     color: map.get($blue, "base") !important;
     opacity: 1 !important;
   }
