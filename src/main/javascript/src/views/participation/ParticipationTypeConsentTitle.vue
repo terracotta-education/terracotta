@@ -139,5 +139,11 @@ defineExpose({
 // gotcha/fix as ExperimentType.vue's .card-warning.
 .note-card {
   background-color: map.get($blue, "lighten-5");
+
+  // Vuetify 3's outlined variant is `border: thin solid currentColor` (dark, since
+  // it inherits the card's high-emphasis text color); Vuetify 2's `outlined` prop
+  // used a subtle rgba(0,0,0,.12) border instead. currentColor renders a much more
+  // visible border than development's.
+  border-color: rgba(0, 0, 0, 0.12);
 }
 </style>
