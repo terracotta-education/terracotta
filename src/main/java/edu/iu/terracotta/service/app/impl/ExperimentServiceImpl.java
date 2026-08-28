@@ -333,7 +333,8 @@ public class ExperimentServiceImpl implements ExperimentService {
                 }
             }
 
-            pageRequest = PageRequest.of(++page, batchSize);
+            page++;
+            pageRequest = PageRequest.of(page, batchSize);
             participantsList = participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId(), pageRequest).stream()
                 .filter(participant -> !participant.getLtiUserEntity().isTestStudent())
                 .toList();

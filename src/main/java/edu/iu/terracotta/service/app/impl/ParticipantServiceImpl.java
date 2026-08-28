@@ -198,7 +198,8 @@ public class ParticipantServiceImpl implements ParticipantService {
                 entityManager.flush();
                 entityManager.clear();
 
-                pageRequest = PageRequest.of(++page, batchSize);
+                page++;
+                pageRequest = PageRequest.of(page, batchSize);
                 participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
             }
 
@@ -375,7 +376,8 @@ public class ParticipantServiceImpl implements ParticipantService {
             while (CollectionUtils.isNotEmpty(batchUsers)) {
                 participantRosterWriteService.syncParticipantsPage(experiment.get(), batchUsers);
 
-                pageRequest = PageRequest.of(++page, batchSize);
+                page++;
+                pageRequest = PageRequest.of(page, batchSize);
                 batchUsers = lmsUserBatchRepository.findByBatchId(batchId, pageRequest);
             }
 
@@ -495,18 +497,15 @@ public class ParticipantServiceImpl implements ParticipantService {
     private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity) {
         Instant lastSync = ltiContextEntity.getLastParticipantSync();
 
-        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
-            return true;
-        }
-
         // lastSync is null either because this course has never synced, or because it's at/below
         // the min-participants threshold and so never gets a real timestamp recorded - either
         // way, treat a just-attempted sync for this same course as "fresh enough" so a second,
         // independent staleness check moments later doesn't start a redundant one
-        return lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(ltiContextEntity.getContextId())
-            .map(LmsUserBatchProcessing::getCreatedAt)
-            .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
-            .orElse(false);
+        return (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours))))
+            || lmsUserBatchProcessingRepository.findFirstByContextIdOrderByCreatedAtDesc(ltiContextEntity.getContextId())
+                .map(LmsUserBatchProcessing::getCreatedAt)
+                .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
+                .orElse(false);
     }
 
     // same as above, but excludes currentBatchId from the debounce lookup - a caller that reused
@@ -516,14 +515,11 @@ public class ParticipantServiceImpl implements ParticipantService {
     private boolean isParticipantSyncFresh(LtiContextEntity ltiContextEntity, UUID currentBatchId) {
         Instant lastSync = ltiContextEntity.getLastParticipantSync();
 
-        if (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours)))) {
-            return true;
-        }
-
-        return lmsUserBatchProcessingRepository.findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(ltiContextEntity.getContextId(), currentBatchId)
-            .map(LmsUserBatchProcessing::getCreatedAt)
-            .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
-            .orElse(false);
+        return (lastSync != null && lastSync.isAfter(Instant.now().minus(Duration.ofHours(refreshThrottleHours))))
+            || lmsUserBatchProcessingRepository.findFirstByContextIdAndBatchIdNotOrderByCreatedAtDesc(ltiContextEntity.getContextId(), currentBatchId)
+                .map(LmsUserBatchProcessing::getCreatedAt)
+                .map(createdAt -> createdAt.toInstant().isAfter(Instant.now().minus(Duration.ofSeconds(refreshDebounceSeconds))))
+                .orElse(false);
     }
 
     /**
@@ -653,7 +649,8 @@ public class ParticipantServiceImpl implements ParticipantService {
             entityManager.flush();
             entityManager.clear();
 
-            pageRequest = PageRequest.of(++page, batchSize);
+            page++;
+            pageRequest = PageRequest.of(page, batchSize);
             participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
         }
     }
@@ -747,11 +744,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     private boolean isParticipantSyncStale(Experiment experiment) {
-        if (experiment == null) {
-            return true;
-        }
-
-        return !isParticipantSyncFresh(experiment.getLtiContextEntity());
+        return experiment == null || !isParticipantSyncFresh(experiment.getLtiContextEntity());
     }
 
     @Override
@@ -885,7 +878,8 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             entityManager.flush();
             entityManager.clear();
-            pageRequest = PageRequest.of(++page, batchSize);
+            page++;
+            pageRequest = PageRequest.of(page, batchSize);
             participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
         }
 
@@ -967,7 +961,8 @@ public class ParticipantServiceImpl implements ParticipantService {
             entityManager.flush();
             entityManager.clear();
 
-            pageRequest = PageRequest.of(++page, batchSize);
+            page++;
+            pageRequest = PageRequest.of(page, batchSize);
             participants = participantRepository.findByExperiment_ExperimentId(experimentId, pageRequest);
         }
     }

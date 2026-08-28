@@ -331,7 +331,8 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
             while (participantNameMap.containsValue(participantName)) {
                 // handle duplicate participant names
-                participantName = String.format("%s (%d)", participant.getLtiUserEntity().getDisplayName(), index++);
+                participantName = String.format("%s (%d)", participant.getLtiUserEntity().getDisplayName(), index);
+                index++;
             }
 
             participantNameMap.put(participant.getParticipantId(), participantName);

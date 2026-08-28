@@ -217,7 +217,8 @@ public class MessageSendServiceImpl implements MessageSendService {
             entityManager.clear();
 
             // get next batch of participants
-            participantsPageRequest = PageRequest.of(++participantsPage, batchSize);
+            participantsPage++;
+            participantsPageRequest = PageRequest.of(participantsPage, batchSize);
             participants.set(participantRepository.findByExperiment_ExperimentId(message.getExperimentId(), participantsPageRequest));
         }
 
