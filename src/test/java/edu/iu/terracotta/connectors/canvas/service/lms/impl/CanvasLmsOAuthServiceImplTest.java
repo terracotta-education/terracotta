@@ -53,6 +53,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiScopeService;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 
+@SuppressWarnings("unchecked")
 public class CanvasLmsOAuthServiceImplTest {
 
     @Mock private ApiTokenRepository apiTokenRepository;

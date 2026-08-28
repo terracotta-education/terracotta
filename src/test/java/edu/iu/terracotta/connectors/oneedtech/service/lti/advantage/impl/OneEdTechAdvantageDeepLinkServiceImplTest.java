@@ -32,6 +32,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import jakarta.servlet.http.HttpServletRequest;
 
+@SuppressWarnings("unchecked")
 public class OneEdTechAdvantageDeepLinkServiceImplTest extends BaseTest {
 
     private static final String ISSUER = "https://lms.example.com";
@@ -41,7 +42,6 @@ public class OneEdTechAdvantageDeepLinkServiceImplTest extends BaseTest {
 
     @InjectMocks private OneEdTechAdvantageDeepLinkServiceImpl oneEdTechAdvantageDeepLinkService;
 
-    @SuppressWarnings("unchecked")
     private final Jws<Claims> idToken = mock(Jws.class);
     private final Claims claims = mock(Claims.class);
 
@@ -64,7 +64,6 @@ public class OneEdTechAdvantageDeepLinkServiceImplTest extends BaseTest {
         when(ltiDataService.getOwnPrivateKey()).thenReturn(PRIVATE_KEY);
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> decodeClaims(String jwt) throws Exception {
         String[] parts = jwt.split("\\.");
         String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
