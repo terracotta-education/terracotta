@@ -30,9 +30,14 @@
             v-model="allowInfiniteSubmissions"
             aria-label="Submission attempts allowed selector"
           >
+            <!-- color="blue" resolves to Vuetify's own Material Design blue
+                 (#2196f3), not this app's blue ($blue.base, #00599e) - neither
+                 branch's theme config customizes "blue" to redirect it, so
+                 the literal hex is needed here to match development's actual
+                 look. -->
             <v-radio
               :value="false"
-              color="blue"
+              color="#00599e"
               class="mb-5"
             >
               <template #label>
@@ -63,7 +68,7 @@
             <v-radio
               :value="true"
               label="A student is allowed an infinite number of attempts"
-              color="blue"
+              color="#00599e"
             />
           </v-radio-group>
         </div>
