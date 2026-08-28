@@ -28,7 +28,6 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "lti_result")
 public class LtiResultEntity extends BaseEntity {

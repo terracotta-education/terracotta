@@ -49,7 +49,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling", "PMD.GuardLogStatement"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class LtiJwtServiceImpl implements LtiJwtService {
 
     // JsonMapper is thread-safe once built; reuse one shared instance instead of building a

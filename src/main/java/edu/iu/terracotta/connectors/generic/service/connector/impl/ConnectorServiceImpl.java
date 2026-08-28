@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
 public class ConnectorServiceImpl<T> implements ConnectorService<T> {
 
     private final PlatformDeploymentRepository platformDeploymentRepository;

@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings({"PMD.LooseCoupling"})
 public interface ParticipantService {
 
     List<Participant> findAllByExperimentId(long experimentId);

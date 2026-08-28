@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class ExperimentDataExportAsyncServiceImpl implements ExperimentDataExportAsyncService {
 
     private final ExperimentDataExportRepository experimentDataExportRepository;

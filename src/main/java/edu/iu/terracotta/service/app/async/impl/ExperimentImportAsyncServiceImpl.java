@@ -77,7 +77,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncService {
 
     private final AnswerMcRepository answerMcRepository;

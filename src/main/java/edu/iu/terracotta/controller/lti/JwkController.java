@@ -24,7 +24,7 @@ import java.util.Base64;
 @Scope("session")
 @RequestMapping("/jwks")
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class JwkController {
 
     private final LtiDataService ltiDataService;

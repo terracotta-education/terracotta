@@ -39,7 +39,6 @@ import java.util.UUID;
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/oidc/login_initiations")
-@SuppressWarnings({"PMD.LooseCoupling"})
 public class OidcController {
 
     //Constants defined in the LTI standard

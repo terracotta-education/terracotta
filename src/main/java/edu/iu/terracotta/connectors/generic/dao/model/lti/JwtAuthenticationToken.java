@@ -14,7 +14,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Getter
 @Setter
-@SuppressWarnings({"PMD.LooseCoupling"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 

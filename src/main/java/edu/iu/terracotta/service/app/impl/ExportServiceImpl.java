@@ -111,7 +111,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class ExportServiceImpl implements ExportService {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";

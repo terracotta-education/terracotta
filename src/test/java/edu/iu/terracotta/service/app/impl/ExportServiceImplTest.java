@@ -77,7 +77,6 @@ import edu.iu.terracotta.dao.repository.messaging.log.MessageLogRepository;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.messaging.MessageContentService;
 
-@SuppressWarnings({"PMD.LooseCoupling"})
 public class ExportServiceImplTest extends BaseTest {
 
     // NOTE: none of these mocks exist on BaseServiceTest/BaseRepositoryTest/BaseModelTest, so declaring

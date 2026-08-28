@@ -12,7 +12,6 @@ import edu.iu.terracotta.connectors.brightspace.io.exception.InvalidOauthTokenEx
 import edu.iu.terracotta.connectors.brightspace.io.net.model.Response;
 import edu.iu.terracotta.connectors.brightspace.io.oauth.OauthToken;
 
-@SuppressWarnings({"PMD.LooseCoupling"})
 public interface BrightspaceMessengerService {
 
     List<Response> get(OauthToken oauthToken, String url) throws InvalidOauthTokenException, IOException;

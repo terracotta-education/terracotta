@@ -95,7 +95,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions", "PMD.LooseCoupling"})
+@SuppressWarnings({"PMD.PreserveStackTrace", "PMD.GuardLogStatement", "PMD.MethodNamingConventions"})
 public class SubmissionServiceImpl implements SubmissionService {
 
     private final AnswerEssaySubmissionRepository answerEssaySubmissionRepository;
