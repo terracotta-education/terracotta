@@ -18,7 +18,7 @@ import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class TokenControllerTest extends BaseTest {
 
     private TokenController tokenController;

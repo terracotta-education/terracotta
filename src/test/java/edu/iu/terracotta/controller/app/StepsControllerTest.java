@@ -33,6 +33,7 @@ import edu.iu.terracotta.exceptions.AssignmentLockedException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.utils.TextConstants;
 
+@SuppressWarnings("unchecked")
 public class StepsControllerTest extends BaseTest {
 
     private StepsController stepsController;
