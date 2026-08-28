@@ -36,7 +36,7 @@
     </form>
 
     <v-card
-      class="mt-10 pt-5 px-5 mx-auto bg-blue-lighten-5 rounded-lg"
+      class="mt-10 pt-5 px-5 mx-auto rounded-lg note-card"
       variant="outlined"
     >
       <p>
@@ -131,3 +131,13 @@ defineExpose({
   saveExit
 });
 </script>
+
+<style lang="scss" scoped>
+// bg-blue-lighten-5 (a Vuetify color utility class) never generates any CSS in this
+// project's build - vite-plugin-vuetify's configFile-based recompile doesn't reach the
+// $color-pack-gated utility classes - so set the background directly instead. Same
+// gotcha/fix as ExperimentType.vue's .card-warning.
+.note-card {
+  background-color: map.get($blue, "lighten-5");
+}
+</style>
