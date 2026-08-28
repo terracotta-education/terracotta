@@ -31,5 +31,11 @@ defineOptions({
   border-style: dashed !important;
   border-color: map.get($grey, "base") !important;
   border-width: 1px !important;
+  // Vuetify 3's own .v-divider default (opacity: 0.12, a semi-transparent
+  // Material-style divider) is a separate property untouched by the border
+  // overrides above - it composited #e2e2e2 down to an almost-invisible
+  // ~#fbfbfb, which is what was still reading as "lighter than development"
+  // even with the correct color/style already winning.
+  opacity: 1 !important;
 }
 </style>
