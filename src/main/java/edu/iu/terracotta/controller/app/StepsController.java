@@ -141,19 +141,27 @@ public class StepsController {
                     return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
                 }
 
-                boolean student = apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo);
+                boolean instructorOrHigher = apijwtService.isInstructorOrHigher(securedInfo);
+
+                if (!instructorOrHigher && submissionsId.size() > 1) {
+                    return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
+                }
+
+                // a caller finalizing exactly one submission that belongs to them is always treated as
+                // their own student submission, even if they also hold an elevated LTI role (e.g. a
+                // Canvas institution Administrator) alongside their course enrollment - only an
+                // elevated-role caller finalizing someone else's submission(s) goes through the
+                // instructor batch path below
+                boolean student = apijwtService.isLearner(securedInfo) && submissionsId.size() == 1
+                    && submissionService.isOwnSubmission(Long.parseLong(submissionsId.get(0)), securedInfo);
 
                 try {
-                    if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
-                        if (submissionsId.size() > 1) {
-                            return new ResponseEntity<>(TextConstants.SUBMISSION_IDS_MISSING, HttpStatus.BAD_REQUEST);
-                        }
-
+                    if (student) {
                         Long submissionId = Long.parseLong(submissionsId.get(0));
                         questionSubmissionService.canSubmit(securedInfo, experimentId, preferLmsChecks);
                         submissionService.allowedSubmission(submissionId, securedInfo);
                         submissionService.finalizeAndGrade(submissionId, securedInfo, student);
-                    } else if (apijwtService.isInstructorOrHigher(securedInfo)) {
+                    } else if (instructorOrHigher) {
                         for (String submissionIdString : submissionsId) {
                             Long submissionId = Long.parseLong(submissionIdString);
                             submissionService.finalizeAndGrade(submissionId, securedInfo, student);
@@ -196,7 +204,9 @@ public class StepsController {
 
                 return new ResponseEntity<>(HttpStatus.OK);
             case LAUNCH_ASSIGNMENT:
-                if (!apijwtService.isLearner(securedInfo) || apijwtService.isInstructorOrHigher(securedInfo)) {
+                // any Learner-role holder may launch their own assignment, regardless of whatever
+                // other elevated roles (e.g. Canvas institution Administrator) they also hold
+                if (!apijwtService.isLearner(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
 
@@ -208,7 +218,9 @@ public class StepsController {
                     return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
                 }
             case LAUNCH_CONSENT_ASSIGNMENT:
-                if (apijwtService.isLearner(securedInfo) && !apijwtService.isInstructorOrHigher(securedInfo)) {
+                // any Learner-role holder may fetch/create their own participant record,
+                // regardless of whatever other elevated roles they also hold
+                if (apijwtService.isLearner(securedInfo)) {
                     // Return this student's participant record, creating it from the current
                     // launch if it doesn't exist yet
                     List<ParticipantDto> studentUserAsParticipant = participantService.getParticipants(experimentId, securedInfo.getUserId(), true, securedInfo, false);
@@ -223,7 +235,9 @@ public class StepsController {
 
                 return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
             case VIEW_ASSIGNMENT:
-                if (!apijwtService.isLearner(securedInfo) || apijwtService.isInstructorOrHigher(securedInfo)) {
+                // any Learner-role holder may view their own assignment, regardless of whatever
+                // other elevated roles (e.g. Canvas institution Administrator) they also hold
+                if (!apijwtService.isLearner(securedInfo)) {
                     return new ResponseEntity<>(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
                 }
 

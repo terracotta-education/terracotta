@@ -336,6 +336,27 @@ public class SubmissionServiceImplTest extends BaseTest {
         assertThrows(SubmissionNotMatchingException.class, () -> submissionService.allowedSubmission(1L, securedInfo));
     }
 
+    // isOwnSubmission
+
+    @Test
+    public void testIsOwnSubmissionReturnsTrueWhenUserMatches() {
+        assertTrue(submissionService.isOwnSubmission(1L, securedInfo));
+    }
+
+    @Test
+    public void testIsOwnSubmissionReturnsFalseWhenUserMismatch() {
+        when(securedInfo.getUserId()).thenReturn("some-other-user");
+
+        assertFalse(submissionService.isOwnSubmission(1L, securedInfo));
+    }
+
+    @Test
+    public void testIsOwnSubmissionReturnsFalseWhenSubmissionNotFound() {
+        when(submissionRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertFalse(submissionService.isOwnSubmission(1L, securedInfo));
+    }
+
     // getSubmissions
 
     @Test

@@ -186,6 +186,7 @@ public class StepsControllerTest extends BaseTest {
     void studentSubmissionLearnerHappyPathTest() throws Exception {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+        when(submissionService.isOwnSubmission(5L, securedInfo)).thenReturn(true);
 
         ResponseEntity<Object> response = stepsController.postStep(
             1L,
@@ -198,6 +199,48 @@ public class StepsControllerTest extends BaseTest {
         verify(questionSubmissionService).canSubmit(securedInfo, 1L, true);
         verify(submissionService).allowedSubmission(5L, securedInfo);
         verify(submissionService).finalizeAndGrade(5L, securedInfo, true);
+    }
+
+    // a user with an elevated LTI role (e.g. Canvas institution Administrator) alongside their
+    // own course enrollment must still be able to finalize their own submission - regression
+    // test for the "admin + student roles" launch bug
+    @Test
+    void studentSubmissionDualRoleOwnSubmissionStillTreatedAsStudentTest() throws Exception {
+        when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(submissionService.isOwnSubmission(5L, securedInfo)).thenReturn(true);
+
+        ResponseEntity<Object> response = stepsController.postStep(
+            1L,
+            true,
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            httpServletRequest
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(questionSubmissionService).canSubmit(securedInfo, 1L, true);
+        verify(submissionService).allowedSubmission(5L, securedInfo);
+        verify(submissionService).finalizeAndGrade(5L, securedInfo, true);
+    }
+
+    // same dual-role user, but finalizing someone else's submission - should fall through to
+    // the instructor batch path instead
+    @Test
+    void studentSubmissionDualRoleOtherUsersSubmissionGoesThroughInstructorPathTest() throws Exception {
+        when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(submissionService.isOwnSubmission(5L, securedInfo)).thenReturn(false);
+
+        ResponseEntity<Object> response = stepsController.postStep(
+            1L,
+            false,
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            httpServletRequest
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(submissionService, never()).allowedSubmission(anyLong(), any());
+        verify(submissionService).finalizeAndGrade(5L, securedInfo, false);
     }
 
     @Test
@@ -252,6 +295,7 @@ public class StepsControllerTest extends BaseTest {
     void studentSubmissionAssignmentAttemptExceptionCaughtTest() throws Exception {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+        when(submissionService.isOwnSubmission(5L, securedInfo)).thenReturn(true);
         doThrow(new AssignmentAttemptException("no attempts left")).when(questionSubmissionService).canSubmit(securedInfo, 1L, false);
 
         ResponseEntity<Object> response = stepsController.postStep(
@@ -269,6 +313,7 @@ public class StepsControllerTest extends BaseTest {
     void studentSubmissionAssignmentLockedExceptionCaughtTest() throws Exception {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+        when(submissionService.isOwnSubmission(5L, securedInfo)).thenReturn(true);
         doThrow(new AssignmentLockedException("locked")).when(questionSubmissionService).canSubmit(securedInfo, 1L, false);
 
         ResponseEntity<Object> response = stepsController.postStep(
@@ -369,6 +414,20 @@ public class StepsControllerTest extends BaseTest {
         assertEquals(launched, response);
     }
 
+    // regression test for the "admin + student roles" launch bug: a Learner-role holder must be
+    // able to launch their own assignment regardless of whatever other elevated role they hold
+    @Test
+    void launchAssignmentDualRoleAllowedTest() throws Exception {
+        when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        ResponseEntity<Object> launched = new ResponseEntity<>("launch-payload", HttpStatus.OK);
+        when(assignmentService.launchAssignment(1L, securedInfo)).thenReturn(launched);
+
+        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
+
+        assertEquals(launched, response);
+    }
+
     @Test
     void launchAssignmentExceptionCaughtTest() throws Exception {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
@@ -410,6 +469,21 @@ public class StepsControllerTest extends BaseTest {
         verify(participantService, never()).refreshParticipants(1L);
     }
 
+    // regression test for the "admin + student roles" launch bug: a Learner-role holder must be
+    // able to fetch/create their own participant record regardless of whatever other elevated
+    // role they hold
+    @Test
+    void launchConsentAssignmentDualRoleAllowedTest() throws Exception {
+        when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(participantService.getParticipants(1L, USER_ID, true, securedInfo, false)).thenReturn(List.of(participantDto));
+
+        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(participantDto, response.getBody());
+    }
+
     @Test
     void launchConsentAssignmentPermissionDeniedTest() throws Exception {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(false);
@@ -433,6 +507,20 @@ public class StepsControllerTest extends BaseTest {
     void viewAssignmentHappyPathTest() throws Exception {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+        when(assessmentService.viewAssessment(1L, securedInfo)).thenReturn(assessmentDto);
+
+        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(assessmentDto, response.getBody());
+    }
+
+    // regression test for the "admin + student roles" launch bug: a Learner-role holder must be
+    // able to view their own assignment regardless of whatever other elevated role they hold
+    @Test
+    void viewAssignmentDualRoleAllowedTest() throws Exception {
+        when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(assessmentService.viewAssessment(1L, securedInfo)).thenReturn(assessmentDto);
 
         ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
