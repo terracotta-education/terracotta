@@ -27,7 +27,7 @@
               :class="{ 'correct-answer': answer.correct }"
               :aria-label="`Mark option ${answer.html || answerIndex + 1} as correct`"
               @click="handleToggleCorrect(answer)"
-              variant="flat"
+              variant="text"
               class="correct"
               icon
             >
@@ -58,6 +58,7 @@
             <v-btn
               :aria-label="`Delete option ${answer.html || answerIndex + 1}`"
               class="delete_option"
+              variant="text"
               icon
               @click="handleDeleteAnswer(question, answer)"
             >
@@ -268,5 +269,12 @@ const handleQuestionEdited = () => {
 
 .correct-answer {
   color: map.get($green, "base") !important;
+}
+
+// Vuetify 2 defaulted an icon button with no explicit color to a medium-emphasis
+// black (rgba(0,0,0,.54), ~#757575 over white) - Vuetify 3's v-icon has no such
+// default here, so with no color set at all this rendered solid black instead.
+.delete_option {
+  color: rgba(0, 0, 0, 0.54);
 }
 </style>
