@@ -1002,12 +1002,13 @@ v-expansion-panels {
   }
 
   // excludes MultipleChoiceQuestionEditor.vue's correct-answer checkmark and
-  // delete-option buttons, which set their own deliberate colors (green when
-  // checked, grey for delete) - this rule's blue !important otherwise wins
-  // over those regardless of specificity, since it targets .v-btn__content
-  // (a more specific descendant) rather than the outer .v-btn those rules
-  // target.
-  :deep(.v-btn:not(.v-btn--active):not(.v-btn--loading):not(:focus):not(:hover):not(.correct):not(.delete_option) .v-btn__content) {
+  // delete-option buttons, and ExternalIntegrationEditor.vue's preview/copy-url
+  // buttons, which all set their own deliberate colors (green when checked,
+  // grey for delete, white on their own dynamic background colors) - this
+  // rule's blue !important otherwise wins over those regardless of
+  // specificity, since it targets .v-btn__content (a more specific
+  // descendant) rather than the outer .v-btn those rules target.
+  :deep(.v-btn:not(.v-btn--active):not(.v-btn--loading):not(:focus):not(:hover):not(.correct):not(.delete_option):not(.preview-btn):not(.copy-url-btn) .v-btn__content) {
     color: map.get($blue, "base") !important;
     opacity: 1 !important;
   }

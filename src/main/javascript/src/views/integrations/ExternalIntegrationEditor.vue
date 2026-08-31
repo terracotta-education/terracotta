@@ -82,6 +82,7 @@
               :disabled="!enablePreviewButton"
               :href="!showIframeValidationError ? previewLaunchUrl : null"
               :color="!showIframeValidationError ? 'primary' : 'error'"
+              class="preview-btn"
               target="_blank"
             >
               <v-icon>mdi-eye-outline</v-icon>
@@ -140,6 +141,7 @@
             <div class="copy-url">
               <v-btn
                 :color="copiedReturnUrl.buttonColor"
+                class="copy-url-btn"
                 @click="copyReturnUrl"
               >
                 <v-icon>
