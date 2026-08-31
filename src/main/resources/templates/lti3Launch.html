@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Terracotta</title>
+</head>
+<body>
+<!--
+  Delivers the one-time launch token (and, for instructor-or-higher launches, the LMS API OAuth
+  URL) via the response body instead of a redirect query string - see Lti3Controller#home for why.
+  sessionStorage is per-tab and never sent on subsequent requests (unlike a cookie or URL param),
+  so it doesn't reintroduce the header-size or URL/access-log exposure problem this replaces.
+-->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    sessionStorage.setItem("ltiToken", /*[[${token}]]*/ "");
+
+    var lmsApiOAuthUrl = /*[[${lmsApiOAuthUrl}]]*/ null;
+
+    if (lmsApiOAuthUrl) {
+        sessionStorage.setItem("lmsApiOAuthUrl", lmsApiOAuthUrl);
+    }
+
+    window.location.replace("/app/app.html");
+    /*]]>*/
+</script>
+</body>
+</html>

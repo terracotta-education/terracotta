@@ -31,8 +31,13 @@ const getNullableParam = name => {
   return value;
 };
 
-const tokenParam = params.get("token");
-const lmsApiOAuthURL = params.get("lms_api_oauth_url");
+// delivered via sessionStorage rather than a URL param - see lti3Launch.html/Lti3Controller#home
+// for why (avoids exceeding Tomcat's request-header size limit for large LTI launch payloads).
+// Read once and removed immediately so a later reload of this same tab doesn't replay them.
+const tokenParam = sessionStorage.getItem("ltiToken");
+sessionStorage.removeItem("ltiToken");
+const lmsApiOAuthURL = sessionStorage.getItem("lmsApiOAuthUrl");
+sessionStorage.removeItem("lmsApiOAuthUrl");
 
 const integration = {
   integration: getBooleanParam("integration"),
@@ -73,8 +78,10 @@ const initializeStore = async () => {
   }
 
   if (lmsApiOAuthURL) {
+    // no decodeURIComponent needed here - this arrives via sessionStorage as the raw URL, never
+    // URL-encoded (unlike the old query-param delivery this replaced)
     operations.push(
-      api(pinia).setLmsApiOAuthURL(decodeURIComponent(lmsApiOAuthURL))
+      api(pinia).setLmsApiOAuthURL(lmsApiOAuthURL)
     );
   }
 
