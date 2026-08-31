@@ -73,6 +73,7 @@
             @click:close="handleDataExportRequestAlertDismiss(dataExportRequestAlert.experimentId)"
             :aria-label="`data export request alert for experiment ${dataExportRequestAlert.experimentId}`"
             :type="dataExportRequestAlert.type"
+            :color="dataExportRequestAlert.color"
             elevation="0"
             role="alert"
             closable
@@ -367,7 +368,8 @@ const dataExportRequestAlerts = computed(() => {
         showDownloadLink: true,
         showRecreateLink: false,
         text: `Your data export for experiment "${request.experimentTitle}" is ready.`,
-        type: "success"
+        type: "success",
+        color: getColor("--green-base")
       });
       continue;
     }
@@ -378,7 +380,8 @@ const dataExportRequestAlerts = computed(() => {
         showDownloadLink: false,
         showRecreateLink: false,
         text: `The data export for experiment "${request.experimentTitle}" is being processed. Please do not navigate away from this page.`,
-        type: "info"
+        type: "info",
+        color: getColor("--blue-primary")
       });
       continue;
     }
@@ -400,7 +403,8 @@ const dataExportRequestAlerts = computed(() => {
         showDownloadLink: false,
         showRecreateLink: false,
         text: `There was an error processing the requested data export for experiment "${request.experimentTitle}". Please try again or contact support.`,
-        type: "error"
+        type: "error",
+        color: getColor("--red-base")
       });
     }
   }

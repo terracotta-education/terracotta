@@ -63,6 +63,7 @@
           <v-alert
             v-model="experimentDataExportRequest.showAlert"
             :type="dataExportRequestAlert.type"
+            :color="dataExportRequestAlert.color"
             @update:model-value="handleDataExportRequestAlertDismiss"
             elevation="0"
             closable
@@ -421,7 +422,7 @@ import {
 
 import Swal from "sweetalert2";
 import { EventBus } from "@/helpers/event-bus";
-import { statusAlert, createStatusAlert } from "@/helpers/ui-utils";
+import { statusAlert, createStatusAlert, getColor } from "@/helpers/ui-utils";
 
 import ExperimentAssignments from "@/views/ExperimentAssignments.vue";
 import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus.vue";
@@ -652,7 +653,8 @@ const dataExportRequestAlert = computed(() => {
       showDownloadLink: true,
       showRecreateLink: false,
       text: `Your data export for experiment "${request.experimentTitle}" is ready.`,
-      type: "success"
+      type: "success",
+      color: getColor("--green-base")
     };
   }
 
@@ -661,7 +663,8 @@ const dataExportRequestAlert = computed(() => {
       showDownloadLink: false,
       showRecreateLink: false,
       text: `The data export for experiment "${request.experimentTitle}" is being processed. Please do not navigate away from this page.`,
-      type: "info"
+      type: "info",
+      color: getColor("--blue-primary")
     };
   }
 
@@ -679,7 +682,8 @@ const dataExportRequestAlert = computed(() => {
       showDownloadLink: false,
       showRecreateLink: false,
       text: `There was an error processing the requested data export for experiment "${request.experimentTitle}". Please try again or contact support.`,
-      type: "error"
+      type: "error",
+      color: getColor("--red-base")
     };
   }
 
@@ -1280,7 +1284,7 @@ div.results {
     margin: 0 auto;
 
     a {
-      color: inherit;
+      color: inherit !important;
       cursor: pointer;
     }
   }
