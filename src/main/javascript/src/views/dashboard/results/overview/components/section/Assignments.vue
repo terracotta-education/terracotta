@@ -62,37 +62,16 @@ const rows = computed(() => {
       }
       /* excludes Vuetify's own "No data available" placeholder row - it's
          also technically tr:last-child when the table is empty, but isn't
-         the real "Overall" summary row this highlight is meant for. Without
-         this, the deliberate 20px box-shadow overflow below (meant to reach
-         the table's own outer rounded border from a genuine last data row)
-         overshot past the placeholder row's border instead, since it isn't
-         sitting in that same surrounding row context. */
+         the real "Overall" summary row this highlight is meant for. */
       & tr:last-child:not(.v-data-table-rows-no-data) {
         position: relative;
         background-color: #f6fbff !important;
         border-bottom-left-radius: 10px;
         border-bottom-right-radius: 10px;
-        -webkit-box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
-        -moz-box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
-        box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
         z-index: 0;
 
         &:hover {
           background-color: #f6fbff !important;
-        }
-
-        &::after {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: -3px;
-          right: 0;
-          height: 0;
-          margin-left: -10px !important;
-          width: Calc(100% + 20px) !important;
-          -webkit-box-shadow: 12px 0 0 .5px lightgrey, -12px 0 0 .5px lightgrey;
-          -moz-box-shadow: 12px 0 0 .5px lightgrey, -12px 0 0 .5px lightgrey;
-          box-shadow: 12px 0 0 .5px lightgrey, -12px 0 0 .5px lightgrey;
         }
       }
     }
