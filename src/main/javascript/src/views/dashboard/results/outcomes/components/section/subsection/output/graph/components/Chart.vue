@@ -312,6 +312,10 @@ const options = computed(() => ({
         symbol: "download",
         symbolStroke: "rgba(102, 102, 102, .75)",
         theme: {
+          // Highcharts 13 defaults this button's fill to var(--highcharts-background-color),
+          // which this app never defines, so it falls through to black. Pin the pre-v13
+          // default explicitly (same issue as chart.backgroundColor above).
+          fill: "#ffffff",
           "stroke-width": 1,
           stroke: "silver",
           r: 4,
