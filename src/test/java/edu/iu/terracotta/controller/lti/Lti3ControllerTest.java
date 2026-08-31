@@ -12,8 +12,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
@@ -103,12 +101,20 @@ public class Lti3ControllerTest extends BaseTest {
         return lti3Controller.home(httpServletRequest, null, model);
     }
 
+    // the launch token (and, when present, the LMS API OAuth URL) are delivered via lti3Launch.html
+    // model attributes rather than a redirect query string - see Lti3Controller#home for why.
+    private void assertLaunchView(String result, String expectedLmsApiOAuthUrl) {
+        assertEquals("lti3Launch", result);
+        verify(model).addAttribute("token", "oneTimeToken123");
+        verify(model).addAttribute("lmsApiOAuthUrl", expectedLmsApiOAuthUrl);
+    }
+
     @Test
     void homeHappyPathRedirectTest() throws Exception {
         try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
             String result = callHome();
 
-            assertEquals("redirect:/app/app.html?token=oneTimeToken123", result);
+            assertLaunchView(result, null);
         }
     }
 
@@ -283,7 +289,7 @@ public class Lti3ControllerTest extends BaseTest {
         try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
             String result = callHome();
 
-            assertEquals("redirect:/app/app.html?token=oneTimeToken123", result);
+            assertLaunchView(result, null);
         }
     }
 
@@ -298,7 +304,7 @@ public class Lti3ControllerTest extends BaseTest {
         try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
             String result = callHome();
 
-            assertEquals("redirect:/app/app.html?token=oneTimeToken123", result);
+            assertLaunchView(result, null);
         }
     }
 
@@ -314,7 +320,7 @@ public class Lti3ControllerTest extends BaseTest {
         try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
             String result = callHome();
 
-            assertEquals("redirect:/app/app.html?token=oneTimeToken123", result);
+            assertLaunchView(result, null);
         }
     }
 
@@ -332,10 +338,7 @@ public class Lti3ControllerTest extends BaseTest {
         try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
             String result = callHome();
 
-            assertEquals(
-                "redirect:/app/app.html?token=oneTimeToken123&lms_api_oauth_url=" + URLEncoder.encode("https://oauth.example.com/authorize", Charset.defaultCharset()),
-                result
-            );
+            assertLaunchView(result, "https://oauth.example.com/authorize");
         }
     }
 
@@ -353,7 +356,7 @@ public class Lti3ControllerTest extends BaseTest {
         try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
             String result = callHome();
 
-            assertEquals("redirect:/app/app.html?token=oneTimeToken123", result);
+            assertLaunchView(result, null);
         }
     }
 
@@ -380,7 +383,7 @@ public class Lti3ControllerTest extends BaseTest {
         try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
             String result = callHome();
 
-            assertEquals("redirect:/app/app.html?token=oneTimeToken123", result);
+            assertLaunchView(result, null);
             verify(lmsOAuthServiceManager, never()).getLmsOAuthService(any(PlatformDeployment.class));
         }
     }
