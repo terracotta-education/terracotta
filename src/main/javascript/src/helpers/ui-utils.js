@@ -31,7 +31,12 @@ export function adjustBodyTopPadding(to = "pt-4", from = "pt-4") {
 }
 
 export function getColor(property) {
-    return document.documentElement.style.getPropertyValue(property);
+    // getComputedStyle, not documentElement.style - the latter only reads the element's own
+    // inline style attribute, never a CSS custom property defined via a stylesheet rule (e.g.
+    // the :root {} block in variables.scss, which is how every one of these is actually
+    // defined) - it would silently return "" for any of them. getComputedStyle resolves the
+    // full cascade, inline style included, so this covers both cases.
+    return getComputedStyle(document.documentElement).getPropertyValue(property).trim();
 }
 
 export function deleteAttributesFromObservedElement(parentClass, nodeClass, elementClass, attributes) {

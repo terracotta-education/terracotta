@@ -100,10 +100,25 @@ describe("adjustBodyTopPadding", () => {
 });
 
 describe("getColor", () => {
-  it("reads a CSS custom property from the document element's style", () => {
+  it("reads a CSS custom property set on the document element's inline style", () => {
     document.documentElement.style.setProperty("--my-color", "#ff0000");
 
     expect(getColor("--my-color")).toBe("#ff0000");
+  });
+
+  // this is how every real color custom property is actually defined (variables.scss's
+  // :root {} block) - a naive documentElement.style.getPropertyValue() read (rather than
+  // getComputedStyle) would silently return "" here, which was the actual bug: Vuetify 3's
+  // v-alert :color prop doesn't fall back to a type-derived color for an empty string the
+  // way v2's did, so the alert rendered with no color at all instead of falling back visibly.
+  it("reads a CSS custom property defined via a stylesheet rule, not just inline style", () => {
+    const style = document.createElement("style");
+    style.textContent = ":root { --stylesheet-color: #00ff00; }";
+    document.head.appendChild(style);
+
+    expect(getColor("--stylesheet-color")).toBe("#00ff00");
+
+    document.head.removeChild(style);
   });
 
   it("returns an empty string for a property that has not been set", () => {
