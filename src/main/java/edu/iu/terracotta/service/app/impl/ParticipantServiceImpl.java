@@ -801,8 +801,10 @@ public class ParticipantServiceImpl implements ParticipantService {
                 participantToChange.setDropped(participantDto.getDropped());
             }
 
-            // We don't allow changing the group (manually) once the experiment has started.
-            if (!hasParticipantSubmitted(participantToChange, publishedExperimentAssignmentIds)) {
+            // We don't allow changing the group (manually) once the participant has submitted -
+            // including to a single-version assignment, unlike hasParticipantSubmitted's
+            // "started" semantics (see hasAnyParticipantSubmission's own comment)
+            if (!hasAnyParticipantSubmission(participantToChange, publishedExperimentAssignmentIds)) {
                 if (participantDto.getGroupId() != null
                         && groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
                     participantToChange.setGroup(groupRepository.findByGroupId(participantDto.getGroupId()));
@@ -892,6 +894,12 @@ public class ParticipantServiceImpl implements ParticipantService {
         return found;
     }
 
+    private List<Submission> findPublishedSubmissions(Participant participant, List<Long> publishedExperimentAssignmentIds) {
+        return submissionRepository.findByParticipant_Id(participant.getParticipantId()).stream()
+            .filter(submission -> publishedExperimentAssignmentIds.contains(submission.getAssessment().getTreatment().getAssignment().getAssignmentId()))
+            .toList();
+    }
+
     /**
      * Has the participant submitted a response to an assignment?
      *
@@ -908,18 +916,24 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @return
      */
     private boolean hasParticipantSubmitted(Participant participant, List<Long> publishedExperimentAssignmentIds) {
-        // find only published assignment submissions
-        List<Submission> publishedSubmissions = submissionRepository.findByParticipant_Id(participant.getParticipantId()).stream()
-            .filter(submission -> publishedExperimentAssignmentIds.contains(submission.getAssessment().getTreatment().getAssignment().getAssignmentId()))
-            .toList();
-
         return
             // participant has at least viewed a multi-version assignment; consider it submitted
             CollectionUtils.isNotEmpty(
-                publishedSubmissions.stream()
+                findPublishedSubmissions(participant, publishedExperimentAssignmentIds).stream()
                     .filter(publishedSubmission -> treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(publishedSubmission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1)
                     .toList()
             );
+    }
+
+    // unlike hasParticipantSubmitted, this counts a submission to a single-version assignment too
+    // (single-condition experiments only ever have single-version assignments, so that method
+    // always returns false for them). Used to guard against ever reassigning/clearing a
+    // participant's group once they have any recorded submission - doing so would silently
+    // orphan that submission from the "expected" count, which is computed from current group
+    // membership (see AssessmentServiceImpl.toDto), producing a nonsensical completed/expected
+    // ratio like "1/0"
+    private boolean hasAnyParticipantSubmission(Participant participant, List<Long> publishedExperimentAssignmentIds) {
+        return CollectionUtils.isNotEmpty(findPublishedSubmissions(participant, publishedExperimentAssignmentIds));
     }
 
     @Override
