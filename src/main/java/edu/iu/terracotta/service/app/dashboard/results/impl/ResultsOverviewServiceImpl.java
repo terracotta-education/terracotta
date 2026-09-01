@@ -509,8 +509,11 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
         }
 
         experimentExposureGroupConditions = exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(experiment.getExperimentId());
-        // experiment submissions without non-consented participants' submissions
+        // experiment submissions without non-consented participants' submissions or in-progress
+        // (not yet actually submitted) attempts - a Submission row is created as soon as an
+        // assessment is opened, before the participant has submitted anything
         experimentSubmissions = submissionRepository.findByParticipant_Experiment_ExperimentId(experiment.getExperimentId()).stream()
+            .filter(submission -> submission.getDateSubmitted() != null)
             .filter(submission -> BooleanUtils.isTrue(submission.getParticipant().getConsent()))
             .filter(submission -> submission.getParticipant().getDateRevoked() == null)
             .toList();

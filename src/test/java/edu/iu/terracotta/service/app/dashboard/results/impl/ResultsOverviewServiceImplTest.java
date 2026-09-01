@@ -435,4 +435,17 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         assertFalse(ret.getAssignments().getRows().get(0).isOpen());
     }
 
+    // a Submission row is created as soon as an assessment is opened, before the participant has
+    // actually submitted anything - an in-progress attempt (dateSubmitted null) must not count
+    // toward the "Number of submissions" shown for a component
+    @Test
+    void testOverviewDoesNotCountInProgressSubmission() {
+        when(submission.getDateSubmitted()).thenReturn(null);
+        when(submissionRepository.findByParticipant_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(submission));
+
+        ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
+
+        assertEquals(0, ret.getAssignments().getRows().get(0).getSubmissionCount());
+    }
+
 }
