@@ -73,6 +73,12 @@ const rows = computed(() => {
         &:hover {
           background-color: #f6fbff !important;
         }
+
+        /* tr:nth-last-child(2) above suppresses the previous row's own border-bottom, so this
+           is the only divider between it and this "Overall" row */
+        td {
+          border-top: 1px solid lightgrey;
+        }
       }
     }
   }
