@@ -296,6 +296,19 @@ public class AssignmentServiceImplTest extends BaseTest {
         verify(assignmentTreatmentService, never()).setAssignmentDtoAttrs(anyList(), any(LtiUserEntity.class));
     }
 
+    // enrichment (published/due date) is best-effort on top of assignments already loaded from
+    // our own DB - a Canvas-side failure (e.g. a rejected OAuth token) should not take down the
+    // whole list
+    @Test
+    public void testGetAssignmentsCanvasApiFailureStillReturnsAssignments() throws AssessmentNotMatchingException, ApiException, NumberFormatException, TerracottaConnectorException {
+        doThrow(new ApiException("Failed to get the list of assignments Canvas course by ID [121299]")).when(assignmentTreatmentService).setAssignmentDtoAttrs(anyList(), any(LtiUserEntity.class));
+
+        List<AssignmentDto> retVal = assignmentService.getAssignments(0L, false, false, securedInfo);
+
+        assertNotNull(retVal);
+        assertEquals(1, retVal.size());
+    }
+
     @Test
     public void testPostAssignmentSuccess() throws IdInPostException, DataServiceException, TitleValidationException, AssignmentNotCreatedException,
             AssessmentNotMatchingException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, TerracottaConnectorException {
