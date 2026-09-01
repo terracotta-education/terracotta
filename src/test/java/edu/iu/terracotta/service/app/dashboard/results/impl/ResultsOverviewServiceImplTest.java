@@ -74,8 +74,8 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         assertEquals(0, ret.getConditions().getRows().get(0).getSubmissionCount());
         assertEquals(0.0, ret.getConditions().getRows().get(1).getSubmissionRate());
         assertEquals(0, ret.getConditions().getRows().get(1).getSubmissionCount());
-        assertEquals(4.0, ret.getConditions().getRows().get(2).getSubmissionRate());
-        assertEquals(4, ret.getConditions().getRows().get(2).getSubmissionCount());
+        assertEquals(0.0, ret.getConditions().getRows().get(2).getSubmissionRate());
+        assertEquals(0, ret.getConditions().getRows().get(2).getSubmissionCount());
         assertEquals(ExposureTypes.BETWEEN, ret.getConditions().getExposureType());
 
         assertNotNull(ret.getParticipants());
@@ -433,6 +433,22 @@ public class ResultsOverviewServiceImplTest extends BaseTest {
         ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
 
         assertFalse(ret.getAssignments().getRows().get(0).isOpen());
+    }
+
+    // same as testOverviewDoesNotCountInProgressSubmission, but for the "Components with only one
+    // version" condition row - it used a separate, unfiltered submissionRepository.countByAssessment_
+    // AssessmentId(...) count instead of the already-filtered experimentSubmissions list the sibling
+    // per-condition rows use, so it counted in-progress (and non-consented/revoked) submissions too
+    @Test
+    void testOverviewSingleConditionRowDoesNotCountInProgressSubmission() {
+        when(experiment.getConditions()).thenReturn(Arrays.asList(condition, condition));
+        when(submission.getDateSubmitted()).thenReturn(null);
+        when(submissionRepository.findByParticipant_Experiment_ExperimentId(anyLong())).thenReturn(Collections.singletonList(submission));
+
+        ResultsOverviewDto ret = resultsOverviewService.overview(experiment, securedInfo);
+
+        assertEquals(3, ret.getConditions().getRows().size());
+        assertEquals(0, ret.getConditions().getRows().get(2).getSubmissionCount());
     }
 
     // a Submission row is created as soon as an assessment is opened, before the participant has

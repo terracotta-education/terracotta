@@ -433,7 +433,13 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
         assessments
             .forEach(
                 assessment -> {
-                    submissionsCount.addAndGet(submissionRepository.countByAssessment_AssessmentId(assessment.getAssessmentId()));
+                    // experimentSubmissions is already filtered to consented, non-revoked
+                    // participants' completed (not just in-progress) submissions
+                    submissionsCount.addAndGet(
+                        experimentSubmissions.stream()
+                            .filter(submission -> submission.getAssessment().getAssessmentId().equals(assessment.getAssessmentId()))
+                            .count()
+                    );
                 }
             );
 
