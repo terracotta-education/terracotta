@@ -114,8 +114,10 @@ describe("AssignmentScores", () => {
   it("shows a loading spinner before data resolves", () => {
     const wrapper = mount();
 
-    expect(wrapper.findComponent({ name: "VProgressCircular" }).exists()).toBe(
-      true
+    const pageLoading = wrapper.findComponent({ name: "PageLoading" });
+    expect(pageLoading.exists()).toBe(true);
+    expect(pageLoading.props("message")).toBe(
+      "Please wait while we load the submission scores."
     );
   });
 

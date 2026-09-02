@@ -1,11 +1,10 @@
 <template>
 <div>
-  <div
+  <page-loading
     v-if="isLoading"
-    class="pa-4"
-  >
-    <v-progress-circular indeterminate color="primary" />
-  </div>
+    :display="true"
+    message="Please wait while we load the submission scores."
+  />
   <div
     v-else-if="!experiment || !assignment?.assignmentId"
     class="pa-4"
@@ -154,6 +153,8 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
+
+import PageLoading from "@/components/PageLoading.vue";
 
 import { experiment as experimentModule } from "@/store/experiment.module";
 import { assignment as assignmentModule } from "@/store/assignment.module";
