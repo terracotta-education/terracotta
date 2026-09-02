@@ -681,6 +681,17 @@ div.row-sections {
   }
 }
 
+// 636px matches this app's existing mobile-table breakpoint (see ComponentTable.vue)
+@media (max-width: 636px) {
+  div.row-sections {
+    flex-direction: column;
+
+    > .v-card {
+      max-width: 100%;
+    }
+  }
+}
+
 .error-text {
   color: map.get($red, "base") !important;
 }
