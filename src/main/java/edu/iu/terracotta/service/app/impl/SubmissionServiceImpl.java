@@ -839,6 +839,13 @@ public class SubmissionServiceImpl implements SubmissionService {
         throw new SubmissionNotMatchingException("Error 147: Not allowed to submit this submission");
     }
 
+    @Override
+    public boolean isOwnSubmission(Long submissionId, SecuredInfo securedInfo) {
+        return submissionRepository.findById(submissionId)
+            .map(submission -> submission.getParticipant().getLtiUserEntity().getUserKey().equals(securedInfo.getUserId()))
+            .orElse(false);
+    }
+
     /**
      * If this is the first submission mark the assignment as started.
      *

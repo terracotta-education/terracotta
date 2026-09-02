@@ -240,7 +240,10 @@ public class AnswerServiceImpl implements AnswerService {
             .map(
                 answerMc -> {
                     entityManager.detach(answerMc);
+                    // reset ID and version - see the identical fix/rationale in
+                    // AssignmentTreatmentServiceImpl.duplicateTreatment
                     answerMc.setAnswerMcId(null);
+                    answerMc.setVersion(0);
                     answerMc.setQuestion(newQuestion);
 
                     return saveMC(answerMc);

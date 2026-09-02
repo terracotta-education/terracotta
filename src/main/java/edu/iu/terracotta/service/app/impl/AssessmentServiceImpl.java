@@ -422,13 +422,13 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setCumulativeScoringInitialPercentage(assessmentDto.getCumulativeScoringInitialPercentage());
 
         if (processQuestions) {
-            processAssessmentQuestions(assessmentDto);
+            processAssessmentQuestions(assessment, assessmentDto);
         }
 
         return save(assessment);
     }
 
-    private void processAssessmentQuestions(AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException {
+    private void processAssessmentQuestions(Assessment assessment, AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException {
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
             List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId())).stream()
                 .map(Question::getQuestionId)
@@ -463,15 +463,23 @@ public class AssessmentServiceImpl implements AssessmentService {
                 }
             }
 
-            // remove questions not passed in
+            // remove questions not passed in - also drop them from assessment's own
+            // questions collection (already lazily loaded above via isIntegration()),
+            // otherwise the stale in-memory reference to a now-deleted row makes the
+            // save(assessment) merge below fail trying to re-resolve it
             CollectionUtils.emptyIfNull(existingQuestionIds).stream()
-                .forEach(existingQuestionId -> questionRepository.deleteByQuestionId(existingQuestionId));
+                .forEach(existingQuestionId -> {
+                    questionRepository.deleteByQuestionId(existingQuestionId);
+                    assessment.getQuestions().removeIf(question -> existingQuestionId.equals(question.getQuestionId()));
+                });
         } else {
             // delete all questions from the assessment; none were passed in
             List<Question> questions = questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId());
 
             CollectionUtils.emptyIfNull(questions).stream()
                 .forEach(question -> questionRepository.deleteByQuestionId(question.getQuestionId()));
+
+            assessment.getQuestions().clear();
         }
     }
 
@@ -601,9 +609,11 @@ public class AssessmentServiceImpl implements AssessmentService {
         from.setQuestions(Collections.emptyList());
         from.setSubmissions(Collections.emptyList());
 
-        // reset ID
+        // reset ID and version - see the identical fix/rationale in
+        // AssignmentTreatmentServiceImpl.duplicateTreatment
         Long oldAssessmentId = from.getAssessmentId();
         from.setAssessmentId(null);
+        from.setVersion(0);
 
         from.setTreatment(treatment);
 
