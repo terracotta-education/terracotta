@@ -537,7 +537,7 @@ public class ExportServiceImpl implements ExportService {
             while (CollectionUtils.isNotEmpty(questionSubmissions)) {
                 CollectionUtils.emptyIfNull(questionSubmissions).stream()
                     .filter(questionSubmission -> !questionSubmission.getSubmission().getParticipant().isTestStudent())
-                    .filter(questionSubmission -> BooleanUtils.isNotFalse(questionSubmission.getSubmission().getParticipant().getConsent()))
+                    .filter(questionSubmission -> BooleanUtils.isTrue(questionSubmission.getSubmission().getParticipant().getConsent()))
                     .forEach(questionSubmission -> {
                         String response = NA;
                         String responseId = NA;
@@ -782,7 +782,7 @@ public class ExportServiceImpl implements ExportService {
             while (CollectionUtils.isNotEmpty(events)) {
                 CollectionUtils.emptyIfNull(events).stream()
                     .filter(event -> !event.getParticipant().isTestStudent())
-                    .filter(event -> BooleanUtils.isNotFalse(event.getParticipant().getConsent()) && event.getJson() != null)
+                    .filter(event -> BooleanUtils.isTrue(event.getParticipant().getConsent()) && event.getJson() != null)
                     .forEach(event -> {
                         if (!isFirstElement.getAndSet(false)) {
                             printStream.println(",");
