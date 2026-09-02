@@ -21,7 +21,10 @@
             </v-expansion-panel-title>
 
             <v-expansion-panel-text>
-              <v-table class="mb-9 v-data-table--no-outline v-data-table--light-header">
+              <v-table
+                class="mb-9 v-data-table--no-outline v-data-table--light-header"
+                hover
+              >
                 <thead>
                   <tr>
                     <th class="text-left">
@@ -75,7 +78,10 @@
                 <strong>Components</strong>
               </h4>
 
-              <v-table class="mb-9 v-data-table--no-outline v-data-table--light-header">
+              <v-table
+                class="mb-9 v-data-table--no-outline v-data-table--light-header"
+                hover
+              >
                 <thead>
                   <tr>
                     <th class="text-left">
@@ -130,6 +136,7 @@
               <v-table
                 v-if="outcomesForExposure(exposure.exposureId).length"
                 class="mb-9 v-data-table--no-outline v-data-table--light-header"
+                hover
               >
                 <thead>
                   <tr>

@@ -39,12 +39,17 @@
       tr:first-child td {
         border-top: 1px solid rgba(0, 0, 0, 0.2);
 
+        // overflow: hidden clips the hover fill (Vuetify's `hover` prop paints it as a
+        // per-td ::after, not a plain background - it won't otherwise respect the cell's
+        // own rounded corner) - same technique/rationale as .v-data-table-alt below
         &:first-child {
           border-top-left-radius: 10px;
+          overflow: hidden;
         }
 
         &:last-child {
           border-top-right-radius: 10px;
+          overflow: hidden;
         }
       }
 
@@ -53,10 +58,12 @@
 
         &:first-child {
           border-bottom-left-radius: 10px;
+          overflow: hidden;
         }
 
         &:last-child {
           border-bottom-right-radius: 10px;
+          overflow: hidden;
         }
       }
     }
