@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -442,6 +443,17 @@ public class RestResponseEntityExceptionHandler
         log.warn(bodyOfResponse);
 
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
+
+    // was previously unhandled, resulting in a raw uncaught-exception 500 (with the full
+    // stack trace) for any LMS API failure - e.g. a Canvas throttling/permissions error hit
+    // while checking submission attempts - instead of a clean mapped error response
+    @ExceptionHandler({ ApiException.class })
+    protected ResponseEntity<Object> handleApiException(ApiException ex, WebRequest request) {
+        String bodyOfResponse = ex.getMessage();
+        log.warn(bodyOfResponse);
+
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
 }

@@ -105,6 +105,7 @@ public class QuestionServiceImplTest extends BaseTest {
         verify(entityManager).detach(any(Question.class));
         verify(answerService).duplicateAnswersForQuestion(anyLong(), any(Question.class));
         verify(integrationService, never()).duplicate(any(), any());
+        verify(question).setVersion(0);
     }
 
     @Test

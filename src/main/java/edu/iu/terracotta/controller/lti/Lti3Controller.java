@@ -41,8 +41,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.util.List;
@@ -180,18 +178,25 @@ public class Lti3Controller {
                 );
             }
 
-            String redirectUrl = "redirect:/app/app.html?token=" + oneTimeToken;
+            // the one-time token (and, for instructor-or-higher launches without a cached LMS API
+            // token, a second JWT embedded in the OAuth authorization URL below) are delivered via
+            // the response body rather than a redirect's query string - the launch JWT alone can
+            // approach or exceed Tomcat's default 8KB request-header limit for users with many
+            // roles/enrollments (e.g. a TA also holding an Instructor-mapped role), and the combined
+            // payload with the OAuth URL and its full API scope list reliably exceeds it, causing
+            // the browser's next request (the redirect target) to fail with "Request header is too
+            // large" before the app ever loads. Rendering this page instead of redirecting avoids
+            // that entirely: response bodies aren't subject to the header-size limit, and the values
+            // never appear in the browser's URL/history or in access logs the way a query string does.
+            model.addAttribute("token", oneTimeToken);
 
             // Check if we need to get API token from instructor to use LMS API
-            if (lti3Request.isRoleInstructor()) {
-                String oauth2APITokenRedirectURL = getOAuth2APITokenRedirectURL(lti3Request.getKey(), lti3Request.getUser(), lti3Request);
+            model.addAttribute(
+                "lmsApiOAuthUrl",
+                lti3Request.isRoleInstructor() ? getOAuth2APITokenRedirectURL(lti3Request.getKey(), lti3Request.getUser(), lti3Request) : null
+            );
 
-                if (oauth2APITokenRedirectURL != null) {
-                    redirectUrl += "&lms_api_oauth_url=" + URLEncoder.encode(oauth2APITokenRedirectURL, Charset.defaultCharset());
-                }
-            }
-
-            return redirectUrl;
+            return "lti3Launch";
         } catch (SignatureException | GeneralSecurityException | IOException e) {
             model.addAttribute(TextConstants.ERROR, e.getMessage());
             return TextConstants.LTI3ERROR;

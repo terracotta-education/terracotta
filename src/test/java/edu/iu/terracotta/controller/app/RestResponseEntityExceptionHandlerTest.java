@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.WebRequest;
 
+import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -448,6 +449,14 @@ public class RestResponseEntityExceptionHandlerTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("assignment attempt error", response.getBody());
+    }
+
+    @Test
+    void handleApiExceptionTest() {
+        ResponseEntity<Object> response = handler.handleApiException(new ApiException("api error"), webRequest);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals("api error", response.getBody());
     }
 
 }
