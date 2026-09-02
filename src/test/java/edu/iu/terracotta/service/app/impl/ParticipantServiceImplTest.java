@@ -379,6 +379,19 @@ public class ParticipantServiceImplTest extends BaseTest {
         });
     }
 
+    // a participant with any recorded submission - even to a single-version assignment, where
+    // hasParticipantSubmitted's "started" semantics would say false - must never have their
+    // group reset. Doing so would orphan that submission from the "expected" count (computed
+    // from current group membership), producing a nonsensical completed/expected ratio like "1/0"
+    @Test
+    public void testChangeParticipantDoesNotResetGroupAfterSingleVersionSubmission() {
+        when(submissionRepository.findByParticipant_Id(anyLong())).thenReturn(List.of(submission));
+
+        participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1L, securedInfo);
+
+        verify(participant, never()).setGroup(any());
+    }
+
     @Test
     public void testChangeParticipantSavesAllAtOnceInsteadOfPerEntry() {
         Participant secondParticipant = mock(Participant.class);

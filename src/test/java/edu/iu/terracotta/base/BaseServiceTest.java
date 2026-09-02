@@ -246,6 +246,7 @@ public class BaseServiceTest extends BaseRepositoryTest {
             when(canvasApiJwtService.buildJwt(anyBoolean(), any(Lti3Request.class))).thenReturn(JWT);
             when(canvasLmsOAuthService.isConfigured(any(PlatformDeployment.class))).thenReturn(true);
             when(canvasLmsOAuthService.getAccessToken(any(LtiUserEntity.class))).thenReturn(apiTokenEntity);
+            when(canvasLmsOAuthService.getAccessToken(any(LtiUserEntity.class), any())).thenReturn(apiTokenEntity);
             when(componentUtils.calculateNextOrder(anyLong(), any(LtiUserEntity.class))).thenReturn(1);
             when(experimentImportErrorService.toDto(any(ExperimentImportError.class))).thenReturn(experimentImportErrorDto);
             when(experimentImportErrorService.toDto(anyList())).thenReturn(List.of(experimentImportErrorDto));

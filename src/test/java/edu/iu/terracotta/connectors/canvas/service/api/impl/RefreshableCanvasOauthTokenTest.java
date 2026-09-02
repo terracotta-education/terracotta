@@ -11,14 +11,14 @@ public class RefreshableCanvasOauthTokenTest {
 
     @Test
     public void testGetAccessTokenReturnsInitialValueBeforeRefresh() {
-        RefreshableCanvasOauthToken token = new RefreshableCanvasOauthToken(() -> "new-token", "initial-token");
+        RefreshableCanvasOauthToken token = new RefreshableCanvasOauthToken(rejected -> "new-token", "initial-token");
 
         assertEquals("initial-token", token.getAccessToken());
     }
 
     @Test
     public void testRefreshFetchesAndHoldsNewAccessToken() {
-        RefreshableCanvasOauthToken token = new RefreshableCanvasOauthToken(() -> "new-token", "initial-token");
+        RefreshableCanvasOauthToken token = new RefreshableCanvasOauthToken(rejected -> "new-token", "initial-token");
 
         token.refresh();
 
@@ -26,9 +26,25 @@ public class RefreshableCanvasOauthTokenTest {
     }
 
     @Test
+    public void testRefreshPassesCurrentAccessTokenAsRejectedToken() {
+        StringBuilder rejectedTokenSeen = new StringBuilder();
+        RefreshableCanvasOauthToken token = new RefreshableCanvasOauthToken(
+            rejected -> {
+                rejectedTokenSeen.append(rejected);
+                return "new-token";
+            },
+            "initial-token"
+        );
+
+        token.refresh();
+
+        assertEquals("initial-token", rejectedTokenSeen.toString());
+    }
+
+    @Test
     public void testRefreshWrapsSupplierApiExceptionAsIllegalStateException() {
         RefreshableCanvasOauthToken token = new RefreshableCanvasOauthToken(
-            () -> {
+            rejected -> {
                 throw new ApiException("could not fetch");
             },
             "initial-token"
