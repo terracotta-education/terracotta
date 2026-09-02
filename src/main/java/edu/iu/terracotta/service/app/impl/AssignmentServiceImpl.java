@@ -147,8 +147,15 @@ public class AssignmentServiceImpl implements AssignmentService {
         LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
 
         if (instructorUser != null) {
-            // one LMS call for all assignments instead of one call per assignment
-            assignmentTreatmentService.setAssignmentDtoAttrs(assignments, instructorUser);
+            // one LMS call for all assignments instead of one call per assignment; this is a
+            // best-effort enrichment (published/due date) on top of assignments already loaded
+            // from our own DB, so a Canvas-side failure (e.g. a rejected OAuth token) shouldn't
+            // take down the whole list - log and return the assignments without it instead
+            try {
+                assignmentTreatmentService.setAssignmentDtoAttrs(assignments, instructorUser);
+            } catch (ApiException | TerracottaConnectorException e) {
+                log.warn("Unable to retrieve LMS published/due-date attributes for exposure ID: [{}]. Returning assignments without them.", exposureId, e);
+            }
         }
 
         for (Assignment assignment : assignments) {

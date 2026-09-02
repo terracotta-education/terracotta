@@ -1,11 +1,11 @@
 package edu.iu.terracotta.service.app.dashboard.results.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -48,6 +48,7 @@ import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
+import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AssessmentSubmissionService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -57,7 +58,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.countTreatmentsByAssignmentId;
-import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAllLmsAssignmentIds;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByConditionId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByTreatmentId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findLmsAssignmentByLmsAssignmentId;
@@ -524,27 +524,13 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
             .filter(submission -> submission.getParticipant().getDateRevoked() == null)
             .toList();
 
-        experimentLmsAssignments = findAllLmsAssignmentIds(experimentAssignments).stream()
-            .map(
-                lmsAssignmentId -> {
-                    Optional<LmsAssignment> lmsAssignment;
-
-                    try {
-                        lmsAssignment = assignmentService.getLmsAssignmentById(lmsAssignmentId, securedInfo);
-                    } catch (ApiException | TerracottaConnectorException e) {
-                        log.error("Error retrieving assignments from LMS for course ID: [{}]", securedInfo.getLmsCourseId(), e);
-                        return null;
-                    }
-
-                    if (lmsAssignment.isEmpty()) {
-                        return null;
-                    }
-
-                    return lmsAssignment.get();
-                }
-            )
-            .filter(assignmentExtended -> !Objects.isNull(assignmentExtended))
-            .toList();
+        // one LMS call for the whole course instead of one call per assignment
+        try {
+            experimentLmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
+        } catch (ApiException | TerracottaConnectorException | DataServiceException e) {
+            log.error("Error retrieving assignments from LMS for course ID: [{}]", securedInfo.getLmsCourseId(), e);
+            experimentLmsAssignments = Collections.emptyList();
+        }
     }
 
 }
