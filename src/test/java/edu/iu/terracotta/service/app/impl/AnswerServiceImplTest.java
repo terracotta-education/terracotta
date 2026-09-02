@@ -106,6 +106,7 @@ public class AnswerServiceImplTest extends BaseTest {
         verify(answerMcRepository).findByQuestion_QuestionId(1L);
         verify(entityManager).detach(answerMc);
         verify(answerMcRepository).save(answerMc);
+        verify(answerMc).setVersion(0);
     }
 
     @Test

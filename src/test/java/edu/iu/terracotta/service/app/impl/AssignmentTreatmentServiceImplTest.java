@@ -101,6 +101,7 @@ public class AssignmentTreatmentServiceImplTest extends BaseTest {
         assertNotNull(retVal);
         verify(treatment, never()).setAssignment(any(Assignment.class));
         verify(treatmentRepository, never()).saveAndFlush(any());
+        verify(treatment).setVersion(0);
     }
 
     @Test
@@ -118,6 +119,7 @@ public class AssignmentTreatmentServiceImplTest extends BaseTest {
         assertNotNull(retVal.getAssessmentDto());
         verify(treatment).setAssignment(assignment);
         verify(treatmentRepository).saveAndFlush(any(Treatment.class));
+        verify(treatment).setVersion(0);
     }
 
     @Test

@@ -15,6 +15,7 @@ import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +29,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.RegradeDetails;
 import edu.iu.terracotta.dao.entity.RetakeDetails;
 import edu.iu.terracotta.dao.entity.Submission;
@@ -77,6 +79,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -345,6 +348,12 @@ public class AssessmentServiceImplTest extends BaseTest {
         IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Arrays.asList(question)); // requires modifiable list
+        // a real mutable list, standing in for Hibernate's own lazily-loaded (and by this point
+        // already-initialized, via the earlier isIntegration() calls) assessment.questions
+        // collection - proves it gets kept in sync with the DB delete below, rather than still
+        // holding a stale reference to the now-deleted row when save(assessment) merges
+        List<Question> assessmentQuestions = new ArrayList<>(List.of(question));
+        when(assessment.getQuestions()).thenReturn(assessmentQuestions);
 
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
@@ -352,6 +361,29 @@ public class AssessmentServiceImplTest extends BaseTest {
         verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
         verify(questionRepository).deleteByQuestionId(anyLong());
+        assertTrue(assessmentQuestions.isEmpty());
+    }
+
+    @Test
+    public void testUpdateAssessmentWithDeletedQuestionRemovesOnlyStaleQuestionFromAssessmentQuestionsCollection()
+        throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
+        IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
+        // questionDto (in assessmentDto.getQuestions(), stubbed in beforeEach) has ID 1L, matching
+        // question - so only the extra, not-passed-in staleQuestion (ID 2L) should be deleted and
+        // removed from assessment.getQuestions(), leaving question (1L) in place
+        Question staleQuestion = mock(Question.class);
+        when(staleQuestion.getQuestionId()).thenReturn(2L);
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(new ArrayList<>(List.of(question, staleQuestion)));
+        when(questionDto.getQuestionId()).thenReturn(1L);
+        List<Question> assessmentQuestions = new ArrayList<>(List.of(question, staleQuestion));
+        when(assessment.getQuestions()).thenReturn(assessmentQuestions);
+
+        assessmentService.updateAssessment(1L, assessmentDto, true);
+
+        verify(questionRepository).deleteByQuestionId(2L);
+        verify(questionRepository, never()).deleteByQuestionId(1L);
+        assertEquals(List.of(question), assessmentQuestions);
     }
 
     @Test

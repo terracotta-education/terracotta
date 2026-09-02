@@ -15,6 +15,12 @@ server:
     remoteip:
       remote-ip-header: x-forwarded-for
       protocol-header: x-forwarded-proto
+  # default (8KB) is too small for the LTI 1.3 launch redirect, which can carry a signed JWT
+  # (and, for instructor-or-higher launches without a cached LMS API token, a second JWT plus a
+  # full OAuth authorization URL) in its query string - see Lti3Controller#home. This is a
+  # defensive bump alongside the real fix (moving that payload out of the URL); kept generous
+  # since a too-small value fails silently as this exact "Request header is too large" error.
+  max-http-header-size: 32KB
 
 # if true, it will display the LTI messages and never jump to the app part. Set to false for prod.
 lti13:
