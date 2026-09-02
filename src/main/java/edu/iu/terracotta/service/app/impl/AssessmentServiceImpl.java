@@ -609,9 +609,11 @@ public class AssessmentServiceImpl implements AssessmentService {
         from.setQuestions(Collections.emptyList());
         from.setSubmissions(Collections.emptyList());
 
-        // reset ID
+        // reset ID and version - see the identical fix/rationale in
+        // AssignmentTreatmentServiceImpl.duplicateTreatment
         Long oldAssessmentId = from.getAssessmentId();
         from.setAssessmentId(null);
+        from.setVersion(0);
 
         from.setTreatment(treatment);
 
