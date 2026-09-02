@@ -1,6 +1,12 @@
 <template>
   <div class="experiment-summary-status">
-    <template v-if="experiment">
+    <page-loading
+      v-if="isLoading"
+      :display="true"
+      message="Please wait while we load your components and outcomes."
+    />
+
+    <template v-else-if="experiment">
       <div class="summary-panels">
         <v-expansion-panels
           v-if="experiment.consent"
@@ -236,7 +242,8 @@
 <script setup>
 import {
   computed,
-  onMounted
+  onMounted,
+  ref
 } from "vue";
 
 import {
@@ -244,6 +251,8 @@ import {
 } from "vue-router";
 
 import Swal from "sweetalert2";
+
+import PageLoading from "@/components/PageLoading.vue";
 
 import {
   deleteAttributesFromObservedElement,
@@ -258,6 +267,8 @@ import { navigation as navigationModule } from "@/store/navigation.module";
 defineOptions({
   name: "ExperimentSummaryStatus"
 });
+
+const isLoading = ref(true);
 
 const props = defineProps({
   experiment: {
@@ -482,10 +493,12 @@ onMounted(async () => {
     ]);
   }
 
-  outcomeStore.fetchOutcomesByExposures([
+  await outcomeStore.fetchOutcomesByExposures([
     experimentId.value,
     exposureIds.value
   ]);
+
+  isLoading.value = false;
 
   deleteAttributesFromObservedElement(
     ".experiment-summary-status",

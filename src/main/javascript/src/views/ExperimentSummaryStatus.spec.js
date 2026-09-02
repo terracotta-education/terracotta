@@ -105,6 +105,18 @@ describe("ExperimentSummaryStatus", () => {
   // this component, so the branch is effectively dead code protecting against a
   // crash that would happen anyway if it were ever hit.
 
+  it("shows a loading indicator before data resolves", () => {
+    const wrapper = mountComponent(ExperimentSummaryStatus, {
+      props: { experiment }
+    });
+
+    const pageLoading = wrapper.findComponent({ name: "PageLoading" });
+    expect(pageLoading.exists()).toBe(true);
+    expect(pageLoading.props("message")).toBe(
+      "Please wait while we load your components and outcomes."
+    );
+  });
+
   it("fetches exposures, their assignments, and outcomes on mount", async () => {
     mountComponent(ExperimentSummaryStatus, { props: { experiment } });
 
