@@ -370,6 +370,27 @@ public class AssessmentServiceImplTest extends BaseTest {
         verify(questionRepository, never()).deleteById(anyLong());
     }
 
+    // TerracottaBuilder.vue's plain "save assessment settings" PUT never includes a questions
+    // field, so assessmentDto.getQuestions() comes back null here (not an empty list) - that
+    // must leave existing questions untouched rather than deleting them all, otherwise the
+    // very next "save questions" request in the same save-all flow fails with
+    // QuestionNotMatchingException (Error 108) against the questions this just deleted.
+    @Test
+    public void testUpdateAssessmentWithNoQuestionsFieldLeavesExistingQuestionsUntouched()
+        throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
+        IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
+        when(assessmentDto.getQuestions()).thenReturn(null);
+
+        assessmentService.updateAssessment(1L, assessmentDto, true);
+
+        verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean());
+        verify(questionRepository, never()).findByQuestionId(anyLong());
+        verify(questionService, never()).updateQuestion(anyMap());
+        verify(questionRepository, never()).deleteByQuestionId(anyLong());
+        verify(assessment, never()).getQuestions();
+    }
+
     @Test
     public void testVerifyNumSubmissionsLimitNullExistingAttemptNotExists() {
         assertDoesNotThrow(() -> verifySubmissionLimit.invoke(assessmentService, null, 0));
