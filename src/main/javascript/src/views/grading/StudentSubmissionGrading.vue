@@ -233,7 +233,7 @@
                         currentAttempt.calculatedGrade.touched = true;
                         updateCalculatedGrade();
                       }"
-                      style="max-width: 70px;max-height: 50px;"
+                      style="max-width: 100px;max-height: 50px;"
                       type="number"
                       name="questionPoints"
                       variant="outlined"
