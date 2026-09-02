@@ -54,5 +54,21 @@ div.container-outcomes {
       max-width: 65%;
     }
   }
+
+  // matches this app's existing mobile breakpoint (DataTable.vue, ExperimentSteps.vue) - below
+  // it there isn't room for input/output side by side, so stack output under input instead
+  @media (max-width: 636px) {
+    flex-direction: column;
+
+    > .v-col {
+      &.input, &.output {
+        width: 100%;
+        max-width: 100%;
+      }
+      &.input {
+        border-right: none;
+      }
+    }
+  }
 }
 </style>
