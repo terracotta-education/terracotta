@@ -6,6 +6,13 @@
       border: none;
     }
 
+    // thead keeps no border of its own (matching .v-data-table-alt's identical
+    // `thead * { border: none !important; }` below) - otherwise its default bottom border
+    // and the tbody's own top border (added next) sit right on top of one another
+    thead th {
+      border-bottom: none !important;
+    }
+
     // rounded outline around just the body (not the header row), matching the same
     // per-cell border/radius technique .v-data-table-alt uses below - border-radius on a
     // <tbody> itself isn't reliable across browsers, so the four corner cells carry it instead
@@ -45,14 +52,16 @@
       }
     }
 
+    // 20px matches .v-data-table-alt's own header/body padding below, so text lines up the
+    // same way it does in that table instead of sitting flush against the new border
     th:first-child,
     td:first-child {
-      padding-left: 0 !important;
+      padding-left: 20px !important;
     }
 
     th:last-child,
     td:last-child {
-      padding-right: 0 !important;
+      padding-right: 20px !important;
     }
   }
 
