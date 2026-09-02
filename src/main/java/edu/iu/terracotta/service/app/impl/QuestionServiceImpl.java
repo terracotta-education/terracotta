@@ -323,7 +323,10 @@ public class QuestionServiceImpl implements QuestionService {
             Long originalQuestionId = originalQuestion.getQuestionId();
             Integration integration = originalQuestion.getIntegration(); // read before detach — lazy proxy needs an open session
             entityManager.detach(originalQuestion);
+            // reset ID and version - see the identical fix/rationale in
+            // AssignmentTreatmentServiceImpl.duplicateTreatment
             originalQuestion.setQuestionId(null);
+            originalQuestion.setVersion(0);
             originalQuestion.setAssessment(newAssessment);
             originalQuestion.setIntegration(null);
             Question newQuestion = questionRepository.save(originalQuestion);
