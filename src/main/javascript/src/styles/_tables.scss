@@ -2,6 +2,15 @@
   &--no-outline {
     border: none;
 
+    // <v-table>'s root class is .v-table, not .v-data-table, so this component
+    // never picked up Home.vue's global `.v-data-table *:not(.v-icon) { color:
+    // black; font-size: 16px; }` rule that every real <v-data-table> in the app
+    // gets - matching it here so text renders the same as those other tables.
+    *:not(.v-icon) {
+      color: black !important;
+      font-size: 16px !important;
+    }
+
     .v-table__wrapper {
       border: none;
     }
