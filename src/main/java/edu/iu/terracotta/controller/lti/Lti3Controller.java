@@ -79,6 +79,16 @@ public class Lti3Controller {
             Jws<Claims> claims = ltiJwtService.validateState(state);
             Lti3Request lti3Request = Lti3Request.getInstance(link);
 
+            if (lti3Request == null) {
+                // getInstance() returns null (rather than throwing) for a request that isn't a
+                // valid LTI3 request - e.g. a missing/expired id_token. Every use of lti3Request
+                // below would otherwise NPE past the catch block, which only handles
+                // SignatureException/GeneralSecurityException/IOException.
+                model.addAttribute(TextConstants.ERROR, "Invalid LTI request");
+
+                return TextConstants.LTI3ERROR;
+            }
+
             // check if the request is for an obsolete assignment; redirect immediately if true
             if (Strings.CI.endsWith(lti3Request.getLtiTargetLinkUrl(), ObsoleteAssignment.URL)) {
                 return String.format("redirect:/%s", ObsoleteAssignment.URL);

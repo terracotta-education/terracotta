@@ -114,10 +114,22 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
 
     @Override
     public ApiTokenEntity getAccessToken(LtiUserEntity user) throws LmsOAuthException {
+        return getAccessToken(user, null);
+    }
+
+    /**
+     * @param rejectedAccessToken the access token Canvas just rejected (via
+     *      RefreshableCanvasOauthToken.refresh(), reacting to an InvalidOauthTokenException), or null
+     *      for a normal, proactive lookup. isAccessTokenFresh() is keyed off our own locally-cached
+     *      expiresAt, which can't detect an out-of-band invalidation (revoked access, rotated dev key,
+     *      etc.) - passing the rejected token forces an actual refresh_token call instead of trusting
+     *      that cache, unless another concurrent caller has already refreshed it first.
+     */
+    public ApiTokenEntity getAccessToken(LtiUserEntity user, String rejectedAccessToken) throws LmsOAuthException {
         ApiTokenEntity canvasApiTokenEntity = apiTokenRepository.findByUser(user)
             .orElseThrow(() -> new LmsOAuthException(MessageFormat.format("User {0} does not have a Canvas API access token nor refresh token!", user.getUserKey())));
 
-        if (isAccessTokenFresh(canvasApiTokenEntity)) {
+        if (rejectedAccessToken == null && isAccessTokenFresh(canvasApiTokenEntity)) {
             return canvasApiTokenEntity;
         }
 
@@ -130,7 +142,12 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
             ApiTokenEntity current = apiTokenRepository.findByUser(user)
                 .orElseThrow(() -> new LmsOAuthException(MessageFormat.format("User {0} does not have a Canvas API access token nor refresh token!", user.getUserKey())));
 
-            if (isAccessTokenFresh(current)) {
+            if (rejectedAccessToken != null && !rejectedAccessToken.equals(current.getAccessToken())) {
+                // another concurrent caller already refreshed past the token Canvas rejected on us
+                return current;
+            }
+
+            if (rejectedAccessToken == null && isAccessTokenFresh(current)) {
                 return current;
             }
 
