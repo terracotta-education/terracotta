@@ -93,12 +93,6 @@ public final class ListDataUtils {
             .toList();
     }
 
-    public static List<String> findAllLmsAssignmentIds(List<Assignment> experimentAssignments) {
-        return experimentAssignments.stream()
-            .map(experimentAssignment -> experimentAssignment.getLmsAssignmentId())
-            .toList();
-    }
-
     public static Optional<Assignment> findAssignmentByTreatmentId(Long treatmentId, List<Treatment> experimentTreatments) {
         return experimentTreatments.stream()
             .filter(experimentTreatment -> experimentTreatment.getTreatmentId().equals(treatmentId))

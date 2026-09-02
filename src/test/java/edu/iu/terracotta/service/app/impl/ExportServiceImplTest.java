@@ -477,6 +477,20 @@ public class ExportServiceImplTest extends BaseTest {
         assertTrue(content.contains("N/A"));
     }
 
+    // a participant whose consent is null (neither explicitly given nor revoked) must be excluded
+    // here just like they are from participants.csv/submissions.csv/outcomes.csv - otherwise their
+    // actual answer content gets exported while they don't even appear in the participant roster
+    @Test
+    public void testHandleItemResponsesCsvExcludesNullConsentParticipant() throws Exception {
+        when(participant.getConsent()).thenReturn(null);
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleItemResponsesCsv", 1L, files);
+
+        String content = Files.readString(Path.of(files.get(ItemResponsesCsv.FILENAME)));
+        assertEquals(1, content.lines().count());
+    }
+
     // ---------------------------------------------------------------------------------------------
     // handleMessagesCsv
     // ---------------------------------------------------------------------------------------------
@@ -634,6 +648,20 @@ public class ExportServiceImplTest extends BaseTest {
 
         String content = Files.readString(Path.of(files.get(EventPersonalIdentifiers.FILENAME)));
         assertTrue(content.contains("{}"));
+    }
+
+    // a participant whose consent is null (neither explicitly given nor revoked) must be excluded
+    // here just like they are from participants.csv/submissions.csv/outcomes.csv - otherwise their
+    // raw interaction events get exported while they don't even appear in the participant roster
+    @Test
+    public void testGetJsonFilesExcludesNullConsentParticipant() throws Exception {
+        when(participant.getConsent()).thenReturn(null);
+
+        Map<String, String> files = new HashMap<>();
+        exportService.getJsonFiles(1L, files);
+
+        String content = Files.readString(Path.of(files.get(EventPersonalIdentifiers.FILENAME)));
+        assertFalse(content.contains("ToolUseEvent"));
     }
 
     // ---------------------------------------------------------------------------------------------
