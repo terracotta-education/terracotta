@@ -429,6 +429,14 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     private void processAssessmentQuestions(Assessment assessment, AssessmentDto assessmentDto) throws IdInPostException, DataServiceException, QuestionNotMatchingException, NegativePointsException, MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException {
+        if (assessmentDto.getQuestions() == null) {
+            // no questions field in the request at all (e.g. TerracottaBuilder.vue's plain
+            // "save assessment settings" PUT, which never includes one) - leave existing
+            // questions untouched. Only an explicit empty list (the dedicated "clear questions"
+            // DELETE endpoint takes that path instead, not this one) should wipe them below.
+            return;
+        }
+
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
             List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId())).stream()
                 .map(Question::getQuestionId)
