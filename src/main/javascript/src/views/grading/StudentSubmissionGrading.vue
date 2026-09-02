@@ -1219,5 +1219,20 @@ defineExpose({
   & .input-override-grade {
     background: white;
   }
+
+  // matches this app's existing mobile breakpoint (DataTable.vue, ExperimentSteps.vue) - the
+  // participant-response/attempts/score columns don't have room side by side below it, so stack
+  // them instead of leaving Vuetify's flex row to squeeze them all down to fit
+  @media (max-width: 636px) {
+    flex-direction: column;
+
+    & .col-attempts,
+    & .col-score {
+      max-width: 100%;
+    }
+    & .card-header {
+      max-width: 100%;
+    }
+  }
 }
 </style>
