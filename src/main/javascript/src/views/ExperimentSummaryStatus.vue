@@ -212,13 +212,7 @@
 
                 <v-list>
                   <v-list-item
-                    :to="{
-                      name: 'OutcomeGradebook',
-                      params: {
-                        experimentId: experimentId,
-                        exposureId: exposure.exposureId
-                      }
-                    }"
+                    @click="handleSelectFromGradebook(exposure.exposureId)"
                   >
                     <v-list-item-title>
                       Select item from gradebook
@@ -475,6 +469,24 @@ const handleViewAssignment = async (
       experimentId: experimentId.value,
       exposureId,
       assignmentId
+    }
+  });
+};
+
+const handleSelectFromGradebook = async exposureId => {
+  await navigationStore.saveEditMode({
+    initialPage: "ExperimentSummaryStatus",
+    callerPage: {
+      name: "ExperimentSummary",
+      tab: "status"
+    }
+  });
+
+  router.push({
+    name: "OutcomeGradebook",
+    params: {
+      experimentId: experimentId.value,
+      exposureId
     }
   });
 };

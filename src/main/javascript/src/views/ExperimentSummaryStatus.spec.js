@@ -190,6 +190,38 @@ describe("ExperimentSummaryStatus", () => {
     });
   });
 
+  it("navigates to OutcomeGradebook and saves edit mode when selecting an item from the gradebook", async () => {
+    const wrapper = mountComponent(ExperimentSummaryStatus, {
+      props: { experiment }
+    });
+
+    await openAllPanels(wrapper);
+    expect(wrapper.text()).toContain("Add Outcome");
+
+    const addOutcomeButton = wrapper
+      .findAll("button")
+      .find(button => button.text().includes("Add Outcome"));
+
+    await addOutcomeButton.trigger("click");
+    await wrapper.vm.$nextTick();
+
+    const gradebookItem = wrapper
+      .findAllComponents({ name: "VListItem" })
+      .find(item => item.text().includes("Select item from gradebook"));
+
+    await gradebookItem.trigger("click");
+
+    const navigationStore = navigationModule();
+    expect(navigationStore.editMode).toEqual({
+      initialPage: "ExperimentSummaryStatus",
+      callerPage: { name: "ExperimentSummary", tab: "status" }
+    });
+    expect(push).toHaveBeenCalledWith({
+      name: "OutcomeGradebook",
+      params: { experimentId: 7, exposureId: 20 }
+    });
+  });
+
   it("creates a manual outcome and navigates to OutcomeScoring", async () => {
     outcomeService.create.mockResolvedValue({
       status: 201,
