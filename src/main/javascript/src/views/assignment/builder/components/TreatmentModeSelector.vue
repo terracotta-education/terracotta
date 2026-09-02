@@ -113,3 +113,13 @@ const emit = defineEmits([
   "back-to-treatment-mode-selection"
 ]);
 </script>
+
+<style scoped lang="scss">
+// 636px matches this app's existing mobile-table breakpoint (see ComponentTable.vue)
+@media (max-width: 636px) {
+  .treatment-mode-container,
+  .treatment-mode-selected-container {
+    flex-direction: column;
+  }
+}
+</style>
