@@ -79,6 +79,26 @@ const rows = computed(() => {
         td {
           border-top: 1px solid lightgrey;
         }
+
+        /* on narrow screens each row renders as its own floating card (see DataTable.vue)
+           instead of a table row/cell - the highlight has to live on that card rather than
+           the row, since the row's own box has bottom padding the card doesn't fill, which
+           otherwise leaves the row's background visible as a strip below the card */
+        &.mobile-row {
+          background-color: transparent !important;
+
+          &:hover {
+            background-color: transparent !important;
+          }
+
+          td {
+            border-top: none;
+          }
+
+          .mobile-card {
+            background-color: #f6fbff !important;
+          }
+        }
       }
     }
   }
