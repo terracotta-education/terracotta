@@ -144,5 +144,14 @@ defineExpose({
 .consent-btn {
   border: none;
   padding: 0 !important;
+  max-width: 100%;
+  height: auto !important;
+
+  // Vuetify's default .v-btn__content is white-space: nowrap, which keeps this
+  // button's long label on one line and forces the button (and the page) wider
+  // than the viewport on narrow screens - let it wrap instead.
+  :deep(.v-btn__content) {
+    white-space: normal;
+  }
 }
 </style>
