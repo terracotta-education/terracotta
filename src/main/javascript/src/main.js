@@ -14,8 +14,13 @@ var vm;
 
 const url = new URL(window.location.href);
 const params = new URLSearchParams(url.search);
-const tokenParam = params.get("token");
-const lmsApiOAuthURL = params.get("lms_api_oauth_url");
+// delivered via sessionStorage rather than a URL param - see lti3Launch.html/Lti3Controller#home
+// for why (avoids exceeding Tomcat's request-header size limit for large LTI launch payloads).
+// Read once and removed immediately so a later reload of this same tab doesn't replay them.
+const tokenParam = sessionStorage.getItem("ltiToken");
+sessionStorage.removeItem("ltiToken");
+const lmsApiOAuthURL = sessionStorage.getItem("lmsApiOAuthUrl");
+sessionStorage.removeItem("lmsApiOAuthUrl");
 const integration = {
   integration: params.get("integration") === "true",
   status: params.get("status"),
@@ -50,7 +55,9 @@ if (tokenParam) {
   operations.push(store.dispatch("api/setLtiToken", tokenParam));
 }
 
-operations.push(store.dispatch("api/setLmsApiOAuthURL", decodeURIComponent(lmsApiOAuthURL)));
+// no decodeURIComponent needed here - this arrives via sessionStorage as the raw URL, never
+// URL-encoded (unlike the old query-param delivery this replaced)
+operations.push(store.dispatch("api/setLmsApiOAuthURL", lmsApiOAuthURL));
 Promise.all(operations).then(startVue);
 
 function startVue() {
