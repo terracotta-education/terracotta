@@ -75,8 +75,14 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
 
         entityManager.detach(from);
 
-        // reset ID
+        // reset ID and version - a non-zero, copied-over version makes Spring Data JPA's
+        // isNew() check (which consults @Version before falling back to the ID) treat this
+        // as an existing detached entity, routing save() through merge() instead of persist()
+        // and leaving the IDENTITY-generated treatmentId unset when the new Assessment below
+        // is persisted with a non-nullable FK to this Treatment (Hibernate then throws
+        // AssertionFailure: null identifier while checking that association)
         from.setTreatmentId(null);
+        from.setVersion(0);
 
         // set new assignment; if exists
         if (assignment != null) {
