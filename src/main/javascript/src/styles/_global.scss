@@ -59,8 +59,10 @@ body {
 }
 
 .v-card--variant-outlined {
-  border-color: map.get($grey, "lighter") !important;
-  border: thin solid !important;
+  // combined into one shorthand declaration - "border: thin solid !important" after
+  // "border-color" was resetting the color right back to currentColor (no color specified
+  // in the shorthand), so the intended light grey border was never actually applied
+  border: thin solid map.get($grey, "lighter") !important;
 }
 
 .rounded-pill {
