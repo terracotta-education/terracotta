@@ -28,6 +28,10 @@
         <db-scheduler.version>16.12.0</db-scheduler.version>
         <frontend-maven-plugin.version>2.0.2</frontend-maven-plugin.version>
         <guava.version>33.7.1-jre</guava.version>
+        <!-- override spring-boot-starter-parent's managed 2.21.5/3.1.5 - fixes unsafe
+             reflection and untrusted-data deserialization CVEs found via Snyk -->
+        <jackson-2-bom.version>2.21.6</jackson-2-bom.version>
+        <jackson-bom.version>3.1.6</jackson-bom.version>
         <jacoco.version>0.8.15</jacoco.version>
         <java.version>25</java.version>
         <jjwt.version>0.13.0</jjwt.version>
