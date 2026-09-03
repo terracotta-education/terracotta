@@ -201,11 +201,20 @@ const emit = defineEmits([
 const integrationsStore = integrationsModule();
 const configurationStore = configurationModule();
 
+// two ReDoS-prone nested-quantifier shapes fixed here (both catastrophic backtracking on a
+// crafted long non-matching input):
+// - the path segment was "(\/[-a-z\d%_.~+]*)*" - flattened to a single quantified character
+//   class (still allows "/", so consecutive/empty segments like "//" still match)
+// - each hostname label was "[a-z\d]([a-z\d-]*[a-z\d])*" - the inner "[a-z\d-]*" overlaps
+//   with the outer repeated group, ambiguous the same way. Rewritten with an explicit length
+//   bound (61 - the max middle-of-label length per the real DNS 63-char label limit) instead
+//   of an unbounded inner "*", which caps backtracking to a constant per label. Matches the
+//   exact same strings, including consecutive hyphens (e.g. punycode "xn--..." labels).
 const URL_PATTERN = new RegExp(
   "^(https?:\\/\\/)?" +
-    "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" +
+    "(([a-z\\d](?:[a-z\\d-]{0,61}[a-z\\d])?\\.)+[a-z]{2,}|" +
     "((\\d{1,3}\\.){3}\\d{1,3}))" +
-    "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" +
+    "(\\:\\d+)?[\\/\\-a-z\\d%_.~+]*" +
     "(\\?[;&a-z\\d%_.~+=-]*)?" +
     "(\\#[-a-z\\d_]*)?$",
   "i"
