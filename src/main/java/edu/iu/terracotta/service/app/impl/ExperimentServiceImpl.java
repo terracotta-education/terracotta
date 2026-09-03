@@ -353,7 +353,11 @@ public class ExperimentServiceImpl implements ExperimentService {
             consentDto.setFilePointer(consentDocument.getFilePointer());
             consentDto.setTitle(consentDocument.getTitle());
             consentDto.setHtml(fileStorageService.parseHTMLFiles(consentDocument.getHtml(), experiment.getPlatformDeployment().getLocalUrl()));
-            consentDto.setExpectedConsent(participantsList.size());
+            // not participantsList.size() - the pagination while loop above only exits once
+            // participantsList holds the empty terminating page, so its size here is always 0.
+            // participantCount is the correct running total across every page (already used
+            // for experimentDto.setPotentialParticipants above).
+            consentDto.setExpectedConsent(participantCount);
             consentDto.setAnsweredConsentCount(countAnswered);
             experimentDto.setConsent(consentDto);
         }
