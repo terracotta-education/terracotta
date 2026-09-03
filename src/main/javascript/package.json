@@ -67,6 +67,8 @@
   },
   "resolutions": {
     "prosemirror-model": "1.25.0",
-    "prosemirror-state": "1.4.4"
+    "prosemirror-state": "1.4.4",
+    "nanoid": "3.3.18",
+    "postcss": "8.5.28"
   }
 }
