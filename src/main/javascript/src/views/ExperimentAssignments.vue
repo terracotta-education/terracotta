@@ -726,7 +726,7 @@ const handleMessageAction = async (messageContainerId, messageId) => {
   });
 };
 
-const handleDisplayMoveAssignmentDialog = availableExposures => {
+const handleDisplayMoveAssignmentDialog = (availableExposures, assignmentName) => {
   let dialogApp = null;
 
   return Swal.fire({
@@ -757,7 +757,8 @@ const handleDisplayMoveAssignmentDialog = availableExposures => {
     didOpen: () => {
       const mountTarget = document.getElementById("dialog-move-assignment");
       dialogApp = createApp(MoveAssignmentDialog, {
-        exposures: availableExposures
+        exposures: availableExposures,
+        assignmentName
       });
       dialogApp.use(vuetify);
       dialogApp.mount(mountTarget);
