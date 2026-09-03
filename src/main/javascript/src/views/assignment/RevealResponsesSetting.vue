@@ -28,7 +28,7 @@
         v-if="allowStudentViewResponses"
         class="text-primary"
       >
-        <div class="d-flex flex-wrap align-baseline mt-5">
+        <div class="response-date-controls d-flex flex-wrap align-baseline mt-5">
           <div>
             {{ messages.allowStudentViewResponsesDatesLabel }}
           </div>
@@ -290,6 +290,13 @@ const changeAllowStudentViewResponses = value => {
 
 .allow-students-view-correct-answers {
   margin-top: 30px;
+}
+
+.response-date-controls,
+.correct-answer-date-controls {
+  // flex-wrap's gap only applies between wrapped lines - without it, the label/pickers/label
+  // that wrap onto their own lines on narrow screens sit flush against each other
+  row-gap: 12px;
 }
 
 .correct-answer-date-controls {
