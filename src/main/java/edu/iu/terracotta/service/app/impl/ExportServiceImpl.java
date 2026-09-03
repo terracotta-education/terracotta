@@ -156,6 +156,9 @@ public class ExportServiceImpl implements ExportService {
     @Value("${app.export.enable.readme:true}")
     private boolean exportReadmeEnabled;
 
+    @Value("${experiment.data.export.local.path.root}")
+    private String experimentDataExportLocalPathRoot;
+
     private long consentedParticipantsCount;
     private List<Assignment> assignments;
     private List<ExposureGroupCondition> exposureGroupConditions;
@@ -895,7 +898,10 @@ public class ExportServiceImpl implements ExportService {
     }
 
     private Path createTempFile() throws IOException {
-        return Files.createTempFile("export." + UUID.randomUUID().toString(), null);
+        // not the no-arg overload - that resolves to the shared, world-writable OS temp
+        // directory (java.io.tmpdir); use this app's own dedicated export directory instead,
+        // matching FileStorageServiceImpl's identical convention for the same purpose
+        return Files.createTempFile(Paths.get(experimentDataExportLocalPathRoot), "export." + UUID.randomUUID().toString(), null);
     }
 
     private CSVWriter createCsvFileWriter(Path path) throws IOException {
