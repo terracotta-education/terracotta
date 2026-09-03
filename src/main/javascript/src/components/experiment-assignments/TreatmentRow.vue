@@ -70,6 +70,7 @@
         <template #activator="{ props: menuProps }">
           <v-btn
             v-bind="menuProps"
+            :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
             aria-label="treatment actions"
             icon="mdi-dots-horizontal"
             variant="text"

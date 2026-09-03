@@ -210,6 +210,18 @@ describe("TreatmentRow", () => {
     expect(buttons.some(btn => btn.text().includes("Preview"))).toBe(false);
   });
 
+  it("disables the dots menu activator when the underlying preview is disabled, matching the non-menu button", () => {
+    mountRow({
+      row: assignmentRow(),
+      treatment: integrationTreatment({ integrationUrlValid: false }),
+      displayTreatmentMenu: true
+    });
+
+    const activator = wrapper.find('[aria-label="treatment actions"]');
+
+    expect(activator.attributes("disabled")).toBeDefined();
+  });
+
   it("shows the message icon and status-driven label for a message treatment", () => {
     mountRow({
       row: messageTreatmentRow(),
