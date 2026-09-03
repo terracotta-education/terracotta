@@ -372,6 +372,6 @@ onMounted(() => {
 
 <style scoped>
 .question-points {
-  max-width: 15%;
+  max-width: 120px;
 }
 </style>
