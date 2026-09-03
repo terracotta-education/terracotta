@@ -14,6 +14,7 @@
         <v-btn
           icon="mdi-close"
           variant="text"
+          aria-label="Close"
           @click="close"
         />
       </v-card-title>
@@ -21,6 +22,7 @@
       <v-card-text>
         <v-textarea
           v-model="embedCode"
+          label="YouTube embed code"
           hint="Paste the YouTube embed code above"
           placeholder="YouTube embed code"
           class="input-embed-code"

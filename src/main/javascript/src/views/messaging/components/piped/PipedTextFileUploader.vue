@@ -8,6 +8,7 @@
       <v-btn
         icon="mdi-close"
         variant="text"
+        aria-label="Close"
         @click="close"
       />
     </v-card-title>
@@ -73,6 +74,7 @@
                   elevation="0"
                   icon="mdi-close"
                   variant="text"
+                  aria-label="Remove file"
                   @click="removeFile"
                 />
               </div>

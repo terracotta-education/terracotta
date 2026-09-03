@@ -22,9 +22,11 @@
     <span>
       {{ selectOutcomesText }} Outcomes are
       <a
-        @click.prevent="handleStatusPageNav()"
+        role="button"
         href="#"
         tabindex="0"
+        @click.prevent="handleStatusPageNav()"
+        @keydown.space.prevent="handleStatusPageNav()"
       >
         added on the status page.
       </a>

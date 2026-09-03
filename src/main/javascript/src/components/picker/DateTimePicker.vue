@@ -5,6 +5,7 @@
       classes,
       'datetime-input d-flex align-center justify-space-between'
     ]"
+    role="button"
     tabindex="0"
     @click="open"
     @focus="open"
@@ -173,6 +174,15 @@ onMounted(async () => {
   max-width: fit-content;
   padding: 8px;
   margin: 0 8px;
+}
+
+/* the input's own outline is force-removed below (its native box doesn't align with this
+   wrapper's padded border), so restore a visible focus indicator here instead - covers both
+   this wrapper (role="button", tabindex) and the FlatPickr input it contains getting focus */
+.datetime-input:focus-visible,
+.datetime-input:focus-within {
+  outline: 2px solid var(--blue-primary);
+  outline-offset: 2px;
 }
 </style>
 

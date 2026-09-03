@@ -91,6 +91,8 @@
               v-if="hasSubmissions(item) && hasTreatments(item) && !isSingleTreatment(item)"
               @click="toggleExpand(item)"
               :class="{'v-data-table__expand-icon--active': isExpanded(item)}"
+              :aria-label="`${isExpanded(item) ? 'Collapse' : 'Expand'} ${title(item)}`"
+              :aria-expanded="isExpanded(item)"
               class="v-data-table__expand-icon"
               variant="text"
               icon="mdi-chevron-down"
@@ -182,6 +184,8 @@
                   <v-btn
                     @click="toggleExpand(item)"
                     :class="{'v-data-table__expand-icon--active': isExpanded(item)}"
+                    :aria-label="`${isExpanded(item) ? 'Collapse' : 'Expand'} ${title(item)}`"
+                    :aria-expanded="isExpanded(item)"
                     class="v-data-table__expand-icon"
                     variant="text"
                     icon="mdi-chevron-down"

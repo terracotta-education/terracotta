@@ -32,6 +32,7 @@
                     <v-btn
                       variant="outlined"
                       icon="mdi-pencil"
+                      :aria-label="`Edit ${condition.name} version`"
                       @click="goToBuilder(condition.conditionId)"
                     />
                   </template>

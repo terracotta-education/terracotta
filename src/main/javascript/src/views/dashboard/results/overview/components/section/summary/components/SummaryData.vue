@@ -10,6 +10,7 @@
       v-if="headerIcon"
       :style="dynamicStyles"
       :src="headerIcon"
+      alt=""
       width="32"
       height="32"
       class="header-icon"

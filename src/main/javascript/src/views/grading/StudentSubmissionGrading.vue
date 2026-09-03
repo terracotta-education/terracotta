@@ -119,6 +119,7 @@
                   type="number"
                   name="maxPoints"
                   variant="outlined"
+                  aria-label="Override grade"
                 ></v-text-field>
                 <span
                   class="total-points ml-2"

@@ -59,11 +59,13 @@
                       }"
                       icon="mdi-pencil"
                       variant="outlined"
+                      :aria-label="`Edit ${assignmentItem.title}`"
                     />
 
                     <v-btn
                       icon="mdi-delete"
                       variant="outlined"
+                      :aria-label="`Delete ${assignmentItem.title}`"
                       @click="handleDeleteAssignment(exposure.exposureId, assignmentItem)"
                     />
                   </template>

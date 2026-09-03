@@ -65,6 +65,7 @@
                   <v-text-field
                     v-model="getParticipantScore(participant).scoreNumeric"
                     :name="String(participant.participantId)"
+                    :aria-label="`Numeric score for ${participant.user.displayName}`"
                     type="number"
                     placeholder="---"
                     style="max-width: 50px;"

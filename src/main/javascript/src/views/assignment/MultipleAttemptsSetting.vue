@@ -58,6 +58,7 @@
                     hide-details
                     variant="outlined"
                     density="compact"
+                    aria-label="Number of attempts a student is allowed"
                   />
 
                   attempts
@@ -137,6 +138,7 @@
                 density="compact"
                 single-line
                 hide-details
+                aria-label="Proportion earned on first attempt, percent"
               />
 
               %

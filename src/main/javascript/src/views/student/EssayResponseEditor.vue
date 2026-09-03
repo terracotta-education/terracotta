@@ -5,6 +5,7 @@
       v-model="response"
       :rows="10"
       :counter="true"
+      aria-label="Your response"
       @update:model-value="onInput"
     >
       <template #counter>
@@ -19,6 +20,7 @@
       v-model="studentResponse"
       :rows="10"
       :counter="true"
+      aria-label="Your submitted response"
       readonly
     />
   </ResponseRow>

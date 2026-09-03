@@ -69,6 +69,8 @@
         >
           <v-btn
             :class="{'v-data-table__expand-icon--active': isExpanded(item)}"
+            :aria-label="`${isExpanded(item) ? 'Collapse' : 'Expand'} ${title(item)}`"
+            :aria-expanded="isExpanded(item)"
             @click="toggleExpand(item)"
             class="v-data-table__expand-icon"
             variant="text"
