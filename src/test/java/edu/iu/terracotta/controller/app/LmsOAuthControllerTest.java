@@ -112,7 +112,9 @@ public class LmsOAuthControllerTest extends BaseTest {
 
         String result = lmsOAuthController.handleOauthResponse(httpServletRequest, model);
 
-        assertEquals("redirect:/app/app.html?token=finalToken", result);
+        assertEquals("lti3Launch", result);
+        verify(model).addAttribute("token", "finalToken");
+        verify(model).addAttribute("lmsApiOAuthUrl", null);
     }
 
     @Test

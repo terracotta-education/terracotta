@@ -82,10 +82,12 @@ public class LmsOAuthController {
             return TextConstants.OAUTH2_ERROR;
         }
 
-        return String.format(
-            "redirect:/app/app.html?token=%s",
-            apijwtService.buildJwt(platformDeploymentId, userKey, claims.get().getPayload())
-        );
+        // delivered via the response body rather than a redirect's query string, same as
+        // Lti3Controller#home and for the same reason - see lti3Launch.html
+        model.addAttribute("token", apijwtService.buildJwt(platformDeploymentId, userKey, claims.get().getPayload()));
+        model.addAttribute("lmsApiOAuthUrl", null);
+
+        return "lti3Launch";
     }
 
 }
