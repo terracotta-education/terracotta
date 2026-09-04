@@ -11,22 +11,23 @@
 />
 </template>
 
-<script>
-import { mapGetters } from "vuex";
-import ToolTip from "@/components/ToolTip.vue";
+<script setup>
+import { computed } from "vue";
 
-export default {
-  name: "Help",
-  components: {
-    ToolTip
-  },
-  computed: {
-    ...mapGetters({
-      configurations: "configuration/get"
-    }),
-    helpUrl() {
-      return this.configurations?.helpUrl;
-    }
-  }
-}
+import ToolTip from "@/components/ToolTip.vue";
+import { configuration } from "@/store/configuration.module";
+
+defineOptions({
+  name: "HelpTooltip"
+});
+
+const configurationStore = configuration();
+
+const configurations = computed(() => {
+  return configurationStore.get;
+});
+
+const helpUrl = computed(() => {
+  return configurations.value?.helpUrl;
+});
 </script>

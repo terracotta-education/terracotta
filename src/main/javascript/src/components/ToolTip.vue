@@ -2,27 +2,22 @@
 <v-tooltip
   v-model="showToolTip"
   :contained="isContained"
-  :bottom="isBottom"
-  :left="isLeft"
-  :right="isRight"
-  :top="isTop"
-  :attach="attach"
+  :location="location"
   transition=""
   class="tool-tip"
   content-class="tool-tip-content"
 >
   <template
-    v-slot:activator="{ attrs }"
+    v-slot:activator="{ props }"
   >
     <v-btn
       v-if="isButton"
-      v-bind="attrs"
+      v-bind="props"
       :href="url"
       :aria-label="ariaLabel"
       :icon="showIcon"
       :class="activatorClass"
-      :small="isSmall"
-      :large="isLarge"
+      :size="size"
       @mouseenter="onActivatorEnter"
       @focus="onActivatorEnter"
       @mouseleave="onActivatorLeave(1000)"
@@ -30,7 +25,10 @@
       @click="$emit('clicked')"
       tabindex="0"
       target="_blank"
+      variant="text"
+      density="compact"
     >
+
       <v-icon
         v-if="showIcon"
         :alt="iconLabel"
@@ -48,7 +46,7 @@
     </v-btn>
     <a
       v-else-if="isLink"
-      v-bind="{role: attrs.role, 'aria-haspopup': attrs.haspopup}"
+      v-bind="props"
       @mouseenter="onActivatorEnter"
       @focus="onActivatorEnter"
       @mouseleave="onActivatorLeave(1000)"
@@ -70,7 +68,7 @@
     </a>
     <p
       v-else-if="isParagraph"
-      v-bind="attrs"
+      v-bind="props"
       @mouseenter="onActivatorEnter"
       @focus="onActivatorEnter"
       @mouseleave="onActivatorLeave(1000)"
@@ -91,7 +89,7 @@
     </p>
     <v-icon
       v-else-if="isIcon"
-      v-bind="{role: attrs.role, 'aria-haspopup': attrs.haspopup}"
+      v-bind="props"
       @mouseenter="onActivatorEnter"
       @focus="onActivatorEnter"
       @mouseleave="onActivatorLeave(1000)"
@@ -125,228 +123,196 @@
 </v-tooltip>
 </template>
 
-<script>
-import { mapGetters } from "vuex";
+<script setup>
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount
+} from "vue";
 
-export default {
-  name: "ToolTip",
-  props: {
-    header: {
-      type: String,
-      required: false
-    },
-    content: {
-      type: String,
-      required: true
-    },
-    activatorType: {
-      type: String,
-      required: false,
-      default: "button"
-    },
-    activatorContent: {
-      type: String,
-      required: false
-    },
-    activatorClass: {
-      type: String,
-      required: false
-    },
-    activatorIconClass: {
-      type: String,
-      required: false
-    },
-    url: {
-      type: String,
-      required: false
-    },
-    alignment: {
-      type: String,
-      required: false,
-      default: "bottom"
-    },
-    ariaLabel: {
-      type: String,
-      required: false,
-      default: "Tooltip activated"
-    },
-    icon: {
-      type: String,
-      required: false
-    },
-    iconLabel: {
-      type: String,
-      required: false,
-      default: "Tooltip icon"
-    },
-    iconColor: {
-      type: String,
-      required: false,
-      default: "primary"
-    },
-    iconStyle: {
-      type: String,
-      required: false
-    },
-    contained: {
-      type: Boolean,
-      required: false,
-      default: false
-    },
-    attach: {
-      type: [String, Boolean],
-      required: false,
-      default: false
-    },
-    size: {
-      type: String,
-      required: false
-    }
+defineOptions({
+  name: "ToolTip"
+});
+
+const props = defineProps({
+  header: String,
+  content: {
+    type: String,
+    required: true
   },
-  data: () => ({
-    showToolTip: false,
-    inActivator: false,
-    inContent: false,
-    timeoutId: null
-  }),
-  watch: {
-    showToolTip(newVal) {
-      if (newVal) {
-        this.$emit("is-opened");
-      }
-    }
+  activatorType: {
+    type: String,
+    default: "button"
   },
-  computed: {
-    ...mapGetters({
-      configurations: "configuration/get"
-    }),
-    showHeader() {
-      return !!this.header;
-    },
-    showIcon() {
-      return !!this.icon;
-    },
-    showActivatorContent() {
-      return !!this.activatorContent;
-    },
-    isBottom() {
-      return this.alignment === "bottom";
-    },
-    isLeft() {
-      return this.alignment === "left";
-    },
-    isRight() {
-      return this.alignment === "right";
-    },
-    isTop() {
-      return this.alignment === "top";
-    },
-    isButton() {
-      return this.activatorType === "button";
-    },
-    isLink() {
-      return this.activatorType === "link";
-    },
-    isParagraph() {
-      return this.activatorType === "paragraph";
-    },
-    isIcon() {
-      return this.activatorType === "icon";
-    },
-    isContained() {
-      return this.contained;
-    },
-    isSmall() {
-      return this.size === "small";
-    },
-    isLarge() {
-      return this.size === "large";
-    }
+  activatorContent: String,
+  activatorClass: String,
+  activatorIconClass: String,
+  url: String,
+  alignment: {
+    type: String,
+    default: "bottom"
   },
-  methods: {
-    onActivatorEnter() {
-      this.clear();
-      this.inActivator = true;
-      this.open();
-    },
-    onActivatorLeave(delay) {
-      this.inActivator = false;
-      this.timeoutId = setTimeout(() => {
-        if (!this.inContent) {
-          this.close();
-        }
-      }, delay);
-    },
-    onContentEnter() {
-      this.clear();
-      this.open();
-      this.inActivator = false;
-      this.inContent = true;
-    },
-    onContentLeave() {
-      this.inContent = false;
-      this.timeoutId = setTimeout(() => {
-        if (!this.inActivator) {
-          this.close();
-        }
-      }, 500);
-    },
-    open() {
-      this.showToolTip = true;
-    },
-    close() {
-      this.showToolTip = false;
-      this.inContent = false;
-      this.inActivator = false;
-    },
-    clear() {
-      if (this.timeoutId) {
-        clearTimeout(this.timeoutId);
-        this.timeoutId = null;
-      }
-    },
-    handleKeyPress(event) {
-      switch (event.key) {
-        case "Escape":
-        case "Esc":
-          this.close();
-          break;
-        default:
-          break;
-      }
-    }
+  ariaLabel: {
+    type: String,
+    default: "Tooltip activated"
   },
-  mounted() {
-    window.addEventListener("keydown", this.handleKeyPress);
+  icon: String,
+  iconLabel: {
+    type: String,
+    default: "Tooltip icon"
   },
-  beforeDestroy() {
-    window.removeEventListener("keydown", this.handleKeyPress);
+  iconColor: {
+    type: String,
+    default: "primary"
+  },
+  iconStyle: String,
+  contained: {
+    type: Boolean,
+    default: false
+  },
+  attach: {
+    type: [String, Boolean],
+    default: false
+  },
+  size: String
+});
+
+const emit = defineEmits([
+  "clicked",
+  "is-opened"
+]);
+
+const tooltipId = Symbol();
+
+const showToolTip = ref(false);
+const inActivator = ref(false);
+const inContent = ref(false);
+const timeoutId = ref(null);
+
+const showHeader = computed(() => !!props.header);
+const showIcon = computed(() => !!props.icon);
+const showActivatorContent = computed(() => !!props.activatorContent);
+
+const location = computed(() => props.alignment);
+const size = computed(() => props.size);
+
+const isButton = computed(() => props.activatorType === "button");
+const isLink = computed(() => props.activatorType === "link");
+const isParagraph = computed(() => props.activatorType === "paragraph");
+const isIcon = computed(() => props.activatorType === "icon");
+
+const isContained = computed(() => props.contained);
+
+watch(showToolTip, newVal => {
+  if (newVal) {
+    emit("is-opened");
   }
-}
+});
+
+const open = () => {
+  showToolTip.value = true;
+};
+
+const close = () => {
+  showToolTip.value = false;
+  inContent.value = false;
+  inActivator.value = false;
+};
+
+const clear = () => {
+  if (timeoutId.value) {
+    clearTimeout(timeoutId.value);
+    timeoutId.value = null;
+  }
+};
+
+const onActivatorEnter = () => {
+  clear();
+  inActivator.value = true;
+  open();
+  window.dispatchEvent(new CustomEvent("terracotta:tooltip-opened", { detail: tooltipId }));
+};
+
+const onActivatorLeave = delay => {
+  open();
+  inActivator.value = false;
+
+  timeoutId.value = setTimeout(() => {
+    if (!inContent.value) {
+      close();
+    }
+  }, delay);
+};
+
+const onContentEnter = () => {
+  clear();
+  open();
+  inActivator.value = false;
+  inContent.value = true;
+};
+
+const onContentLeave = () => {
+  inContent.value = false;
+
+  timeoutId.value = setTimeout(() => {
+    if (!inActivator.value) {
+      close();
+    }
+  }, 500);
+};
+
+const handleKeyPress = event => {
+  if (event.key === "Escape" || event.key === "Esc") {
+    close();
+  }
+};
+
+const handleOtherTooltipOpened = event => {
+  if (event.detail !== tooltipId) {
+    close();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener("keydown", handleKeyPress);
+  window.addEventListener("terracotta:tooltip-opened", handleOtherTooltipOpened);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleKeyPress);
+  window.removeEventListener("terracotta:tooltip-opened", handleOtherTooltipOpened);
+  clear();
+});
 </script>
 
-<style lang="scss" scoped>
-@import "@/styles/variables";
+<style lang="scss">
+/* Unscoped — overlay content is teleported to <body>, outside the component DOM */
+.v-overlay__content.tool-tip-content {
+  max-width: 400px !important;
+  opacity: 1.0 !important;
+  background-color: rgba(55, 61, 63, 1.0) !important;
+  color: #fff !important;
+  pointer-events: auto !important;
+  padding: 0;
 
-.tool-tip-content {
-  &.v-tooltip__content {
-    max-width: 400px;
-    opacity: 1.0 !important;
-    background-color: rgba(55,61,63, 1.0) !important;
-    pointer-events: auto !important;
-    padding: 0;
-    & .tool-tip-content-body {
-      padding: 5px 16px;
-      text-align: left;
-      a {
-        color: #afdcff;
-      }
+  .tool-tip-content-body {
+    padding: 5px 16px;
+    text-align: left;
+
+    a {
+      color: #afdcff;
     }
   }
-  & .has-tooltip {
-    text-decoration-style: dashed;
-    text-decoration-line: underline;
-    color: map-get($blue, "base");
-  }
+}
+</style>
+
+<style lang="scss" scoped>
+/* Scoped — activator element lives inside the component DOM */
+.has-tooltip {
+  text-decoration-style: dashed;
+  text-decoration-line: underline;
+  color: map.get($blue, "base");
 }
 </style>

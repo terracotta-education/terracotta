@@ -4,8 +4,13 @@
 >
   <v-row
     class="description"
+    density="compact"
   >
-    <h3>Select Outcomes</h3>
+    <h3
+      class="my-0"
+    >
+      Select Outcomes
+    </h3>
     <tool-tip
       header="What is an outcome?"
       content="An outcome (also known as a dependent variable) is a variable that may be affected by the experimental manipulation."
@@ -17,9 +22,11 @@
     <span>
       {{ selectOutcomesText }} Outcomes are
       <a
-        @click="handleStatusPageNav(); return false;"
+        role="button"
         href="#"
         tabindex="0"
+        @click.prevent="handleStatusPageNav()"
+        @keydown.space.prevent="handleStatusPageNav()"
       >
         added on the status page.
       </a>
@@ -34,107 +41,95 @@
 </div>
 </template>
 
-<script>
-import { mapGetters, mapActions } from "vuex";
+<script setup>
+import { ref, computed, watch } from "vue";
+
 import { EventBus } from "@/helpers/event-bus";
 import Selector from "./subsection/input/Selector.vue";
 import ToolTip from "@/components/ToolTip.vue";
+import { experiment as useExperimentStore } from "@/store/experiment.module";
+import { exposures as useExposuresStore } from "@/store/exposures.module";
+import { resultsDashboard as useResultsDashboardStore } from "@/store/dashboard/results.module";
 
-export default {
-  name: "SectionInput",
-  components: {
-    Selector,
-    ToolTip
-  },
-  data: () => ({
-    hasSelectedOption: false
-  }),
-  computed: {
-    ...mapGetters({
-      experiment: "experiment/experiment",
-      conditions: "experiment/conditions",
-      exposures: "exposures/exposures",
-      outcomes: "resultsDashboard/outcomes"
-    }),
-    experimentId() {
-      return this.experiment.experimentId;
-    },
-    experimentConditions() {
-      return this.conditions || [];
-    },
-    experimentExposures() {
-      return this.exposures || [];
-    },
-    experimentConditionCount() {
-      return this.experimentConditions.length;
-    },
-    experimentExposureCount() {
-      return this.experimentExposures.length;
-    },
-    resultsOutcomes() {
-      return this.outcomes;
-    },
-    experimentDetailsText() {
-      let text = `Your experiment has ${this.experimentConditionCount} conditions`;
-      if (this.experimentExposureCount > 1) {
-        text += ` and ${this.experimentExposureCount} exposure sets`;
-      }
-      return `${text}.`;
-    },
-    selectOutcomesText() {
-      let text = "Select the outcomes you want to compare between conditions";
+defineOptions({
+  name: "SectionInput"
+});
 
-      if (this.experimentExposureCount > 1) {
-        text += "/exposure sets";
-      }
+const emit = defineEmits(["hasSelection"]);
 
-      return `${text}.`;
-    }
-  },
-  watch: {
-    resultsOutcomes: {
-      handler(newValue) {
-        this.loaded = newValue != null;
-      }
-    },
-    hasSelectedOption: {
-      handler(newValue) {
-        this.$emit("hasSelection", newValue);
-      }
-    }
-  },
-  methods: {
-    ...mapActions({
-      clearOutcomes: "resultsDashboard/clearOutcomes",
-      getOutcomes: "resultsDashboard/getOutcomes",
-      saveEditMode: "navigation/saveEditMode"
-    }),
-    async handleGetOutcomes(outcomes) {
-      this.hasSelectedOption = true;
-      // outcomes = {[outcomeId,...], alternateIds: {id: string, exposures: [exposureId,...]}}
-      await this.getOutcomes([
-        this.experimentId,
-        outcomes
-      ]);
-    },
-    handleClearedSelection() {
-      this.clearOutcomes();
-      this.hasSelectedOption = false;
-    },
-    handleStatusPageNav() {
-      EventBus.$emit("statusPageNav");
-    },
+
+const hasSelectedOption = ref(false);
+
+const experiment = computed(() => useExperimentStore().experiment);
+const conditions = computed(() => useExperimentStore().conditions);
+const exposures = computed(() => useExposuresStore().exposures);
+
+const experimentId = computed(() => experiment.value?.experimentId);
+
+const experimentConditions = computed(() => conditions.value || []);
+const experimentExposures = computed(() => exposures.value || []);
+
+const experimentConditionCount = computed(() => experimentConditions.value.length);
+const experimentExposureCount = computed(() => experimentExposures.value.length);
+
+const experimentDetailsText = computed(() => {
+  let text = `Your experiment has ${experimentConditionCount.value} conditions`;
+
+  if (experimentExposureCount.value > 1) {
+    text += ` and ${experimentExposureCount.value} exposure sets`;
   }
-}
+
+  return `${text}.`;
+});
+
+const selectOutcomesText = computed(() => {
+  let text = "Select the outcomes you want to compare between conditions";
+
+  if (experimentExposureCount.value > 1) {
+    text += "/exposure sets";
+  }
+
+  return `${text}.`;
+});
+
+watch(hasSelectedOption, value => {
+  emit("hasSelection", value);
+});
+
+const clearOutcomes = () => {
+  useResultsDashboardStore().clearOutcomes();
+};
+
+const getOutcomes = payload => {
+  return useResultsDashboardStore().getOutcomes( payload);
+};
+
+const handleGetOutcomes = async (selectedOutcomes) => {
+  hasSelectedOption.value = true;
+
+  await getOutcomes([
+    experimentId.value,
+    selectedOutcomes
+  ]);
+};
+
+const handleClearedSelection = () => {
+  clearOutcomes();
+  hasSelectedOption.value = false;
+};
+
+const handleStatusPageNav = () => {
+  EventBus.emit("statusPageNav");
+};
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 div.container-input {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding-bottom: 60px;
-  > .row {
+  > .v-row {
     margin: 0 !important;
     &.description {
       display: flex;

@@ -30,8 +30,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.util.List;
@@ -271,11 +271,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
             String url = indexOf(tokens);
 
             if (StringUtils.isNotEmpty(url)) {
-                try {
-                    return URLDecoder.decode(url, "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    log.error("Error decoding the url for the next page", e);
-                }
+                return URLDecoder.decode(url, StandardCharsets.UTF_8);
             }
         }
 

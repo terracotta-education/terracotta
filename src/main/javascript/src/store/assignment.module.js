@@ -1,170 +1,256 @@
-import {assignmentService} from "@/services"
+import { defineStore } from "pinia";
 
-const state = {
-  assignments: [],
-  assignment: {},
-  fileRequest: null
-}
+import { assignmentService } from "@/services";
 
-const actions = {
-  async updateAssignment({ commit }, payload) {
-    try {
-      const response = await assignmentService.updateAssignment(...payload);
+export const assignment = defineStore("assignment", {
+  state: () => ({
+    assignments: [],
+    assignment: null,
+    fileRequest: null
+  }),
 
-      commit("setAssignment", response)
-      return {
-        status: 200,
-        data: response
-      };
-    } catch (e) {
-      console.error(e)
-    }
+  getters: {
+    hasAssignments: state => state.assignments.length > 0
   },
-  async saveAssignmentOrder({ commit }, payload) {
-    try {
-      const response = await assignmentService.updateAssignments(...payload);
-      commit("updateAssignments", response);
-    } catch (e) {
-      console.error(e)
-    }
-  },
-  async fetchAssignment({commit}, payload) {
-    // payload = experimentId, exposureId, assignmentId
-    // get assignment by it"s assignmentId
-    try {
-      const response = await assignmentService.fetchAssignment(...payload)
-      commit("setAssignment", response)
-    } catch (e) {
-      console.error(e)
-    }
-  },
-  async fetchAssignmentsByExposure({commit}, payload) {
-    // payload = experimentId, exposureId, submissions*
-    // * = optional
-    // get assignments by their exposureId
-    try {
-      const assignments = await assignmentService.fetchAssignmentsByExposure(...payload);
-      commit("updateAssignments", assignments)
-    } catch (e) {
-      console.error(e)
-    }
-  },
-  async deleteAssignment({commit}, payload) {
-    // payload = experimentId, exposureId, assignmentId
-    // delete assignment, commit mutation, and return the status/data response
-    const aId = payload[2]
-    try {
-      const response = await assignmentService.deleteAssignment(...payload)
 
-      if (response?.status === 200) {
-        // send question id to the deleteQuestion mutation
-        commit("deleteAssignment", aId)
+  actions: {
+    async updateAssignment(payload) {
+      try {
+        const response =
+          await assignmentService.updateAssignment(...payload);
+
+        this.assignment = response;
+        this.upsertAssignments([response]);
+
         return {
-          status: response?.status,
-          data: null
-        }
-      }
-    } catch (error) {
-      console.error("deleteAssignment catch", {error})
-    }
-  },
-  async duplicateAssignment({commit}, payload) {
-    // payload = experimentId, exposureId, assignmentId
-    // duplicate assignment, commit mutation, and return the status/data response
-    try {
-      const response = await assignmentService.duplicateAssignment(...payload);
-
-      if (response?.assignmentId) {
-        commit("setAssignment", response)
-        return {
-          status: 201,
+          status: response?.status || 200,
           data: response
-        }
-      }
-    } catch (error) {
-      console.error("duplicateAssignment catch", {error})
-    }
-  },
-  async createAssignment({commit}, payload) {
-    // payload = experimentId, exposureId, title, order
-    // create the assignment, commit an update mutation, and return the status/data response
-    try {
-      const response = await assignmentService.create(...payload)
+        };
+      } catch (error) {
+        console.error(
+          "assignment/updateAssignment | catch",
+          error
+        );
 
-      if (response?.assignmentId) {
-        commit("setAssignment", response)
-        return {
-          status: 201,
-          data: response
-        }
+        return null;
       }
-    } catch (error) {
-      console.error("createAssignment catch", {error})
-    }
-  },
-  async moveAssignment({commit}, payload) {
-    const aId = payload[2];
-    try {
-      const response = await assignmentService.moveAssignment(...payload);
-      if (response?.assignmentId) {
-        commit("deleteAssignment", aId)
-        commit("setAssignment", response)
-        return {
-          status: 201,
-          data: response
-        }
-      }
-    } catch (error) {
-      console.error("updateAssignment catch", {error})
-    }
-  },
-  async setCurrentAssignment({commit}, assignment) {
-    commit("setAssignment", assignment);
-  },
-  async resetAssignments({commit}) {
-    commit("setAssignments", []);
-  },
-  async resetAssignment({commit}) {
-    commit("setAssignment",  null);
-  }
-}
-const mutations = {
-  updateAssignments(state, assignments) {
-    // check for same id and update if exists
-    if (state.assignments && assignments?.length) {
-      state.assignments = state.assignments
-        .filter(a => !assignments.find(b => a.assignmentId === b.assignmentId))
-        .concat(assignments)
-    } else if (!state.assignments && assignments?.length > 0) {
-      state.assignments = [...assignments]
-    }
-  },
-  setAssignments(state, assignments) {
-    state.assignments = assignments
-  },
-  deleteAssignment(state, aid) {
-    state.assignments = [...state.assignments?.filter(a => parseInt(a.assignmentId) !== parseInt(aid))]
-  },
-  setAssignment(state, assignment) {
-    state.assignment = assignment
-  }
-}
-const getters = {
-  assignments: (state) => {
-    return state.assignments
-  },
-  assignment: (state) => {
-    return state.assignment
-  },
-  fileRequests: (state) => {
-    return state.fileRequests;
-  }
-}
+    },
 
-export const assignment = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+    async saveAssignmentOrder(payload) {
+      try {
+        const response =
+          await assignmentService.updateAssignments(...payload);
+
+        const assignments = Array.isArray(response) ? response : [];
+
+        this.upsertAssignments(assignments);
+
+        return assignments;
+      } catch (error) {
+        console.error(
+          "assignment/saveAssignmentOrder | catch",
+          error
+        );
+
+        return [];
+      }
+    },
+
+    async fetchAssignment(payload) {
+      try {
+        const response =
+          await assignmentService.fetchAssignment(...payload);
+
+        this.assignment = response;
+        this.upsertAssignments([response]);
+
+        return response;
+      } catch (error) {
+        console.error(
+          "assignment/fetchAssignment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async fetchAssignmentsByExposure(payload) {
+      try {
+        const assignments =
+          await assignmentService.fetchAssignmentsByExposure(
+            ...payload
+          );
+
+        this.upsertAssignments(
+          Array.isArray(assignments) ? assignments : []
+        );
+
+        return assignments;
+      } catch (error) {
+        console.error(
+          "assignment/fetchAssignmentsByExposure | catch",
+          error
+        );
+
+        return [];
+      }
+    },
+
+    async deleteAssignment(payload) {
+      const assignmentId = payload[2];
+
+      try {
+        const response =
+          await assignmentService.deleteAssignment(...payload);
+
+        if (response?.status === 200) {
+          this.assignments = this.assignments.filter(
+            a => parseInt(a.assignmentId) !== parseInt(assignmentId)
+          );
+
+          return {
+            status: response.status,
+            data: null
+          };
+        }
+
+        return response;
+      } catch (error) {
+        console.error(
+          "assignment/deleteAssignment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async duplicateAssignment(payload) {
+      try {
+        const response =
+          await assignmentService.duplicateAssignment(...payload);
+
+        if (response?.assignmentId) {
+          this.assignment = response;
+          this.upsertAssignments([response]);
+
+          return {
+            status: 201,
+            data: response
+          };
+        }
+
+        return response;
+      } catch (error) {
+        console.error(
+          "assignment/duplicateAssignment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async createAssignment(payload) {
+      try {
+        const response = await assignmentService.create(...payload);
+
+        if (response?.assignmentId) {
+          this.assignment = response;
+          this.upsertAssignments([response]);
+
+          return {
+            status: 201,
+            data: response
+          };
+        }
+
+        return response;
+      } catch (error) {
+        console.error(
+          "assignment/createAssignment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async moveAssignment(payload) {
+      const assignmentId = payload[2];
+
+      try {
+        const response =
+          await assignmentService.moveAssignment(...payload);
+
+        if (response && !response.error) {
+          this.assignments = this.assignments.filter(
+            a => parseInt(a.assignmentId) !== parseInt(assignmentId)
+          );
+
+          if (response?.assignmentId) {
+            this.assignment = response;
+            this.upsertAssignments([response]);
+          }
+
+          return {
+            status: 201,
+            data: response
+          };
+        }
+
+        return response;
+      } catch (error) {
+        console.error(
+          "assignment/moveAssignment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    setCurrentAssignment(assignment) {
+      this.assignment = assignment;
+    },
+
+    setAssignment(assignment) {
+      this.assignment = assignment;
+    },
+
+    resetAssignments() {
+      this.assignments = [];
+    },
+
+    resetAssignment() {
+      this.assignment = null;
+    },
+
+    reset() {
+      this.assignments = [];
+      this.assignment = null;
+      this.fileRequest = null;
+    },
+
+    upsertAssignments(assignments) {
+      if (!Array.isArray(assignments)) {
+        return;
+      }
+
+      assignments.filter(Boolean).forEach(assignment => {
+        const index = this.assignments.findIndex(
+          item =>
+            parseInt(item.assignmentId) ===
+            parseInt(assignment.assignmentId)
+        );
+
+        if (index >= 0) {
+          this.assignments.splice(index, 1, assignment);
+        } else {
+          this.assignments.push(assignment);
+        }
+      });
+    }
+  }
+});

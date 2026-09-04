@@ -1,9 +1,9 @@
-import store from '../store/index.js'
+import { api } from "@/store/api.module";
 
 export function initHeader() {
-    if (store.state.api?.lti_token) {
+    if (api().lti_token) {
         return {
-            'Authorization': 'Bearer ' + store.state.api.lti_token,
+            'Authorization': 'Bearer ' + api().lti_token,
             'Content-Type': 'application/json'
         };
     } else {
@@ -12,9 +12,9 @@ export function initHeader() {
 }
 
 export function authHeader() {
-    if (store.state.api?.api_token) {
+    if (api().api_token) {
         return {
-            'Authorization': 'Bearer ' + store.state.api.api_token,
+            'Authorization': 'Bearer ' + api().api_token,
             'Content-Type': 'application/json'
         };
     } else {
@@ -23,9 +23,9 @@ export function authHeader() {
 }
 
 export function fileAuthHeader() {
-    if (store.state.api?.api_token) {
+    if (api().api_token) {
         return {
-            'Authorization': 'Bearer ' + store.state.api.api_token,
+            'Authorization': 'Bearer ' + api().api_token,
             // 'Content-Type': 'multipart/form-data'
         };
     } else {

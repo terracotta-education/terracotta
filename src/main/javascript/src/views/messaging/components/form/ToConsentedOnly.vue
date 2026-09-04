@@ -1,56 +1,70 @@
 <template>
-<div>
-  <v-switch
-    v-model="selection"
-    :disabled="readOnly || !enabledByConsent"
-    :ripple="false"
-    label="Send messages to consented individuals only"
-    inset
-  />
-</div>
+  <div>
+    <v-switch
+      v-model="selection"
+      :disabled="readOnly || !enabledByConsent"
+      :ripple="false"
+      label="Send messages to consented individuals only"
+      inset
+    />
+  </div>
 </template>
 
-<script>
-export default {
-  props: {
-    selected: {
-      type: Boolean
-    },
-    experiment: {
-      type: Object,
-      required: true
-    },
-    readOnly: {
-      type: Boolean,
-      default: false
-    }
-  },
-  data: () => ({
-    selection: null
-  }),
-  watch: {
-    selected: {
-      handler(newSelected) {
-        if (!this.enabledByConsent) {
-          this.selection = false;
-          return;
-        }
+<script setup>
+import {
+  ref,
+  computed,
+  watch
+} from "vue";
 
-        this.selection = newSelected;
-      },
-      immediate: true
-    },
-    selection: {
-      handler (newSelection) {
-        this.$emit("updated", newSelection);
-      },
-      immediate: false
-    }
+defineOptions({
+  name: "ToConsentedOnly"
+});
+
+const props = defineProps({
+  selected: {
+    type: Boolean,
+    default: false
   },
-  computed: {
-    enabledByConsent() {
-      return this.experiment?.participationType === "CONSENT" || false;
-    }
+  experiment: {
+    type: Object,
+    required: true
   },
-}
+  readOnly: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const emit = defineEmits([
+  "updated"
+]);
+
+const selection = ref(false);
+
+const enabledByConsent = computed(() => {
+  return props.experiment?.participationType === "CONSENT";
+});
+
+watch(
+  () => props.selected,
+  value => {
+    selection.value = enabledByConsent.value
+      ? value
+      : false;
+  },
+  {
+    immediate: true
+  }
+);
+
+watch(selection, value => {
+  emit("updated", value);
+});
+
+watch(enabledByConsent, enabled => {
+  if (!enabled) {
+    selection.value = false;
+  }
+});
 </script>

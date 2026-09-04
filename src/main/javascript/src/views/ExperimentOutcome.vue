@@ -1,124 +1,154 @@
 <template>
-<div
-  class="experiment-outcome"
->
-  <nav>
-    <router-link
-      v-if="this.$router.currentRoute.meta.previousStep"
-      :disabled="isSaving"
-      :to="getBackTo"
-    >
-      <v-icon>mdi-chevron-left</v-icon> Back
-    </router-link>
-    <v-btn
-      :disabled="isSaving"
-      @click="handleSaveClick()"
-      color="primary"
-      elevation="0"
-      class="save-button"
-    >
-      <span
-        v-if="this.$router.currentRoute.meta.stepActionText"
+  <div class="experiment-outcome">
+    <nav>
+      <RouterLink
+        v-if="previousStep"
+        :to="backTo"
+        :aria-disabled="isSaving"
+        :class="{ disabled: isSaving }"
       >
-        {{ this.$router.currentRoute.meta.stepActionText }}
-      </span>
-      <span
-        v-else
+        <v-icon>mdi-chevron-left</v-icon>
+        Back
+      </RouterLink>
+
+      <v-btn
+        :disabled="isSaving"
+        color="primary"
+        elevation="0"
+        class="save-button"
+        @click="handleSaveClick"
       >
-        SAVE & EXIT
-      </span>
-    </v-btn>
-  </nav>
-  <article
-    class="experiment-outcome__body"
-  >
-    <v-row>
-      <v-col
-        cols="12"
-      >
-        <router-view
-          :experiment="experiment"
-          :key="$route.fullPath"
-          ref="childComponent"
-        ></router-view>
-      </v-col>
-    </v-row>
-  </article>
-</div>
+        {{ stepActionText || "SAVE & EXIT" }}
+      </v-btn>
+    </nav>
+
+    <article class="experiment-outcome__body">
+      <v-row>
+        <v-col cols="12">
+          <RouterView v-slot="{ Component }">
+            <component
+              v-if="Component"
+              :is="Component"
+              ref="childComponent"
+              :key="route.fullPath"
+            />
+          </RouterView>
+        </v-col>
+      </v-row>
+    </article>
+  </div>
 </template>
 
-<script>
-import {mapGetters} from "vuex";
-import store from "@/store";
+<script setup>
+import {
+  ref,
+  computed,
+  onMounted
+} from "vue";
 
-export default {
-  name: "ExperimentOutcome",
-  data: () => ({
-    saveButtonClicked: false
-  }),
-  computed: {
-    ...mapGetters({
-      experiment: "experiment/experiment",
-    }),
-    routeExperimentId() {
-      return this.$route.params.experimentId
-    },
-    isSaving() {
-      return this.saveButtonClicked || false;
-    },
-    getBackTo() {
-      if (this.isSaving) {
-        return "";
-      }
+import {
+  useRoute,
+  onBeforeRouteUpdate,
+  RouterLink,
+  RouterView
+} from "vue-router";
 
-      return {
-        name: this.$router.currentRoute.meta.previousStep
-      };
-    }
-  },
-  methods: {
-    async handleSaveClick() {
-      this.saveButtonClicked = true;
-      await this.$refs.childComponent.saveExit();
-      this.saveButtonClicked = false;
-    }
-  },
-  beforeRouteEnter (to, from, next) {
-    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next);
-  },
-  beforeRouteUpdate (to, from, next) {
-    return store.dispatch("experiment/fetchExperimentById", to.params.experimentId).then(next, next);
-  },
-}
+import { experiment as experimentModule } from "@/store/experiment.module";
+
+defineOptions({
+  name: "ExperimentOutcome"
+});
+
+const route = useRoute();
+
+const experimentStore = experimentModule();
+
+const childComponent = ref(null);
+const saveButtonClicked = ref(false);
+
+const isSaving = computed(() => {
+  return saveButtonClicked.value;
+});
+
+const previousStep = computed(() => {
+  return route.meta.previousStep;
+});
+
+const stepActionText = computed(() => {
+  return route.meta.stepActionText;
+});
+
+const backTo = computed(() => {
+  if (isSaving.value) {
+    return "";
+  }
+
+  return {
+    name: previousStep.value
+  };
+});
+
+const fetchExperiment = async experimentId => {
+  await experimentStore.fetchExperimentById(experimentId);
+};
+
+const handleSaveClick = async () => {
+  saveButtonClicked.value = true;
+
+  await childComponent.value?.saveExit?.();
+
+  saveButtonClicked.value = false;
+};
+
+onMounted(async () => {
+  await fetchExperiment(route.params.experimentId);
+});
+
+onBeforeRouteUpdate(async to => {
+  await fetchExperiment(to.params.experimentId);
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~vuetify/src/styles/main.sass";
-@import "~@/styles/variables";
-
 .experiment-outcome {
-  min-height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
   > nav {
+    flex-shrink: 0;
     padding: 30px;
     display: flex;
+    flex-wrap: wrap;
+    row-gap: 16px;
     justify-content: space-between;
+
     a {
       text-decoration: none;
+      color: map.get($blue, "primary");
+
       * {
         vertical-align: sub;
-        @extend .blue--text;
+        color: map.get($blue, "primary");
+      }
+
+      &.disabled {
+        pointer-events: none;
+        opacity: 0.6;
       }
     }
+
     & .save-button {
       background: none !important;
       border: none;
       padding: 0 !important;
-      color: map-get($blue, "primary") !important;
+      color: map.get($blue, "primary") !important;
       cursor: pointer;
     }
   }
+
   > article {
-    grid-area: article;
+    flex: 1;
     padding: 0 30px;
   }
 }

@@ -1,9 +1,8 @@
-@import "~sweetalert2/dist/sweetalert2.min.css";
-@import "expansion-panels";
-@import "modals";
-@import "tables";
-@import "links";
-@import "buttons";
-@import "cards";
-@import "global";
-@import "alerts";
+@forward "expansion-panels";
+@forward "modals";
+@forward "tables";
+@forward "links";
+@forward "buttons";
+@forward "cards";
+@forward "global";
+@forward "alerts";

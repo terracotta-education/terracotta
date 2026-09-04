@@ -25,7 +25,9 @@ public class BaseEntity {
 
     @PrePersist
     void preCreate() {
-        this.createdAt = this.updatedAt = new Timestamp(System.currentTimeMillis());
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     @PreUpdate

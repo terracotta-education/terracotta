@@ -28,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 @Primary
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 public class AdvantageDeepLinkServiceImpl implements AdvantageDeepLinkService {
 
     private final LtiDeepLinkRepository ltiDeepLinkRepository;

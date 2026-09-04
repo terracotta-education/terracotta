@@ -21,7 +21,6 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MediaEventDto extends AbstractDto {
 

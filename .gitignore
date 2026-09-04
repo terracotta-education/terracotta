@@ -36,13 +36,17 @@
 terracotta.code-workspace
 
 ### Bob local ###
-application.properties
+/application.properties
+/application.yml
+/application-qa.yml
+/application-prod.yml
 dev/
 docker-compose.yml
 log4j2.xml
 terracotta_files
 file
 821.sh
+.claude/
 
 ### Mac ###
 .DS_Store

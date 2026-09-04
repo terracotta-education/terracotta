@@ -19,8 +19,8 @@
       activatorType="link"
       activatorContent="Why would I want only one condition?"
       activatorClass="tool-tip-link"
-      contained="true"
       attach="#alert-delete-condition-template"
+      contained
     />
   </template>
   <template
@@ -31,55 +31,57 @@
 </div>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
+
 import ToolTip from "@/components/ToolTip.vue";
 
-export default {
-  name: "ConditionDeleteAlert",
-  components: {
-    ToolTip
-  },
-  props: {
-    singleConditionRemainsAfterDelete: {
-      type: Boolean
-    },
-    conditionName: {
-      type: String
-    }
-  },
-  computed: {
-    calculateConditionName() {
-      if (!this.conditionName) {
-        return "this condition";
-      }
+defineOptions({
+  name: "ConditionDeleteAlert"
+});
 
-      return `"${this.conditionName}"`;
-    }
+const props = defineProps({
+  singleConditionRemainsAfterDelete: {
+    type: Boolean,
+    default: false
+  },
+  conditionName: {
+    type: String,
+    default: ""
   }
-}
+});
+
+const calculateConditionName = computed(() => {
+  if (!props.conditionName) {
+    return "this condition";
+  }
+
+  return `"${props.conditionName}"`;
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~@/styles/variables";
-
 div.swal2-container {
   > div.swal2-popup {
     width: fit-content !important;
     max-width: 52em !important;
+
     > .swal2-html-container {
       h3 {
         text-align: left !important;
       }
+
       a,
       p {
         display: block !important;
         text-align: left !important;
       }
-      & #alert-delete-condition-template::v-deep {
-        & .tool-tip-link {
+
+      & :deep(#alert-delete-condition-template) {
+        .tool-tip-link {
           display: flex;
           width: fit-content;
-          color: map-get($blue, "base");
+          color: map.get($blue, "base");
         }
       }
     }

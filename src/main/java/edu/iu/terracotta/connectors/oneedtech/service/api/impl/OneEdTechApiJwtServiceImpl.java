@@ -114,7 +114,7 @@ import static edu.iu.terracotta.connectors.oneedtech.dao.model.enums.jwt.OneEdTe
 @Service
 @RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.ONE_ED_TECH)
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
 public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
     private static final String ISSUER_LMS_OAUTH_API_TOKEN_REQUEST = "lmsOAuthAPITokenRequest";

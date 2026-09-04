@@ -29,6 +29,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 
+@SuppressWarnings("unchecked")
 public class CanvasAdvantageAgsServiceImplTest extends BaseTest {
 
     @InjectMocks private CanvasAdvantageAgsServiceImpl canvasAdvantageAgsService;

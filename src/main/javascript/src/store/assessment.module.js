@@ -1,350 +1,67 @@
-import {assessmentService} from "@/services";
+import { defineStore } from "pinia";
 
-const state = {
-  assessment: [],
-  assessments: [],
-}
+import { assessmentService } from "@/services";
 
-const actions = {
-  async fetchAssessment({commit}, payload) {
-    try {
-      const response = await assessmentService.fetchAssessment(...payload);
-      const assessment = response?.data;
+function buildQuestionFromPayload(payload) {
+  const [
+    ,
+    ,
+    ,
+    ,
+    questionId,
+    html,
+    points,
+    questionOrder,
+    questionType,
+    randomizeAnswers,
+    answers,
+    integration
+  ] = payload;
 
-      commit("setAssessment", assessment);
-    } catch (error) {
-      console.error("setAssessment catch", error);
-    }
-  },
-  async fetchAssessmentForSubmission({commit}, payload) {
-    try {
-      const response = await assessmentService.fetchAssessmentForSubmission(...payload);
-      const assessment = response?.data;
-
-      commit("setAssessment", assessment);
-    } catch (error) {
-      console.error("setAssessment catch", error);
-    }
-  },
-  async createAssessment ({commit}, payload) {
-    // payload = experimentId, conditionId, treatmentId, body
-    // create the assessment, commit an update mutation, and return the status/data response
-    try {
-      // check if assessment exist before creating a new one
-      let response = await assessmentService.fetchAssessments(...payload);
-      let assessment;
-
-      // return first assessment that matches, only one assessment per treatment
-      if (response?.data?.length>0) {
-        assessment = response?.data[0];
-      } else {
-        response = await assessmentService.createAssessment(...payload);
-        if (response.status !== 201) {
-          return response;
-        }
-        assessment = response?.data;
-      }
-
-      // commit changes to state
-      commit("setAssessment", assessment);
-
-      return {
-        status: response?.status,
-        data: assessment
-      }
-    } catch (error) {
-      console.log("createAssessment catch", error);
-    }
-  },
-  regradeQuestions({state}, payload) {
-    // payload = experimentId, conditionId, treatmentId, assessmentId, body
-    // regrade the given question IDs
-    try {
-        assessmentService.regradeQuestions(...payload);
-    } catch (error) {
-      console.log("regradeQuestions catch", error, state);
-    }
-  },
-  async updateAssessment(context, payload) {
-    // payload = experimentId, conditionId, treatmentId, assessmentId,
-    //           body, allowStudentViewResponses, studentViewResponsesAfter,
-    //           studentViewResponsesBefore, allowStudentViewCorrectAnswers,
-    //           studentViewCorrectAnswersAfter, studentViewCorrectAnswersBefore
-    // update the assessment, and return the status/data response
-    try {
-      const response = await assessmentService.updateAssessment(...payload)
-      if (response) {
-        return {
-          status: response?.status,
-          data: response.data,
-        }
-      }
-    } catch (error) {
-      console.log("updateAssessment catch", error);
-    }
-  },
-  async createQuestion({dispatch}, payload) {
-    // payload = experimentId, conditionId, treatmentId, assessmentId, question_order, question_type, points, body
-    // create the assessment question, commit an update mutation, and return the status/data response
-    await dispatch("createQuestionAtIndex", { payload });
-  },
-  async createQuestionAtIndex({commit}, {payload, questionIndex = -1}) {
-    // payload = experimentId, conditionId, treatmentId, assessmentId, question_order, question_type, points, body
-    // create the assessment question, commit an update mutation, and return the status/data response
-    try {
-      const response = await assessmentService.createQuestion(...payload)
-      const question = response?.data;
-      if (question?.questionId) {
-        if (questionIndex >= 0) {
-          commit("updateQuestionsAtIndex", { question, questionIndex });
-        } else {
-          commit("updateQuestions", question);
-        }
-        return {
-          status: response?.status,
-          data: question
-        }
-      }
-    } catch (error) {
-      console.log("createQuestion catch", error);
-    }
-  },
-  async updateQuestion({commit}, payload) {
-    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId, html, points, questionOrder, questionType, randomizeAnswers
-    // update question and return the status/data response
-
-    const getQuestion = (experimentId,
-        conditionId,
-        treatmentId,
-        assessmentId,
-        questionId,
-        html,
-        points,
-        questionOrder,
-        questionType,
-        randomizeAnswers,
-        answers,
-        integration
-      ) => ({
-      questionId: questionId,
-      html,
-      points,
-      questionOrder,
-      questionType,
-      randomizeAnswers,
-      answers,
-      integration
-    });
-
-    try {
-      const response = await assessmentService.updateQuestion(...payload);
-      if (response) {
-        commit("updateQuestions", getQuestion(...payload));
-        return {
-          status: response?.status,
-          data: null
-        }
-      }
-    } catch (error) {
-      console.log("updateQuestion catch", {error, state});
-    }
-  },
-  async deleteQuestion({commit, state}, payload) {
-    const questionId = payload[4];
-    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId
-    // delete question, commit mutation, and return the status/data response
-    try {
-      const response = await assessmentService.deleteQuestion(...payload);
-
-      if (response?.status === 200) {
-        // send question id to the deleteQuestion mutation
-        commit("deleteQuestion", questionId);
-        return {
-          status: response?.status,
-          data: state.assessment.questions
-        }
-      }
-    } catch (error) {
-      console.log("deleteQuestion catch", {error});
-    }
-  },
-  async deleteQuestions({commit}, payload) {
-    // payload = experimentId, conditionId, treatmentId, assessmentId, questions
-    // delete questions, commit mutation, and return the status/data response
-    try {
-      const response = await assessmentService.deleteQuestions(...payload);
-
-      if (response?.status === 200) {
-        // send empty array to setQuestions mutation
-        commit("setQuestions", []);
-        return {
-          status: response?.status,
-          data: null
-        }
-      }
-    } catch (error) {
-      console.log("deleteQuestions catch", {error});
-    }
-  },
-  async createAnswer({commit}, payload) {
-    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId, html, correct, answerOrder
-    // create the assessment answer, commit an update mutation, and return the status/data response
-    try {
-      const response = await assessmentService.createAnswer(...payload);
-      const answer = response?.data;
-
-      if (answer?.answerId) {
-        commit("updateAnswers", answer);
-        return {
-          status: response?.status,
-          data: answer
-        }
-      }
-    } catch (error) {
-      console.log("createAnswer catch", error);
-    }
-  },
-  async updateAnswer({state}, payload) {
-    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId, answerId, answer_type, html, correct, answer_order
-    // update answer and return the status/data response
-    try {
-      const response = await assessmentService.updateAnswer(...payload);
-
-      if (response) {
-        return {
-          status: response?.status,
-          data: null
-        }
-      }
-    } catch (error) {
-      console.log("updateAnswer catch", {error, state});
-    }
-  },
-  async deleteAnswer({commit}, payload) {
-    const answerId = payload[5];
-    // payload = experimentId, conditionId, treatmentId, assessmentId, questionId, answerId
-    // delete answer, commit mutation, and return the status/data response
-    try {
-      const response = await assessmentService.deleteAnswer(...payload);
-
-      if (response?.status === 200) {
-        // send answer id to the deleteAnswer mutation
-        commit("deleteAnswer", answerId);
-        return {
-          status: response?.status,
-          data: null
-        }
-      }
-    } catch (error) {
-      console.log("deleteAnswer catch", {error});
-    }
-  },
-  resetAssessments({state}) {
-    state.assessments = [];
-    state.assessment = null;
-  }
-}
-const mutations = {
-  setAssessment(state, assessment) {
-    state.assessment = assessment;
-  },
-  updateAssessments(state, assessment) {
-    // check for same id and update if exists
-    const foundIndex = state.assessments?.findIndex(a => parseInt(a.assessmentId) === parseInt(assessment.assessmentId));
-    if (foundIndex >= 0) {
-      state.assessments.splice(foundIndex, 1, assessment);
-    } else {
-      state.assessments.push(assessment);
-    }
-  },
-  setQuestions(state, questions) {
-    state.assessment = {...state.assessment, questions: questions};
-  },
-  updateQuestions(state, question) {
-    // check for same id and update if exists
-    const foundIndex = state.assessment.questions?.findIndex(q => parseInt(q.questionId) === parseInt(question.questionId));
-    if (foundIndex >= 0) {
-      state.assessment.questions.splice(foundIndex, 1, question);
-    } else {
-      state.assessment.questions.push(question);
-    }
-  },
-  updateQuestionsAtIndex(state, {question, questionIndex}) {
-    state.assessment.questions.splice(questionIndex, 0, question);
-  },
-  deleteQuestion(state, qid) {
-    state.assessment = {...state.assessment, questions: [...state.assessment.questions?.filter(q => parseInt(q.questionId) !== parseInt(qid))]};
-  },
-  updateAnswers(state, answer) {
-    const aqid = parseInt(answer.questionId);
-
-    // check if answer exists and update, or add answer to question
-    state.assessment = {
-      ...state.assessment,
-      questions: state.assessment.questions.map(q => {
-        const qqid = parseInt(q.questionId);
-
-        // step over question if not relevant
-        if (qqid !== aqid) {
-          return q;
-        }
-
-        if (q.answers?.length > 0) {
-          // if there are answers, check for matching answerId
-          const foundIndex = q.answers.findIndex(a => parseInt(a.answerId) === parseInt(answer.answerId));
-
-          if (foundIndex >= 0) {
-            q.answers.splice(foundIndex, 1, answer);
-          } else {
-            q.answers = [...q.answers, answer];
-          }
-        } else if ((!q.answers || q.answers.length < 1)) {
-          // create array with single answer if empty or missing answers
-          q.answers = [answer];
-        }
-
-        return q
-      })
+  return {
+    questionId,
+    html,
+    points,
+    questionOrder,
+    questionType,
+    randomizeAnswers,
+    answers,
+    integration
   };
-  },
-  deleteAnswer(state, answerId) {
-    const aid = parseInt(answerId);
-    state.assessment.questions = state.assessment.questions.map((q) => {
-      return {...q, answers: q.answers?.filter(a => parseInt(a.answerId) !== aid)}
-    })
-  },
 }
-const getters = {
-  assessment: (state) => {
-    return state.assessment;
-  },
-  questions: (state) => {
-    return [...state?.assessment?.questions || []].toSorted((a, b) => (a ? a.questionOrder : 0) - (b ? b.questionOrder : 0));
-  },
-  assessments: (state) => {
-    return state.assessments;
-  },
-  answerableQuestions: (state, getters) => {
-    return getters.questions.filter(q => q.questionType !== "PAGE_BREAK");
-  },
-  /**
-   * Use PAGE_BREAK questions to break the questions into pages.
-   */
-  questionPages: (state) => {
-      const pages = [];
-      const questions = state.assessment.questions || [];
 
-      if (!questions || questions.length === 0) {
-        return pages;
+export const assessment = defineStore("assessment", {
+  state: () => ({
+    assessment: null,
+    assessments: []
+  }),
+
+  getters: {
+    questions: state =>
+      [...(state?.assessment?.questions || [])].toSorted(
+        (a, b) => (a?.questionOrder || 0) - (b?.questionOrder || 0)
+      ),
+
+    answerableQuestions() {
+      return this.questions.filter(
+        question => question.questionType !== "PAGE_BREAK"
+      );
+    },
+
+    questionPages(state) {
+      if (!state.assessment?.questions?.length) {
+        return [];
       }
 
-      pages.push({
-        key: pages.length,
+      const pages = [{
+        key: 0,
         pageBreakAfter: false,
         questions: [],
-        questionStartIndex: 0,
-      });
-      const sorted = questions.toSorted((a, b) => a.questionOrder - b.questionOrder);
+        questionStartIndex: 0
+      }];
+
+      const sorted = this.questions;
+      const lastQuestionId = sorted.at(-1)?.questionId;
 
       for (const question of sorted) {
         const currentPage = pages[pages.length - 1];
@@ -352,13 +69,14 @@ const getters = {
         if (question.questionType === "PAGE_BREAK") {
           currentPage.pageBreakAfter = true;
 
-          // Add another page if this isn"t the last question
-          if (question !== sorted[sorted.length - 1]) {
+          if (question.questionId !== lastQuestionId) {
             pages.push({
               key: pages.length,
               pageBreakAfter: false,
               questions: [],
-              questionStartIndex: currentPage.questionStartIndex + currentPage.questions.length,
+              questionStartIndex:
+                currentPage.questionStartIndex +
+                currentPage.questions.length
             });
           }
         } else {
@@ -367,13 +85,450 @@ const getters = {
       }
 
       return pages;
-  }
-}
+    }
+  },
 
-export const assessment = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+  actions: {
+    setAssessment(assessmentData) {
+      this.assessment = assessmentData;
+    },
+
+    updateQuestions(question) {
+      this.upsertQuestion(question);
+    },
+
+    updateAnswers(answer) {
+      this.upsertAnswer(answer);
+    },
+
+    async fetchAssessment(payload) {
+      try {
+        const response =
+          await assessmentService.fetchAssessment(...payload);
+
+        this.assessment = response?.data ?? null;
+
+        return this.assessment;
+      } catch (error) {
+        console.error(
+          "assessment/fetchAssessment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async fetchAssessmentForSubmission(payload) {
+      try {
+        const response =
+          await assessmentService.fetchAssessmentForSubmission(
+            ...payload
+          );
+
+        this.assessment = response?.data ?? null;
+
+        return this.assessment;
+      } catch (error) {
+        console.error(
+          "assessment/fetchAssessmentForSubmission | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async createAssessment(payload) {
+      try {
+        let response =
+          await assessmentService.fetchAssessments(...payload);
+
+        let assessmentData = null;
+
+        if (response?.data?.length > 0) {
+          assessmentData = response.data[0];
+        } else {
+          response =
+            await assessmentService.createAssessment(...payload);
+
+          if (response?.status !== 201) {
+            return response;
+          }
+
+          assessmentData = response?.data;
+        }
+
+        this.assessment = assessmentData;
+        this.upsertAssessment(assessmentData);
+
+        return {
+          status: response?.status,
+          data: assessmentData
+        };
+      } catch (error) {
+        console.error(
+          "assessment/createAssessment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async regradeQuestions(payload) {
+      try {
+        return await assessmentService.regradeQuestions(...payload);
+      } catch (error) {
+        console.error(
+          "assessment/regradeQuestions | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async updateAssessment(payload) {
+      try {
+        const response =
+          await assessmentService.updateAssessment(...payload);
+
+        return response
+          ? {
+              status: response.status,
+              data: response.data
+            }
+          : null;
+      } catch (error) {
+        console.error(
+          "assessment/updateAssessment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async createQuestion(payload) {
+      return this.createQuestionAtIndex({ payload });
+    },
+
+    async createQuestionAtIndex({ payload, questionIndex = -1 }) {
+      try {
+        const response =
+          await assessmentService.createQuestion(...payload);
+
+        const question = response?.data;
+
+        if (question?.questionId) {
+          if (questionIndex >= 0) {
+            this.assessment.questions.splice(
+              questionIndex,
+              0,
+              question
+            );
+          } else {
+            this.upsertQuestion(question);
+          }
+
+          return {
+            status: response?.status,
+            data: question
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "assessment/createQuestion | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async updateQuestion(payload) {
+      try {
+        const response =
+          await assessmentService.updateQuestion(...payload);
+
+        if (response) {
+          this.upsertQuestion(buildQuestionFromPayload(payload));
+
+          return {
+            status: response?.status,
+            data: null
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "assessment/updateQuestion | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async updateQuestionsBatch(payload) {
+      try {
+        const [, , , , questionList] = payload;
+
+        const response =
+          await assessmentService.updateQuestions(...payload);
+
+        if (response) {
+          questionList.forEach(question => this.upsertQuestion(question));
+
+          return {
+            status: response?.status,
+            data: null
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "assessment/updateQuestionsBatch | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async deleteQuestion(payload) {
+      try {
+        const questionId = payload[4];
+
+        const response =
+          await assessmentService.deleteQuestion(...payload);
+
+        if (response?.status === 200) {
+          this.assessment = {
+            ...this.assessment,
+            questions:
+              this.assessment.questions?.filter(
+                q => parseInt(q.questionId) !== parseInt(questionId)
+              ) || []
+          };
+
+          return {
+            status: response.status,
+            data: this.assessment?.questions
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "assessment/deleteQuestion | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async deleteQuestions(payload) {
+      try {
+        const response =
+          await assessmentService.deleteQuestions(...payload);
+
+        if (response?.status === 200) {
+          this.assessment = {
+            ...this.assessment,
+            questions: []
+          };
+
+          return {
+            status: response.status,
+            data: null
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "assessment/deleteQuestions | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async createAnswer(payload) {
+      try {
+        const response =
+          await assessmentService.createAnswer(...payload);
+
+        const answer = response?.data;
+
+        if (answer?.answerId) {
+          this.upsertAnswer(answer);
+
+          return {
+            status: response?.status,
+            data: answer
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "assessment/createAnswer | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async updateAnswer(payload) {
+      try {
+        const response =
+          await assessmentService.updateAnswer(...payload);
+
+        return response
+          ? {
+              status: response?.status,
+              data: null
+            }
+          : null;
+      } catch (error) {
+        console.error(
+          "assessment/updateAnswer | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async updateAnswersBatch(payload) {
+      try {
+        const [, , , , , answerList] = payload;
+
+        const response =
+          await assessmentService.updateAnswers(...payload);
+
+        if (response) {
+          answerList.forEach(answer => this.upsertAnswer(answer));
+
+          return {
+            status: response?.status,
+            data: null
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "assessment/updateAnswersBatch | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async deleteAnswer(payload) {
+      try {
+        const answerId = payload[5];
+
+        const response =
+          await assessmentService.deleteAnswer(...payload);
+
+        if (response?.status === 200) {
+          const parsedAnswerId = parseInt(answerId);
+
+          this.assessment.questions =
+            this.assessment.questions.map(question => ({
+              ...question,
+              answers:
+                question.answers?.filter(
+                  answer =>
+                    parseInt(answer.answerId) !== parsedAnswerId
+                ) || []
+            }));
+
+          return {
+            status: response.status,
+            data: null
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error(
+          "assessment/deleteAnswer | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    resetAssessments() {
+      this.assessment = null;
+      this.assessments = [];
+    },
+
+    upsertAssessment(assessmentData) {
+      if (!assessmentData) {
+        return;
+      }
+
+      const index = this.assessments.findIndex(
+        item =>
+          parseInt(item.assessmentId) ===
+          parseInt(assessmentData.assessmentId)
+      );
+
+      if (index >= 0) {
+        this.assessments.splice(index, 1, assessmentData);
+      } else {
+        this.assessments.push(assessmentData);
+      }
+    },
+
+    upsertQuestion(question) {
+      const index = this.assessment?.questions?.findIndex(
+        item =>
+          parseInt(item.questionId) === parseInt(question.questionId)
+      );
+
+      if (index >= 0) {
+        this.assessment.questions.splice(index, 1, question);
+      } else {
+        this.assessment.questions.push(question);
+      }
+    },
+
+    upsertAnswer(answer) {
+      const answerQuestionId = parseInt(answer.questionId);
+      const question = this.assessment.questions.find(
+        q => parseInt(q.questionId) === answerQuestionId
+      );
+
+      if (!question) return;
+
+      if (!question.answers) question.answers = [];
+
+      const index = question.answers.findIndex(
+        item => parseInt(item.answerId) === parseInt(answer.answerId)
+      );
+
+      if (index >= 0) {
+        question.answers.splice(index, 1, answer);
+      } else {
+        question.answers.push(answer);
+      }
+    }
+  }
+});

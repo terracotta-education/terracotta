@@ -64,7 +64,6 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 
-@SuppressWarnings({"PMD.LooseCoupling"})
 @TerracottaConnector(LmsConnector.GENERIC)
 public interface ApiJwtService {
 

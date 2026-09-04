@@ -156,7 +156,7 @@ public class GroupServiceImpl implements GroupService {
                 }
 
                 // reset the groups for each participant
-                List<edu.iu.terracotta.dao.entity.Participant> participants = new java.util.ArrayList<>(CollectionUtils.emptyIfNull(experiment.get().getParticipants()));
+                List<edu.iu.terracotta.dao.entity.Participant> participants = new ArrayList<>(CollectionUtils.emptyIfNull(experiment.get().getParticipants()));
                 participants.forEach(participant -> participant.setGroup(null));
                 participantRepository.saveAll(participants);
 

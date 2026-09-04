@@ -62,11 +62,7 @@ public class SubmissionExtended extends LmsSubmission {
 
     @Override
     public boolean isGradeMatchesCurrentSubmission() {
-        if (submission == null) {
-            return false;
-        }
-
-        return BooleanUtils.isTrue(submission.getGradeMatchesCurrentSubmission());
+        return submission != null && BooleanUtils.isTrue(submission.getGradeMatchesCurrentSubmission());
     }
 
     @Override

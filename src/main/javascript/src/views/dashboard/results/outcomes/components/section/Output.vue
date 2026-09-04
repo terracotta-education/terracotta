@@ -7,8 +7,8 @@
     class="my-0 mt-2 px-0"
   >
     <v-card
-      class="no-outcomes-selected pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-      outlined
+      class="no-outcomes-selected pt-5 px-5 mx-auto bg-blue-lighten-5 rounded-lg"
+      variant="outlined"
     >
       <p
         class="pb-0"
@@ -33,52 +33,47 @@
 </div>
 </template>
 
-<script>
+<script setup>
+import { ref, computed } from "vue";
+
 import Graph from "./subsection/output/graph/Graph.vue";
 import Tables from "./subsection/output/table/Tables.vue";
 
-export default {
-  name: "SectionOutput",
-  components: {
-    Graph,
-    Tables
-  },
-  props: {
-    showOutputPanel: {
-      type: Boolean,
-      required: false
-    }
-  },
-  data: () => ({
-    type: null
-  }),
-  computed: {
-    getType() {
-      return this.type || "condition";
-    },
-    displayOutput() {
-      return this.showOutputPanel || false;
-    }
-  },
-  methods: {
-    changeType(newType) {
-      this.type = newType;
-    }
+defineOptions({
+  name: "SectionOutput"
+});
+
+const props = defineProps({
+  showOutputPanel: {
+    type: Boolean,
+    required: false
   }
-}
+});
+
+const type = ref(null);
+
+const getType = computed(() => {
+  return type.value || "condition";
+});
+
+const displayOutput = computed(() => {
+  return props.showOutputPanel || false;
+});
+
+const changeType = (newType) => {
+  type.value = newType;
+};
 </script>
 
 <style scoped>
 div.container-output {
-  > .row {
+  > .v-row {
     width: 100%;
     margin: 10px 0;
   }
   & .no-outcomes-selected {
       width: 100%;
-      &.v-sheet--outlined.blue.lighten-5 {
-        border-color: rgba(29, 157, 255, 0.6) !important;
-      }
+      border-color: rgba(29, 157, 255, 0.6) !important;
     }
 }
 </style>

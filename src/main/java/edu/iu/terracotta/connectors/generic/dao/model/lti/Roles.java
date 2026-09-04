@@ -7,7 +7,9 @@ import java.util.List;
 
 // do this as a class instead of an enum so its easier to reuse values
 // in annotations, should it ever come to that (as is typical in controller-based auth)
-public class Roles {
+public final class Roles {
+
+    private Roles() {}
 
     public static final String GENERAL = LtiStrings.LTI_ROLE_GENERAL;
     public static final String LEARNER = LtiStrings.LTI_ROLE_LEARNER;

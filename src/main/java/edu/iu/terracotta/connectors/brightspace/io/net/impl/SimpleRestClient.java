@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @AllArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class SimpleRestClient implements RestClient {
 
     private boolean apiRequestLogEnabled;

@@ -1,224 +1,294 @@
-import {experimentService} from "@/services";
+import { defineStore } from "pinia";
 
-const state = {
-  experiment: null,
-  experiments: [],
-  importRequests: []
-}
+import { experimentService } from "@/services";
 
-const actions = {
-  resetExperiment: ({commit}) => {
-    commit("resetExperiment");
+const IMPORT_STATUS_FLAGS = importRequest => ({
+  ...importRequest,
+  complete: importRequest?.status === "COMPLETE",
+  completeAcknowledged:
+    importRequest?.status === "COMPLETE_ACKNOWLEDGED",
+  error: importRequest?.status === "ERROR",
+  errorAcknowledged:
+    importRequest?.status === "ERROR_ACKNOWLEDGED",
+  processing: importRequest?.status === "PROCESSING"
+});
+
+export const experiment = defineStore("experiment", {
+  state: () => ({
+    experiment: null,
+    experiments: [],
+    importRequests: []
+  }),
+
+  getters: {
+    conditions: state => state.experiment?.conditions || [],
+
+    hasExperiment: state => Boolean(state.experiment),
+
+    hasExperiments: state => state.experiments.length > 0
   },
-  resetExperiments: ({commit}) => {
-    commit("resetExperiments");
-  },
-  createExperiment: () => {
-    return experimentService.create();
-  },
-  fetchExperimentById: ({commit}, experimentId) => {
-    return experimentService.getById(experimentId)
-      .then(response => {
-        if (response.status === 200) {
-          commit("setExperiment", response.data);
-        }
-      })
-      .catch(response => console.log("fetchExperimentById | catch", {response}))
-  },
-  fetchExperiments: ({commit}) => {
-    return experimentService.getAll()
-      .then(response => {
-        if (response.status===200) {
-          commit("setExperiments", response.data);
-        }
-      })
-      .catch(response => console.log("fetchExperimentById | catch", {response}))
-  },
-  updateExperiment: ({commit}, experiment) => {
-    return experimentService.update(experiment)
-      .then(response => {
-        if (response.status===200) {
-          commit("setExperiment", experiment);
-        }
-        return response;
-      })
-      .catch(response => console.log("updateExperiment | catch", {response}))
-  },
-  deleteExperiment: ({commit}, experimentId) => {
-    return experimentService.delete(experimentId)
-      .then(response => {
+
+  actions: {
+    resetExperiment() {
+      this.experiment = null;
+      this.importRequests = [];
+    },
+
+    resetExperiments() {
+      this.experiments = [];
+      this.importRequests = [];
+    },
+
+    async createExperiment() {
+      try {
+        return await experimentService.create();
+      } catch (error) {
+        console.error("experiment/createExperiment | catch", error);
+
+        return null;
+      }
+    },
+
+    async fetchExperimentById(experimentId) {
+      try {
+        const response =
+          await experimentService.getById(experimentId);
+
         if (response?.status === 200) {
-          commit("deleteExperiment", experimentId)
-          return response;
+          this.setExperiment(response.data);
         }
-      })
-      .catch(response => console.log("deleteExperiment | catch", {response}))
-  },
-  async exportExperiment(_, experimentId) {
-    try {
-      await experimentService.export(experimentId);
-    } catch (e) {
-      console.error("exportExperiment catch", e);
-    }
-  },
-  async importExperiment({commit}, payload) {
-    // payload = zipFile
-    try {
-      const importRequest = await experimentService.import(payload);
-      commit("addImportRequest", importRequest);
-      return importRequest;
-    } catch (e) {
-      console.error("importExperiment catch", e);
-    }
-  },
-  async pollImport({commit}, payload) {
-    // payload = importId
-    try {
-      const importRequest = await experimentService.pollImport(payload);
-      commit("addImportRequest", importRequest.data);
-    } catch (e) {
-      console.error("pollImport catch", e);
-    }
-  },
-  async pollImports({commit}) {
-    try {
-      const importRequests = await experimentService.pollImports();
-      commit("addImportRequests", importRequests.data);
-    } catch (e) {
-      console.error("pollImports catch", e);
-    }
-  },
-  async acknowledgeImport({commit}, payload) {
-    // payload = importId, status
-    try {
-      await experimentService.acknowledgeImport(...payload);
-      commit("resetImportRequest");
-    } catch (e) {
-      console.error("acknowledgeImport catch", e);
-    }
-  },
-  resetImportRequests: ({commit}) => {
-    commit("resetImportRequests");
-  }
-}
 
-const mutations = {
-  resetExperiment(state) {
-    state.experiment = null;
-    state.importRequests = [];
-  },
-  setExperiment(state, data) {
-    state.experiment = data;
+        return response;
+      } catch (error) {
+        console.error(
+          "experiment/fetchExperimentById | catch",
+          error
+        );
 
-    if (!state.experiments.length) {
-      state.experiments.push(data);
-      return;
-    }
+        return null;
+      }
+    },
 
-    const foundIndex = state.experiments.findIndex(e => e.experimentId === data.experimentId);
+    async fetchExperiments() {
+      try {
+        const response = await experimentService.getAll();
 
-    if (foundIndex >= 0) {
-      state.experiments.splice(foundIndex, 1, data);
-    } else {
-      state.experiments.push(data);
-    }
-  },
-  resetExperiments(state) {
-    state.experiments = [];
-    state.importRequests = [];
-  },
-  setExperiments(state, data) {
-    state.experiments = data || [];
-  },
-  setConditions(state, conditions) {
-    state.experiment.conditions = conditions;
-  },
-  setCondition(state, condition) {
-    const foundIndex = state.experiment.conditions.findIndex(c => c.conditionId === condition.conditionId);
-    if (foundIndex >= 0) {
-      state.experiment.conditions.splice(foundIndex, 1, condition);
-    } else {
-      state.experiment.conditions.push(condition);
-    }
-  },
-  deleteExperiment(state, experimentId) {
-    state.experiments = state.experiments.filter((item) => item.experimentId !== experimentId)
-  },
-  deleteCondition(state, condition) {
-    state.experiment.conditions = state.experiment.conditions.filter((item) => item.conditionId !== condition.conditionId)
-  },
-  addImportRequest(state, importRequest) {
-    if (!importRequest) {
-      return;
-    }
+        if (response?.status === 200) {
+          this.experiments = response.data;
+        }
 
-    if (!importRequest.id) {
-      return;
-    }
+        return response;
+      } catch (error) {
+        console.error(
+          "experiment/fetchExperiments | catch",
+          error
+        );
 
-    importRequest = {
-      ...importRequest,
-      complete: importRequest?.status === "COMPLETE",
-      completeAcknowledged: importRequest?.status === "COMPLETE_ACKNOWLEDGED",
-      error: importRequest?.status === "ERROR",
-      errorAcknowledged: importRequest?.status === "ERROR_ACKNOWLEDGED",
-      processing: importRequest?.status === "PROCESSING"
-    }
+        return null;
+      }
+    },
 
-    const foundIndex = state.importRequests.findIndex(ir => ir.id === importRequest.id);
+    async updateExperiment(experiment) {
+      try {
+        const response =
+          await experimentService.update(experiment);
 
-    if (foundIndex >= 0) {
-      state.importRequests.splice(foundIndex, 1, importRequest);
-    } else {
-      state.importRequests.push(importRequest);
-    }
-  },
-  addImportRequests(state, importRequests) {
-    if (!importRequests) {
-      return;
-    }
+        if (response?.status === 200) {
+          this.setExperiment(experiment);
+        }
 
-    state.importRequests = [];
+        return response;
+      } catch (error) {
+        console.error(
+          "experiment/updateExperiment | catch",
+          error
+        );
 
-    for (const importRequest of importRequests) {
-      if (!importRequest.id) {
-        continue;
+        return null;
+      }
+    },
+
+    async deleteExperiment(experimentId) {
+      try {
+        const response =
+          await experimentService.delete(experimentId);
+
+        if (response?.status === 200) {
+          this.experiments = this.experiments.filter(
+            e => e.experimentId !== experimentId
+          );
+        }
+
+        return response;
+      } catch (error) {
+        console.error(
+          "experiment/deleteExperiment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async exportExperiment(experimentId) {
+      try {
+        return await experimentService.export(experimentId);
+      } catch (error) {
+        console.error(
+          "experiment/exportExperiment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async importExperiment(payload) {
+      try {
+        const importRequest =
+          await experimentService.import(payload);
+
+        this.upsertImportRequest(importRequest);
+
+        return importRequest;
+      } catch (error) {
+        console.error(
+          "experiment/importExperiment | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async pollImport(payload) {
+      try {
+        const importRequest =
+          await experimentService.pollImport(payload);
+
+        this.upsertImportRequest(importRequest?.data);
+
+        return importRequest;
+      } catch (error) {
+        console.error(
+          "experiment/pollImport | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async pollImports() {
+      try {
+        const importRequests =
+          await experimentService.pollImports();
+
+        this.importRequests = (importRequests?.data || [])
+          .filter(r => r?.id)
+          .map(IMPORT_STATUS_FLAGS);
+
+        return importRequests;
+      } catch (error) {
+        console.error(
+          "experiment/pollImports | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async acknowledgeImport(payload) {
+      try {
+        await experimentService.acknowledgeImport(...payload);
+        this.importRequests = [];
+      } catch (error) {
+        console.error(
+          "experiment/acknowledgeImport | catch",
+          error
+        );
+      }
+    },
+
+    resetImportRequests() {
+      this.importRequests = [];
+    },
+
+    setExperiment(experiment) {
+      this.experiment = experiment;
+
+      if (!experiment?.experimentId) {
+        return;
       }
 
-      state.importRequests.push({
-        ...importRequest,
-        complete: importRequest?.status === "COMPLETE",
-        completeAcknowledged: importRequest?.status === "COMPLETE_ACKNOWLEDGED",
-        error: importRequest?.status === "ERROR",
-        errorAcknowledged: importRequest?.status === "ERROR_ACKNOWLEDGED",
-        processing: importRequest?.status === "PROCESSING"
-      });
+      const index = this.experiments.findIndex(
+        item => item.experimentId === experiment.experimentId
+      );
+
+      if (index >= 0) {
+        this.experiments.splice(index, 1, experiment);
+      } else {
+        this.experiments.push(experiment);
+      }
+    },
+
+    setConditions(conditions) {
+      if (!this.experiment) {
+        return;
+      }
+
+      this.experiment = {
+        ...this.experiment,
+        conditions
+      };
+    },
+
+    setCondition(condition) {
+      if (!this.experiment?.conditions) {
+        return;
+      }
+
+      const index = this.experiment.conditions.findIndex(
+        item => item.conditionId === condition.conditionId
+      );
+
+      if (index >= 0) {
+        this.experiment.conditions.splice(index, 1, condition);
+      } else {
+        this.experiment.conditions.push(condition);
+      }
+    },
+
+    deleteCondition(condition) {
+      if (!this.experiment?.conditions) {
+        return;
+      }
+
+      this.experiment = {
+        ...this.experiment,
+        conditions: this.experiment.conditions.filter(
+          item => item.conditionId !== condition.conditionId
+        )
+      };
+    },
+
+    upsertImportRequest(importRequest) {
+      if (!importRequest?.id) {
+        return;
+      }
+
+      const normalizedRequest = IMPORT_STATUS_FLAGS(importRequest);
+
+      const index = this.importRequests.findIndex(
+        item => item.id === normalizedRequest.id
+      );
+
+      if (index >= 0) {
+        this.importRequests.splice(index, 1, normalizedRequest);
+      } else {
+        this.importRequests.push(normalizedRequest);
+      }
     }
-  },
-  resetImportRequests(state) {
-    state.importRequests = [];
   }
-}
-
-const getters = {
-  conditions(state) {
-    return state.experiment.conditions;
-  },
-  experiment(state) {
-    return state.experiment;
-  },
-  experiments(state) {
-    return state.experiments;
-  },
-  importRequests(state) {
-    return state.importRequests;
-  }
-}
-
-export const experiment = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+});

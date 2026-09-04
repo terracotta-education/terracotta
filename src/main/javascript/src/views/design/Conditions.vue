@@ -11,61 +11,59 @@
       class="pa-0"
     >
       <v-row
-          v-for="(condition, i) in conditions"
-          :key="condition.conditionId"
+        v-for="(orderedCondition, i) in orderedConditions"
+        :key="orderedCondition.conditionId"
+        density="compact"
       >
-        <template>
-          <v-col
-            class="py-0"
+        <v-col
+          class="py-0"
+        >
+          <v-text-field
+              v-model="orderedCondition.name"
+              :name="'condition-' + orderedCondition.conditionId"
+              :rules="[duplicateRule(orderedCondition), requiredRule(orderedCondition), maxLengthRule(orderedCondition)]"
+              label="Condition name"
+              placeholder="e.g. Condition Name"
+              variant="outlined"
+              required
           >
-            <v-text-field
-                v-model="condition.name"
-                :name="'condition-' + condition.conditionId"
-                :rules="[duplicateRule(condition), requiredRule(condition), maxLengthRule(condition)]"
-                label="Condition name"
-                placeholder="e.g. Condition Name"
-                outlined
-                required
-            >
-            </v-text-field>
-          </v-col>
-          <v-col
-            v-if="deleteAllowed && i > 0"
-            class="py-0"
-            cols="4"
-            sm="2"
+          </v-text-field>
+        </v-col>
+        <v-col
+          v-if="deleteAllowed && i > 0"
+          class="py-0"
+          cols="4"
+          sm="2"
+        >
+          <v-btn
+            :aria-label="`Delete condition ${orderedCondition.name || i + 1}`"
+            @click="handleDeleteCondition(orderedCondition)"
+            class="delete_condition"
+            variant="outlined"
+            icon
+            rounded="0"
           >
-            <v-btn
-              :aria-label="`Delete condition ${condition.name || i + 1}`"
-              @click="handleDeleteCondition(condition)"
-              class="delete_condition"
-              icon
-              outlined
-              tile
-            >
-              <v-icon>mdi-delete</v-icon>
-            </v-btn>
-          </v-col>
-        </template>
+            <v-icon>mdi-delete</v-icon>
+          </v-btn>
+        </v-col>
       </v-row>
     </v-container>
     <div
       v-if="addAllowed"
     >
       <v-btn
-        v-if="experiment.conditions.length < 16"
+        v-if="conditions.length < 16"
         @click="createNewCondition()"
         color="blue"
-        class="add_condition px-0 mb-10"
-        text
+        class="add_condition px-0 mb-2"
+        variant="text"
       >
         Add another condition
       </v-btn>
       <v-alert
         v-else
         type="error"
-        outlined
-        text
+        variant="outlined"
       >
         You have reached the maximum number of conditions (16) allowed by the experiment builder.
       </v-alert>
@@ -82,8 +80,8 @@
   </v-form>
   <v-card
     v-if="singleConditionExperiment && deleteAllowed"
-    class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-    outlined
+    class="mt-6 pt-5 px-5 mx-auto bg-blue-lighten-5 rounded-lg"
+    variant="outlined"
   >
     <p>
       Once you click NEXT to leave this screen, you will be able to add, but not delete conditions,
@@ -93,8 +91,8 @@
   </v-card>
   <v-card
     v-if="!deleteAllowed"
-    class="mt-15 pt-5 px-5 mx-auto blue lighten-5 rounded-lg"
-    outlined
+    class="mt-6 pt-5 px-5 mx-auto bg-blue-lighten-5 rounded-lg"
+    variant="outlined"
   >
     <p>
       Please note that you are not able to {{ !addAllowed ? "add or" : "" }} delete conditions,
@@ -105,336 +103,477 @@
 </div>
 </template>
 
-<script>
-import {mapActions, mapGetters} from "vuex";
-import ConditionDeleteAlert from "@/components/ConditionDeleteAlert";
-import store from "@/store";
-import Vue from "vue";
+<script setup>
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  createApp
+} from "vue";
 
-export default {
-  name: "DesignConditions",
-  props: {
-    experiment: {
-      type: Object,
-      required: true
-    }
+import {
+  useRoute,
+  useRouter,
+  onBeforeRouteUpdate
+} from "vue-router";
+
+import Swal from "sweetalert2";
+
+import ConditionDeleteAlert from "@/components/ConditionDeleteAlert.vue";
+
+import { api as apiModule } from "@/store/api.module";
+import { condition as conditionModule } from "@/store/condition.module";
+import { experiment as experimentModule } from "@/store/experiment.module";
+import { exposures as exposuresModule } from "@/store/exposures.module";
+import { groups as groupsModule } from "@/store/groups.module";
+import { navigation as navigationModule } from "@/store/navigation.module";
+import { storeToRefs } from "pinia";
+
+defineOptions({
+  name: "DesignConditions"
+});
+
+const route = useRoute();
+const router = useRouter();
+
+const conditionsForm = ref(null);
+
+const apiStore = apiModule();
+const conditionStore = conditionModule();
+const experimentStore = experimentModule();
+const exposuresStore = exposuresModule();
+const groupsStore = groupsModule();
+const navigationStore = navigationModule();
+
+const { experiment, conditions } = storeToRefs(experimentStore);
+
+const fieldErrors = ref({
+  duplicateName: {
+    conditionIds: [],
+    message: "Multiple conditions have the same name."
   },
-  data() {
-    return {
-      deleteConditionName: null,
-      fieldErrors: {
-        duplicateName: {conditionIds: [], message: "Multiple conditions have the same name."},
-        requiredName: {conditionIds: [], message: "A name is required for each condition."},
-        maxLengthName: {conditionIds: [], message: "A maximum of 255 characters is allowed for condition names."}
-      },
-      hasFieldErrors: false
-    }
+  requiredName: {
+    conditionIds: [],
+    message: "A name is required for each condition."
   },
-  watch: {
-    conditions: {
-      handler: function() {
-        this.clearFieldErrors();
-        this.$refs.conditionsForm.validate();
-      },
-      deep: true
-    },
-    duplicateName: {
-      handler: function() {
-        this.hasFieldErrors = this.calculateFieldErrors();
-      },
-      deep: true
-    },
-    requiredName: {
-      handler: function() {
-        this.hasFieldErrors = this.calculateFieldErrors();
-      },
-      deep: true
-    },
-    maxLengthName: {
-      handler: function() {
-        this.hasFieldErrors = this.calculateFieldErrors();
-      },
-      deep: true
-    }
+  maxLengthName: {
+    conditionIds: [],
+    message:
+      "A maximum of 255 characters is allowed for condition names."
+  }
+});
+
+const hasFieldErrors = ref(false);
+
+const editMode = computed(
+  () => navigationStore.editMode
+);
+
+const saveExitPage = computed(
+  () => editMode.value?.callerPage?.name || "Home"
+);
+
+const nextPage = computed(() =>
+  singleConditionExperiment.value
+    ? "ExperimentDesignSummary"
+    : "ExperimentDesignType"
+);
+
+const addAllowed = computed(
+  () => !editMode.value
+);
+
+const deleteAllowed = computed(
+  () => experiment.value?.exposureType === "NOSET"
+);
+
+const orderedConditions = computed(() =>
+  [...(conditions.value || [])].sort(
+    (a, b) => a.conditionId - b.conditionId
+  )
+);
+
+const singleConditionRemainsAfterDelete =
+  computed(() => conditions.value?.length === 2);
+
+const singleConditionExperiment = computed(
+  () => conditions.value?.length === 1
+);
+
+const experimentId = computed(
+  () => experiment.value?.experimentId
+);
+
+const duplicateName = computed(
+  () =>
+    fieldErrors.value.duplicateName.conditionIds
+);
+
+const requiredName = computed(
+  () =>
+    fieldErrors.value.requiredName.conditionIds
+);
+
+const maxLengthName = computed(
+  () =>
+    fieldErrors.value.maxLengthName.conditionIds
+);
+
+const errorMessage = computed(() => {
+  if (duplicateName.value.length) {
+    return fieldErrors.value.duplicateName.message;
+  }
+
+  if (requiredName.value.length) {
+    return fieldErrors.value.requiredName.message;
+  }
+
+  if (maxLengthName.value.length) {
+    return fieldErrors.value.maxLengthName.message;
+  }
+
+  return "Unspecified error.";
+});
+
+watch(
+  conditions,
+  () => {
+    clearFieldErrors();
+    conditionsForm.value?.validate();
   },
-  computed: {
-    ...mapGetters({
-      editMode: "navigation/editMode"
-    }),
-    saveExitPage() {
-      return this.editMode?.callerPage?.name || "Home";
-    },
-    nextPage() {
-      return this.singleConditionExperiment ? "ExperimentDesignSummary" : "ExperimentDesignType";
-    },
-    addAllowed() {
-      return !this.editMode;
-    },
-    deleteAllowed() {
-      return this.experiment.exposureType === "NOSET";
-    },
-    conditions() {
-      return this.experiment.conditions.toSorted((a, b) => a.conditionId - b.conditionId);
-    },
-    singleConditionRemainsAfterDelete() {
-      return this.conditions.length === 2;
-    },
-    singleConditionExperiment() {
-      return this.conditions.length === 1;
-    },
-    experimentId() {
-      return this.experiment.experimentId;
-    },
-    duplicateName() {
-      return this.fieldErrors.duplicateName.conditionIds;
-    },
-    requiredName() {
-      return this.fieldErrors.requiredName.conditionIds;
-    },
-    maxLengthName() {
-      return this.fieldErrors.maxLengthName.conditionIds;
-    },
-    errorMessage() {
-      if (this.duplicateName.length) {
-        return this.fieldErrors.duplicateName.message;
-      }
+  { deep: true }
+);
 
-      if (this.requiredName.length) {
-        return this.fieldErrors.requiredName.message;
-      }
-
-      if (this.maxLengthName.length) {
-        return this.fieldErrors.maxLengthName.message;
-      }
-
-      return "Unspecified error."
-    }
+watch(
+  fieldErrors,
+  () => {
+    hasFieldErrors.value =
+      calculateFieldErrors();
   },
-  methods: {
-    ...mapActions({
-      createCondition: "condition/createCondition",
-      createExposures: "exposures/createExposures",
-      createAndAssignGroups: "groups/createAndAssignGroups",
-      deleteCondition: "condition/deleteCondition",
-      reportStep: "api/reportStep",
-      updateConditions: "condition/updateConditions",
-      updateExperiment: "experiment/updateExperiment"
-    }),
-    async createNewCondition() {
-      var doAdd = this.deleteAllowed;
+  { deep: true }
+);
 
-      if (!this.deleteAllowed) {
-        const reallyAdd = await this.$swal({
-          icon: "question",
-          text: "Do you really want to add a new condition? You will not be able to delete it.",
-          showCancelButton: true,
-          confirmButtonText: "Yes, add it",
-          cancelButtonText: "No, cancel",
-          cancelButtonColor: "#515961"
-        });
-        doAdd = reallyAdd.isConfirmed;
-      }
+async function createNewCondition() {
+  let doAdd = deleteAllowed.value;
 
-      if (doAdd) {
-        await this.createCondition(this.experimentId);
-        this.$refs.conditionsForm.validate();
-      }
-    },
-    async saveConditions(path, updateExperiment) {
-      if (this.hasFieldErrors) {
-        this.$swal("There was an error saving your conditions. " + this.errorMessage);
-        return;
-      }
+  if (!deleteAllowed.value) {
+    const reallyAdd = await Swal.fire({
+      icon: "question",
+      text: "Do you really want to add a new condition? You will not be able to delete it.",
+      showCancelButton: true,
+      confirmButtonText: "Yes, add it",
+      cancelButtonText: "No, cancel",
+      cancelButtonColor: "#515961"
+    });
 
-      const e = this.experiment
-      e.conditions.experimentId = this.experimentId
+    doAdd = reallyAdd.isConfirmed;
+  }
 
-      if (this.singleConditionExperiment) {
-        // only one condition; set as default
-        this.conditions[0].defaultCondition = true;
-      }
+  if (doAdd) {
+    await conditionStore.createCondition(
+      experimentId.value
+    );
 
-      await this.updateConditions(e.conditions)
-        .then(async response => {
-          if (response.status === 200) {
-            if (this.singleConditionExperiment && updateExperiment) {
-              // only one condition; save experiment defaults for distribution (BETWEEN) and exposure types (EVEN)
-              await this.updateConditionExperiment("BETWEEN", "EVEN", "exposure_type");
-            }
-
-            this.$router.push({
-              name: path,
-              params: {
-                experiment: this.experimentId
-              }
-            });
-          } else {
-            this.$swal("There was an error saving your conditions.");
-          }
-        }).catch(response => {
-          console.log("updateConditions | catch", {response});
-          this.$swal("There was an error saving your conditions.");
-        });
-    },
-    async updateConditionExperiment(exposureType, distributionType, calculatedStep) {
-      const e = this.experiment;
-      e.exposureType = exposureType;
-      e.distributionType = distributionType;
-      const experimentId = e.experimentId;
-      const step = calculatedStep;
-
-      await this.updateExperiment(e)
-        .then(
-          async response => {
-            if (typeof response?.status !== "undefined" && response?.status === 200) {
-              if (!this.editMode) {
-                // create the exposures here, as the user cannot for single conditions
-                await this.createExposures(experimentId);
-                // create and assign exposure groups
-                await this.createAndAssignGroups(experimentId);
-                // report the current step as exposure type, as we are skipping exposure selection
-                await this.reportStep({experimentId, step});
-              }
-            } else if (response?.message) {
-              this.$swal(`Error: ${response.message}`);
-            } else {
-              this.$swal("There was an error saving your experiment.");
-            }
-          }
-        ).catch(() =>
-          this.$swal("There was an error saving the experiment.")
-        )
-    },
-    async handleDeleteCondition(condition) {
-      const {defaultCondition} = condition;
-
-      if (defaultCondition) {
-        this.$swal("You are attempting to delete the default condition. You must set one of the other existing conditions as the default before deleting this condition.");
-        return;
-      } else {
-        if (condition?.conditionId) {
-          this.deleteConditionName = condition.name;
-          var reallyDelete = await this.displayDeleteConditionDialog(condition.name);
-
-          if (reallyDelete.isConfirmed) {
-            try {
-              Object.keys(this.fieldErrors).forEach((fe) => this.handleRule(this.fieldErrors[fe], condition.conditionId, false));
-              await this.deleteCondition(condition);
-            } catch (error) {
-              this.$swal({
-                text: "Could not delete condition.",
-                icon: "error"
-              });
-            }
-          }
-        }
-      }
-    },
-    async displayDeleteConditionDialog(conditionName) {
-      return this.$swal({
-        icon: "question",
-        html: "<div id='alert-delete-condition'></div>",
-        showCancelButton: true,
-        confirmButtonText: "Yes, delete it",
-        cancelButtonText: "No, cancel",
-        cancelButtonColor: "#515961",
-        willOpen: () => {
-          var ConditionDeleteAlertClass = Vue.extend(ConditionDeleteAlert);
-          var conditionDeleteAlert = new ConditionDeleteAlertClass({
-            propsData: {
-              singleConditionRemainsAfterDelete: this.singleConditionRemainsAfterDelete,
-              conditionName: conditionName
-            }
-          });
-          conditionDeleteAlert.$mount();
-          document.getElementById("alert-delete-condition").appendChild(conditionDeleteAlert.$el);
-        }
-      });
-    },
-    async saveExit() {
-      if (this.conditions.every((c) => !(c.name && c.name.trim()))) {
-        // all conditions are blank, exit w/o saving
-        this.$router.push({
-          name: this.saveExitPage,
-          params: {
-            experiment: this.experimentId
-          }
-        });
-        return;
-      }
-
-      if (this.hasFieldErrors) {
-        this.$swal("There was an error saving your conditions. " + this.errorMessage);
-        this.$refs.conditionsForm.validate();
-        return;
-      }
-
-      this.saveConditions(this.saveExitPage, this.experiment.exposureType !== "NOSET" && this.experiment.distributionType !== "NOSET");
-    },
-    duplicateRule(condition) {
-      this.handleRule(
-        this.fieldErrors.duplicateName,
-        condition.conditionId,
-        this.conditions.some(
-          (c) =>
-            c.conditionId !== condition.conditionId &&
-            condition.name && c.name &&
-            c.name.replace(/\s\s+/g, " ").toLowerCase().trim() === condition.name.replace(/\s\s+/g, " ").toLowerCase().trim()
-        )
-      );
-      return !this.fieldErrors.duplicateName.conditionIds.includes(condition.conditionId) || "Duplicate condition name.";
-    },
-    requiredRule(condition) {
-      this.handleRule(this.fieldErrors.requiredName, condition.conditionId, !(condition.name && condition.name.replace(/\s\s+/g, " ").trim()));
-      return !this.fieldErrors.requiredName.conditionIds.includes(condition.conditionId) || "Condition name is required";
-    },
-    maxLengthRule(condition) {
-      this.handleRule(this.fieldErrors.maxLengthName, condition.conditionId, (condition.name || "").length > 255);
-      return !this.fieldErrors.maxLengthName.conditionIds.includes(condition.conditionId) || "A maximum of 255 characters is allowed";
-    },
-    handleRule(fieldError, conditionId, hasError) {
-      if (hasError) {
-        if (!fieldError.conditionIds.includes(conditionId)) {
-          fieldError.conditionIds.push(conditionId);
-        }
-      } else {
-        var idx = fieldError.conditionIds.indexOf(conditionId);
-
-        if (idx !== -1) {
-          fieldError.conditionIds.splice(idx);
-        }
-      }
-    },
-    calculateFieldErrors() {
-      return Object.keys(this.fieldErrors).some((fe) => this.fieldErrors[fe].conditionIds.length > 0);
-    },
-    clearFieldErrors() {
-      Object.keys(this.fieldErrors).forEach((fe) => this.fieldErrors[fe].conditionIds = []);
-    }
-  },
-  beforeRouteEnter(to, from, next) {
-    if (store.state.experiment.experiment.conditions.length == 0) {
-      store.dispatch("condition/createDefaultConditions", to.params.experimentId).then(() => next());
-    } else {
-      next();
-    }
-  },
-  beforeRouteUpdate(to, from, next) {
-    if (store.state.experiment.experiment.conditions.length == 0) {
-      store.dispatch("condition/createDefaultConditions", to.params.experimentId).then(() => next());
-    } else {
-      next();
-    }
-  },
-  mounted() {
-    this.$refs.conditionsForm.validate();
+    conditionsForm.value?.validate();
   }
 }
+
+async function saveConditions(
+  path,
+  updateExperimentFlag
+) {
+  if (hasFieldErrors.value) {
+    await Swal.fire(
+      `There was an error saving your conditions. ${errorMessage.value}`
+    );
+    return;
+  }
+
+  if (singleConditionExperiment.value) {
+    conditions.value[0].defaultCondition = true;
+  }
+
+  const response =
+    await conditionStore.updateConditions(
+      conditions.value
+    );
+
+  if (response?.status === 200) {
+    if (
+      singleConditionExperiment.value &&
+      updateExperimentFlag
+    ) {
+      await updateConditionExperiment(
+        "BETWEEN",
+        "EVEN",
+        "exposure_type"
+      );
+    }
+
+    router.push({
+      name: path
+    });
+  } else {
+    await Swal.fire(
+      "There was an error saving your conditions."
+    );
+  }
+}
+
+async function updateConditionExperiment(
+  exposureType,
+  distributionType,
+  step
+) {
+  experiment.value.exposureType = exposureType;
+  experiment.value.distributionType = distributionType;
+
+  const response = await experimentStore.updateExperiment(experiment.value);
+
+  if (response?.status === 200) {
+    if (!editMode.value) {
+      await exposuresStore.createExposures(
+        experimentId.value
+      );
+
+      await groupsStore.createAndAssignGroups(
+        experimentId.value
+      );
+
+      await apiStore.reportStep({
+        experimentId: experimentId.value,
+        step
+      });
+    }
+  }
+}
+
+async function handleDeleteCondition(condition) {
+  if (condition.defaultCondition) {
+    await Swal.fire(
+      "You are attempting to delete the default condition. You must set another condition as default first."
+    );
+    return;
+  }
+
+  const result =
+    await displayDeleteConditionDialog(
+      condition.name
+    );
+
+  if (!result.isConfirmed) {
+    return;
+  }
+
+  try {
+    Object.keys(fieldErrors.value)
+      .forEach(key =>
+        handleRule(
+          fieldErrors.value[key],
+          condition.conditionId,
+          false
+        )
+      );
+
+    await conditionStore.deleteCondition(condition);
+  } catch {
+    await Swal.fire({
+      text: "Could not delete condition.",
+      icon: "error"
+    });
+  }
+}
+
+async function displayDeleteConditionDialog(
+  conditionName
+) {
+  return Swal.fire({
+    icon: "question",
+    html: "<div id='alert-delete-condition'></div>",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "No, cancel",
+    cancelButtonColor: "#515961",
+    didOpen: () => {
+      const app = createApp(
+        ConditionDeleteAlert,
+        {
+          singleConditionRemainsAfterDelete:
+            singleConditionRemainsAfterDelete.value,
+          conditionName
+        }
+      );
+
+      app.mount(
+        "#alert-delete-condition"
+      );
+    }
+  });
+}
+
+function handleRule(
+  fieldError,
+  conditionId,
+  hasError
+) {
+  if (hasError) {
+    if (
+      !fieldError.conditionIds.includes(
+        conditionId
+      )
+    ) {
+      fieldError.conditionIds.push(
+        conditionId
+      );
+    }
+  } else {
+    const idx =
+      fieldError.conditionIds.indexOf(
+        conditionId
+      );
+
+    if (idx !== -1) {
+      fieldError.conditionIds.splice(idx, 1);
+    }
+  }
+}
+
+function duplicateRule(condition) {
+  handleRule(
+    fieldErrors.value.duplicateName,
+    condition.conditionId,
+    conditions.value.some(
+      c =>
+        c.conditionId !==
+          condition.conditionId &&
+        condition.name &&
+        c.name &&
+        c.name
+          .replace(/\s\s+/g, " ")
+          .toLowerCase()
+          .trim() ===
+          condition.name
+            .replace(/\s\s+/g, " ")
+            .toLowerCase()
+            .trim()
+    )
+  );
+
+  return !fieldErrors.value.duplicateName.conditionIds.includes(
+    condition.conditionId
+  );
+}
+
+function requiredRule(condition) {
+  handleRule(
+    fieldErrors.value.requiredName,
+    condition.conditionId,
+    !(
+      condition.name &&
+      condition.name
+        .replace(/\s\s+/g, " ")
+        .trim()
+    )
+  );
+
+  return !fieldErrors.value.requiredName.conditionIds.includes(
+    condition.conditionId
+  );
+}
+
+function maxLengthRule(condition) {
+  handleRule(
+    fieldErrors.value.maxLengthName,
+    condition.conditionId,
+    (condition.name || "").length > 255
+  );
+
+  return !fieldErrors.value.maxLengthName.conditionIds.includes(
+    condition.conditionId
+  );
+}
+
+function calculateFieldErrors() {
+  return Object.keys(
+    fieldErrors.value
+  ).some(
+    key =>
+      fieldErrors.value[key]
+        .conditionIds.length > 0
+  );
+}
+
+function clearFieldErrors() {
+  Object.keys(fieldErrors.value)
+    .forEach(key => {
+      fieldErrors.value[key].conditionIds =
+        [];
+    });
+}
+
+async function saveExit() {
+  if (
+    conditions.value.every(
+      c => !(c.name && c.name.trim())
+    )
+  ) {
+    router.push({
+      name: saveExitPage.value,
+      params: {
+        experimentId: experimentId.value
+      }
+    });
+
+    return;
+  }
+
+  if (hasFieldErrors.value) {
+    await Swal.fire(
+      `There was an error saving your conditions. ${errorMessage.value}`
+    );
+
+    conditionsForm.value?.validate();
+
+    return;
+  }
+
+  saveConditions(
+    saveExitPage.value,
+    experiment.value.exposureType !==
+      "NOSET" &&
+      experiment.value.distributionType !==
+        "NOSET"
+  );
+}
+
+async function ensureDefaultConditions() {
+  if (
+    !experiment.value.conditions ||
+    experiment.value.conditions.length ===
+      0
+  ) {
+    await conditionStore.createDefaultConditions(
+      route.params.experimentId
+    );
+  }
+}
+
+onMounted(async () => {
+  await ensureDefaultConditions();
+  conditionsForm.value?.validate();
+});
+
+onBeforeRouteUpdate(async () => {
+  await ensureDefaultConditions();
+});
+
+defineExpose({
+  saveExit
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~@/styles/variables";
-
 .add_condition {
   text-transform: unset !important;
 }
@@ -445,7 +584,7 @@ export default {
 }
 .swal2-styled {
   &.swal2-cancel {
-    background-color: map-get($swal, "cancel");
+    background-color: map.get($swal, "cancel");
   }
 }
 </style>

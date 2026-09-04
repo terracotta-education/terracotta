@@ -1,13 +1,13 @@
 <template>
-<router-view
-  :key="$route.fullPath"
-/>
+  <router-view :key="route.fullPath" />
 </template>
 
-<script>
-export default {
-  name: "Experiment",
+<script setup>
+import { useRoute } from "vue-router";
 
-  data: () => ({}),
-}
+defineOptions({
+  name: "ExperimentPage"
+});
+
+const route = useRoute();
 </script>

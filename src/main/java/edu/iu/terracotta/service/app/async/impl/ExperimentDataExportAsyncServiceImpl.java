@@ -13,6 +13,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.lang3.Strings;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,12 +37,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class ExperimentDataExportAsyncServiceImpl implements ExperimentDataExportAsyncService {
 
     private final ExperimentDataExportRepository experimentDataExportRepository;
     private final ExportService exportService;
     private final FileStorageService fileStorageService;
+
+    @Value("${experiment.data.export.local.path.root}")
+    private String experimentDataExportLocalPathRoot;
 
     @Async
     @Override
@@ -76,7 +80,10 @@ public class ExperimentDataExportAsyncServiceImpl implements ExperimentDataExpor
     }
 
     private File generateZipFile(Map<String, String> files) throws IOException {
-        File file = Files.createTempFile("export." + UUID.randomUUID().toString(), null).toFile();
+        // not the no-arg overload - that resolves to the shared, world-writable OS temp
+        // directory (java.io.tmpdir); use this app's own dedicated export directory instead,
+        // matching FileStorageServiceImpl's identical convention for the same purpose
+        File file = Files.createTempFile(Paths.get(experimentDataExportLocalPathRoot), "export." + UUID.randomUUID().toString(), null).toFile();
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(file))) {
             // .csv files

@@ -37,70 +37,94 @@
 </div>
 </template>
 
-<script>
-import { mapGetters } from "vuex";
-import Vuetify from "vuetify/lib";
+<script setup>
+import { ref, computed, watch } from "vue";
 
-export default {
-  name: "RegradeAssignmentDialog",
-  vuetify: new Vuetify(),
-  props: {
-    assignmentName: {
-      type: String
-    },
-    conditionName: {
-      type: String
-    },
-    studentCount: {
-      type: Number
-    },
-    editedQuestionCount: {
-      type: Number
-    }
-  },
-  data: () => ({
-    selectedRegradeOption: null
-  }),
-  watch: {
-    selectedRegradeOption: {
-      handler(newValue) {
-        if (document.getElementById("regrade-option-selected")) {
-          document.getElementById("regrade-option-selected").value = newValue;
-        }
+import { configuration } from "@/store/configuration.module";
 
-        if (document.getElementsByClassName("response-option-confirm")[0]) {
-          document.getElementsByClassName("response-option-confirm")[0].disabled = newValue === null;
-        }
-      },
-      immediate: true
-    }
+defineOptions({
+  name: "RegradeAssignmentDialog"
+});
+
+const props = defineProps({
+  assignmentName: {
+    type: String
   },
-  computed: {
-    ...mapGetters({
-      configurations: "configuration/get"
-    }),
-    regradeOptions() {
-      return [
-        {value: "BOTH", label: "Award points for both corrected and previously correct answers (no scores will be reduced)"},
-        {value: "CURRENT", label: "Only award points for the correct answer (some students' scores may be reduced)"},
-        {value: "FULL", label: "Give everyone full credit for " + this.questionLabel},
-        {value: "NONE", label: "Update " + this.questionLabel + " without regrading"}
-      ];
-    },
-    studentCountLabel() {
-      return this.studentCount + " student" + (this.studentCount > 1 ? "s" : "");
-    },
-    studentCountHaveLabel() {
-      return this.studentCount > 1 ? "have" : "has";
-    },
-    questionLabel() {
-      return this.editedQuestionCount === 1 ? "this question" : "the questions you've changed";
-    },
-    lmsTitle() {
-      return this.configurations?.lmsTitle || "LMS";
-    }
+  conditionName: {
+    type: String
+  },
+  studentCount: {
+    type: Number
+  },
+  editedQuestionCount: {
+    type: Number
   }
-}
+});
+
+const configurationStore = configuration();
+
+const selectedRegradeOption = ref(null);
+
+const configurations = computed(() => {
+  return configurationStore.get;
+});
+
+const questionLabel = computed(() => {
+  return props.editedQuestionCount === 1
+    ? "this question"
+    : "the questions you've changed";
+});
+
+const regradeOptions = computed(() => {
+  return [
+    {
+      value: "BOTH",
+      label: "Award points for both corrected and previously correct answers (no scores will be reduced)"
+    },
+    {
+      value: "CURRENT",
+      label: "Only award points for the correct answer (some students' scores may be reduced)"
+    },
+    {
+      value: "FULL",
+      label: `Give everyone full credit for ${questionLabel.value}`
+    },
+    {
+      value: "NONE",
+      label: `Update ${questionLabel.value} without regrading`
+    }
+  ];
+});
+
+const studentCountLabel = computed(() => {
+  return `${props.studentCount} student${props.studentCount > 1 ? "s" : ""}`;
+});
+
+const studentCountHaveLabel = computed(() => {
+  return props.studentCount > 1 ? "have" : "has";
+});
+
+const lmsTitle = computed(() => {
+  return configurations.value?.lmsTitle || "LMS";
+});
+
+watch(
+  selectedRegradeOption,
+  newValue => {
+    const selectedInput = document.getElementById("regrade-option-selected");
+
+    if (selectedInput) {
+      selectedInput.value = newValue;
+    }
+
+    const confirmButton = document.getElementsByClassName("response-option-confirm")[0];
+
+    if (confirmButton) {
+      confirmButton.disabled = newValue === null;
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <style lang="scss" scoped>

@@ -6,25 +6,25 @@
 />
 </template>
 
-<script>
-import { mapGetters } from "vuex"
-import DataTable from "./components/DataTable.vue"
+<script setup>
+import { computed } from "vue";
 
-export default {
-  name: "Exposures",
-  components: {
-    DataTable
-  },
-  computed: {
-    ...mapGetters({
-      outcomes: "resultsDashboard/outcomes"
-    }),
-    exposures() {
-      return this.outcomes?.exposures?.rows || [];
-    },
-    outcomeType() {
-      return this.outcomes?.outcomeType || "";
-    }
-  }
-}
+import DataTable from "./components/DataTable.vue";
+import { resultsDashboard as useResultsDashboardStore } from "@/store/dashboard/results.module";
+
+defineOptions({
+  name: "OutcomeExposuresTable"
+});
+
+
+const resultsDashboardStore = useResultsDashboardStore();
+const outcomes = computed(() => resultsDashboardStore.outcomes);
+
+const exposures = computed(() => {
+  return outcomes.value?.exposures?.rows || [];
+});
+
+const outcomeType = computed(() => {
+  return outcomes.value?.outcomeType || "";
+});
 </script>

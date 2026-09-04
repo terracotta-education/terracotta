@@ -12,35 +12,42 @@
 </v-row>
 </template>
 
-<script>
-import DataTable from "./subsection/DataTable"
+<script setup>
+import { computed } from "vue";
 
-export default {
-  name: "Conditions",
-  components: {
-    DataTable
-  },
-  props: {
-    conditionsData: {
-      type: Object,
-      required: false
-    }
-  },
-  computed: {
-    tooltips() {
-      return [
-        {
-          id: "submissionRate",
-          message: "This value is calculated by dividing the total number of component submissions for each condition by the total number of consenting participants assigned to those conditions.",
-        }
-      ]
-    },
-    sectionData() {
-        return this.conditionsData || {};
-    },
-    rows() {
-      return this.sectionData.rows || [];
-    }
+import DataTable from "./subsection/DataTable.vue";
+
+defineOptions({
+  name: "OverviewConditionsSection"
+});
+
+const props = defineProps({
+  conditionsData: {
+    type: Object,
+    required: false
   }
-}
+});
+
+const tooltips = [
+  {
+    id: "submissionRate",
+    message: "This value is calculated by dividing the total number of component submissions for each condition by the total number of consenting participants assigned to those conditions."
+  }
+];
+
+const sectionData = computed(() => {
+  return props.conditionsData || {};
+});
+
+const rows = computed(() => {
+  return sectionData.value.rows || [];
+});
 </script>
+
+<style lang="scss" scoped>
+h3 {
+  font-weight: 700;
+  padding: 0;
+  margin: 0;
+}
+</style>

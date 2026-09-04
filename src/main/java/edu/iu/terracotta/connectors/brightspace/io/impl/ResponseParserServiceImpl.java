@@ -15,7 +15,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @Slf4j
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class ResponseParserServiceImpl implements ResponseParserService {
 
     // JsonMapper is thread-safe once built; reuse one shared instance per serializeNulls variant
