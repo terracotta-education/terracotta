@@ -24,7 +24,7 @@ import java.util.UUID;
 @Controller
 @Scope("session")
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class DeepLinkController {
 
     private final AdvantageDeepLinkService deepLinkService;

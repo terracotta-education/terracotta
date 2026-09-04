@@ -1,4 +1,4 @@
-import moment from "moment";
+import dayjs from "@/plugins/dayjs";
 
 export var validations = {
   hasErrors: false,
@@ -154,13 +154,12 @@ export function validateContainer(container) {
       time: "Schedule time is required."
     };
     validationErrors.hasErrors = true;
-  } else {
-    if (!moment(container.configuration.sendAt).format("MM/DD/YYYY")) {
-      validationErrors.sendAt.date = "Schedule date is required.";
-    }
-    if (!moment(container.configuration.sendAt, "HH:mm").format("h:mm A")) {
-      validationErrors.sendAt.time = "Schedule time is required.";
-    }
+  } else if (!dayjs(container.configuration.sendAt).isValid()) {
+    validationErrors.sendAt = {
+      date: "Schedule date is required.",
+      time: "Schedule time is required."
+    };
+    validationErrors.hasErrors = true;
   }
 
   return validationErrors;

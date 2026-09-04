@@ -117,7 +117,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.CANVAS)
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
 public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
     // JsonMapper is thread-safe once built; reuse one shared instance instead of building a

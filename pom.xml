@@ -10,7 +10,7 @@
     </parent>
     <groupId>edu.iu</groupId>
     <artifactId>terracotta</artifactId>
-    <version>26.08.x</version>
+    <version>26.09.x</version>
     <inceptionYear>2021</inceptionYear>
     <name>Terracotta</name>
     <description>LTI 1.3 tool for educational experimentation</description>
@@ -28,6 +28,10 @@
         <db-scheduler.version>16.12.0</db-scheduler.version>
         <frontend-maven-plugin.version>2.0.2</frontend-maven-plugin.version>
         <guava.version>33.7.1-jre</guava.version>
+        <!-- override spring-boot-starter-parent's managed 2.21.5/3.1.5 - fixes unsafe
+             reflection and untrusted-data deserialization CVEs found via Snyk -->
+        <jackson-2-bom.version>2.21.6</jackson-2-bom.version>
+        <jackson-bom.version>3.1.6</jackson-bom.version>
         <jacoco.version>0.8.15</jacoco.version>
         <java.version>25</java.version>
         <jjwt.version>0.13.0</jjwt.version>
@@ -37,9 +41,13 @@
         <lombok.version>1.18.48</lombok.version>
         <mysql-connector-j.version>26.7.0</mysql-connector-j.version>
         <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
-        <node.version>v16.19.0</node.version>
+        <node.version>v22.22.3</node.version>
+        <npm.version>10.9.0</npm.version>
         <opencsv.version>5.12.0</opencsv.version>
-        <yarn.version>v1.22.19</yarn.version>
+        <!-- override spring-boot-starter-parent's managed 11.0.24 - fixes several critical/high
+             CVEs (auth bypass, security constraint bypass) found via OWASP dependency-check;
+             see https://tomcat.apache.org/security-11.html -->
+        <tomcat.version>11.0.25</tomcat.version>
         <zip4j.version>2.11.6</zip4j.version>
     </properties>
 
@@ -277,6 +285,34 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>frontend-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <version>${frontend-maven-plugin.version}</version>
+                        <configuration>
+                            <workingDirectory>src/main/javascript</workingDirectory>
+                            <installDirectory>${project.build.directory}</installDirectory>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>yarn test</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>npm</goal>
+                                </goals>
+                                <configuration>
+                                    <arguments>exec -- corepack yarn test</arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <build>
@@ -289,35 +325,49 @@
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>${frontend-maven-plugin.version}</version>
+
                 <configuration>
-                    <nodeVersion>${node.version}</nodeVersion>
-                    <yarnVersion>${yarn.version}</yarnVersion>
                     <workingDirectory>src/main/javascript</workingDirectory>
+                    <installDirectory>${project.build.directory}</installDirectory>
                 </configuration>
+
                 <executions>
                     <execution>
-                        <id>install node and yarn</id>
+                        <id>install node and npm</id>
                         <goals>
-                            <goal>install-node-and-yarn</goal>
+                            <goal>install-node-and-npm</goal>
                         </goals>
-                        <phase>generate-resources</phase>
+                        <configuration>
+                            <nodeVersion>${node.version}</nodeVersion>
+                            <npmVersion>${npm.version}</npmVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enable corepack</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>exec -- corepack enable</arguments>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>yarn install</id>
                         <goals>
-                            <goal>yarn</goal>
+                            <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install</arguments>
+                            <arguments>exec -- corepack yarn install</arguments>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>yarn build</id>
+                        <id>vite build</id>
+                        <phase>generate-resources</phase>
                         <goals>
-                            <goal>yarn</goal>
+                            <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>build</arguments>
+                            <arguments>exec -- corepack yarn build</arguments>
                         </configuration>
                     </execution>
                 </executions>

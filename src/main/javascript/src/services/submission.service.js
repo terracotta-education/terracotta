@@ -1,11 +1,14 @@
-import {authHeader, fileAuthHeader, isJson} from "@/helpers";
-import store from "@/store/index.js";
+import {
+  authHeader,
+  fileAuthHeader,
+  isJson
+} from "@/helpers";
 
-// /**
-//  * Register methods
-//  */
+import { api } from "@/store/api.module";
+
 export const submissionService = {
   getAll,
+  getSubmission,
   updateSubmission,
   updateSubmissions,
   getQuestionSubmissions,
@@ -14,54 +17,42 @@ export const submissionService = {
   studentResponse,
   createAnswerSubmissions,
   updateAnswerSubmission,
-  downloadAnswerFileSubmission,
-  getSubmission
+  downloadAnswerFileSubmission
 };
 
-/**
- * Get all Submissions
- */
 async function getAll(
-    experimentId,
-    conditionId,
-    treatmentId,
-    assessmentId
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId
 ) {
-    const requestOptions = {
-        method: "GET",
-        headers: authHeader(),
-    };
-
-    return fetch(
-        `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions`,
-        requestOptions
-    ).then(handleResponse);
+  return request(
+    buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    )
+  );
 }
 
-/**
- * Get a Submission
- */
 async function getSubmission(
-    experimentId,
-    conditionId,
-    treatmentId,
-    assessmentId,
-    submissionId
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId
 ) {
-    const requestOptions = {
-        method: "GET",
-        headers: authHeader(),
-    };
-
-    return fetch(
-        `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}`,
-        requestOptions
-    ).then(handleResponse);
+  return request(
+    `${buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    )}/${submissionId}`
+  );
 }
 
-/**
- * Update Individual Submission
- */
 async function updateSubmission(
   experimentId,
   conditionId,
@@ -72,47 +63,45 @@ async function updateSubmission(
   totalAlteredGrade,
   gradeOverridden
 ) {
-  const requestOptions = {
-    method: "PUT",
-    headers: authHeader(),
-    body: JSON.stringify({
-      alteredCalculatedGrade: alteredCalculatedGrade,
-      totalAlteredGrade: totalAlteredGrade,
-      gradeOverridden: gradeOverridden
-    }),
-  };
-
-  return fetch(
-    `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}`,
-    requestOptions
-  ).then(handleResponse);
+  return request(
+    `${buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    )}/${submissionId}`,
+    {
+      method: "PUT",
+      body: {
+        alteredCalculatedGrade,
+        totalAlteredGrade,
+        gradeOverridden
+      }
+    }
+  );
 }
 
-/**
- * Update Individual Submission
- */
 async function updateSubmissions(
-    experimentId,
-    conditionId,
-    treatmentId,
-    assessmentId,
-    submissions
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissions
 ) {
-const requestOptions = {
-    method: "PUT",
-    headers: authHeader(),
-    body: JSON.stringify(submissions)
-};
-
-return fetch(
-    `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions`,
-    requestOptions
-).then(handleResponse);
+  return request(
+    buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    ),
+    {
+      method: "PUT",
+      body: submissions
+    }
+  );
 }
 
-/**
- * Send Question Submissions
- */
 async function createQuestionSubmissions(
   experimentId,
   conditionId,
@@ -121,358 +110,459 @@ async function createQuestionSubmissions(
   submissionId,
   questions
 ) {
+  const fileSubmissions = [];
+  const nonFileSubmissions = [];
 
-    const fileSubmissions = questions.filter(q => q.answerSubmissionDtoList[0].response instanceof File);
-    const nonFileSubmissions = questions.filter(q => !(q.answerSubmissionDtoList[0].response instanceof File));
+  questions.forEach(question => {
+    const hasFile =
+      question.answerSubmissionDtoList?.some(
+        answer => answer.response instanceof File
+      );
 
-    const requests = [];
-
-    if (fileSubmissions.length > 0) {
-        for (const file of fileSubmissions) {
-            for (const answer of file.answerSubmissionDtoList) {
-                const bodyFormData = new FormData();
-                const file_ex = answer.response;
-                answer.response = null;
-                delete answer.type;
-                const val = JSON.stringify(file)
-                bodyFormData.append('question_dto', val);
-                bodyFormData.append('file', file_ex);
-
-                const requestOptions = {
-                    method: "POST",
-                    headers: fileAuthHeader(),
-                    body: bodyFormData,
-                };
-
-                requests.push(
-                    fetch(
-                        `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/file`,
-                        requestOptions
-                    )
-                )
-            }
-        }
+    if (hasFile) {
+      fileSubmissions.push(question);
+    } else {
+      nonFileSubmissions.push(question);
     }
+  });
 
-    if (nonFileSubmissions.length > 0) {
-        const requestOptions = {
+  const requests = [];
+
+  for (const question of fileSubmissions) {
+    for (const answer of question.answerSubmissionDtoList) {
+      const formData = new FormData();
+      const file = answer.response;
+
+      answer.response = null;
+      delete answer.type;
+
+      formData.append(
+        "question_dto",
+        JSON.stringify(question)
+      );
+
+      formData.append("file", file);
+
+      requests.push(
+        fetch(
+          `${api().aud}${buildSubmissionPath(
+            experimentId,
+            conditionId,
+            treatmentId,
+            assessmentId
+          )}/${submissionId}/question_submissions/file`,
+          {
             method: "POST",
-            headers: authHeader(),
-            body: JSON.stringify(nonFileSubmissions),
-        };
-
-        requests.push(
-            fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions`,
-                requestOptions
-            )
+            headers: fileAuthHeader(),
+            body: formData
+          }
         )
+      );
     }
+  }
 
-    const allRequests = Promise.all(requests);
-
-    try {
-        const responses = await allRequests;
-        const unsuccessful = responses.filter((r) => !r.ok);
-
-        if (unsuccessful.length > 0) {
-            return handleResponse(unsuccessful[0]);
+  if (nonFileSubmissions.length) {
+    requests.push(
+      fetch(
+        `${api().aud}${buildSubmissionPath(
+          experimentId,
+          conditionId,
+          treatmentId,
+          assessmentId
+        )}/${submissionId}/question_submissions`,
+        {
+          method: "POST",
+          headers: authHeader(),
+          body: JSON.stringify(nonFileSubmissions)
         }
+      )
+    );
+  }
 
-        return handleResponse(responses[0]);
-    } catch (error) {
-        console.log("createQuestionSubmissions | catch", error);
-    }
+  return handleParallelRequests(requests);
 }
-    /**
-     * Update Question Submissions
-     */
-    async function updateQuestionSubmissions(
+
+async function updateQuestionSubmissions(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId,
+  updatedResponseBody
+) {
+  const isFileUpload =
+    updatedResponseBody?.response instanceof File;
+
+  if (isFileUpload) {
+    const formData = new FormData();
+
+    const file =
+      updatedResponseBody.answerSubmissionDtoList?.[0]
+        ?.response;
+
+    updatedResponseBody.answerSubmissionDtoList[0].response =
+      null;
+
+    delete updatedResponseBody.answerSubmissionDtoList[0]
+      .type;
+
+    formData.append(
+      "question_dto",
+      JSON.stringify(updatedResponseBody)
+    );
+
+    formData.append("file", file);
+
+    return fetch(
+      `${api().aud}${buildSubmissionPath(
         experimentId,
         conditionId,
         treatmentId,
-        assessmentId,
-        submissionId,
-        updatedResponseBody
-    ) {
+        assessmentId
+      )}/${submissionId}/question_submissions/${updatedResponseBody.questionSubmissionId}/file`,
+      {
+        method: "PUT",
+        headers: fileAuthHeader(),
+        body: formData
+      }
+    ).then(handleResponse);
+  }
 
-        if (updatedResponseBody.response instanceof File) {
-            // file update
-            const bodyFormData = new FormData();
-            const file_ex = updatedResponseBody.answerSubmissionDtoList[0].response;
-            updatedResponseBody.answerSubmissionDtoList[0].response = null;
-            delete updatedResponseBody.answerSubmissionDtoList[0].type;
-            const val = JSON.stringify(updatedResponseBody)
-            bodyFormData.append('question_dto', val);
-            bodyFormData.append('file', file_ex);
+  return request(
+    `${buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    )}/${submissionId}/question_submissions`,
+    {
+      method: "PUT",
+      body: updatedResponseBody
+    }
+  );
+}
 
-            const requestOptions = {
-                method: "PUT",
-                headers: fileAuthHeader(),
-                body: bodyFormData,
-            };
+async function getQuestionSubmissions(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId
+) {
+  return request(
+    `${buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    )}/${submissionId}/question_submissions?answer_submissions=true&question_submission_comments=true`
+  );
+}
 
-            return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/${updatedResponseBody.questionSubmissionId}/file`,
-                requestOptions
-            ).then(handleResponse);
-        } else {
-            // non-file update
-            const requestOptions = {
-                method: "PUT",
-                headers: authHeader(),
-                body: JSON.stringify(updatedResponseBody),
-            };
+async function studentResponse(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId
+) {
+  return request(
+    `${buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    )}/${submissionId}/question_submissions/?answer_submissions=true`
+  );
+}
 
-            return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions`,
-                requestOptions
-            ).then(handleResponse);
+async function createAnswerSubmissions(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId,
+  answerSubmissions
+) {
+  const fileSubmissions = [];
+  const nonFileSubmissions = [];
+
+  answerSubmissions.forEach(answer => {
+    if (answer.type === "FILE") {
+      delete answer.type;
+      fileSubmissions.push(answer);
+    } else {
+      delete answer.type;
+      nonFileSubmissions.push(answer);
+    }
+  });
+
+  const requests = [];
+
+  for (const answer of fileSubmissions) {
+    const formData = new FormData();
+    const file = answer.response;
+
+    answer.response = null;
+
+    formData.append(
+      "answer_dto",
+      JSON.stringify(answer)
+    );
+
+    formData.append("file", file);
+
+    requests.push(
+      fetch(
+        `${api().aud}${buildSubmissionPath(
+          experimentId,
+          conditionId,
+          treatmentId,
+          assessmentId
+        )}/${submissionId}/answer_submissions/file`,
+        {
+          method: "POST",
+          headers: fileAuthHeader(),
+          body: formData
         }
-    }
+      )
+    );
+  }
 
-    async function getQuestionSubmissions(
-        experimentId,
-        conditionId,
-        treatmentId,
-        assessmentId,
-        submissionId
-    ) {
-        const requestOptions = {
-            method: "GET",
-            headers: authHeader(),
-        };
-
-        return fetch(
-            `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions?answer_submissions=true&question_submission_comments=true`,
-            requestOptions
-        ).then(handleResponse);
-    }
-
-    /**
-     * Get Student Response
-     */
-    async function studentResponse(
-        experimentId,
-        conditionId,
-        treatmentId,
-        assessmentId,
-        submissionId
-    ) {
-        const requestOptions = {
-            method: "GET",
-            headers: authHeader(),
-        };
-
-        return fetch(
-            `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/?answer_submissions=true`,
-            requestOptions
-        ).then(handleResponse);
-    }
-
-    /**
-     * POST Answer Submissions
-     */
-    async function createAnswerSubmissions(
-        experimentId,
-        conditionId,
-        treatmentId,
-        assessmentId,
-        submissionId,
-        answerSubmissions
-    ) {
-        const file_submissions = [];
-        const non_file_submission = [];
-
-        for (const x of answerSubmissions) {
-            if (x.type === 'FILE') {
-                delete x.type;
-                file_submissions.push(x);
-            } else {
-                delete x.type;
-                non_file_submission.push(x)
-            }
-
+  if (nonFileSubmissions.length) {
+    requests.push(
+      fetch(
+        `${api().aud}${buildSubmissionPath(
+          experimentId,
+          conditionId,
+          treatmentId,
+          assessmentId
+        )}/${submissionId}/answer_submissions`,
+        {
+          method: "POST",
+          headers: authHeader(),
+          body: JSON.stringify(nonFileSubmissions)
         }
+      )
+    );
+  }
 
-        const requests = [];
+  return handleParallelRequests(requests);
+}
 
-        if (file_submissions.length > 0) {
-            for (const file of file_submissions) {
-                const bodyFormData = new FormData();
-                const file_ex = file.response;
-                file.response = null;
-                delete file.type;
-                const val = JSON.stringify(file)
-                bodyFormData.append('answer_dto', val);
-                bodyFormData.append('file', file_ex);
+async function updateAnswerSubmission(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId,
+  questionSubmissionId,
+  answerSubmissionId,
+  answerSubmission
+) {
+  const isFileUpload =
+    answerSubmission.response instanceof File;
 
-                const requestOptions = {
-                    method: "POST",
-                    headers: fileAuthHeader(),
-                    body: bodyFormData,
-                };
+  if (isFileUpload) {
+    const formData = new FormData();
+    const file = answerSubmission.response;
 
-                requests.push(
-                    fetch(
-                        `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/answer_submissions/file`,
-                        requestOptions
-                    )
-                )
-            }
-        }
+    answerSubmission.response = null;
 
-        if (non_file_submission.length > 0) {
-            const requestOptions = {
-                method: "POST",
-                headers: authHeader(),
-                body: JSON.stringify(answerSubmissions),
-            };
+    delete answerSubmission.type;
 
-            requests.push(
-                fetch(
-                    `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/answer_submissions`,
-                    requestOptions
-                )
-            )
-        }
+    formData.append(
+      "answer_dto",
+      JSON.stringify(answerSubmission)
+    );
 
-        const allRequests = Promise.all(requests);
+    formData.append("file", file);
 
-        try {
-            const responses = await allRequests;
-            const unsuccessful = responses.filter((r) => !r.ok);
-
-            if (unsuccessful.length > 0) {
-                return handleResponse(unsuccessful[0]);
-            }
-
-            return handleResponse(responses[0]);
-        } catch (error) {
-            console.log("createAnswerSubmissions | catch", error);
-        }
-    }
-
-    /**
-     * PUT Answer Submission
-     */
-    async function updateAnswerSubmission(
+    return fetch(
+      `${api().aud}${buildSubmissionPath(
         experimentId,
         conditionId,
         treatmentId,
-        assessmentId,
-        submissionId,
-        question_submissionId,
-        answer_submissionId,
-        answerSubmission
-    ) {
-        if (answerSubmission.response instanceof File) {
-            // file update
-            const bodyFormData = new FormData();
-            const file_ex = answerSubmission.response;
-            answerSubmission.response = null;
-            delete answerSubmission.type;
-            const val = JSON.stringify(answerSubmission)
-            bodyFormData.append('answer_dto', val);
-            bodyFormData.append('file', file_ex);
+        assessmentId
+      )}/${submissionId}/answer_submissions/${answerSubmissionId}/file`,
+      {
+        method: "PUT",
+        headers: fileAuthHeader(),
+        body: formData
+      }
+    ).then(handleResponse);
+  }
 
-            const requestOptions = {
-                method: "PUT",
-                headers: fileAuthHeader(),
-                body: bodyFormData,
-            };
+  return request(
+    `${buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    )}/${submissionId}/question_submissions/${questionSubmissionId}/answer_submissions/${answerSubmissionId}`,
+    {
+      method: "PUT",
+      body: answerSubmission
+    }
+  );
+}
 
-            return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/answer_submissions/${answer_submissionId}/file`,
-                requestOptions
-            ).then(handleResponse);
-        } else {
-            // non-file update
-            const requestOptions = {
-                method: "PUT",
-                headers: authHeader(),
-                body: JSON.stringify(answerSubmission),
-            };
+async function downloadAnswerFileSubmission(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId,
+  questionSubmissionId,
+  answerSubmissionId,
+  mimeType,
+  fileName
+) {
+  const response = await fetch(
+    `${api().aud}${buildSubmissionPath(
+      experimentId,
+      conditionId,
+      treatmentId,
+      assessmentId
+    )}/${submissionId}/question_submissions/${questionSubmissionId}/answer_submissions/${answerSubmissionId}/file`,
+    {
+      method: "GET",
+      headers: authHeader()
+    }
+  );
 
-            return fetch(
-                `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/${question_submissionId}/answer_submissions/${answer_submissionId}`,
-                requestOptions
-            ).then(handleResponse);
-            }
+  const blob = await response.blob();
+
+  const url = window.URL.createObjectURL(
+    new Blob([blob], { type: mimeType })
+  );
+
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.setAttribute("download", fileName);
+
+  document.body.appendChild(link);
+
+  link.click();
+  link.remove();
+
+  setTimeout(() => {
+    window.URL.revokeObjectURL(url);
+  }, 1000);
+
+  return true;
+}
+
+function buildSubmissionPath(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId
+) {
+  return `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions`;
+}
+
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
+
+  const response = await fetch(`${api().aud}${path}`, {
+    method,
+    headers: {
+      ...authHeader(),
+      ...(body
+        ? {
+            "Content-Type":
+              "application/json"
+          }
+        : {})
+    },
+    ...(body
+      ? {
+          body: JSON.stringify(body)
+        }
+      : {})
+  });
+
+  return handleResponse(response);
+}
+
+async function handleParallelRequests(requests = []) {
+  try {
+    const responses = await Promise.all(requests);
+
+    const failed = responses.find(
+      response => !response.ok
+    );
+
+    return handleResponse(
+      failed || responses[0]
+    );
+  } catch (error) {
+    console.error(
+      "handleParallelRequests | catch",
+      error
+    );
+
+    return {
+      error
+    };
+  }
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+
+    const data =
+      text && isJson(text)
+        ? JSON.parse(text)
+        : text;
+
+    if (response.status === 204) {
+      return {
+        data: [],
+        status: response.status
+      };
     }
 
-    /**
-     * GET download student submission file
-     * */
-    async function downloadAnswerFileSubmission(
-        experimentId,
-        conditionId,
-        treatmentId,
-        assessmentId,
-        submissionId,
-        questionSubmissionId,
-        answerSubmissionId,
-        mimeType,
-        fileName
-    ) {
-        const requestOptions = {
-            method: "GET",
-            headers: authHeader()
-        };
+    if (!response?.ok) {
+      if ([401, 402, 500].includes(response.status)) {
+        console.error(
+          "handleResponse | auth/server error",
+          { response }
+        );
+      } else if (response.status === 404) {
+        console.warn(
+          "handleResponse | not found",
+          { response }
+        );
+      }
 
-        console.log("url: " + `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/${questionSubmissionId}/answer_submissions/${answerSubmissionId}/file`);
-        return fetch(
-            `${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/submissions/${submissionId}/question_submissions/${questionSubmissionId}/answer_submissions/${answerSubmissionId}/file`,
-            requestOptions
-        ).then(async (response) => {
-            const blob = await response.blob();
-            const newBlob = new Blob([blob]);
-            const url = window.URL.createObjectURL(newBlob, { type: mimeType });
-            const link = document.createElement('a');
-
-            link.href = url;
-            link.setAttribute('download', fileName);
-            document.body.appendChild(link);
-
-            link.click();
-            link.remove();
-
-            return new Promise(resolve => {
-                setTimeout(() => {
-                  resolve();
-                }, 1000);
-              });
-        });
+      return {
+        status: response.status,
+        error: data || response
+      };
     }
 
-    /**
-     * Handle API response
-     */
-    function handleResponse(response) {
-        return response
-            .text()
-            .then((text) => {
-                const data = text && isJson(text) ? JSON.parse(text) : text;
+    return data
+      ? {
+          data,
+          status: response.status
+        }
+      : response;
+  } catch (error) {
+    console.error(
+      "handleResponse | catch",
+      { error }
+    );
 
-                if (!response || !response.ok) {
-                    if (
-                        response.status === 401 ||
-                        response.status === 402 ||
-                        response.status === 500
-                    ) {
-                        console.log("handleResponse | 401/402/500", {response});
-                    } else if (response.status === 404) {
-                        console.log("handleResponse | 404", {response});
-                    }
-                } else if (response.status === 204) {
-                    return {data: [], status: response.status};
-                }
-
-                const dataResponse = data ? {data, status: response.status} : null;
-
-                return dataResponse || response;
-            })
-            .catch((text) => {
-                console.log("handleResponse | catch", {text});
-            });
-    }
+    return {
+      error,
+      status: response?.status
+    };
+  }
+}

@@ -1,31 +1,42 @@
 <template>
-<div
-  class="editor mb-6 outlined"
->
-  <v-card
-    v-if="show"
-    class="editor-card"
-    flat
-  >
-    <editor-content
-      :editor="editor"
-      class="content"
-    />
-    <tool-bar
-      v-if="showToolbar"
-      :editor="editor"
-      :activeItems="activeItems"
-    />
-  </v-card>
-</div>
+  <div class="editor mb-6 outlined">
+    <v-card
+      v-if="show"
+      class="editor-card"
+      variant="flat"
+    >
+      <EditorContent
+        :editor="editor"
+        class="content"
+      />
+
+      <ToolBar
+        v-if="showToolbar"
+        :editor="editor"
+        :active-items="activeItems"
+      />
+    </v-card>
+  </div>
 </template>
 
-<script>
-import { mapGetters } from "vuex";
-import { Editor, EditorContent } from "@tiptap/vue-2";
+<script setup>
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch
+} from "vue";
+
+import {
+  Editor,
+  EditorContent
+} from "@tiptap/vue-3";
+
 import { findChildren } from "@tiptap/core";
-import { addAttributesToObservedElement, addAttributesToElement } from "@/helpers/ui-utils.js";
-import store from "@/store/index.js";
+
 import Document from "@tiptap/extension-document";
 import Link from "@tiptap/extension-link";
 import Mention from "@tiptap/extension-mention";
@@ -34,497 +45,605 @@ import StarterKit from "@tiptap/starter-kit";
 import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
 import YouTube from "@tiptap/extension-youtube";
-import ToolBar from "./ToolBar";
 
-export default {
-  components: {
-    EditorContent,
-    ToolBar
+import {
+  addAttributesToObservedElement,
+  addAttributesToElement
+} from "@/helpers/ui-utils.js";
+
+import ToolBar from "./ToolBar.vue";
+
+import { conditionaltext as messagingConditionalTextModule } from "@/store/messaging/conditionaltext.module";
+
+defineOptions({
+  name: "TipTapEditor"
+});
+
+const props = defineProps({
+  content: {
+    type: String,
+    default: ""
   },
-  props: {
-    content: {
-      type: String,
-      default: ""
-    },
-    editorType: {
-      type: String,
-      default: "basic"
-    },
-    readOnly: {
-      type: Boolean,
-      default: false
-    },
-    allowMentions: {
-      type: Boolean,
-      default: false
-    },
-    conditionalTextToPlace: {
-      type: Object
-    },
-    pipedTextToPlace: {
-      type: Object
-    }
+  editorType: {
+    type: String,
+    default: "basic"
   },
-  data: () => ({
-    html: null,
-    activeItems: null,
-    editors: {
-      basic: null,
-      html: null
-    }
-  }),
-  watch: {
-    editorType: {
-      handler() {
-        this.destroyEditors();
-        this.createEditors();
-      },
-      immediate: false
-    },
-    content: {
-      handler(newContent) {
-        this.html = newContent;
-        this.destroyEditors();
-        this.createEditors();
+  readOnly: {
+    type: Boolean,
+    default: false
+  },
+  allowMentions: {
+    type: Boolean,
+    default: false
+  },
+  conditionalTextToPlace: {
+    type: Object,
+    default: null
+  },
+  pipedTextToPlace: {
+    type: Object,
+    default: null
+  }
+});
+
+const emit = defineEmits([
+  "edited",
+  "cursor"
+]);
+
+const messagingConditionalTextStore =
+  messagingConditionalTextModule();
+
+const html = ref(null);
+const activeItems = ref(null);
+
+const editors = reactive({
+  basic: null,
+  html: null
+});
+
+const htmlEditor = computed({
+  get() {
+    return editors.html;
+  },
+
+  set(value) {
+    editors.html = value;
+  }
+});
+
+const basicEditor = computed({
+  get() {
+    return editors.basic;
+  },
+
+  set(value) {
+    editors.basic = value;
+  }
+});
+
+const editor = computed(() => {
+  switch (props.editorType) {
+    case "html":
+      return htmlEditor.value;
+
+    case "basic":
+    default:
+      return basicEditor.value;
+  }
+});
+
+const show = computed(() => {
+  return (
+    props.editorType !== null &&
+    htmlEditor.value &&
+    basicEditor.value
+  );
+});
+
+const showToolbar = computed(() => {
+  return (
+    !props.readOnly &&
+    props.editorType === "html" &&
+    htmlEditor.value
+  );
+});
+
+const configure = computed(() => {
+  return {
+    link: {
+      openOnClick: true,
+      defaultProtocol: "https",
+      protocols: [
+        "ftp",
+        "mailto",
+        "git",
+        "cal"
+      ],
+      HTMLAttributes: {
+        target: "_blank"
       }
     },
-    conditionalTextToPlace: {
-      handler(newConditionalTextToPlace) {
-        let editor = null;
+    mention: {
+      suggestions: [],
+      deleteTriggerWithBackspace: true
+    },
+    starterKit: {
+      heading: {
+        levels: [1, 2, 3]
+      },
+      link: false,
+      underline: false
+    },
+    youTube: {
+      modestBranding: true,
+      inline: true,
+      nocookie: true
+    }
+  };
+});
 
-        switch(this.editorType) {
-          case "html":
-            editor = this.htmlEditor;
-            break;
-          case "basic":
-          default:
-            editor = this.basicEditor;
-            break;
-        }
+const mentionConditionalText = computed(() => {
+  return Mention.extend({
+    name: "mentionConditionalText",
 
-        const attrs = {
-          id: `${newConditionalTextToPlace.id}`,
-          label: `conditional text: ${newConditionalTextToPlace.label}`,
-          onclick: `updateMessageConditionalTextEditId('${newConditionalTextToPlace.id}')`,
-        };
+    addAttributes() {
+      return {
+        ...this.parent?.(),
 
-        if (newConditionalTextToPlace.status === "update") {
-          // delete the existing conditional text)s) and replace with the newly-updated one
-          const items = findChildren(editor.state.doc, node => {
-            return newConditionalTextToPlace.id === node.attrs.id;
-          })
-
-          if (items.length) {
-            items.forEach(
-              item => {
-                editor
-                  .chain()
-                  .deleteRange({
-                    from: item.pos,
-                    to: item.pos + item.node.nodeSize
-                  })
-                  .insertContentAt(
-                    item.pos,
-                    {
-                      type: "mentionConditionalText",
-                      attrs: attrs
-                    }
-                  )
-                  .run();
-              }
-            );
+        onclick: {
+          default: null,
+          parseHTML: element => element.getAttribute("onclick"),
+          renderHTML: attributes => ({
+            onclick: attributes.onclick
+          }),
+          renderText: attributes => {
+            return `onclick="${attributes.onclick}"`;
           }
-
-          return;
         }
+      };
+    },
 
-        editor
+    parseHTML() {
+      return [
+        {
+          tag: "conditional-text"
+        }
+      ];
+    },
+
+    renderHTML({ HTMLAttributes, node }) {
+      return [
+        "conditional-text",
+        HTMLAttributes,
+        `{{ ${node.attrs.label} }}`
+      ];
+    },
+
+    renderText({ node }) {
+      return `<conditional-text data-type="mentionConditionalText" onclick="${node.attrs.onclick}" data-id="${node.attrs.id}" data-label="${node.attrs.label}">{{ ${node.attrs.label} }}</conditional-text>`;
+    }
+  }).configure(configure.value.mention);
+});
+
+const mentionPipedText = computed(() => {
+  return Mention.extend({
+    name: "mentionPipedText",
+
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+
+        class: {
+          default: null,
+          parseHTML: element => element.getAttribute("class"),
+          renderHTML: attributes => ({
+            class: attributes.class
+          }),
+          renderText: attributes => {
+            return `class="${attributes.class}"`;
+          }
+        }
+      };
+    },
+
+    parseHTML() {
+      return [
+        {
+          tag: "piped-text"
+        }
+      ];
+    },
+
+    renderHTML({ HTMLAttributes, node }) {
+      return [
+        "piped-text",
+        HTMLAttributes,
+        `{{ ${node.attrs.label} }}`
+      ];
+    },
+
+    renderText({ node }) {
+      return `<piped-text data-type="mentionPipedText" data-id="${node.attrs.id}" data-label="${node.attrs.label}">{{ ${node.attrs.label} }}</piped-text>`;
+    }
+  }).configure(configure.value.mention);
+});
+
+const extensions = computed(() => {
+  return {
+    basic: [
+      Document,
+      mentionConditionalText.value,
+      mentionPipedText.value,
+      Paragraph,
+      Text
+    ],
+    html: [
+      StarterKit.configure(configure.value.starterKit),
+      Link.configure(configure.value.link),
+      mentionConditionalText.value,
+      mentionPipedText.value,
+      Underline,
+      YouTube.configure(configure.value.youTube)
+    ]
+  };
+});
+
+const onUpdate = computed(() => {
+  return {
+    basic: ({ editor: currentEditor }) => {
+      html.value = currentEditor.getText()
+        ? currentEditor.getText({
+            blockSeparator: "\n\n"
+          })
+        : "";
+
+      emit("edited", html.value);
+    },
+
+    html: ({ editor: currentEditor }) => {
+      html.value = currentEditor.getText()
+        ? currentEditor.getHTML()
+        : "";
+
+      emit("edited", html.value);
+    }
+  };
+});
+
+const onSelectionUpdate = ({ editor: currentEditor }) => {
+  const { view } = currentEditor;
+  const { selection } = view.state;
+
+  activeItems.value = {};
+
+  if (selection.$head.nodeBefore?.marks.length) {
+    activeItems.value.marks =
+      selection.$head.nodeBefore.marks.map(
+        mark => mark.type.name
+      );
+  }
+
+  if (selection.$head.node(1)) {
+    activeItems.value.nodes = [
+      {
+        name: selection.$head.node(1).type.name,
+        attributes: selection.$head.node(1).attrs
+      }
+    ];
+  }
+};
+
+const editorConfiguration = type => {
+  let configuration;
+
+  switch (type) {
+    case "html":
+      configuration = {
+        content: html.value,
+        extensions: extensions.value.html,
+        onUpdate: onUpdate.value.html
+      };
+      break;
+
+    case "basic":
+    default:
+      configuration = {
+        content:
+          htmlEditor.value?.getText({
+            blockSeparator: "\n\n"
+          }) || "",
+        extensions: extensions.value.basic,
+        onUpdate: onUpdate.value.basic
+      };
+      break;
+  }
+
+  return {
+    content: configuration.content,
+    editable: !props.readOnly,
+    extensions: configuration.extensions,
+    onUpdate: configuration.onUpdate,
+    onSelectionUpdate,
+    parseOptions: {
+      preserveWhitespace: "full"
+    },
+    onContentError() {
+      console.log(
+        "Error while parsing editor content. Please check your input."
+      );
+    },
+    onTransaction: ({ editor: currentEditor }) => {
+      emit(
+        "cursor",
+        currentEditor.view.state.selection.anchor
+      );
+    }
+  };
+};
+
+const createHtmlEditor = () => {
+  htmlEditor.value =
+    new Editor(editorConfiguration("html"));
+};
+
+const createBasicEditor = () => {
+  basicEditor.value =
+    new Editor(editorConfiguration("basic"));
+};
+
+const destroyEditors = () => {
+  if (htmlEditor.value) {
+    htmlEditor.value.destroy();
+    htmlEditor.value = null;
+  }
+
+  if (basicEditor.value) {
+    basicEditor.value.destroy();
+    basicEditor.value = null;
+  }
+};
+
+const createEditors = () => {
+  createHtmlEditor();
+  createBasicEditor();
+
+  switch (props.editorType) {
+    case "html":
+      html.value = htmlEditor.value.getText()
+        ? htmlEditor.value.getHTML()
+        : "";
+      break;
+
+    case "basic":
+    default:
+      html.value = basicEditor.value.getText()
+        ? basicEditor.value.getText({
+            blockSeparator: "\n\n"
+          })
+        : "";
+      break;
+  }
+
+  emit("edited", html.value);
+  emit("cursor", null);
+};
+
+const getActiveEditor = () => {
+  switch (props.editorType) {
+    case "html":
+      return htmlEditor.value;
+
+    case "basic":
+    default:
+      return basicEditor.value;
+  }
+};
+
+const insertConditionalText = conditionalText => {
+  const activeEditor = getActiveEditor();
+
+  if (!activeEditor || !conditionalText) {
+    return;
+  }
+
+  const attrs = {
+    id: `${conditionalText.id}`,
+    label: `conditional text: ${conditionalText.label}`,
+    onclick: `window.updateMessageConditionalTextEditId('${conditionalText.id}')`
+  };
+
+  if (conditionalText.status === "update") {
+    const items = findChildren(
+      activeEditor.state.doc,
+      node => conditionalText.id === node.attrs.id
+    );
+
+    if (items.length) {
+      items.forEach(item => {
+        activeEditor
           .chain()
-          .focus(newConditionalTextToPlace.cursorPosition !== null ? newConditionalTextToPlace.cursorPosition : "end")
-          .insertContent(
+          .deleteRange({
+            from: item.pos,
+            to: item.pos + item.node.nodeSize
+          })
+          .insertContentAt(
+            item.pos,
             {
               type: "mentionConditionalText",
-              attrs: attrs
+              attrs
             }
           )
           .run();
-      },
-      immediate: false
-    },
-    pipedTextToPlace: {
-      handler(newPipedTextToPlace) {
-        let editor = null;
-
-        switch(this.editorType) {
-          case "html":
-            editor = this.htmlEditor;
-            break;
-          case "basic":
-          default:
-            editor = this.basicEditor;
-            break;
-        }
-
-        const attrs = {
-          id: `${newPipedTextToPlace.id}`,
-          label: `piped text: ${newPipedTextToPlace.key}`
-        };
-
-        editor
-          .chain()
-          .focus(newPipedTextToPlace.cursorPosition !== null ? newPipedTextToPlace.cursorPosition : "end")
-          .insertContent(
-            {
-              type: "mentionPipedText",
-              attrs: attrs
-            }
-          )
-          .run();
-      },
-      immediate: false
+      });
     }
-  },
-  computed: {
-    ...mapGetters({
-      messageConditionalTextEditId: "messagingConditionalText/messageConditionalTextEditId"
-    }),
-    editor() {
-      switch (this.editorType) {
-        case "html":
-          return this.htmlEditor;
-        case "basic":
-        default:
-          return this.basicEditor;
-      }
-    },
-    htmlEditor: {
-      get() {
-        return this.editors.html;
-      },
-      set(editor) {
-        this.editors.html = editor;
-      }
-    },
-    basicEditor: {
-      get() {
-        return this.editors.basic;
-      },
-      set(editor) {
-        this.editors.basic = editor;
-      }
-    },
-    show() {
-      return this.editorType !== null && this.htmlEditor && this.basicEditor;
-    },
-    showToolbar() {
-      return !this.readOnly && this.editorType === "html" && this.htmlEditor;
-    },
-    mentionConditionalText() {
-      return Mention.extend(this.extendeds.conditionalText).configure(this.configure.mention);
-    },
-    mentionPipedText() {
-      return Mention.extend(this.extendeds.pipedText).configure(this.configure.mention);
-    },
-    extendeds() {
-      return {
-        conditionalText: {
-          name: "mentionConditionalText",
-          addAttributes() {
-            return {
-              ...this.parent?.(),
-              onclick: {
-                default: null,
-                parseHTML: (element) => element.getAttribute("onclick"),
-                renderHTML: (attributes) => {
-                  return {
-                    onclick: attributes.onclick
-                  }
-                },
-                renderText: (attributes) => {
-                  return `onclick="${attributes.onclick}"`;
-                }
-              }
-            }
-          },
-          parseHTML() {
-            return [
-              {
-                tag: "conditional-text"
-              }
-            ];
-          },
-          renderHTML({ HTMLAttributes, node }) {
-            return [
-              "conditional-text",
-              HTMLAttributes,
-              `{{ ${node.attrs.label} }}`
-            ];
-          },
-          renderText({ node }) {
-            return `<conditional-text data-type='mentionConditionalText' onclick="${node.attrs.onclick}" data-id='${node.attrs.id}' data-label='${node.attrs.label}'>{{ ${node.attrs.label} }}</conditional-text>`;
-          }
-        },
-        pipedText: {
-          name: "mentionPipedText",
-          addAttributes() {
-            return {
-              ...this.parent?.(),
-              class: {
-                default: null,
-                parseHTML: (element) => element.getAttribute("class"),
-                renderHTML: (attributes) => {
-                  return {
-                    class: attributes.class
-                  }
-                },
-                renderText: (attributes) => {
-                  return `class="${attributes.class}"`;
-                }
-              }
-            }
-          },
-          parseHTML() {
-            return [
-              {
-                tag: "piped-text"
-              }
-            ];
-          },
-          renderHTML({ HTMLAttributes, node }) {
-            return [
-              "piped-text",
-              HTMLAttributes,
-              `{{ ${node.attrs.label} }}`
-            ];
-          },
-          renderText({ node }) {
-            return `<piped-text data-type='mentionPipedText' data-id='${node.attrs.id}' data-label='${node.attrs.label}'>{{ ${node.attrs.label} }}</piped-text>`;
-          }
-        }
-      };
-    },
-    configure() {
-      return {
-        link: {
-          openOnClick: true,
-          defaultProtocol: "https",
-          protocols: [
-            "ftp",
-            "mailto",
-            "git",
-            "cal"
-          ],
-          HTMLAttributes: {
-            target: "_blank"
-          },
-        },
-        mention: {
-          suggestions: [],
-          deleteTriggerWithBackspace: true
-        },
-        starterKit : {
-          heading: {
-            levels: [1, 2, 3]
-          }
-        },
-        youTube: {
-          modestBranding: true,
-          inline: true,
-          nocookie: true
-        }
-      };
-    },
-    extensions() {
-      return {
-        basic: [
-          Document,
-          this.mentionConditionalText,
-          this.mentionPipedText,
-          Paragraph,
-          Text
-        ],
-        html: [
-          StarterKit.configure(this.configure.starterKit),
-          Link.configure(this.configure.link),
-          this.mentionConditionalText,
-          this.mentionPipedText,
-          Underline,
-          YouTube.configure(this.configure.youTube)
-        ]
-      };
-    },
-    onUpdate() {
-      return {
-        basic: ({ editor }) => {
-          this.html = editor.getText() ? editor.getText({ blockSeparator: "\n\n" }) : "";
-          this.$emit("edited", this.html);
-        },
-        html: ({ editor }) => {
-          this.html = editor.getText() ? editor.getHTML() : "";
-          this.$emit("edited", this.html);
-        }
-      };
-    },
-    onSelectionUpdate() {
-      return ({ editor }) => {
-        const { view } = editor;
-        const { selection } = view.state;
-        this.activeItems = {};
 
-        if (selection.$head.nodeBefore?.marks.length) {
-          this.activeItems.marks = selection.$head.nodeBefore.marks.map(m => m.type.name);
-        }
-
-        if (selection.$head.node(1)) {
-          this.activeItems.nodes = [
-            {
-              name: selection.$head.node(1).type.name,
-              attributes: selection.$head.node(1).attrs
-            }
-          ];
-        }
-      };
-    }
-  },
-  methods: {
-    editorConfiguration(type) {
-      let configurations = {};
-      switch (type) {
-        case "html":
-          configurations = {
-            content: this.html,
-            extensions: this.extensions.html,
-            onUpdate: this.onUpdate.html
-          }
-          break;
-        case "basic":
-        default:
-          configurations = {
-            content: this.htmlEditor.getText({ blockSeparator: "\n\n" }),
-            extensions: this.extensions.basic,
-            onUpdate: this.onUpdate.basic
-          }
-          break;
-      }
-
-      return {
-        content: configurations.content,
-        editable: !this.readOnly,
-        extensions: configurations.extensions,
-        onUpdate: configurations.onUpdate,
-        onSelectionUpdate: this.onSelectionUpdate,
-        parseOptions: {
-          preserveWhitespace: "full",
-        },
-        onContentError() {
-          console.log("Error while parsing editor content. Please check your input.");
-        },
-        onTransaction: ({ editor }) => {
-          this.$emit("cursor", editor.view.state.selection.anchor);
-        }
-      };
-    },
-    createBasicEditor() {
-      this.basicEditor = new Editor(this.editorConfiguration("basic"));
-    },
-    createHtmlEditor() {
-      this.htmlEditor = new Editor(this.editorConfiguration("html"));
-    },
-    createEditors() {
-      // creation order is important! 1. html 2. basic
-      this.createHtmlEditor();
-      this.createBasicEditor();
-
-      switch (this.editorType) {
-        case "html":
-          this.html = this.htmlEditor.getText() ? this.htmlEditor.getHTML() : "";
-          break;
-        case "basic":
-        default:
-          this.html = this.basicEditor.getText() ? this.basicEditor.getText({ blockSeparator: "\n\n" }) : "";
-          break;
-      }
-
-      this.$emit("edited", this.html);
-      this.$emit("cursor", null);
-    },
-    destroyEditors() {
-      if (this.htmlEditor) {
-        this.htmlEditor.destroy();
-        this.htmlEditor = null;
-      }
-
-      if (this.basicEditor) {
-        this.basicEditor.destroy();
-        this.basicEditor = null;
-      }
-    }
-  },
-  mounted() {
-    this.html = this.content;
-    this.createEditors();
-    addAttributesToObservedElement(".editor", "ProseMirror", ".tiptap.ProseMirror", [{ name: "aria-label", value: "message editor content" }]);
-    addAttributesToElement(".tiptap.ProseMirror", [{ name: "aria-label", value: "message editor content" }]);
-  },
-  beforeDestroy() {
-    this.destroyEditors();
+    return;
   }
-}
 
-// global function for onclick event to edit conditional text
-// eslint-disable-next-line
-window.updateMessageConditionalTextEditId = function(id) {
-  store.commit("messagingConditionalText/setMessageConditionalTextEditId", id);
-}
+  activeEditor
+    .chain()
+    .focus(
+      conditionalText.cursorPosition !== null
+        ? conditionalText.cursorPosition
+        : "end"
+    )
+    .insertContent({
+      type: "mentionConditionalText",
+      attrs
+    })
+    .run();
+};
+
+const insertPipedText = pipedText => {
+  const activeEditor = getActiveEditor();
+
+  if (!activeEditor || !pipedText) {
+    return;
+  }
+
+  const attrs = {
+    id: `${pipedText.id}`,
+    label: `piped text: ${pipedText.key}`
+  };
+
+  activeEditor
+    .chain()
+    .focus(
+      pipedText.cursorPosition !== null
+        ? pipedText.cursorPosition
+        : "end"
+    )
+    .insertContent({
+      type: "mentionPipedText",
+      attrs
+    })
+    .run();
+};
+
+watch(
+  () => props.editorType,
+  () => {
+    destroyEditors();
+    createEditors();
+  }
+);
+
+watch(
+  () => props.content,
+  newContent => {
+    html.value = newContent;
+    destroyEditors();
+    createEditors();
+  }
+);
+
+watch(
+  () => props.conditionalTextToPlace,
+  insertConditionalText
+);
+
+watch(
+  () => props.pipedTextToPlace,
+  insertPipedText
+);
+
+onMounted(async () => {
+  html.value = props.content;
+
+  createEditors();
+
+  await nextTick();
+
+  addAttributesToObservedElement(
+    ".editor",
+    "ProseMirror",
+    ".tiptap.ProseMirror",
+    [
+      {
+        name: "aria-label",
+        value: "message editor content"
+      }
+    ]
+  );
+
+  addAttributesToElement(
+    ".tiptap.ProseMirror",
+    [
+      {
+        name: "aria-label",
+        value: "message editor content"
+      }
+    ]
+  );
+
+  window.updateMessageConditionalTextEditId = id => {
+    messagingConditionalTextStore.setMessageConditionalTextEditId(id);
+  };
+});
+
+onBeforeUnmount(() => {
+  destroyEditors();
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~@/styles/variables";
-
-.editor::v-deep {
+/*.editor:deep(*) {
   min-width: 100%;
+}*/
+
+.editor {
   box-shadow: none;
   border-radius: 4px;
-  border: 1px solid map-get($grey, "darker");
+  border: 1px solid map.get($grey, "darker");
   background-color: white;
   overflow: hidden;
-  .ProseMirror {
+
+  :deep(.ProseMirror) {
     margin: 20px 5px !important;
+
     .is-editor-empty::before {
-      color: map-get($grey, "darken-1");
+      color: map.get($grey, "darker");
       font-style: normal;
     }
+
     &.ProseMirror-focused:focus-visible {
       outline: none;
     }
   }
-  .content {
+
+  :deep(.content) {
     > div {
       transition: all 2s;
       overflow: auto !important;
       padding: 5px;
     }
+
     & blockquote {
-      border-left: .25em solid #dfe2e5;
+      border-left: 0.25em solid #dfe2e5;
       color: #6a737d;
       padding-left: 1em;
       margin: 20px 0 !important;
     }
+
     & h1 {
       font-size: 2em !important;
     }
+
     & conditional-text,
     & piped-text {
       border-radius: 0.4rem;
-      color: map-get($blue, "primary");
+      color: map.get($blue, "primary");
       padding: 0;
+
       &:hover {
         cursor: pointer;
-        background-color: map-get($blue, "primary");
+        background-color: map.get($blue, "primary");
         color: white;
       }
+
       &.invalid-piped-text {
-        color: map-get($red, "base");
+        color: map.get($red, "base");
       }
     }
   }

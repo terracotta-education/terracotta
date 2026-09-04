@@ -26,6 +26,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.entity.Participant;
 
+@SuppressWarnings("unchecked")
 public class ParticipantRosterWriteServiceImplTest extends BaseTest {
 
     private static final String NEW_USER_KEY = "new_user_key";

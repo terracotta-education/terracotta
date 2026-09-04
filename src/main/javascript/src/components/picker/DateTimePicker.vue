@@ -1,125 +1,196 @@
 <template>
-<div
-  :id="id"
-  :class="classes"
-  @click="open"
-  @focus="open"
-  @blur="close"
-  class="datetime-input d-flex align-items-center justify-content-between"
->
-  <flat-pickr
-    v-model="date"
-    @on-change="handleDateChange"
-    :config="config"
-    :aria-label="ariaLabel"
-    :class="classes"
-    :name="name"
-    ref="flatpickr"
+  <div
+    :id="id"
+    :class="[
+      classes,
+      'datetime-input d-flex align-center justify-space-between'
+    ]"
+    role="button"
     tabindex="0"
-  ></flat-pickr>
-  <v-icon>mdi-calendar-clock</v-icon>
-</div>
+    @click="open"
+    @focus="open"
+    @blur="close"
+  >
+    <FlatPickr
+      ref="flatpickr"
+      v-model="date"
+      :config="config"
+      :aria-label="ariaLabel"
+      :class="classes"
+      :name="name"
+      :disabled="disabled"
+      tabindex="0"
+      @on-change="handleDateChange"
+    />
+
+    <v-icon @mousedown.prevent>
+      mdi-calendar-clock
+    </v-icon>
+  </div>
 </template>
 
-<script>
-import { addAttributesToElement } from "@/helpers/ui-utils.js";
-import flatPickr from "vue-flatpickr-component";
+<script setup>
+import {
+  computed,
+  nextTick,
+  onMounted,
+  ref,
+  watch
+} from "vue";
+
+import FlatPickr from "vue-flatpickr-component";
 import "flatpickr/dist/flatpickr.min.css";
 
-export default {
-  components: {
-    flatPickr,
+defineOptions({
+  name: "DateTimePicker"
+});
+
+const props = defineProps({
+  id: {
+    type: String,
+    default: null
   },
-  props: {
-    id: {
-      type: String
-    },
-    name: {
-      type: String
-    },
-    classes: {
-      type: String
-    },
-    ariaLabel: {
-      type: String,
-      default: "Date and Time Picker",
-    },
-    value: {
-      type: String,
-      default: null
-    },
-    min: {
-      type: String
-    },
-    max: {
-      type: String
-    },
-    enableDate: {
-      type: Boolean,
-      default: true
-    },
-    enableTime: {
-      type: Boolean,
-      default: true
-    }
+  name: {
+    type: String,
+    default: null
   },
-  data: () => ({
-    date: null
-  }),
-  watch: {
-    date: {
-      handler(newDate) {
-        this.$emit("input", newDate);
-      }
-    }
+  classes: {
+    type: String,
+    default: null
   },
-  computed: {
-    config() {
-      return {
-        enableTime: true,
-        dateFormat: "Z",
-        minDate: this.min,
-        maxDate: this.max,
-        altInput: true,
-        altFormat: "m/d/Y h:iK",
-        ariaDateFormat: "M j, Y h:i K"
-      }
-    }
+  ariaLabel: {
+    type: String,
+    default: "Date and Time Picker"
   },
-  methods: {
-    open() {
-      this.$refs.flatpickr.fp.open();
-    },
-    close() {
-      this.$refs.flatpickr.fp.close();
-    },
-    handleDateChange(_, dateStr) {
-      this.date = dateStr;
-    }
+  modelValue: {
+    type: String,
+    default: null
   },
-  mounted() {
-    this.date = this.value;
-    this.$nextTick(() => {
-      this.$refs.flatpickr.fp.setDate(this.date, true);
-      addAttributesToElement(
-        ".form-control.input",
-        [{
-          name: "aria-label",
-          value: this.ariaLabel
-        }]
-      )
-    });
+  min: {
+    type: String,
+    default: null
+  },
+  max: {
+    type: String,
+    default: null
+  },
+  enableDate: {
+    type: Boolean,
+    default: true
+  },
+  enableTime: {
+    type: Boolean,
+    default: true
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
-}
+});
+
+const emit = defineEmits([
+  "update:modelValue"
+]);
+
+const flatpickr = ref(null);
+const date = ref(props.modelValue);
+
+const config = computed(() => {
+  return {
+    enableTime: props.enableTime,
+    noCalendar: !props.enableDate,
+    dateFormat: "Z",
+    minDate: props.min,
+    maxDate: props.max,
+    altInput: true,
+    altFormat: props.enableTime
+      ? "m/d/Y h:iK"
+      : "m/d/Y",
+    ariaDateFormat: props.enableTime
+      ? "M j, Y h:i K"
+      : "M j, Y"
+  };
+});
+
+watch(
+  () => props.modelValue,
+  value => {
+    date.value = value;
+
+    if (flatpickr.value?.fp) {
+      flatpickr.value.fp.setDate(value, false);
+    }
+  }
+);
+
+watch(date, value => {
+  emit("update:modelValue", value);
+});
+
+const setScopedAriaLabel = () => {
+  const input =
+    flatpickr.value?.fp?.altInput ||
+    flatpickr.value?.fp?.input;
+
+  if (!input) {
+    return;
+  }
+
+  input.setAttribute(
+    "aria-label",
+    props.ariaLabel
+  );
+};
+
+const open = () => {
+  if (props.disabled) {
+    return;
+  }
+
+  flatpickr.value?.fp?.open();
+};
+
+const close = () => {
+  flatpickr.value?.fp?.close();
+};
+
+const handleDateChange = (_selectedDates, dateString) => {
+  date.value = dateString;
+};
+
+onMounted(async () => {
+  await nextTick();
+
+  flatpickr.value?.fp?.setDate(date.value, true);
+  setScopedAriaLabel();
+});
 </script>
 
 <style scoped>
 .datetime-input {
-  color: rgba(0, 0, 0, .87);
+  color: rgba(0, 0, 0, 0.87);
   border: 1px solid #a0a0a0;
   border-radius: 4px;
   max-width: fit-content;
   padding: 8px;
   margin: 0 8px;
+}
+
+/* the input's own outline is force-removed below (its native box doesn't align with this
+   wrapper's padded border), so restore a visible focus indicator here instead - covers both
+   this wrapper (role="button", tabindex) and the FlatPickr input it contains getting focus */
+.datetime-input:focus-visible,
+.datetime-input:focus-within {
+  outline: 2px solid var(--blue-primary);
+  outline-offset: 2px;
+}
+</style>
+
+<style>
+.datetime-input input {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: transparent !important;
 }
 </style>

@@ -84,7 +84,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.CANVAS)
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference", "PMD.UnusedPrivateMethod", "PMD.LooseCoupling"})
+@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference", "PMD.UnusedPrivateMethod"})
 public class CanvasApiClientImpl implements ApiClient {
 
     private final CanvasLmsOAuthServiceImpl canvasLmsOAuthService;

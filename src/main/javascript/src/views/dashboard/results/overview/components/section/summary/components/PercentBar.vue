@@ -1,63 +1,60 @@
 <template>
 <div
-  class="container-progress-bar w-100"
+  class="container-progress-bar w-100 mx-auto"
   :style="dynamicStyles"
 >
-  <ProgressBar
-    :val="progressValue"
-    :text="`${progressValue}%`"
-    size="medium"
-    text-align="right"
-    text-position="top"
-    bar-color="#fbc62f"
-    bar-border-radius="5"
+  <div class="progress-text">{{ progressValue }}%</div>
+  <v-progress-linear
+    :model-value="progressValue"
+    color="#fbc62f"
+    bg-color="rgba(0,0,0,0.12)"
+    rounded
+    height="6"
   />
 </div>
 </template>
 
-<script>
-import ProgressBar from 'vue-simple-progress'
+<script setup>
+import { computed } from "vue";
 
-export default {
-  name: "PercentBar",
-  props: {
-    value: {
-      type: Number,
-      required: false,
-      default: 0
-    }
-  },
-  components: {
-    ProgressBar
-  },
-  computed: {
-    progressValue() {
-      if (this.value === null || this.value < 0) {
-        return 0;
-      }
+defineOptions({
+  name: "PercentBar"
+});
 
-      if (this.value > 100) {
-        return 100;
-      }
-
-      return this.value;
-    },
-    dynamicStyles() {
-      return {
-        "--percent-label-width": (this.progressValue + 6) + '%'
-      };
-    }
+const props = defineProps({
+  value: {
+    type: Number,
+    required: false,
+    default: 0
   }
-}
+});
+
+const progressValue = computed(() => {
+  if (props.value === null || Number.isNaN(props.value) || props.value < 0) {
+    return 0;
+  }
+
+  if (props.value > 100) {
+    return 100;
+  }
+
+  return props.value;
+});
+
+const dynamicStyles = computed(() => {
+  return {
+    "--percent-label-width": `${progressValue.value + 6}%`
+  };
+});
 </script>
 
 <style scoped>
 div.container-progress-bar {
-  & .vue-simple-progress-text {
+  & .progress-text {
     width: var(--percent-label-width);
-  }
-  & .vue-simple-progress {
-    width: 100%;
+    text-align: right;
+    font-size: 0.85em;
+    line-height: 1.4;
   }
 }
 </style>

@@ -40,6 +40,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 
+@SuppressWarnings("unchecked")
 public class BrightspaceAdvantageMembershipServiceImplTest extends BaseTest {
 
     @InjectMocks private BrightspaceAdvantageMembershipServiceImpl brightspaceAdvantageMembershipService;

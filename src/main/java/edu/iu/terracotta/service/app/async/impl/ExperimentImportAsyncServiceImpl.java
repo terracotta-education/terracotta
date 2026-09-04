@@ -77,7 +77,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncService {
 
     private final AnswerMcRepository answerMcRepository;
@@ -243,7 +243,8 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
 
         // ensure experiment title does not exist already
         while (experimentRepository.existsByTitle(title)) {
-            title = String.format("%s %s (%s)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle(), index++);
+            title = String.format("%s %s (%s)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle(), index);
+            index++;
         }
 
         Experiment experiment = experimentRepository.save(

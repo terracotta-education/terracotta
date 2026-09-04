@@ -1,38 +1,37 @@
-import { groupsService } from '@/services'
+import { defineStore } from "pinia";
 
-const state = {
-  groups: null,
-}
+import { groupsService } from "@/services";
 
-const actions = {
-  async createAndAssignGroups ({state}, experimentId) {
-    return await groupsService
-      .createAndAssignGroups(experimentId)
-      .catch((response) => {
-        console.log('createAndAssignGroups | catch', { response, state })
-      });
+export const groups = defineStore("groups", {
+  state: () => ({
+    groups: []
+  }),
+
+  getters: {
+    hasGroups: state => state.groups.length > 0
   },
-  resetGroups({state}) {
-    state.groups = [];
-  },
-}
 
-const mutations = {
-  setGroupsService(state, data) {
-    state.groups = data;
-  },
-};
+  actions: {
+    async createAndAssignGroups(experimentId) {
+      try {
+        const response =
+          await groupsService.createAndAssignGroups(experimentId);
 
-const getters = {
-  groups(state) {
-    return state.groups;
-  },
-}
+        this.groups = Array.isArray(response) ? response : [];
 
-export const groups = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters,
-}
+        return response;
+      } catch (error) {
+        console.error(
+          "groups/createAndAssignGroups | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    resetGroups() {
+      this.groups = [];
+    }
+  }
+});

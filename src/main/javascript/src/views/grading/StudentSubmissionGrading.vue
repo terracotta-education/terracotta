@@ -22,7 +22,7 @@
     >
       <v-card
         class="card-header"
-        outlined
+        variant="outlined"
       >
         <v-card-text
           class="p-2"
@@ -52,13 +52,14 @@
     >
       <v-card
         class="card-header"
-        outlined
+        variant="outlined"
       >
         <v-card-text
           class="p-2"
         >
           <v-row
-            class="pb-0"
+            class="d-flex align-center pb-0"
+            density="compact"
           >
             <v-col
               class="col-score-title"
@@ -96,7 +97,7 @@
               <span
                 class="total-points"
               >
-                {{ currentAttemptCalculatedGrade }}/{{ assessment.maxPoints }}
+                {{ currentAttemptCalculatedGrade }}/{{ assessment?.maxPoints }}
               </span>
             </v-col>
             <v-col
@@ -105,25 +106,25 @@
               <v-row
                 v-if="selectedSubmission"
                 class="student-grade"
+                density="compact"
               >
                 <v-text-field
-                  @input="
-                    (value) => {
-                      selectedSubmission.totalAlteredGrade = parseFloat(value);
-                      currentAttempt.overrideGrade.touched = true;
-                    }
-                  "
                   v-model="selectedSubmission.totalAlteredGrade"
-                  style="max-width: 70px;max-height: 50px;"
+                  @update:model-value="(value) => {
+                    selectedSubmission.totalAlteredGrade = parseFloat(value);
+                    currentAttempt.overrideGrade.touched = true;
+                  }"
+                  style="max-width: 100px;max-height: 50px;"
                   class="input-override-grade"
                   type="number"
                   name="maxPoints"
-                  outlined
+                  variant="outlined"
+                  aria-label="Override grade"
                 ></v-text-field>
                 <span
                   class="total-points ml-2"
                 >
-                  /{{ assessment.maxPoints }}
+                  / {{ assessment?.maxPoints }}
                 </span>
               </v-row>
             </v-col>
@@ -134,10 +135,10 @@
           >
             <v-col>
               <span
-                class="red--text"
+                class="text-red"
               >
                 <v-icon
-                  class="red--text"
+                  class="text-red"
                 >
                   mdi-alert-circle-outline
                 </v-icon>
@@ -153,7 +154,7 @@
   <v-card
     v-if="showUngradedText"
     class="ungraded-essay-questions-notice"
-    outlined
+    variant="outlined"
   >
     <v-card-text>
       <v-row>
@@ -176,31 +177,27 @@
   </v-card>
 
   <template
-    v-if="this.selectedSubmissionId"
+    v-if="selectedSubmissionId"
   >
-    <template>
-      <div
-        v-for="questionPage in questionPages"
-        :key="questionPage.key"
-      >
+    <div
+      v-for="questionPage in questionPages"
+      :key="questionPage.key"
+    >
         <!-- Individual Question -->
         <v-card
           v-for="(question, index) in questionPage.questions"
           :key="question.questionId"
           :class="studentResponseCardClasses[question.questionId]"
-          class="mt-5 mb-2"
-          outlined
+          class="mt-5 mb-2 question-card"
+          variant="outlined"
         >
           <v-chip
             v-if="!isGradeOverridden && (ungradedEssayQuestions.includes(question) || ungradedFileUploadQuestions.includes(question))"
             class="ungraded-essay-question-chip"
             color="rgba(255, 224, 178, 1)"
+            prepend-icon="mdi-text-box-check-outline"
+            variant="flat"
           >
-            <v-icon
-              class="ungraded-essay-question-chip__icon"
-            >
-              mdi-text-box-check-outline
-            </v-icon>
             Manual grade needed
           </v-chip>
           <v-card-title
@@ -227,22 +224,20 @@
                 <v-col>
                   <v-row
                     class="student-grade individual-score"
+                    density="compact"
                   >
                     <v-text-field
                       v-model="currentAttempt.questionScoreMap[question.questionId]"
                       :disabled="question.points === 0"
                       :aria-label="`points input field for question ${question.html}`"
-                      @input="
-                        (value) => {
-                          currentAttempt.questionScoreMap[question.questionId] = value || null;
-                          currentAttempt.calculatedGrade.touched = true;
-                          updateCalculatedGrade();
-                        }
-                      "
-                      style="max-width: 70px;max-height: 50px;"
+                      @update:model-value="() => {
+                        currentAttempt.calculatedGrade.touched = true;
+                        updateCalculatedGrade();
+                      }"
+                      style="max-width: 100px;max-height: 50px;"
                       type="number"
                       name="questionPoints"
-                      outlined
+                      variant="outlined"
                       required
                     >
                     </v-text-field>
@@ -265,7 +260,7 @@
                 <div
                   v-for="(answer, index) in question.answers"
                   :key="answer.answerId"
-                  class="w-100"
+                  class="w-100 mb-3"
                 >
                   <v-row>
                     <v-col
@@ -282,7 +277,7 @@
                           answer.correct ? 'correct-answer' : '',
                           !answer.correct && studentSubmittedAnswers[question.questionId].includes(answer.answerId) ? 'wrong-answer' : '',
                         ]"
-                        outlined
+                        variant="outlined"
                       >
                         <v-card-title>
                           <v-row>
@@ -291,7 +286,7 @@
                             >
                               <!-- Radio Button -->
                               <v-radio-group
-                                :value="studentSubmittedAnswers[question.questionId].find((a) => a === answer.answerId)"
+                                :model-value="studentSubmittedAnswers[question.questionId].find((a) => a === answer.answerId)"
                                 :aria-label="`answer group for question ${question.html}`"
                               >
                                 <v-radio
@@ -346,7 +341,7 @@
                   <v-col
                     cols="10"
                   >
-                    <v-card outlined>
+                    <v-card variant="outlined">
                       <v-card-title>
                         {{ studentSubmittedAnswers[question.questionId] }}
                       </v-card-title>
@@ -363,7 +358,6 @@
                   <v-card-text>
                     <v-row
                       class="d-flex flex-column"
-                      dense
                       align="center"
                       justify="center"
                     >
@@ -374,7 +368,6 @@
                         v-for="fileResponse in studentSubmittedFileResponse(question.questionId)"
                         :key="fileResponse.answerSubmissionId"
                         class="v-btn uploaded-file-row"
-                        outlined
                       >
                         {{ fileResponse.fileName }}
                         <tool-tip
@@ -400,573 +393,669 @@
           </v-card-title>
         </v-card>
       </div>
-    </template>
   </template>
 </div>
 </template>
 
-<script>
-import { mapActions, mapGetters } from "vuex";
-import PageLoading from "@/components/PageLoading";
-import Spinner from "@/components/Spinner";
-import SubmissionSelector from "@/views/assignment/SubmissionSelector";
+<script setup>
+import { ref, computed, watch, onMounted } from "vue";
+import { useRoute } from "vue-router";
+
+import { experiment as experimentModule } from "@/store/experiment.module";
+import { participants as participantsModule } from "@/store/participants.module";
+import { assessment as assessmentModule } from "@/store/assessment.module";
+import { submission as submissionModule } from "@/store/submission.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
+import { api as apiModule } from "@/store/api.module";
+
+import PageLoading from "@/components/PageLoading.vue";
+import Spinner from "@/components/Spinner.vue";
+import SubmissionSelector from "@/views/assignment/SubmissionSelector.vue";
 import ToolTip from "@/components/ToolTip.vue";
 
-export default {
-  name: "StudentSubmissionGrading",
-  components: {
-    PageLoading,
-    Spinner,
-    SubmissionSelector,
-    ToolTip
-  },
-  data: () => ({
-    maxPoints: 0,
-    selectedSubmissionId: null,
-    downloadId: null,
-    attempts: [], // [{submissionId, initialScoreType, typeChanged, calculatedGrade: {grade, touched}, overrideGrade: {grade, touched}, gradeOverridden, studentResponse, questionScoreMap, loaded}]
-    isSaving: false
-  }),
-  computed: {
-    ...mapGetters({
-      experiment: "experiment/experiment",
-      participants: "participants/participants",
-      assessment: "assessment/assessment",
-      studentResponse: "submissions/studentResponse",
-      questionPages: "assessment/questionPages",
-      configurations: "configuration/get"
-    }),
-    assessmentId() {
-      return parseInt(this.$route.params.assessmentId);
-    },
-    conditionId() {
-      return parseInt(this.$route.params.conditionId);
-    },
-    treatmentId() {
-      return parseInt(this.$route.params.treatmentId);
-    },
-    participantId() {
-      return parseInt(this.$route.params.participantId);
-    },
-    experimentId() {
-      return parseInt(this.$route.params.experimentId);
-    },
-    allSubmissions() {
-      return this.assessment.submissions || [];
-    },
-    studentSubmittedAnswers() {
-      const answers = {};
-      if (this.assessment && this.assessment.questions) {
-        for (const question of this.assessment.questions) {
-          switch (question.questionType) {
-            case "MC":
-              answers[question.questionId] = this.studentSubmittedMCAnswers(question.questionId);
-              break;
-            case "ESSAY":
-              answers[question.questionId] = this.studentSubmittedEssayResponse(question.questionId);
-              break;
-            case "FILE":
-              answers[question.questionId] = this.studentSubmittedFileResponse(question.questionId);
-              break;
-            default:
-              answers[question.questionId] = null;
-          }
-        }
-      }
+defineOptions({
+  name: "StudentSubmissionGrading"
+});
 
-      return answers;
-    },
-    gradableQuestions() {
-      return this.assessment && this.assessment.questions ? this.assessment.questions.filter((q) => q.questionType !== "PAGE_BREAK") : [];
-    },
-    hasEssayOrFileAndNonEssayQuestions() {
-      return (
-        (this.gradableQuestions.some((q) => q.questionType === "ESSAY") && this.gradableQuestions.some((q) => q.questionType !== "ESSAY")) ||
-        (this.gradableQuestions.some((q) => q.questionType === "FILE") && this.gradableQuestions.some((q) => q.questionType !== "FILE"))
-      );
-    },
-    ungradedEssayQuestionIndices() {
-      return this.ungradedEssayQuestions.map((q) => this.getQuestionIndex(q));
-    },
-    ungradedFileQuestionIndices() {
-      return this.ungradedFileUploadQuestions.map((q) => this.getQuestionIndex(q));
-    },
-    studentResponseCardClasses() {
-      if (this.isGradeOverridden) {
-        return {};
-      }
+const route = useRoute();
 
-      const result = {};
+const experimentStore = experimentModule();
+const participantsStore = participantsModule();
+const assessmentStore = assessmentModule();
+const submissionsStore = submissionModule();
+const configurationStore = configurationModule();
+const apiStore = apiModule();
 
-      for (const question of this.ungradedEssayQuestions) {
-        result[question.questionId] = ["ungraded-response"];
-      }
+const maxPoints = ref(0);
+const downloadId = ref(null);
+const isSaving = ref(false);
 
-      for (const question of this.ungradedFileUploadQuestions) {
-        result[question.questionId] = ["ungraded-response"];
-      }
+const experiment = computed(() => experimentStore.experiment);
+const participants = computed(() => participantsStore.participants);
+const assessment = computed(() => assessmentStore.assessment);
+const studentResponse = computed(() => submissionsStore.studentResponse);
+const questionPages = computed(() => assessmentStore.questionPages);
+const configurations = computed(() => configurationStore.get);
 
-      return result;
-    },
-    ungradedEssayQuestions() {
-      const questions = [];
+const assessmentId = computed(() => parseInt(route.params.assessmentId));
+const conditionId = computed(() => parseInt(route.params.conditionId));
+const treatmentId = computed(() => parseInt(route.params.treatmentId));
+const participantId = computed(() => parseInt(route.params.participantId));
+const experimentId = computed(() => parseInt(route.params.experimentId));
 
-      if (this.assessment && this.assessment.questions) {
-        for (const question of this.assessment.questions) {
-          if (question.questionType === "ESSAY" && question.points > 0 && this.currentAttempt && (this.currentAttempt.questionScoreMap[question.questionId] === null || isNaN(this.currentAttempt.questionScoreMap[question.questionId]))) {
-            questions.push(question);
-          }
-        }
-      }
+const allSubmissions = computed(() => assessment.value?.submissions || []);
 
-      return questions;
-    },
-    ungradedFileUploadQuestions() {
-      const questions = [];
+// ---------------- ATTEMPTS ----------------
+const selectedSubmissionId = ref(null);
+const attempts = ref([]);
 
-      if (this.assessment && this.assessment.questions) {
-        for (const question of this.assessment.questions) {
-          if (question.questionType === "FILE" && question.points > 0 && this.currentAttempt && (this.currentAttempt.questionScoreMap[question.questionId] === null || isNaN(this.currentAttempt.questionScoreMap[question.questionId]))) {
-            questions.push(question);
-          }
-        }
-      }
+const participantSubmissions = computed(() =>
+  allSubmissions.value.filter(s => s.participantId == participantId.value)
+);
 
-      return questions;
-    },
-    selectedSubmission() {
-      return this.allSubmissions.find(s => s.submissionId === this.selectedSubmissionId);
-    },
-    selectedSubmissionPoints() {
-      return this.selectedSubmission?.totalAlteredGrade || 0;
-    },
-    participantSubmissions() {
-      // return only this participant's submissions
-      return this.allSubmissions.filter(s => s.participantId == this.participantId);
-    },
-    manualGradeText() {
-      var text = "Please grade ";
+const currentAttempt = computed(() =>
+  attempts.value.find(a => a.submissionId === selectedSubmissionId.value) || {
+    submissionId: null,
+    initialScoreType: "calculated",
+    typeChanged: false,
+    calculatedGrade: { grade: 0, touched: false },
+    overrideGrade: { grade: 0, touched: false },
+    gradeOverridden: false,
+    studentResponse: [],
+    questionScoreMap: [],
+    loaded: false
+  }
+);
 
-      if (this.ungradedEssayQuestions.length > 0) {
-        text += `short answer responses (${this.ungradedEssayQuestionIndices.join(", ")})`;
-      }
+const initAttempts = () => {
+  attempts.value = participantSubmissions.value.map(submission => ({
+    submissionId: submission.submissionId,
+    initialScoreType: submission.gradeOverridden ? "override" : "calculated",
+    typeChanged: false,
+    calculatedGrade: { grade: 0, touched: false },
+    overrideGrade: { grade: 0, touched: false },
+    gradeOverridden: submission.gradeOverridden || false,
+    studentResponse: [],
+    questionScoreMap: [],
+    loaded: false
+  }));
+};
 
-      if (this.ungradedFileUploadQuestions.length > 0) {
-        if (this.ungradedEssayQuestions.length > 0) {
-          text += " and ";
-        }
+// ---------------- API ----------------
+const fetchStudentResponse = payload => submissionsStore.fetchStudentResponse(payload);
+const updateSubmissions = payload => submissionsStore.updateSubmissions(payload);
+const updateQuestionSubmissions = payload => submissionsStore.updateQuestionSubmissions(payload);
+const reportStep = payload => apiStore.reportStep(payload);
+const downloadAnswerFileSubmission = payload => submissionsStore.downloadAnswerFileSubmission(payload);
+const fetchAssessment = payload => assessmentStore.fetchAssessment(payload);
 
-        text += `file submissions (${this.ungradedFileQuestionIndices.join(", ")})`;
-      }
+// ---------------- RESPONSES ----------------
+const studentResponseForQuestionId = questionId => {
+  const res = currentAttempt.value.studentResponse?.filter(r => r.questionId === questionId);
+  return res?.length ? res[0] : { answerSubmissionDtoList: [] };
+};
 
-      text += " manually";
+const studentSubmittedMCAnswers = questionId =>
+  studentResponseForQuestionId(questionId).answerSubmissionDtoList.map(a => a.answerId);
 
-      return text;
-    },
-    showUngradedText() {
-      if (this.isGradeOverridden) {
-        return false;
-      }
+const studentSubmittedEssayResponse = questionId => {
+  const list = studentResponseForQuestionId(questionId).answerSubmissionDtoList;
+  return list?.length ? list[0].response : null;
+};
 
-      return this.hasEssayOrFileAndNonEssayQuestions && (this.ungradedEssayQuestionIndices.length > 0 || this.ungradedFileQuestionIndices.length > 0);
-    },
-    scoreHeader() {
-      switch(this.getScoreType) {
-        case "calculated":
-          return "Calculated Score";
-        case "override":
-          return "Override Score";
+const studentSubmittedFileResponse = questionId => {
+  const list = studentResponseForQuestionId(questionId).answerSubmissionDtoList;
+  if (!list || list.length === 0) return null;
+  return [{
+    fileName: list[0].fileName,
+    mimeType: list[0].mimeType,
+    answerSubmissionId: list[0].answerSubmissionId,
+    questionSubmissionId: list[0].questionSubmissionId
+  }];
+};
+
+// ---------------- GRADING ----------------
+const getScoreType = computed(() =>
+  currentAttempt.value?.gradeOverridden ? "override" : "calculated"
+);
+
+const updateCalculatedGrade = () => {
+  currentAttempt.value.calculatedGrade.grade = 0;
+  Object.values(currentAttempt.value.questionScoreMap || {})
+    .filter(v => v !== null)
+    .filter(v => !isNaN(Number(v)))
+    .forEach(v => { currentAttempt.value.calculatedGrade.grade += Number(v); });
+};
+
+const changeScoreType = () => {
+  const attempt = currentAttempt.value;
+  if (getScoreType.value === "calculated") {
+    attempt.gradeOverridden = true;
+    attempt.typeChanged = attempt.initialScoreType === "calculated";
+  } else {
+    attempt.gradeOverridden = false;
+    attempt.typeChanged = attempt.initialScoreType === "override";
+  }
+};
+
+const selectedSubmission = computed(() => {
+  return allSubmissions.value.find(
+    submission => submission.submissionId === selectedSubmissionId.value
+  );
+});
+
+const gradableQuestions = computed(() => {
+  return assessment.value?.questions
+    ? assessment.value.questions.filter(
+        question => question.questionType !== "PAGE_BREAK"
+      )
+    : [];
+});
+
+const studentSubmittedAnswers = computed(() => {
+  const answers = {};
+
+  if (assessment.value?.questions) {
+    for (const question of assessment.value.questions) {
+      switch (question.questionType) {
+        case "MC":
+          answers[question.questionId] =
+            studentSubmittedMCAnswers(question.questionId);
+          break;
+
+        case "ESSAY":
+          answers[question.questionId] =
+            studentSubmittedEssayResponse(question.questionId);
+          break;
+
+        case "FILE":
+          answers[question.questionId] =
+            studentSubmittedFileResponse(question.questionId);
+          break;
+
         default:
-          return "";
+          answers[question.questionId] = null;
       }
-    },
-    scoreLink() {
-      switch(this.getScoreType) {
-        case "calculated":
-          return "Override";
-        case "override":
-          return "Revert";
-        default:
-          return "";
-      }
-    },
-    scoreTooltipHeader() {
-      switch(this.getScoreType) {
-        case "calculated":
-          return "Calculated score";
-        case "override":
-          return "Override score";
-        default:
-          return "";
-      }
-    },
-    scoreTooltip() {
-      switch(this.getScoreType) {
-        case "calculated":
-          return `This score updates based on points students earn on individual items (as input by ${this.lmsTitle} for multiple choice questions or by instructors for short answer or file
-              upload questions). The instructor can override this score by clicking Override (which can be reversed after the change).`;
-        case "override":
-          return "You have overridden the calculated score. This score will not change based on changes made to points earned on individual questions. Click Revert to go back to the calculated score.";
-        default:
-          return "";
-      }
-    },
-    scoreTooltipActivator() {
-      return {"type": "icon", "text": "mdi-help-circle-outline"};
-    },
-    tooltipStyles() {
-      return {
-        "font-size": "20px",
-        "vertical-align": "top"
-      }
-    },
-    pageLoadingContainerStyles() {
-      return {
-        "z-index": 1000,
-        "position": "relative",
-        "padding": 0
-      }
-    },
-    pageLoadingSpinnerStyles() {
-      return {
-        "margin-top": "200px"
-      }
-    },
-    getScoreType() {
-      return this.isGradeOverridden ? "override" : "calculated";
-    },
-    isGradeOverridden() {
-      return this.currentAttempt ? (this.currentAttempt.gradeOverridden || false) : false;
-    },
-    showUnsavedChangeWarning() {
-      if (this.currentAttemptTypeChanged) {
-        return true;
-      }
-
-      switch (this.getScoreType) {
-        case "calculated":
-          return this.currentAttemptCalculatedGradeTouched;
-        case "override":
-          return this.currentAttemptOverrideGradeTouched;
-        default:
-          return false;
-      }
-    },
-    currentAttempt() {
-      return this.attempts.find(attempt => attempt.submissionId === this.selectedSubmissionId) ||
-        {
-          submissionId: null,
-          initialScoreType: "calculated",
-          typeChanged: false,
-          calculatedGrade: {
-            grade: 0,
-            touched: false
-          },
-          overrideGrade: {
-            grade: 0,
-            touched: false
-          },
-          gradeOverridden: false,
-          studentResponse: [],
-          questionScoreMap: []
-        };
-    },
-    currentAttemptTypeChanged() {
-      return this.currentAttempt?.typeChanged || false;
-    },
-    currentAttemptQuestionScoreMap() {
-      return this.currentAttempt?.questionScoreMap || [];
-    },
-    currentAttemptCalculatedGrade() {
-      return this.currentAttempt?.calculatedGrade?.grade || 0;
-    },
-    currentAttemptOverrideGrade() {
-      return this.currentAttempt?.overrideGrade?.grade || 0;
-    },
-    currentAttemptCalculatedGradeTouched() {
-      return this.currentAttempt?.calculatedGrade?.touched || false;
-    },
-    currentAttemptOverrideGradeTouched() {
-      return this.currentAttempt?.overrideGrade?.touched || false;
-    },
-    lmsTitle() {
-      return this.configurations?.lmsTitle || "LMS";
     }
-  },
-  watch: {
-    selectedSubmissionId(newValue) {
-      if (!newValue) {
-        return;
-      }
+  }
 
-      this.loadSubmissionResponses(newValue);
+  return answers;
+});
+
+const hasEssayOrFileAndNonEssayQuestions = computed(() => {
+  return (
+    (
+      gradableQuestions.value.some(
+        question => question.questionType === "ESSAY"
+      ) &&
+      gradableQuestions.value.some(
+        question => question.questionType !== "ESSAY"
+      )
+    ) ||
+    (
+      gradableQuestions.value.some(
+        question => question.questionType === "FILE"
+      ) &&
+      gradableQuestions.value.some(
+        question => question.questionType !== "FILE"
+      )
+    )
+  );
+});
+
+const ungradedEssayQuestions = computed(() => {
+  if (!assessment.value?.questions || !currentAttempt.value) {
+    return [];
+  }
+
+  return assessment.value.questions.filter(question => {
+    return (
+      question.questionType === "ESSAY" &&
+      question.points > 0 &&
+      (
+        currentAttempt.value.questionScoreMap[
+          question.questionId
+        ] === null ||
+        Number.isNaN(
+          Number(
+            currentAttempt.value.questionScoreMap[
+              question.questionId
+            ]
+          )
+        )
+      )
+    );
+  });
+});
+
+const ungradedFileUploadQuestions = computed(() => {
+  if (!assessment.value?.questions || !currentAttempt.value) {
+    return [];
+  }
+
+  return assessment.value.questions.filter(question => {
+    return (
+      question.questionType === "FILE" &&
+      question.points > 0 &&
+      (
+        currentAttempt.value.questionScoreMap[
+          question.questionId
+        ] === null ||
+        Number.isNaN(
+          Number(
+            currentAttempt.value.questionScoreMap[
+              question.questionId
+            ]
+          )
+        )
+      )
+    );
+  });
+});
+
+const getQuestionIndex = question => {
+  for (const questionPage of questionPages.value) {
+    const index = questionPage.questions.findIndex(
+      currentQuestion =>
+        currentQuestion.questionId === question.questionId
+    );
+
+    if (index >= 0) {
+      return questionPage.questionStartIndex + index + 1;
     }
-  },
-  methods: {
-    ...mapActions({
-      fetchAssessment: "assessment/fetchAssessment",
-      fetchStudentResponse: "submissions/fetchStudentResponse",
-      updateQuestionSubmissions: "submissions/updateQuestionSubmissions",
-      updateSubmission: "submissions/updateSubmission",
-      updateSubmissions: "submissions/updateSubmissions",
-      reportStep: "api/reportStep",
-      downloadAnswerFileSubmission: "submissions/downloadAnswerFileSubmission",
-    }),
-    participantName() {
-      return this.participants.filter(
-        (participant) => participant.participantId === this.participantId
-      )?.[0].user.displayName;
-    },
-    findSubmissionById(id) {
-      return this.allSubmissions.find(s => s.submissionId === id);
-    },
-    isSameAssessmentQuestion(questionId) {
-      return this.assessment.questions
-        ?.map((question) => question.questionId)
-        ?.includes(+questionId);
-    },
-    studentResponseForQuestionId(questionId) {
-      const filteredResponse = this.currentAttempt.studentResponse?.filter(
-        (resp) => resp.questionId === questionId
-      );
-      return filteredResponse?.length > 0 ? filteredResponse[0] : { answerSubmissionDtoList: [] };
-    },
-    studentSubmittedMCAnswers(questionId) {
-      return this.studentResponseForQuestionId(
-        questionId
-      ).answerSubmissionDtoList.map((answer) => answer.answerId);
-    },
-    studentSubmittedEssayResponse(questionId) {
-      const answerSubmissionDtoList = this.studentResponseForQuestionId(
-        questionId
-      ).answerSubmissionDtoList;
-      if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
-        return null;
-      } else {
-        return answerSubmissionDtoList[0].response;
-      }
-    },
-    studentSubmittedFileResponse(questionId) {
-      const answerSubmissionDtoList = this.studentResponseForQuestionId(
+  }
+
+  return -1;
+};
+
+const ungradedEssayQuestionIndices = computed(() => {
+  return ungradedEssayQuestions.value.map(question =>
+    getQuestionIndex(question)
+  );
+});
+
+const ungradedFileQuestionIndices = computed(() => {
+  return ungradedFileUploadQuestions.value.map(question =>
+    getQuestionIndex(question)
+  );
+});
+
+const isGradeOverridden = computed(() => {
+  return currentAttempt.value?.gradeOverridden || false;
+});
+
+const studentResponseCardClasses = computed(() => {
+  if (isGradeOverridden.value) {
+    return {};
+  }
+
+  const result = {};
+
+  for (const question of ungradedEssayQuestions.value) {
+    result[question.questionId] = ["ungraded-response"];
+  }
+
+  for (const question of ungradedFileUploadQuestions.value) {
+    result[question.questionId] = ["ungraded-response"];
+  }
+
+  return result;
+});
+
+const manualGradeText = computed(() => {
+  let text = "Please grade ";
+
+  if (ungradedEssayQuestions.value.length > 0) {
+    text += `short answer responses (${ungradedEssayQuestionIndices.value.join(", ")})`;
+  }
+
+  if (ungradedFileUploadQuestions.value.length > 0) {
+    if (ungradedEssayQuestions.value.length > 0) {
+      text += " and ";
+    }
+
+    text += `file submissions (${ungradedFileQuestionIndices.value.join(", ")})`;
+  }
+
+  text += " manually";
+
+  return text;
+});
+
+const showUngradedText = computed(() => {
+  if (isGradeOverridden.value) {
+    return false;
+  }
+
+  return (
+    hasEssayOrFileAndNonEssayQuestions.value &&
+    (
+      ungradedEssayQuestionIndices.value.length > 0 ||
+      ungradedFileQuestionIndices.value.length > 0
+    )
+  );
+});
+
+const scoreHeader = computed(() => {
+  switch (getScoreType.value) {
+    case "calculated":
+      return "Calculated Score";
+
+    case "override":
+      return "Override Score";
+
+    default:
+      return "";
+  }
+});
+
+const scoreLink = computed(() => {
+  switch (getScoreType.value) {
+    case "calculated":
+      return "Override";
+
+    case "override":
+      return "Revert";
+
+    default:
+      return "";
+  }
+});
+
+const scoreTooltipHeader = computed(() => {
+  switch (getScoreType.value) {
+    case "calculated":
+      return "Calculated score";
+
+    case "override":
+      return "Override score";
+
+    default:
+      return "";
+  }
+});
+
+const lmsTitle = computed(() => {
+  return configurations.value?.lmsTitle || "LMS";
+});
+
+const scoreTooltip = computed(() => {
+  switch (getScoreType.value) {
+    case "calculated":
+      return `This score updates based on points students earn on individual items (as input by ${lmsTitle.value} for multiple choice questions or by instructors for short answer or file upload questions). The instructor can override this score by clicking Override (which can be reversed after the change).`;
+
+    case "override":
+      return "You have overridden the calculated score. This score will not change based on changes made to points earned on individual questions. Click Revert to go back to the calculated score.";
+
+    default:
+      return "";
+  }
+});
+
+const scoreTooltipActivator = {
+  type: "icon",
+  text: "mdi-help-circle-outline"
+};
+
+const tooltipStyles = {
+  "font-size": "20px",
+  "vertical-align": "top"
+};
+
+const pageLoadingContainerStyles = {
+  "z-index": 1000,
+  position: "relative",
+  padding: 0
+};
+
+const pageLoadingSpinnerStyles = {
+  "margin-top": "200px"
+};
+
+const currentAttemptTypeChanged = computed(() => {
+  return currentAttempt.value?.typeChanged || false;
+});
+
+const currentAttemptCalculatedGrade = computed(() => {
+  return currentAttempt.value?.calculatedGrade?.grade || 0;
+});
+
+const currentAttemptCalculatedGradeTouched = computed(() => {
+  return currentAttempt.value?.calculatedGrade?.touched || false;
+});
+
+const currentAttemptOverrideGradeTouched = computed(() => {
+  return currentAttempt.value?.overrideGrade?.touched || false;
+});
+
+const showUnsavedChangeWarning = computed(() => {
+  if (currentAttemptTypeChanged.value) {
+    return true;
+  }
+
+  switch (getScoreType.value) {
+    case "calculated":
+      return currentAttemptCalculatedGradeTouched.value;
+
+    case "override":
+      return currentAttemptOverrideGradeTouched.value;
+
+    default:
+      return false;
+  }
+});
+
+const participantName = () => {
+  return participants.value.find(
+    participant =>
+      participant.participantId === participantId.value
+  )?.user?.displayName;
+};
+
+const findSubmissionById = id => {
+  return allSubmissions.value.find(
+    submission => submission.submissionId === id
+  );
+};
+
+const isSameAssessmentQuestion = questionId => {
+  return assessment.value?.questions
+    ?.map(question => question.questionId)
+    ?.includes(Number(questionId));
+};
+
+const downloadFileResponse = async fileResponse => {
+  downloadId.value = fileResponse.answerSubmissionId;
+
+  try {
+    await downloadAnswerFileSubmission([
+      experimentId.value,
+      selectedSubmission.value.conditionId,
+      selectedSubmission.value.treatmentId,
+      selectedSubmission.value.assessmentId,
+      selectedSubmission.value.submissionId,
+      fileResponse.questionSubmissionId,
+      fileResponse.answerSubmissionId,
+      fileResponse.mimeType,
+      fileResponse.fileName
+    ]);
+  } catch (error) {
+    console.log("downloadFileResponse | catch", error);
+  } finally {
+    downloadId.value = null;
+  }
+};
+
+const loadSubmissionResponses = async submissionId => {
+  if (currentAttempt.value.loaded) {
+    return;
+  }
+
+  await fetchStudentResponse([
+    experiment.value.experimentId,
+    conditionId.value,
+    treatmentId.value,
+    assessmentId.value,
+    submissionId
+  ]);
+
+  currentAttempt.value.studentResponse =
+    studentResponse.value;
+
+  const questionScoreMap = {};
+
+  for (const question of gradableQuestions.value) {
+    const questionId = question.questionId;
+    const response = studentResponseForQuestionId(questionId);
+    const alteredGrade = response.alteredGrade;
+    const calculatedPoints = response.calculatedPoints;
+
+    if (
+      question.questionType === "ESSAY" ||
+      question.questionType === "FILE"
+    ) {
+      questionScoreMap[questionId] = alteredGrade;
+    } else {
+      questionScoreMap[questionId] = alteredGrade
+        ? alteredGrade
+        : calculatedPoints;
+    }
+  }
+
+  currentAttempt.value.questionScoreMap =
+    questionScoreMap;
+
+  updateCalculatedGrade();
+
+  let sum = 0;
+
+  Object.keys(
+    currentAttempt.value.questionScoreMap || {}
+  ).forEach(questionId => {
+    if (isSameAssessmentQuestion(questionId)) {
+      sum += Number(
+        currentAttempt.value.questionScoreMap[
           questionId
-      ).answerSubmissionDtoList;
-      if (!answerSubmissionDtoList || answerSubmissionDtoList.length === 0) {
-        return null;
-      } else {
-        return [{
-          "fileName": answerSubmissionDtoList[0].fileName,
-          "mimeType": answerSubmissionDtoList[0].mimeType,
-          "answerSubmissionId": answerSubmissionDtoList[0].answerSubmissionId,
-          "questionSubmissionId": answerSubmissionDtoList[0].questionSubmissionId
-        }];
-      }
-    },
-    async downloadFileResponse(fileResponse) {
-      this.downloadId = fileResponse.answerSubmissionId;
+        ] || 0
+      );
+    }
+  });
 
-      try {
-        await this.downloadAnswerFileSubmission([
-          this.experimentId,
-          this.selectedSubmission.conditionId,
-          this.selectedSubmission.treatmentId,
-          this.selectedSubmission.assessmentId,
-          this.selectedSubmission.submissionId,
-          fileResponse.questionSubmissionId,
-          fileResponse.answerSubmissionId,
-          fileResponse.mimeType,
-          fileResponse.fileName
-        ]);
+  maxPoints.value = sum;
+  currentAttempt.value.loaded = true;
+};
 
-        this.downloadId = null;
-      } catch (error) {
-          console.log("downloadFileResponse | catch", error);
-          this.downloadId = null;
-      }
-    },
-    async saveExit() {
-      // display wait screen
-      this.isSaving = true;
+const saveExit = async () => {
+  isSaving.value = true;
 
-      var submissionsToUpdate = [];
+  const submissionsToUpdate = attempts.value.map(
+    submissionAttempt => {
+      const submission = findSubmissionById(
+        submissionAttempt.submissionId
+      );
 
-      // update grades for attempts
-      for (var submissionAttempt of this.attempts) {
-        const submission = this.findSubmissionById(submissionAttempt.submissionId);
-        submissionsToUpdate.push(
-          {
-            submissionId: submission.submissionId,
-            alteredCalculatedGrade: submissionAttempt.calculatedGrade.grade,
-            totalAlteredGrade: submissionAttempt.overrideGrade.touched ? submission.totalAlteredGrade : submissionAttempt.calculatedGrade.grade,
-            gradeOverridden: submissionAttempt.gradeOverridden
-          }
-        );
-      }
+      return {
+        submissionId: submission.submissionId,
+        alteredCalculatedGrade:
+          submissionAttempt.calculatedGrade.grade,
+        totalAlteredGrade:
+          submissionAttempt.overrideGrade.touched
+            ? submission.totalAlteredGrade
+            : submissionAttempt.calculatedGrade.grade,
+        gradeOverridden:
+          submissionAttempt.gradeOverridden
+      };
+    }
+  );
 
-      this.attempts.forEach(attempt => {
-        attempt.typeChanged = false;
-        attempt.calculatedGrade.touched = false;
-        attempt.overrideGrade.touched = false;
-      });
+  attempts.value.forEach(attempt => {
+    attempt.typeChanged = false;
+    attempt.calculatedGrade.touched = false;
+    attempt.overrideGrade.touched = false;
+  });
 
-      try {
-        await this.updateSubmissions([
-          this.allSubmissions[0].experimentId,
-          this.allSubmissions[0].conditionId,
-          this.allSubmissions[0].treatmentId,
-          this.allSubmissions[0].assessmentId,
-          submissionsToUpdate
-        ]);
-      } catch (error) {
-        this.isSaving = false;
-        return Promise.reject(error);
-      }
+  try {
+    await updateSubmissions([
+      allSubmissions.value[0].experimentId,
+      allSubmissions.value[0].conditionId,
+      allSubmissions.value[0].treatmentId,
+      allSubmissions.value[0].assessmentId,
+      submissionsToUpdate
+    ]);
 
-      for (var attempt of this.attempts) {
-        const updateQuestionSubmissions = attempt.studentResponse.map((response) => {
+    for (const attempt of attempts.value) {
+      const questionSubmissions =
+        attempt.studentResponse.map(response => {
           return {
-            questionSubmissionId: response.questionSubmissionId,
-            answerSubmissionDtoList: response.answerSubmissionDtoList,
-            alteredGrade: attempt.questionScoreMap[response.questionId] !== null ? +attempt.questionScoreMap[response.questionId] : null,
+            questionSubmissionId:
+              response.questionSubmissionId,
+            answerSubmissionDtoList:
+              response.answerSubmissionDtoList,
+            alteredGrade:
+              attempt.questionScoreMap[
+                response.questionId
+              ] !== null
+                ? Number(
+                    attempt.questionScoreMap[
+                      response.questionId
+                    ]
+                  )
+                : null
           };
         });
 
-        try {
-          // Update Question Submissions
-          await this.updateQuestionSubmissions([
-            this.experimentId,
-            this.conditionId,
-            this.treatmentId,
-            this.assessmentId,
-            attempt.submissionId,
-            updateQuestionSubmissions
-          ]);
-          // Post Step to Experiment
-          await this.reportStep({
-            experimentId: this.experimentId,
-            step: "student_submission",
-            parameters: { submissionIds: "" + attempt.submissionId },
-          });
-        } catch (error) {
-          this.isSaving = false;
-          return Promise.reject(error);
-        }
-      }
-
-      this.isSaving = false;
-    },
-    getQuestionIndex(question) {
-      for (const questionPage of this.questionPages) {
-        const index = questionPage.questions.findIndex(
-          (q) => q.questionId === question.questionId
-        );
-        if (index >= 0) {
-          return questionPage.questionStartIndex + index + 1;
-        }
-      }
-      // shouldn't happen
-      return -1;
-    },
-    async loadSubmissionResponses(submissionId) {
-      if (this.currentAttempt.loaded) {
-        // already loaded once; skip reloading
-        return;
-      }
-
-      // get the student response for this attempt
-      await this.fetchStudentResponse([
-        this.experiment.experimentId,
-        this.conditionId,
-        this.treatmentId,
-        this.assessmentId,
-        submissionId,
+      await updateQuestionSubmissions([
+        experimentId.value,
+        conditionId.value,
+        treatmentId.value,
+        assessmentId.value,
+        attempt.submissionId,
+        questionSubmissions
       ]);
 
-      this.currentAttempt.studentResponse = this.studentResponse;
-
-      // initialize questionScoreMap
-      const questionScoreMap = {};
-
-      for (const question of this.gradableQuestions) {
-        const questionId = question.questionId;
-        const alteredGrade = this.studentResponseForQuestionId(questionId).alteredGrade;
-        const calculatedPoints = this.studentResponseForQuestionId(questionId).calculatedPoints;
-
-        if (question.questionType === "ESSAY" || question.questionType === "FILE") {
-          // Essay / File questions have to be manually graded. The alteredGrade will be null if it hasn't been manually graded.
-          questionScoreMap[questionId] = alteredGrade;
-        } else {
-          questionScoreMap[questionId] = alteredGrade ? alteredGrade : calculatedPoints;
+      await reportStep({
+        experimentId: experimentId.value,
+        step: "student_submission",
+        parameters: {
+          submissionIds: `${attempt.submissionId}`
         }
-      }
-
-      this.currentAttempt.questionScoreMap = questionScoreMap;
-      this.updateCalculatedGrade();
-
-      // initialize maxPoints
-      let sum = 0;
-      Object.keys(this.currentAttempt.questionScoreMap)?.map((qId) => {
-        this.isSameAssessmentQuestion(qId) ? (sum = sum + this.currentAttempt.questionScoreMap[qId]) : sum;
       });
-      this.maxPoints = sum;
-      this.currentAttempt.loaded = true;
-    },
-    updateCalculatedGrade() {
-      this.currentAttempt.calculatedGrade.grade = 0;
-      Object.values(this.currentAttemptQuestionScoreMap)
-        .filter(s => s !== null)
-        .filter(s => !isNaN(Number(s)))
-        .forEach(s => this.currentAttempt.calculatedGrade.grade += Number(s));
-    },
-    changeScoreType() {
-      switch(this.getScoreType) {
-        case "calculated":
-          this.currentAttempt.gradeOverridden = true;
-          this.currentAttempt.typeChanged = this.currentAttempt.initialScoreType === "calculated";
-          break;
-        case "override":
-          this.currentAttempt.gradeOverridden = false;
-          this.currentAttempt.typeChanged = this.currentAttempt.initialScoreType === "override";
-          break;
-        default:
-          break;
-      }
     }
-  },
-  async created() {
-    await this.fetchAssessment([
-      this.experiment.experimentId,
-      this.conditionId,
-      this.treatmentId,
-      this.assessmentId,
-    ]);
-
-    for (var submission of this.participantSubmissions) {
-      this.attempts.push(
-        {
-          submissionId: submission.submissionId,
-          initialScoreType: submission.gradeOverridden ? "override" : "calculated",
-          typeChanged: false,
-          calculatedGrade: {
-            grade: 0,
-            touched: false
-          },
-          overrideGrade: {
-            grade: 0,
-            touched: false
-          },
-          gradeOverridden: submission.gradeOverridden || false,
-          studentResponse: [],
-          questionScoreMap: [],
-          loaded: false
-        }
-      )
-    }
-  },
+  } finally {
+    isSaving.value = false;
+  }
 };
+
+watch(selectedSubmissionId, newValue => {
+  if (!newValue) {
+    return;
+  }
+
+  loadSubmissionResponses(newValue);
+});
+
+onMounted(async () => {
+  await fetchAssessment([
+    experiment.value.experimentId,
+    conditionId.value,
+    treatmentId.value,
+    assessmentId.value
+  ]);
+
+  initAttempts();
+});
+
+defineExpose({
+  saveExit
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~@/styles/variables";
+// text-red (a Vuetify color utility class) generates no CSS in this project's build -
+// see ExperimentType.vue's .card-warning for the full explanation.
+.unsaved-warn .text-red {
+  color: map.get($red, "base");
+}
 
 .question-section {
   display: flex;
@@ -998,13 +1087,13 @@ export default {
   min-width: 100%;
 }
 .wrong-answer {
-  border: 1px solid map-get($red, "base");
+  border: 1px solid map.get($red, "base") !important;
 }
 .correct-answer {
-  border: 1px solid map-get($green, "base");
+  border: 1px solid map.get($green, "base") !important;
 }
 .student-response {
-  color: map-get($red, "base");
+  color: map.get($red, "base");
   font-family: Roboto;
   font-size: 14px;
   font-weight: 700;
@@ -1013,7 +1102,7 @@ export default {
   text-align: left;
 }
 .correct-answer-text {
-  color: map-get($green, "base");
+  color: map.get($green, "base");
   font-family: Roboto;
   font-size: 14px;
   font-weight: 700;
@@ -1022,15 +1111,15 @@ export default {
   text-align: left;
 }
 .ungraded-response {
-  border: 1px solid map-get($yellow, "base");
+  border: 1px solid map.get($yellow, "base");
   background-color: rgba(255, 224, 178, 0.1);
 }
 .ungraded-essay-questions-notice {
-  border: 1px solid map-get($yellow, "base");
+  border: 1px solid map.get($yellow, "base");
   background-color: rgba(255, 224, 178, 0.1);
   margin-top: 40px;
   margin-bottom: 40px;
-  & .v-card__text {
+  & .v-card-text {
     color: rgba(0, 0, 0, 0.87);
     font-family: Roboto;
     font-size: 16px;
@@ -1046,29 +1135,26 @@ export default {
   margin-right: auto;
   height: 37px;
   width: 37px;
-  background: map-get($yellow, "base");
+  background: map.get($yellow, "base");
   border-radius: calc(37px / 2);
 }
 .ungraded-essay-questions-notice__message {
   align-self: center;
 }
-.ungraded-essay-question-chip,
-.ungraded-essay-question-chip__icon {
+.question-card {
+  overflow: visible;
+}
+.ungraded-essay-question-chip {
   font-family: "Roboto";
   font-style: normal;
   font-weight: 400;
   font-size: 12px;
   line-height: 24px;
   letter-spacing: 0.15px;
-}
-.ungraded-essay-question-chip {
   position: relative;
   height: 28px;
   left: 18px;
   top: -14px;
-}
-.ungraded-essay-question-chip__icon {
-  margin-right: 10px;
 }
 .uploaded-file-row {
   min-width: 200px !important;
@@ -1109,6 +1195,9 @@ export default {
     }
     & .col-score-title {
       padding-right: 0;
+      h3 {
+        padding-bottom: 0px !important;
+      }
     }
     & .col-score-toggle {
       min-width: unset;
@@ -1116,10 +1205,10 @@ export default {
       > a {
         font-size: 1.17em;
         float: right;
-        color: map-get($blue, "base") !important;
+        color: map.get($blue, "base") !important;
       }
     }
-    > .v-card__text {
+    > .v-card-text {
       min-width: 100%;
       max-width: 100%;
     }
@@ -1130,6 +1219,21 @@ export default {
   & .select-submissions,
   & .input-override-grade {
     background: white;
+  }
+
+  // matches this app's existing mobile breakpoint (DataTable.vue, ExperimentSteps.vue) - the
+  // participant-response/attempts/score columns don't have room side by side below it, so stack
+  // them instead of leaving Vuetify's flex row to squeeze them all down to fit
+  @media (max-width: 636px) {
+    flex-direction: column;
+
+    & .col-attempts,
+    & .col-score {
+      max-width: 100%;
+    }
+    & .card-header {
+      max-width: 100%;
+    }
   }
 }
 </style>

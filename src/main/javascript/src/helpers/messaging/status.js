@@ -36,13 +36,3 @@ export var editableMessageStatuses = [
   message.ready,
   message.unpublished
 ];
-
-export var incompleteMessageStatuses = [
-  message.copied,
-  message.created,
-  message.edited,
-  message.canceled,
-  message.deleted,
-  message.error,
-  message.incomplete
-]

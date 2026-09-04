@@ -29,6 +29,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.service.api.impl.ApiClientImpl;
 import edu.iu.terracotta.dao.repository.AdminUserRepository;
 
+@SuppressWarnings("deprecation")
 public class AdminServiceImplTest extends BaseTest {
 
     @Mock private AdminUserRepository adminUserRepository;

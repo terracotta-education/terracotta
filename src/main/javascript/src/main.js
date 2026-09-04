@@ -1,19 +1,36 @@
+import { createApp } from "vue";
+import { api } from "@/store/api.module";
+import { alert as alertStore } from "@/store/alert.module";
+import { experiment as experimentStore } from "@/store/experiment.module";
+import { consent as consentStore } from "@/store/consent.module";
+import { configuration as configurationStore } from "@/store/configuration.module";
+import { pinia } from "@/pinia";
+
 import App from "./App.vue";
 import router from "./router";
-import store from "./store/index";
-import Vue from "vue";
-import VueRouterBackButton from "vue-router-back-button";
-import VueSweetalert2 from "vue-sweetalert2";
 import vuetify from "./plugins/vuetify";
 
-Vue.config.productionTip = false
+import "vuetify/styles";
+import "sweetalert2/dist/sweetalert2.min.css";
+import "@/styles/custom.scss";
 
-Vue.use(VueRouterBackButton, { router })
-Vue.use(VueSweetalert2);
-var vm;
+import "@mdi/font/css/materialdesignicons.css";
 
 const url = new URL(window.location.href);
-const params = new URLSearchParams(url.search);
+const params = url.searchParams;
+
+const getBooleanParam = name => params.get(name) === "true";
+
+const getNullableParam = name => {
+  const value = params.get(name);
+
+  if (value === null || value === "" || value === "null") {
+    return null;
+  }
+
+  return value;
+};
+
 // delivered via sessionStorage rather than a URL param - see lti3Launch.html/Lti3Controller#home
 // for why (avoids exceeding Tomcat's request-header size limit for large LTI launch payloads).
 // Read once and removed immediately so a later reload of this same tab doesn't replay them.
@@ -21,114 +38,127 @@ const tokenParam = sessionStorage.getItem("ltiToken");
 sessionStorage.removeItem("ltiToken");
 const lmsApiOAuthURL = sessionStorage.getItem("lmsApiOAuthUrl");
 sessionStorage.removeItem("lmsApiOAuthUrl");
+
 const integration = {
-  integration: params.get("integration") === "true",
+  integration: getBooleanParam("integration"),
   status: params.get("status"),
-  preview: params.get("preview") === "true",
-  client: params.get("client") === "null" ? null : params.get("client"),
+  preview: getBooleanParam("preview"),
+  client: getNullableParam("client"),
   launchToken: params.get("launch_token"),
-  score: params.get("score") === "" || params.get("score") === "null" ? null : params.get("score"),
+  score: getNullableParam("score"),
   url: params.get("url"),
-  errorCode: params.get("errorCode") === "null" ? null : params.get("errorCode"),
+  errorCode: getNullableParam("errorCode"),
   previewUrl: params.get("previewUrl"),
-  moreAttemptsAvailable: params.get("moreAttemptsAvailable") === "true",
-  errorMessage: params.get("errorMessage") === "null" ? null : params.get("errorMessage"),
+  moreAttemptsAvailable: getBooleanParam("moreAttemptsAvailable"),
+  errorMessage: getNullableParam("errorMessage")
 };
+
 const obsolete = {
-  obsolete: params.get("obsolete") === "true",
+  obsolete: getBooleanParam("obsolete"),
   type: params.get("type")
 };
+
 const treatmentPreview = {
-  preview: params.get("treatmentPreview") === "true",
+  preview: getBooleanParam("treatmentPreview"),
   experimentId: params.get("experiment"),
   conditionId: params.get("condition"),
   treatmentId: params.get("treatment"),
   previewId: params.get("previewId"),
   ownerId: params.get("ownerId"),
-  complete: params.get("complete") === "true"
+  complete: getBooleanParam("complete")
 };
-var appProps = {};
 
-const operations = [];
+const appProps = {};
 
-if (tokenParam) {
-  operations.push(store.dispatch("api/setLtiToken", tokenParam));
-}
+const initializeStore = async () => {
+  const operations = [];
 
-// no decodeURIComponent needed here - this arrives via sessionStorage as the raw URL, never
-// URL-encoded (unlike the old query-param delivery this replaced)
-operations.push(store.dispatch("api/setLmsApiOAuthURL", lmsApiOAuthURL));
-Promise.all(operations).then(startVue);
-
-function startVue() {
-  // always start with clean experiments list
-  store.dispatch("experiment/resetExperiment")
-  store.dispatch("experiment/resetExperiments")
-  store.dispatch("consent/resetConsent")
-
-  cleanURL()
-
-  if (lmsApiOAuthURL) {
-    router.replace({name: "oauth2-redirect"});
+  if (tokenParam) {
+        operations.push(api(pinia).setLtiToken(tokenParam));
   }
 
+  if (lmsApiOAuthURL) {
+    // no decodeURIComponent needed here - this arrives via sessionStorage as the raw URL, never
+    // URL-encoded (unlike the old query-param delivery this replaced)
+    operations.push(
+      api(pinia).setLmsApiOAuthURL(lmsApiOAuthURL)
+    );
+  }
+
+  await Promise.all(operations);
+};
+
+const resetInitialState = () => {
+  experimentStore(pinia).resetExperiment();
+  experimentStore(pinia).resetExperiments();
+  consentStore(pinia).resetConsent();
+};
+
+const configureAppProps = () => {
   if (integration.integration) {
-    appProps["integrationData"] = integration;
+    appProps.integrationData = integration;
   }
 
   if (obsolete.obsolete) {
-    appProps["obsoleteData"] = obsolete;
+    appProps.obsoleteData = obsolete;
   }
 
   if (treatmentPreview.preview) {
-    appProps["treatmentPreviewData"] = treatmentPreview;
+    appProps.treatmentPreviewData = treatmentPreview;
   }
+};
 
-  // status message alerts
+const registerRouteGuards = () => {
   router.beforeEach((to, from, next) => {
-    if (to.params && to.params.alertMessage) {
-      store.dispatch(
-        `alert/${to.params.alertType || store.getters["alert/statuses"].info}`,
-        to.params.alertMessage
-      );
-    } else {
-      let alert = store.getters["alert/alert"];
+    const aStore = alertStore();
 
-      if (alert && alert.message && alert.type) {
-        store.dispatch("alert/clear");
+    if (to.params?.alertMessage) {
+      const actionName = to.params.alertType || aStore.statuses.info;
+      aStore[actionName](to.params.alertMessage);
+    } else if (aStore.hasAlert) {
+      if (aStore.pendingClear) {
+        aStore.clear();
+      } else {
+        aStore.pendingClear = true;
       }
     }
 
-    // disable show skip link component
-    store.dispatch("configuration/update", {
+    configurationStore().update({
       name: "showSkipLink",
       value: false
     });
 
     next();
   });
+};
 
-  vm = new Vue({
-    store,
-    router,
-    vuetify,
-    props: ["integrationData", "obsoleteData", "treatmentPreviewData"],
-    render: h => h(App, {props: appProps}),
-  });
-
-  vm.$mount("#app");
-}
-
-function cleanURL() {
-  // delete the parameters from the url
-  for (const key of [...params.keys()]) {
-    params.delete(key);
-  }
-
-  // update the url without the params
+const cleanURL = () => {
   window.history.replaceState(
-      {},
-      "",
-      `${window.location.pathname}?${params}${window.location.hash}`,
-  )
-}
+    {},
+    "",
+    `${window.location.pathname}${window.location.hash}`
+  );
+};
+
+const startVue = () => {
+  resetInitialState();
+  configureAppProps();
+  cleanURL();
+  registerRouteGuards();
+
+  createApp(App, appProps)
+    .use(pinia)
+    .use(router)
+    .use(vuetify)
+    .mount("#app");
+
+  router.isReady().then(() => {
+    if (lmsApiOAuthURL) {
+      router.replace({ name: "oauth2-redirect" });
+    } else if (Object.keys(router.currentRoute.value.query).length) {
+      router.replace({ ...router.currentRoute.value, query: {} });
+    }
+  });
+};
+
+initializeStore().then(startVue);

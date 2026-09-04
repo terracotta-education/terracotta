@@ -1,147 +1,155 @@
-import { authHeader } from '@/helpers'
-import axios from 'axios'
-import store from '@/store/index.js'
+import { authHeader, fileAuthHeader } from "@/helpers";
+import axios from "axios";
+import { api } from "@/store/api.module";
 
-/**
- * Register methods
- */
 export const consentService = {
   create,
   update,
-  delete: _delete,
-  getConsentFile,
+  delete: deleteConsent,
+  getConsentFile
+};
+
+async function create(
+  experimentId,
+  pdfFile,
+  title
+) {
+  const formData = new FormData();
+  formData.append("consent", pdfFile);
+
+  const query = new URLSearchParams({
+    title: title || ""
+  });
+
+  try {
+    const response = await axios.post(
+      `${api().aud}/api/experiments/${experimentId}/consent?${query}`,
+      formData,
+      {
+        headers: {
+          ...fileAuthHeader()
+        }
+      }
+    );
+
+    return {
+      status: response.status,
+      message: response.statusText
+    };
+  } catch (error) {
+    if (error.response) {
+      return {
+        status: error.response.status,
+        message: error.response.statusText
+      };
+    }
+
+    throw error;
+  }
 }
 
-/**
- * Create Assignment
- */
-function create(experimentId, pdfFile, title) {
-  const requestOptions = {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-      ...authHeader()
+async function update(experimentId) {
+  return request(
+    `/api/experiments/${experimentId}/consent`,
+    {
+      method: "PUT"
     }
-  }
-
-  let formData = new FormData();
-  formData.append('consent', pdfFile);
-
-  // Axios was required for correct formData boundary
-  return (
-    axios
-      .post(
-        `${store.getters["api/aud"]}/api/experiments/${experimentId}/consent?title=${title}`,
-        formData,
-        requestOptions
-      )
-      // can't use handleResponse here since this is the Axios API, not Fetch API
-      .then((response) => {
-        return {
-          status: response.status,
-          message: response.statusText,
-        };
-      })
-      .catch((error) => {
-        if (error.response) {
-          return {
-            status: error.response.status,
-            message: error.response.statusText,
-          };
-        } else {
-          throw error; // re-raise error, something unexpected happened
-        }
-      })
   );
 }
 
-/**
- * Update Assignment
- */
-function update(experimentId) {
-  const requestOptions = {
-    method: 'PUT',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/consent`,
-    requestOptions
-  ).then(handleResponse)
-}
-
-/**
- * Get Consent File
- */
 async function getConsentFile(experimentId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: { ...authHeader() },
+  const response = await fetch(
+    `${api().aud}/api/experiments/${experimentId}/consent`,
+    {
+      method: "GET",
+      headers: {
+        ...authHeader()
+      }
+    }
+  );
+
+  return handleResponseFile(response);
+}
+
+async function deleteConsent(experimentId) {
+  return request(
+    `/api/experiments/${experimentId}/consent`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
+
+  const response = await fetch(`${api().aud}${path}`, {
+    method,
+    headers: {
+      ...authHeader(),
+      ...(body ? { "Content-Type": "application/json" } : {})
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
+
+  return handleResponse(response);
+}
+
+async function handleResponseFile(response) {
+  const data = await response.arrayBuffer();
+
+  const base = btoa(
+    new Uint8Array(data)
+      .reduce((binary, byte) => binary + String.fromCharCode(byte), "")
+  );
+
+  return {
+    status: response.status,
+    base
   };
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/consent`,
-    requestOptions
-  ).then(handleResponseFile)
 }
 
-/**
- * Delete Assignment
- *
- * (Prefixed function name with underscore because delete is a reserved word in javascript)
- */
-function _delete(experimentId) {
-  const requestOptions = {
-    method: 'DELETE',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
-  }
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
 
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/consent`,
-    requestOptions
-  ).then(handleResponse)
-}
+    if (response.status === 204) {
+      return [];
+    }
 
-/**
- * Handle API response
- */
-function handleResponseFile(response) {
-  return response.arrayBuffer().then((data) => {
-    const base64Str = Buffer.from(data).toString('base64');
-    return {status: response.status, base: base64Str}
-})
-}
+    if (response.status === 409) {
+      return {
+        message: data,
+        status: response.status
+      };
+    }
 
-/**
- * Handle API response
- */
-function handleResponse(response) {
-
-  return response
-    .text()
-    .then(text => {
-      const data = text && JSON.parse(text)
-
-      if (!response || !response.ok) {
-        if (
-          response.status === 401 ||
-          response.status === 402 ||
-          response.status === 500 ||
-          response.status === 404
-        ) {
-          console.log('handleResponse | 401/402/404/500', { response });
-        } else if (response.status === 409) {
-          return {
-            message: data
-          }
-        }
-
-        return response
+    if (!response?.ok) {
+      if ([401, 402, 404, 500].includes(response.status)) {
+        console.error("handleResponse | auth/not-found/server error", {
+          response
+        });
       }
 
-      console.log('handleResponse | then', { text, data, response });
-      return data || response
-    })
-    .catch((text) => {
-      console.log('handleResponse | catch', { text })
-    })
+      return {
+        status: response.status,
+        error: data || response
+      };
+    }
+
+    return data || response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

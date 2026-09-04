@@ -12,31 +12,27 @@
 </div>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
+
 import icon from "@/assets/conditions.svg";
 import SummaryData from "./components/SummaryData.vue";
 
-export default {
-  name: "Conditions",
-  components: {
-    SummaryData
-  },
-  props: {
-    conditionCount: {
-      type: Number,
-      required: false,
-      default: 0
-    }
-  },
-  data: () => ({
-    tooltip: "",
-    headerIcon: icon,
-    title: "Conditions"
-  }),
-  computed: {
-    count() {
-      return this.conditionCount;
-    }
+defineOptions({
+  name: "OverviewConditionsSummary"
+});
+
+const props = defineProps({
+  conditionCount: {
+    type: Number,
+    required: false,
+    default: 0
   }
-}
+});
+
+const tooltip = "";
+const headerIcon = icon;
+const title = "Conditions";
+
+const count = computed(() => props.conditionCount);
 </script>

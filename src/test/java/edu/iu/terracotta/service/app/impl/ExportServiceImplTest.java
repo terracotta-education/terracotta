@@ -32,6 +32,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -77,7 +78,6 @@ import edu.iu.terracotta.dao.repository.messaging.log.MessageLogRepository;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.messaging.MessageContentService;
 
-@SuppressWarnings({"PMD.LooseCoupling"})
 public class ExportServiceImplTest extends BaseTest {
 
     // NOTE: none of these mocks exist on BaseServiceTest/BaseRepositoryTest/BaseModelTest, so declaring
@@ -120,6 +120,8 @@ public class ExportServiceImplTest extends BaseTest {
     @InjectMocks
     private ExportServiceImpl exportService;
 
+    @TempDir private Path dataExportRoot;
+
     @BeforeEach
     public void beforeEach() throws IOException {
         MockitoAnnotations.openMocks(this);
@@ -129,6 +131,7 @@ public class ExportServiceImplTest extends BaseTest {
         ReflectionTestUtils.setField(exportService, "exportBatchSize", 50);
         ReflectionTestUtils.setField(exportService, "eventsOutputEnabled", true);
         ReflectionTestUtils.setField(exportService, "eventsOutputParticipantThreshold", 400);
+        ReflectionTestUtils.setField(exportService, "experimentDataExportLocalPathRoot", dataExportRoot.toString());
 
         doNothing().when(exportService).getReadMeFile(anyMap());
         doReturn('X').when(exportService).mapResponsePosition(anyLong(), anyLong(), anyList());

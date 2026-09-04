@@ -1,10 +1,12 @@
-import {authHeader, fileAuthHeader, isJson} from "@/helpers";
-import axios from "axios";
-import store from "@/store/index.js";
+import {
+  authHeader,
+  fileAuthHeader,
+  isJson
+} from "@/helpers";
 
-/**
- * Register methods
- */
+import axios from "axios";
+import { api } from "@/store/api.module";
+
 export const experimentService = {
   getAll,
   getById,
@@ -13,225 +15,246 @@ export const experimentService = {
   pollImport,
   pollImports,
   acknowledgeImport,
-  export: _export,
-  import: _import,
-  delete: _delete
-}
+  export: exportExperiment,
+  import: importExperiment,
+  delete: deleteExperiment
+};
 
-/**
- * Get all Experiments
- */
 async function getAll() {
-  const requestOptions = {
-    method: "GET",
-    headers: authHeader()
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments`, requestOptions).then(handleResponse);
-}
-
-/**
- * Create Experiment
- */
-async function create() {
-  const requestOptions = {
-    method: "POST",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: null
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments`, requestOptions).then(handleResponse);
-}
-
-/**
- * Get individual Experiment
- */
-async function getById(experimentId) {
-  const requestOptions = {
-    method: "GET",
-    headers: {...authHeader()}
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}?conditions=true`, requestOptions).then(handleResponse)
-}
-
-/**
- * Update Experiment
- */
-async function update(experiment) {
-  const requestOptions = {
-    method: "PUT",
-    headers: {...authHeader()},
-    body: JSON.stringify(experiment)
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experiment.experimentId}`, requestOptions).then(handleResponse);
-}
-
-/**
- * Delete Experiment
- *
- * (Prefixed function name with underscore because delete is a reserved word in javascript)
- */
-async function _delete(id) {
-  const requestOptions = {
-    method: "DELETE",
-    headers: authHeader()
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${id}`, requestOptions).then(handleResponse);
-}
-
-/**
- * Export Experiment
- */
-async function _export(experimentId) {
-  const requestOptions = {
-    method: "GET",
-    headers: {...authHeader()}
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/export`, requestOptions)
-    .then(async (response) => {
-      if (response.status !== 200) {
-        return handleResponse(response);
-      }
-      const contentDisposition = response.headers.get("content-disposition");
-      // Extract filename (if present)
-      let filename = null;
-      if (contentDisposition && contentDisposition.indexOf("filename") > -1) {
-          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-          if (filenameMatch && filenameMatch[1]) {
-              filename = filenameMatch[1].replace(/['"]/g, '');
-          }
-      }
-      const blob = await response.blob();
-      const newBlob = new Blob([blob]);
-      const url = window.URL.createObjectURL(newBlob, { type: "application/zip" });
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-
-      link.click();
-      link.remove();
-
-      return new Promise(resolve => {
-          setTimeout(() => {
-            resolve();
-          }, 1000);
-        });
-    });
-}
-
-/**
- * Import Experiment
- */
-async function _import(zipFile) {
-  const requestOptions = {
-    headers: {
-      "Content-Type": "multipart/form-data",
-      ...fileAuthHeader()
-    }
-  }
-
-  const formData = new FormData();
-  formData.append("file", zipFile);
-
-  // Axios was required for correct formData boundary
-  return (
-    axios
-      .post(
-        `${store.getters["api/aud"]}/api/experiments/import`,
-        formData,
-        requestOptions
-      )
-      // can't use handleResponse here since this is the Axios API, not Fetch API
-      .then((response) => {
-        return response.data;
-      })
-      .catch((error) => {
-        if (error.response) {
-          return {
-            status: error.response.status,
-            message: error.response.statusText,
-          };
-        } else {
-          throw error; // re-raise error, something unexpected happened
-        }
-      })
+  return request(
+    "/api/experiments"
   );
 }
 
-/**
- * Poll experiment import status
- */
-async function pollImport(importId) {
-  const requestOptions = {
-    method: "GET",
-    headers: {...authHeader()}
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/import/${importId}/poll`, requestOptions).then(handleResponse);
+async function create() {
+  return request(
+    "/api/experiments",
+    {
+      method: "POST"
+    }
+  );
 }
 
-/**
- * Poll all import status for user and context
- */
-async function pollImports() {
-  const requestOptions = {
-    method: "GET",
-    headers: {...authHeader()}
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/import/poll`, requestOptions).then(handleResponse);
+async function getById(experimentId) {
+  return request(
+    `/api/experiments/${experimentId}?conditions=true`
+  );
 }
 
-/**
- * Acknowledge import experiment status
- */
-async function acknowledgeImport(importId, status) {
-  const requestOptions = {
-    method: "PUT",
-    headers: {...authHeader()}
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/import/${importId}/acknowledge?status=${status}`, requestOptions).then(handleResponse);
+async function update(experiment) {
+  return request(
+    `/api/experiments/${experiment.experimentId}`,
+    {
+      method: "PUT",
+      body: experiment
+    }
+  );
 }
 
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-    .then((text) => {
-      const data = (text && isJson(text)) ? JSON.parse(text) : text
+async function deleteExperiment(id) {
+  return request(
+    `/api/experiments/${id}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
 
-      if (
-        !response ||
-        response.status === 401 ||
-        response.status === 402 ||
-        response.status === 500 ||
-        response.status === 404
-      ) {
-        console.log("handleResponse | 401/402/500", {response});
-      } else if (response.status === 409) {
-        return {
-          message: data
-        }
-      } else if (response.status === 204) {
-        console.log("handleResponse | 204", {text, data, response});
-        return [];
+async function exportExperiment(experimentId) {
+  const response = await fetch(
+    `${api().aud}/api/experiments/${experimentId}/export`,
+    {
+      method: "GET",
+      headers: {
+        ...authHeader()
       }
+    }
+  );
 
-      const dataResponse = (data) ? {
-        data,
-        status: response.status
-      } : null;
+  if (response.status !== 200) {
+    return handleResponse(response);
+  }
 
-      return dataResponse || response;
-    }).catch(text => {
-      console.log("handleResponse | catch", {text});
+  const contentDisposition =
+    response.headers.get("content-disposition");
+
+  let filename = "experiment-export.zip";
+
+  if (contentDisposition?.includes("filename")) {
+    const match = contentDisposition.match(
+      /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+    );
+
+    if (match?.[1]) {
+      filename = match[1].replace(/['"]/g, "");
+    }
+  }
+
+  const blob = await response.blob();
+
+  const url = window.URL.createObjectURL(
+    new Blob([blob], {
+      type: "application/zip"
     })
+  );
+
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+
+  document.body.appendChild(link);
+
+  link.click();
+  link.remove();
+
+  window.URL.revokeObjectURL(url);
+
+  return {
+    status: response.status
+  };
+}
+
+async function importExperiment(zipFile) {
+  const formData = new FormData();
+
+  formData.append("file", zipFile);
+
+  try {
+    const response = await axios.post(
+      `${api().aud}/api/experiments/import`,
+      formData,
+      {
+        headers: {
+          ...fileAuthHeader()
+        }
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      return {
+        status: error.response.status,
+        message: error.response.statusText
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function pollImport(importId) {
+  return request(
+    `/api/experiments/import/${importId}/poll`
+  );
+}
+
+async function pollImports() {
+  return request(
+    "/api/experiments/import/poll"
+  );
+}
+
+async function acknowledgeImport(
+  importId,
+  status
+) {
+  const query = new URLSearchParams({
+    status
+  });
+
+  return request(
+    `/api/experiments/import/${importId}/acknowledge?${query}`,
+    {
+      method: "PUT"
+    }
+  );
+}
+
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
+
+  const response = await fetch(
+    `${api().aud}${path}`,
+    {
+      method,
+      headers: {
+        ...authHeader(),
+        ...(body
+          ? {
+              "Content-Type":
+                "application/json"
+            }
+          : {})
+      },
+      ...(body
+        ? {
+            body: JSON.stringify(body)
+          }
+        : {})
+    }
+  );
+
+  return handleResponse(response);
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+
+    const data =
+      text && isJson(text)
+        ? JSON.parse(text)
+        : text;
+
+    if (response.status === 204) {
+      return [];
+    }
+
+    if (response.status === 409) {
+      return {
+        message: data,
+        status: response.status
+      };
+    }
+
+    if (!response?.ok) {
+      console.error(
+        "handleResponse | error",
+        {
+          response,
+          data
+        }
+      );
+
+      return {
+        data,
+        status: response.status,
+        error: data
+      };
+    }
+
+    return data
+      ? {
+          data,
+          status: response.status
+        }
+      : response;
+  } catch (error) {
+    console.error(
+      "handleResponse | catch",
+      {
+        error
+      }
+    );
+
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

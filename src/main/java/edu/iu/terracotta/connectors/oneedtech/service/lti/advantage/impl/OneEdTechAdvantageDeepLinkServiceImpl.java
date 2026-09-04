@@ -35,7 +35,6 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 @TerracottaConnector(LmsConnector.ONE_ED_TECH)
 public class OneEdTechAdvantageDeepLinkServiceImpl implements AdvantageDeepLinkService {
 

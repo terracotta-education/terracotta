@@ -49,7 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity> {
 
     private final ApiTokenRepository apiTokenRepository;

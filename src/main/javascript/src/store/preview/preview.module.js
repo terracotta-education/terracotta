@@ -1,24 +1,48 @@
-import {previewService} from "@/services";
+import { defineStore } from "pinia";
 
-const state = {}
+import { previewService } from "@/services";
 
-const actions = {
-  async treatment({state}, payload) {
-    // payload = experimentId, conditionId, treatmentId, previewId, ownerId
-    try {
-      const response = await previewService.treatmentPreview(...payload);
+export const preview = defineStore("preview", {
+  state: () => ({
+    treatmentPreview: null,
+    isLoading: false,
+    error: null
+  }),
 
-      if (response) {
-        return response.data;
+  getters: {
+    hasPreview: state => !!state.treatmentPreview
+  },
+
+  actions: {
+    async treatment(payload) {
+      try {
+        this.isLoading = true;
+        this.error = null;
+
+        const response =
+          await previewService.treatmentPreview(...payload);
+
+        const previewData = response?.data ?? null;
+
+        this.treatmentPreview = previewData;
+
+        return previewData;
+      } catch (error) {
+        console.error("preview/treatment | catch", error);
+
+        this.error = error;
+        this.treatmentPreview = null;
+
+        return null;
+      } finally {
+        this.isLoading = false;
       }
-    } catch (error) {
-      console.error("treatment catch", {error, state});
+    },
+
+    reset() {
+      this.treatmentPreview = null;
+      this.isLoading = false;
+      this.error = null;
     }
   }
-}
-
-export const preview = {
-  namespaced: true,
-  state,
-  actions
-}
+});

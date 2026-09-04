@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -20,10 +21,12 @@ import java.util.zip.ZipFile;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.export.data.ExperimentDataExport;
@@ -39,6 +42,8 @@ public class ExperimentDataExportAsyncServiceImplTest extends BaseTest {
 
     @InjectMocks private ExperimentDataExportAsyncServiceImpl experimentDataExportAsyncService;
 
+    @TempDir private Path dataExportRoot;
+
     private ExperimentDataExport experimentDataExport;
 
     @BeforeEach
@@ -46,6 +51,8 @@ public class ExperimentDataExportAsyncServiceImplTest extends BaseTest {
         MockitoAnnotations.openMocks(this);
 
         setup();
+
+        ReflectionTestUtils.setField(experimentDataExportAsyncService, "experimentDataExportLocalPathRoot", dataExportRoot.toString());
 
         when(experiment.getTitle()).thenReturn("My Experiment");
 

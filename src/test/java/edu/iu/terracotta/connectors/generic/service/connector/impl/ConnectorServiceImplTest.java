@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@SuppressWarnings({"PMD.LooseCoupling"})
 public class ConnectorServiceImplTest extends BaseTest {
 
     // named distinctly from BaseServiceTest's inherited canvasLmsOAuthService field (same type,

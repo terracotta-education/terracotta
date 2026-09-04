@@ -1,134 +1,147 @@
+import { defineStore } from "pinia";
+
 import { messageService } from "@/services";
 
-const state = {
-  assignments: [],
-  isLoading: false,
-  preview: null,
-  pipedText: null,
-  message: null
+function normalizePipedText(pipedText) {
+  if (!pipedText) {
+    return null;
+  }
+
+  return {
+    ...pipedText,
+    items: Array.isArray(pipedText.items)
+      ? pipedText.items.map(item => ({
+          ...item,
+          id: item.id || crypto.randomUUID()
+        }))
+      : []
+  };
 }
 
-const actions = {
-  async update(_, payload) {
-    // payload: experimentId, exposureId, containerId, messageId, message_dto
-    try {
-      return await messageService.update(...payload);
-    } catch (e) {
-      console.error("update catch", {e});
-    }
-  },
-  async fetchPreview({ commit }, payload) {
-    // payload: experimentId, exposureId, containerId, messageId, messagePreviewDto
-    try {
-      const response = await messageService.fetchPreview(...payload);
-      commit("setPreview", response);
-    } catch (e) {
-      console.error("fetchPreview catch", {e});
-    }
-  },
-  async sendTest(_, payload) {
-    // payload: experimentId, exposureId, containerId, messageId, messageSendTestDto
-    try {
-      await messageService.sendTest(...payload);
-    } catch (e) {
-      console.error("sendTest catch", {e});
-    }
-  },
-  async getAssignments({ commit }, payload) {
-    // payload: experimentId, exposureId, containerId
-    try {
-      commit("setIsLoading", true);
-      const response = await messageService.getAssignments(...payload);
-      commit("setAssignments", response);
-    } catch (e) {
-      console.error("update catch", {e});
-    } finally {
-      commit("setIsLoading", false);
-    }
-  },
-  async updatePlaceholders(_, payload) {
-    // payload: experimentId, exposureId, containerId, messageId, contentId, contentDto
-    try {
-      return await messageService.updatePlaceholders(...payload);
-    } catch (e) {
-      console.error("updatePlaceholders catch", {e});
-    }
-  },
-  async uploadPipedText({ commit }, payload) {
-    // payload: experimentId, exposureId, containerId, messageId, contentId, file
-    try {
-      // response = message DTO
-      const response = await messageService.uploadPipedText(...payload);
+export const message = defineStore("messagingMessage", {
+  state: () => ({
+    assignments: [],
+    isLoading: false,
+    preview: null,
+    pipedText: null,
+    message: null
+  }),
 
-      if (response) {
-        commit("setMessage", response);
-      } else {
-        // error occured
-        commit("setPipedText", null);
-        commit("setMessage", null);
+  getters: {
+    hasAssignments: state => state.assignments.length > 0,
+    hasPipedText: state => !!state.pipedText,
+    hasMessage: state => !!state.message
+  },
+
+  actions: {
+    setPreview(preview) {
+      this.preview = preview;
+    },
+
+    setPipedText(pipedText) {
+      this.pipedText = pipedText;
+    },
+
+    async update(payload) {
+      try {
+        return await messageService.update(...payload);
+      } catch (error) {
+        console.error("message/update | catch", error);
+
+        return null;
       }
+    },
 
-      return response;
-    } catch (e) {
-      console.error("pipedText catch", {e});
+    async fetchPreview(payload) {
+      try {
+        const response =
+          await messageService.fetchPreview(...payload);
+
+        this.preview = response;
+
+        return response;
+      } catch (error) {
+        console.error("message/fetchPreview | catch", error);
+
+        this.preview = null;
+
+        return null;
+      }
+    },
+
+    async sendTest(payload) {
+      try {
+        return await messageService.sendTest(...payload);
+      } catch (error) {
+        console.error("message/sendTest | catch", error);
+
+        return null;
+      }
+    },
+
+    async getAssignments(payload) {
+      try {
+        this.isLoading = true;
+
+        const response = await messageService.getAssignments(...payload);
+        const assignmentsData = Array.isArray(response) ? response : [];
+
+        this.assignments = assignmentsData;
+
+        return assignmentsData;
+      } catch (error) {
+        console.error("message/getAssignments | catch", error);
+
+        this.assignments = [];
+
+        return [];
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async updatePlaceholders(payload) {
+      try {
+        return await messageService.updatePlaceholders(...payload);
+      } catch (error) {
+        console.error("message/updatePlaceholders | catch", error);
+
+        return null;
+      }
+    },
+
+    async uploadPipedText(payload) {
+      try {
+        const response =
+          await messageService.uploadPipedText(...payload);
+
+        if (response) {
+          this.message = response;
+          this.pipedText = normalizePipedText(
+            response?.content?.pipedText || null
+          );
+        } else {
+          this.pipedText = null;
+          this.message = null;
+        }
+
+        return response || null;
+      } catch (error) {
+        console.error("message/uploadPipedText | catch", error);
+
+        this.pipedText = null;
+        this.message = null;
+
+        return null;
+      }
+    },
+
+    reset() {
+      this.assignments = [];
+      this.isLoading = false;
+      this.preview = null;
+      this.pipedText = null;
+      this.message = null;
     }
   }
-}
-
-const mutations = {
-  setAssignments(state, assignments) {
-    state.assignments = [...assignments];
-  },
-  setIsLoading(state, isLoading) {
-    state.isLoading = isLoading && state.assignments.length === 0;
-  },
-  setPreview(state, preview) {
-    state.preview = preview;
-  },
-  setPipedText(state, pipedText) {
-    state.pipedText = pipedText;
-  },
-  setMessage(state, message) {
-    state.message = message;
-
-    // update pipedText if it exists in the message
-    state.pipedText = message?.content?.pipedText || null;
-
-    if (state.pipedText) {
-      // ensure pipedText has a uuid for editor placement
-      state.pipedText.items = state.pipedText.items
-        .map(
-          item => ({
-            ...item,
-           id: item.id || crypto.randomUUID()
-          })
-        );
-    }
-  }
-}
-
-const getters = {
-  assignments: (state) => {
-    return state.assignments;
-  },
-  isLoading: (state) => {
-    return state.isLoading;
-  },
-  preview: (state) => {
-    return state.preview;
-  },
-  pipedText: (state) => {
-    return state.pipedText;
-  },
-  message: (state) => {
-    return state.message;
-  }
-}
-
-export const message = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+});

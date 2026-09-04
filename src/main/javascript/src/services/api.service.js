@@ -1,128 +1,130 @@
-import {authHeader, isJson} from '@/helpers'
-import store from '@/store/index'
+import { authHeader, isJson } from "@/helpers";
+import { pinia } from "@/pinia";
+import { api } from "@/store/api.module";
 
-/**
- * Register methods
- */
 export const apiService = {
   deepLinkJwt,
   getApiToken,
   getStepStatus,
   refreshToken,
   reportStep
-}
+};
 
-/**
- * get the lti token and set the api token
- */
 async function getApiToken(token) {
-  const requestOptions = {
-    method: 'POST',
+  const response = await fetch(`${api(pinia).aud}/api/oauth/trade`, {
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
     }
-  }
-  return fetch(`${store.getters['api/aud']}/api/oauth/trade`, requestOptions).then(response => {
-    if (response.ok) {
-      return response.text()
-    }
-  })
+  });
+
+  return response.ok ? response.text() : null;
 }
 
-/**
- * Refresh the api token
- */
 async function refreshToken() {
-  const requestOptions = {
-    method: 'POST',
-    headers: { ...authHeader()}
-  }
-
-  return fetch(`${store.getters['api/aud']}/api/oauth/refresh`, requestOptions).then(response => {
-    if (response.ok) {
-      return response.text()
+  const response = await fetch(`${api(pinia).aud}/api/oauth/refresh`, {
+    method: "POST",
+    headers: {
+      ...authHeader()
     }
-  })
+  });
+
+  return response.ok ? response.text() : null;
 }
 
-/**
- * Refresh the api token
- */
 async function deepLinkJwt(id) {
-  const requestOptions = {
+  const response = await fetch(`${api(pinia).aud}/deeplink/toJwt/${id}`, {
     method: "GET",
-    headers: { ...authHeader()}
-  }
-
-  return fetch(`${store.getters['api/aud']}/deeplink/toJwt/${id}`, requestOptions).then(response => {
-    if (response.ok) {
-      return response.text();
+    headers: {
+      ...authHeader()
     }
-  })
+  });
+
+  return response.ok ? response.text() : null;
 }
 
-/**
- * Report to the server which step has been completed
- */
-async function reportStep(experimentId, step, parameters, preferLmsChecks = false) {
-  const requestOptions = {
-    method: 'POST',
-    headers: {...authHeader()},
-    body: JSON.stringify({
-      'step': step,
-      'parameters': parameters
-    })
-  }
+async function reportStep(
+  experimentId,
+  step,
+  parameters,
+  preferLmsChecks = false
+) {
+  const response = await fetch(
+    `${api(pinia).aud}/api/experiments/${experimentId}/step?preferLmsChecks=${preferLmsChecks}`,
+    {
+      method: "POST",
+      headers: {
+        ...authHeader(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        step,
+        parameters
+      })
+    }
+  );
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/step?preferLmsChecks=${preferLmsChecks}`, requestOptions).then(handleResponse)
+  return handleResponse(response);
 }
 
-/**
- * Check the status of an async step batch (e.g. a participation-type roster prep) started by reportStep
- */
 async function getStepStatus(experimentId, batchId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: { ...authHeader()}
-  }
+  const response = await fetch(
+    `${api(pinia).aud}/api/experiments/${experimentId}/step/status/${batchId}`,
+    {
+      method: "GET",
+      headers: {
+        ...authHeader()
+      }
+    }
+  );
 
-  return fetch(`${store.getters['api/aud']}/api/experiments/${experimentId}/step/status/${batchId}`, requestOptions).then(handleResponse)
+  return handleResponse(response);
 }
 
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+    const data = text && isJson(text) ? JSON.parse(text) : text;
 
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-  .then(text => {
-    const data = (text && isJson(text)) ? JSON.parse(text) : text
-
-    if (
-      !response ||
-      response.status === 401 ||
-      response.status === 402 ||
-      response.status === 500 ||
-      response.status === 404
-    ) {
-      console.log('handleResponse | 401/402/500', {response})
-    } else if (response.status === 409) {
-      return {
-        message: data
-      }
-    } else if (response.status === 204) {
-      console.log('handleResponse | 204', {text, data, response})
-      return []
+    if (response.status === 204) {
+      return [];
     }
 
-    const dataResponse = (data) ? {
-      data,
-      status: response.status
-    } : null
+    if (response.status === 409) {
+      return {
+        message: data,
+        status: response.status
+      };
+    }
 
-    return dataResponse || response
-  }).catch(text => {
-    console.error('handleResponse | catch', {text})
-  })
+    if (!response?.ok) {
+      console.error("handleResponse | error", {
+        response,
+        data
+      });
+
+      return {
+        data,
+        status: response.status,
+        error: data
+      };
+    }
+
+    return data
+      ? {
+          data,
+          status: response.status
+        }
+      : response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

@@ -1,36 +1,108 @@
 .v-data-table {
   &--no-outline {
     border: none;
-    .v-data-table__wrapper {
+
+    // <v-table>'s root class is .v-table, not .v-data-table, so this component
+    // never picked up Home.vue's global `.v-data-table *:not(.v-icon) { color:
+    // black; font-size: 16px; }` rule that every real <v-data-table> in the app
+    // gets - matching it here so text renders the same as those other tables.
+    *:not(.v-icon) {
+      color: black !important;
+      font-size: 16px !important;
+    }
+
+    .v-table__wrapper {
       border: none;
     }
+
+    // thead keeps no border of its own (matching .v-data-table-alt's identical
+    // `thead * { border: none !important; }` below) - otherwise its default bottom border
+    // and the tbody's own top border (added next) sit right on top of one another
+    thead th {
+      border-bottom: none !important;
+    }
+
+    // rounded outline around just the body (not the header row), matching the same
+    // per-cell border/radius technique .v-data-table-alt uses below - border-radius on a
+    // <tbody> itself isn't reliable across browsers, so the four corner cells carry it instead
+    tbody {
+      tr {
+        td:first-child {
+          border-left: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        td:last-child {
+          border-right: 1px solid rgba(0, 0, 0, 0.2);
+        }
+      }
+
+      tr:first-child td {
+        border-top: 1px solid rgba(0, 0, 0, 0.2);
+
+        // overflow: hidden clips the hover fill (Vuetify's `hover` prop paints it as a
+        // per-td ::after, not a plain background - it won't otherwise respect the cell's
+        // own rounded corner) - same technique/rationale as .v-data-table-alt below
+        &:first-child {
+          border-top-left-radius: 10px;
+          overflow: hidden;
+        }
+
+        &:last-child {
+          border-top-right-radius: 10px;
+          overflow: hidden;
+        }
+      }
+
+      tr:last-child td {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+
+        &:first-child {
+          border-bottom-left-radius: 10px;
+          overflow: hidden;
+        }
+
+        &:last-child {
+          border-bottom-right-radius: 10px;
+          overflow: hidden;
+        }
+      }
+    }
+
+    // 20px matches .v-data-table-alt's own header/body padding below, so text lines up the
+    // same way it does in that table instead of sitting flush against the new border
     th:first-child,
     td:first-child {
-      padding-left: 0 !important;
+      padding-left: 20px !important;
     }
+
     th:last-child,
     td:last-child {
-      padding-right: 0 !important;
+      padding-right: 20px !important;
     }
   }
+
   &--light-header {
     th {
-      color: rgba(black, .6) !important;
+      color: rgba(black, 0.6) !important;
       font-weight: normal;
     }
   }
+
   &--sorted {
     .v-data-table-header + tbody > tr > td.text-start:first-child {
       width: 20px;
       border-bottom: 0 !important;
     }
+
     .v-data-table-header + tbody > tr > td.text-start:last-child {
       width: 20px;
       padding-right: 20px !important;
     }
   }
+
   &.grey {
     position: relative;
+
     &::before {
       content: "";
       position: absolute;
@@ -43,97 +115,155 @@
       z-index: -1;
     }
   }
-  .v-data-table__wrapper > table {
+
+  .v-table__wrapper > table {
     padding-top: 0 !important;
 
+    // min-height (not height): this rule lives outside any @layer, so it beats
+    // Vuetify's own layered CSS regardless of specificity - including the
+    // mobile-row override (`.v-data-table__tr--mobile > td { height: fit-content }`)
+    // that lets a stacked label/value cell grow past this row height once its
+    // content (e.g. a wrapped title plus the "Only One Version" chip) needs
+    // more room. A hard `height` here clipped/overlapped that content at
+    // narrow widths instead of letting the cell grow to fit it.
     > tbody > tr > td,
     > thead > tr > td,
     > tfoot > tr > td {
-      height: 40px;
+      min-height: 40px;
     }
   }
+
   th {
     font-weight: normal !important;
   }
+
   td.text-start {
     vertical-align: middle !important;
     line-height: 40px;
   }
+
   tbody table {
     padding: 8px 40px 0 !important;
   }
+
   .treatment-row > div.v-data-table {
     td {
       padding: 0;
     }
-    .v-data-table__wrapper > table {
+
+    .v-table__wrapper > table {
       padding-top: 0;
     }
   }
+
   .v-chip--only-one .v-chip__content {
     font-size: 14px !important;
   }
 }
+
 .v-data-table-alt {
   width: 100%;
   min-width: 100%;
-  transform: scale(.99);
-  >.v-data-table__wrapper {
+  transform: scale(0.99);
+
+  > .v-table__wrapper {
     overflow: visible;
     border: none !important;
-    >table {
+
+    > table {
       position: relative;
       border-spacing: 0;
-      >thead * {
-        border: none !important;
-        font-weight: normal;
-      }
-      >thead {
+
+      > thead {
         line-height: 1.2;
-        >tr {
-          & th:first-child {
+
+        * {
+          border: none !important;
+          font-weight: normal;
+        }
+
+        > tr {
+          th:first-child {
             padding-left: 20px !important;
           }
-          & th:last-child {
+
+          th:last-child {
             padding-right: 20px !important;
           }
         }
       }
-      >tbody {
-        &::before {
-          content: "";
-          position: absolute;
-          bottom: 0;
-          left: -1px;
-          display: block;
-          // width: 100%;
-          width: calc(100% + 2px);
-          height: calc(100% - 52px);
-          border-radius: 10px;
-          box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
-          -webkit-box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.12);
-          z-index: 1;
-          pointer-events: none;
-        }
-        >tr {
+
+      // real per-cell borders (not outline+border-radius on the tbody itself) so the
+      // rounded card border renders reliably across browsers - table-row-group boxes
+      // don't consistently honor border-radius on an outline - see the identical
+      // technique/rationale in ComponentTable.vue
+      > tbody {
+        > tr {
           &:hover {
             background: unset !important;
           }
+
+          > td:first-child {
+            border-left: 1px solid rgba(0, 0, 0, 0.2);
+          }
+
+          > td:last-child {
+            border-right: 1px solid rgba(0, 0, 0, 0.2);
+          }
+
           &:first-child {
-            >td {
+            > td {
               padding-top: 8px !important;
+              border-top: 1px solid rgba(0, 0, 0, 0.2);
+
+              // clip the hover fill (Vuetify paints it as a per-td ::after, not a plain
+              // background - it won't otherwise respect the cell's own rounded corner)
+              &:first-child {
+                border-top-left-radius: 10px;
+                overflow: hidden;
+              }
             }
           }
+
+          // desktop only: in a table whose rows can switch to Vuetify's mobile card
+          // layout (e.g. ComponentTable.vue's data-table-assignments), this row's
+          // structurally-last td in mobile is a small expand-chevron toggle, not a
+          // meaningful visual "right edge" - rounding it produces a stray corner with
+          // nothing else around it to make sense of. See the identical fix/rationale
+          // in ComponentTable.vue's own scoped styles.
+          &:first-child:not(.v-data-table__tr--mobile) > td:last-child {
+            border-top-right-radius: 10px;
+            overflow: hidden;
+          }
+
+          // divider under each component's row group. Vuetify's own CSS zeroes
+          // border-bottom on .v-data-table__tr--expanded from its "overrides" layer,
+          // so this unlayered rule is needed just to win it back. Excludes
+          // ComponentTable.vue's own expanded-row--mobile state, where this would
+          // draw a stray 1px line in the middle of the white gap between cards -
+          // see the identical exclusion/rationale in ComponentTable.vue.
+          &.v-data-table__tr--expanded:not(.expanded-row--mobile) > td {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+          }
+
           &:last-child {
-            >td {
+            > td {
               padding-bottom: 8px !important;
+              border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+
+              &:first-child {
+                border-bottom-left-radius: 10px;
+                overflow: hidden;
+              }
+
+              &:last-child {
+                border-bottom-right-radius: 10px;
+                overflow: hidden;
+              }
             }
           }
-          >td {
-            padding: 0 !important;
-            &:first-child {
-              padding-left: 0 !important;
-            }
+
+          > td {
             .v-data-table {
               margin-top: -6px;
             }
@@ -143,8 +273,9 @@
     }
   }
 }
+
 .data-table {
-  .v-data-table__wrapper {
+  .v-table__wrapper {
     > table {
       padding: 0 20px;
     }

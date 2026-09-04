@@ -45,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.CANVAS)
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity> {
 
     private final ApiTokenRepository apiTokenRepository;

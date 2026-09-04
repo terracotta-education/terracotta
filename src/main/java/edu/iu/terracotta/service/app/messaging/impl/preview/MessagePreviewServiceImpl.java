@@ -28,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 public class MessagePreviewServiceImpl implements MessagePreviewService {
 
     private final ParticipantRepository participantRepository;
