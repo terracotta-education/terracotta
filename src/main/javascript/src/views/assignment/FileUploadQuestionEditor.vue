@@ -1,29 +1,22 @@
 <template>
-<!-- proxy props and event listeners to question-editor -->
-<question-editor
-  v-bind="$props"
-  v-on="$listeners"
->
-  <p
-    class="ma-0 mb-3"
-  >
-    Note: Files must be smaller than 10MB
-  </p>
-</question-editor>
+  <QuestionEditor v-bind="$props">
+    <p class="ma-0 mb-3">
+      Note: Files must be smaller than 10MB
+    </p>
+  </QuestionEditor>
 </template>
 
-<script>
-import QuestionEditor from "./QuestionEditor.vue";
+<script setup>
+import QuestionEditor from "@/views/assignment/QuestionEditor.vue";
 
-export default {
-  components: {
-    QuestionEditor
-  },
-  props: {
-    question: {
-      type: Object,
-      required: true,
-    }
+defineOptions({
+  name: "FileUploadQuestionEditor"
+});
+
+defineProps({
+  question: {
+    type: Object,
+    required: true
   }
-};
+});
 </script>

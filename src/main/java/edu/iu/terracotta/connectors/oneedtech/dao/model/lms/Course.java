@@ -11,7 +11,6 @@ import lombok.Setter;
 @Setter
 @Builder
 @NoArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Course {
 

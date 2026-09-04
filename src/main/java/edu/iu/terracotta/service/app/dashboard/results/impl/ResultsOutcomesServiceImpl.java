@@ -60,7 +60,7 @@ import static edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUti
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"rawtypes", "unchecked", "PMD.LooseCoupling"})
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
 
     private final AssessmentRepository assessmentRepository;

@@ -1,86 +1,89 @@
-import { authHeader } from '@/helpers'
-import store from '@/store/index.js'
+import { authHeader } from "@/helpers";
+import { api } from "@/store/api.module";
 
-// /**
-//  * Register methods
-//  */
 export const exposuresService = {
   getAll,
   getById,
   createExposures
-}
+};
 
-/**
- * Get all Exposures
- */
 async function getAll(experimentId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures`,
-    requestOptions
-  ).then(handleResponse)
+  return request(
+    `/api/experiments/${experimentId}/exposures`
+  );
 }
 
-/**
- * Get individual Exposure
- */
-function getById(experimentId, exposureId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/${exposureId}`,
-    requestOptions
-  ).then(handleResponse)
+async function getById(
+  experimentId,
+  exposureId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}`
+  );
 }
 
-/**
- * Create Exposures for Experiment
- */
 async function createExposures(experimentId) {
-  const requestOptions = {
-    method: 'POST',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/exposures/create`,
-    requestOptions
-  ).then(handleResponse)
+  return request(
+    `/api/experiments/${experimentId}/exposures/create`,
+    {
+      method: "POST"
+    }
+  );
 }
 
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response
-    .text()
-    .then((text) => {
-      const data = text && JSON.parse(text)
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
 
-      if (!response || !response.ok) {
-        if (
-          response.status === 401 ||
-          response.status === 402 ||
-          response.status === 500
-        ) {
-          console.log('handleResponse | 401/402/500', { response })
-        } else if (response.status === 404) {
-          console.log('handleResponse | 404', { response })
-        }
+  const response = await fetch(`${api().aud}${path}`, {
+    method,
+    headers: {
+      ...authHeader(),
+      ...(body ? { "Content-Type": "application/json" } : {})
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
 
-        return response
+  return handleResponse(response);
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+
+    if (response.status === 204) {
+      return [];
+    }
+
+    if (!response?.ok) {
+      if ([401, 402, 500].includes(response.status)) {
+        console.error("handleResponse | auth/server error", {
+          response
+        });
+      } else if (response.status === 404) {
+        console.warn("handleResponse | not found", {
+          response
+        });
       }
 
-      return data || response
-    })
-    .catch((text) => {
-      console.log('handleResponse | catch', { text })
-    })
+      return {
+        status: response.status,
+        error: data || response
+      };
+    }
+
+    return data || response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

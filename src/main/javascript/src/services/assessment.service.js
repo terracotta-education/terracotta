@@ -1,9 +1,6 @@
-import {authHeader, isJson} from "@/helpers";
-import store from "@/store/index.js";
+import { authHeader, isJson } from "@/helpers";
+import { api } from "@/store/api.module";
 
-/**
- * Register methods
- */
 export const assessmentService = {
   fetchAssessment,
   fetchAssessmentForSubmission,
@@ -12,63 +9,69 @@ export const assessmentService = {
   updateAssessment,
   createQuestion,
   updateQuestion,
+  updateQuestions,
   deleteQuestion,
   deleteQuestions,
   createAnswer,
   updateAnswer,
+  updateAnswers,
   deleteAnswer,
   regradeQuestions
+};
+
+
+async function fetchAssessment(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId
+) {
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}?questions=true&answers=true&submissions=true`
+  );
 }
 
-/**
- * Fetch Assessment
- */
-async function fetchAssessment(experimentId, conditionId, treatmentId, assessmentId) {
-  const requestOptions = {
-    method: "GET",
-    headers: {...authHeader()}
-  }
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}?questions=true&answers=true&submissions=true`, requestOptions).then(handleResponse);
+async function fetchAssessmentForSubmission(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  submissionId
+) {
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}?questions=true&answers=true&submission_id=${submissionId}`
+  );
 }
 
-async function fetchAssessmentForSubmission(experimentId, conditionId, treatmentId, assessmentId, submissionId) {
-  const requestOptions = {
-    method: "GET",
-    headers: {...authHeader()}
-  }
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}?questions=true&answers=true&submission_id=${submissionId}`, requestOptions).then(handleResponse);
+async function fetchAssessments(
+  experimentId,
+  conditionId,
+  treatmentId
+) {
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments`
+  );
 }
 
-/**
- * Fetch Assessments
- */
-async function fetchAssessments(experimentId, conditionId, treatmentId) {
-  const requestOptions = {
-    method: "GET",
-    headers: {...authHeader()}
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments`, requestOptions).then(handleResponse);
+async function createAssessment(
+  experimentId,
+  conditionId,
+  treatmentId,
+  title,
+  body
+) {
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments`,
+    {
+      method: "POST",
+      body: {
+        title,
+        html: body
+      }
+    }
+  );
 }
 
-/**
- * Create Assessment
- */
-async function createAssessment(experimentId, conditionId, treatmentId, title, body) {
-  const requestOptions = {
-    method: "POST",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify({
-      "html": body
-    })
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments`, requestOptions).then(handleResponse);
-}
-
-/**
- * Update Assessment
- */
 async function updateAssessment(
   experimentId,
   conditionId,
@@ -86,72 +89,69 @@ async function updateAssessment(
   hoursBetweenSubmissions,
   cumulativeScoringInitialPercentage
 ) {
-  const requestOptions = {
-    method: "PUT",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify({
-      "html": body,
-      allowStudentViewResponses,
-      studentViewResponsesAfter,
-      studentViewResponsesBefore,
-      allowStudentViewCorrectAnswers,
-      studentViewCorrectAnswersAfter,
-      studentViewCorrectAnswersBefore,
-      numOfSubmissions,
-      multipleSubmissionScoringScheme,
-      hoursBetweenSubmissions,
-      cumulativeScoringInitialPercentage
-    })
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}`, requestOptions).then(handleResponse);
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}`,
+    {
+      method: "PUT",
+      body: {
+        html: body,
+        allowStudentViewResponses,
+        studentViewResponsesAfter,
+        studentViewResponsesBefore,
+        allowStudentViewCorrectAnswers,
+        studentViewCorrectAnswersAfter,
+        studentViewCorrectAnswersBefore,
+        numOfSubmissions,
+        multipleSubmissionScoringScheme,
+        hoursBetweenSubmissions,
+        cumulativeScoringInitialPercentage
+      }
+    }
+  );
 }
 
-/**
- * Regrade Assessment Questions
- */
-async function regradeQuestions(experimentId, conditionId, treatmentId, assessmentId, body) {
-  const requestOptions = {
-    method: "POST",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify(body)
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/regrade`, requestOptions).then(handleResponse);
+async function regradeQuestions(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  body
+) {
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/regrade`,
+    {
+      method: "POST",
+      body
+    }
+  );
 }
 
-/**
- * Create Question
- */
 async function createQuestion(
   experimentId,
   conditionId,
   treatmentId,
   assessmentId,
-  question_order,
-  question_type,
+  questionOrder,
+  questionType,
   points,
   html,
   integrationClientId
 ) {
-  const requestOptions = {
-    method: "POST",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify({
-      questionOrder: question_order,
-      questionType: question_type,
-      points,
-      html,
-      integrationClientId
-    })
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions`, requestOptions).then(handleResponse);
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions`,
+    {
+      method: "POST",
+      body: {
+        questionOrder,
+        questionType,
+        points,
+        html,
+        integrationClientId
+      }
+    }
+  );
 }
 
-/**
- * Update Question
- */
 async function updateQuestion(
   experimentId,
   conditionId,
@@ -166,26 +166,39 @@ async function updateQuestion(
   answers,
   integration
 ) {
-  const requestOptions = {
-    method: "PUT",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify({
-      html,
-      points,
-      questionOrder,
-      questionType,
-      randomizeAnswers,
-      answers,
-      integration
-    })
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}`, requestOptions).then(handleResponse);
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}`,
+    {
+      method: "PUT",
+      body: {
+        html,
+        points,
+        questionOrder,
+        questionType,
+        randomizeAnswers,
+        answers,
+        integration
+      }
+    }
+  );
 }
 
-/**
- * Delete Question
- */
+async function updateQuestions(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  questions
+) {
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions`,
+    {
+      method: "PUT",
+      body: questions
+    }
+  );
+}
+
 async function deleteQuestion(
   experimentId,
   conditionId,
@@ -193,17 +206,14 @@ async function deleteQuestion(
   assessmentId,
   questionId
 ) {
-  const requestOptions = {
-    method: "DELETE",
-    headers: {...authHeader()}
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}`, requestOptions).then(handleResponse);
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}`,
+    {
+      method: "DELETE"
+    }
+  );
 }
 
-/**
- * Delete Questions
- */
 async function deleteQuestions(
   experimentId,
   conditionId,
@@ -211,20 +221,15 @@ async function deleteQuestions(
   assessmentId,
   questions
 ) {
-  const requestOptions = {
-    method: "DELETE",
-    headers: {...authHeader()},
-    body: JSON.stringify(
-      questions
-    )
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions`, requestOptions).then(handleResponse);
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions`,
+    {
+      method: "DELETE",
+      body: questions
+    }
+  );
 }
 
-/**
- * Create Answer
- */
 async function createAnswer(
   experimentId,
   conditionId,
@@ -235,22 +240,19 @@ async function createAnswer(
   correct,
   answerOrder
 ) {
-  const requestOptions = {
-    method: "POST",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify({
-      html,
-      correct,
-      answerOrder
-    })
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers`, requestOptions).then(handleResponse);
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers`,
+    {
+      method: "POST",
+      body: {
+        html,
+        correct,
+        answerOrder
+      }
+    }
+  );
 }
 
-/**
- * Update Answer
- */
 async function updateAnswer(
   experimentId,
   conditionId,
@@ -258,70 +260,123 @@ async function updateAnswer(
   assessmentId,
   questionId,
   answerId,
-  answer_type,
+  answerType,
   html,
   correct,
-  answer_order
+  answerOrder
 ) {
-  const requestOptions = {
-    method: "PUT",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify({
-      "answerType": answer_type,
-      html,
-      correct,
-      "answerOrder": answer_order
-    })
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers/${answerId}`, requestOptions).then(handleResponse);
-}
-
-/**
- * Delete Answer
- */
-async function deleteAnswer(experimentId, conditionId, treatmentId, assessmentId, questionId, answerId) {
-  const requestOptions = {
-    method: "DELETE",
-    headers: {...authHeader()}
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers/${answerId}`, requestOptions).then(handleResponse);
-}
-
-
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-  .then(text => {
-    const data = (text && isJson(text)) ? JSON.parse(text) : text
-
-    if (
-      !response ||
-      response.status === 401 ||
-      response.status === 402 ||
-      response.status === 500 ||
-      response.status === 404
-    ) {
-      console.log("handleResponse | 401/402/500", {response});
-    } else if (response.status === 409) {
-      return {
-        message: data
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers/${answerId}`,
+    {
+      method: "PUT",
+      body: {
+        answerType,
+        html,
+        correct,
+        answerOrder
       }
-    } else if (response.status === 204) {
-      console.log("handleResponse | 204", {text, data, response});
+    }
+  );
+}
+
+async function updateAnswers(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  questionId,
+  answers
+) {
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers`,
+    {
+      method: "PUT",
+      body: answers
+    }
+  );
+}
+
+async function deleteAnswer(
+  experimentId,
+  conditionId,
+  treatmentId,
+  assessmentId,
+  questionId,
+  answerId
+) {
+  return request(
+    `/api/experiments/${experimentId}/conditions/${conditionId}/treatments/${treatmentId}/assessments/${assessmentId}/questions/${questionId}/answers/${answerId}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
+
+  const response = await fetch(`${api().aud}${path}`, {
+    method,
+    headers: {
+      ...authHeader(),
+      ...(body ? { "Content-Type": "application/json" } : {})
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
+
+  return handleResponse(response);
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+
+    const data =
+      text && isJson(text)
+        ? JSON.parse(text)
+        : text;
+
+    if (response.status === 204) {
       return [];
     }
 
-    const dataResponse = (data) ? {
-      data,
-      status: response.status
-    } : null;
+    if (response.status === 409) {
+      return {
+        message: data,
+        status: response.status
+      };
+    }
 
-    return dataResponse || response;
-  }).catch(text => {
-    console.error("handleResponse | catch", {text});
-  })
+    if (!response?.ok) {
+      console.error("handleResponse | error", {
+        response,
+        data
+      });
+
+      return {
+        data,
+        status: response.status,
+        error: data
+      };
+    }
+
+    return data
+      ? {
+          data,
+          status: response.status
+        }
+      : response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

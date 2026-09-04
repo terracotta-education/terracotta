@@ -1,92 +1,67 @@
 <template>
 <v-container
-  class="container-results-dashboard p-0"
+  class="container-results-dashboard pa-0"
+  fluid
 >
   <v-row>
     <v-col
       cols="12"
       class="px-0"
     >
-      <v-tabs
-        v-model="tab"
-        elevation="0"
-      >
+      <v-tabs v-model="tab">
         <v-tab
           v-for="item in setupTabs"
           :key="item.tab"
+          :value="item.tab"
         >
-          {{ item.tab }}
+          {{ item.title }}
         </v-tab>
       </v-tabs>
-      <v-divider></v-divider>
-      <v-tabs-items
-        v-model="tab"
-      >
-        <v-tab-item
+      <v-divider />
+      <v-window v-model="tab">
+        <v-window-item
           v-for="item in setupTabs"
-          :class="item.tab"
           :key="item.tab"
-          :transition="false"
+          :value="item.tab"
+          :class="item.tab"
           class="tab-section pt-0"
         >
-          <div
-            class="tab-heading"
-          >
-            <template
-              v-if="item.tab === 'overview'"
-            >
-              <Overview />
-            </template>
-            <template
-              v-if="item.tab === 'outcomes'"
-            >
-              <Outcomes />
-            </template>
-          </div>
-        </v-tab-item>
-      </v-tabs-items>
+          <Overview v-if="item.tab === 'overview'" />
+          <Outcomes v-if="item.tab === 'outcomes'" />
+        </v-window-item>
+      </v-window>
     </v-col>
   </v-row>
 </v-container>
 </template>
 
-<script>
-import Overview from "./overview/Overview";
-import Outcomes from "./outcomes/Outcomes";
+<script setup>
+import { ref } from "vue";
 
-export default {
-  name: "ResultsDashboard",
-  components: {
-    Overview,
-    Outcomes
+import Overview from "./overview/Overview.vue";
+import Outcomes from "./outcomes/Outcomes.vue";
+
+defineOptions({
+  name: "ResultsDashboard"
+});
+
+const tab = ref("overview");
+
+const setupTabs = [
+  {
+    title: "Overview",
+    tab: "overview"
   },
-  data: () => ({
-    tab: null,
-    items: ["overview", "outcomes"],
-    setupTabs: [
-      {
-        title: "Overview",
-        tab: "overview"
-      },
-      {
-        title: "Outcomes",
-        tab: "outcomes"
-      }
-    ]
-  })
-};
+  {
+    title: "Outcomes",
+    tab: "outcomes"
+  }
+];
 </script>
 
 <style lang="scss" scoped>
-@import "~@/styles/variables";
-
 div.container-results-dashboard {
   flex-direction: column;
   justify-content: space-evenly;
-  & div.v-tabs-bar {
-    > div.v-slide-group__wrapper {
-      background-color: map-get($grey, "extreme-light");
-    }
-  }
 }
 </style>

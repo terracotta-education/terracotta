@@ -1,9 +1,6 @@
-import { authHeader } from "@/helpers"
-import store from "@/store/index.js"
+import { authHeader } from "@/helpers";
+import { api } from "@/store/api.module";
 
-/**
- * Register methods
- */
 export const messageContainerService = {
   getAll,
   create,
@@ -13,133 +10,170 @@ export const messageContainerService = {
   deleteContainer,
   move,
   duplicate
-}
+};
 
-/**
- * Get all message containers for an experiment and owner
- */
 async function getAll(experimentId, exposureId) {
-    const requestOptions = {
-      method: "GET",
-      headers: {...authHeader()}
-    }
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container`
+  );
+}
 
-    return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container`, requestOptions).then(handleResponse);
-  }
-
-/**
- * Create message container and all child messages
- */
 async function create(experimentId, exposureId, single) {
-  const requestOptions = {
-    method: "POST",
-    headers: { ...authHeader(), "Content-Type": "application/json" }
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container?single=${single}`, requestOptions).then(handleResponse);
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container?single=${single}`,
+    {
+      method: "POST"
+    }
+  );
 }
 
-/**
- * Update message container
- */
-async function update(experimentId, exposureId, containerId, message_container_dto) {
-  const requestOptions = {
-    method: "PUT",
-    headers: { ...authHeader(), "Content-Type": "application/json" },
-    body: JSON.stringify(
-      message_container_dto
-    )
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}`, requestOptions).then(handleResponse);
+async function update(
+  experimentId,
+  exposureId,
+  containerId,
+  messageContainerDto
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}`,
+    {
+      method: "PUT",
+      body: messageContainerDto
+    }
+  );
 }
 
-/**
- * Update containers
- */
-async function updateAll(experimentId, exposureId, container_dto) {
-  const requestOptions = {
-    method: "PUT",
-    headers: { ...authHeader(), "Content-Type": "application/json" },
-    body: JSON.stringify([
-        ...container_dto
-    ])
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container`, requestOptions).then(handleResponse);
+async function updateAll(
+  experimentId,
+  exposureId,
+  containerDto
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container`,
+    {
+      method: "PUT",
+      body: [...containerDto]
+    }
+  );
 }
 
-/**
- * Mark message container and all child messages as ready to send
- */
-async function send(experimentId, exposureId, containerId) {
-  const requestOptions = {
-    method: "POST",
-    headers: { ...authHeader(), "Content-Type": "application/json" }
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/send`, requestOptions).then(handleResponse);
+async function send(
+  experimentId,
+  exposureId,
+  containerId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/send`,
+    {
+      method: "POST"
+    }
+  );
 }
 
-/**
- * Delete message container
- */
-async function deleteContainer(experimentId, exposureId, containerId) {
-    const requestOptions = {
-      method: "DELETE",
-      headers: { ...authHeader(), "Content-Type": "application/json" }
+async function deleteContainer(
+  experimentId,
+  exposureId,
+  containerId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}`,
+    {
+      method: "DELETE"
+    }
+  );
+}
+
+async function move(
+  experimentId,
+  exposureId,
+  containerId,
+  containerDto
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/move`,
+    {
+      method: "POST",
+      body: containerDto
+    }
+  );
+}
+
+async function duplicate(
+  experimentId,
+  exposureId,
+  containerId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/duplicate`,
+    {
+      method: "POST"
+    }
+  );
+}
+
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
+
+  const requestOptions = {
+    method,
+    headers: {
+      ...authHeader(),
+      ...(body ? { "Content-Type": "application/json" } : {})
+    },
+    ...(body
+      ? { body: JSON.stringify(body) }
+      : {})
+  };
+
+  const response = await fetch(
+    `${api().aud}${path}`,
+    requestOptions
+  );
+
+  return handleResponse(response);
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+
+    const data = text
+      ? JSON.parse(text)
+      : null;
+
+    if (response.status === 204) {
+      return [];
     }
 
-    return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}`, requestOptions).then(handleResponse);
-  }
-
-/**
- * Move message container
- */
-async function move(experimentId, exposureId, containerId, container_dto) {
-  const requestOptions = {
-    method: "POST",
-    headers: {...authHeader()},
-    body: JSON.stringify(
-      container_dto
-    )
-  }
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/move`, requestOptions).then(handleResponse);
-}
-
-/**
- * Duplicate message container
- */
-async function duplicate(experimentId, exposureId, containerId) {
-  const requestOptions = {
-    method: "POST",
-    headers: {...authHeader()}
-  }
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/exposures/${exposureId}/messaging/container/${containerId}/duplicate`, requestOptions).then(handleResponse);
-}
-
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-    .then(text => {
-      const data = text && JSON.parse(text);
-
-      if (!response || !response.ok) {
-        if (response.status === 401 || response.status === 402 || response.status === 500) {
-          console.log("handleResponse | 401/402/500",{response});
-        } else if (response.status === 404) {
-          console.log("handleResponse | 404",{response});
-        }
-
-        return response;
-      } else if (response.status === 204) {
-        return [];
+    if (!response?.ok) {
+      if ([401, 402, 500].includes(response.status)) {
+        console.error(
+          "handleResponse | auth/server error",
+          { response }
+        );
+      } else if (response.status === 404) {
+        console.warn(
+          "handleResponse | not found",
+          { response }
+        );
       }
 
-      return data || response;
-    }).catch(text => {
-      console.error("handleResponse | catch",{text});
-    })
+      return {
+        status: response.status,
+        error: data || response
+      };
+    }
+
+    return data || response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return {
+      error
+    };
+  }
 }

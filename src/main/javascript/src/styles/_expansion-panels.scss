@@ -1,12 +1,17 @@
+@use "sass:map";
+@use "@/styles/variables" as *;
+@use "vuetify/styles" as v;
+
 .v-expansion-panels {
   .v-expansion-panel {
     &--selected {
-      border-color: map-get($light-blue, "base") !important;
+      border-color: map.get(v.$light-blue, "base") !important;
     }
   }
+
   &--outlined {
     .v-expansion-panel {
-      border: 2px solid map-get($grey, "lighten-2");
+      border: 2px solid map.get($grey, "lighten-2");
       margin-top: 0 !important;
 
       &:not(:last-child) {
@@ -14,34 +19,39 @@
       }
     }
   }
+
   &--icon {
     .v-expansion-panel {
       padding: 30px;
-      border: 2px solid map-get($grey, "lighten-2");
+      border: 2px solid map.get($grey, "lighten-2");
       border-radius: 10px;
       margin-bottom: 10px;
 
-      &-header {
+      &-title {
         padding: 0 !important;
         min-height: 1em !important;
+
         > img {
           max-width: 20px;
           margin-right: 10px;
         }
       }
-      &-content {
+
+      &-text {
         font-size: 14px;
-        color: rgba(0,0,0,0.6);
-        .v-expansion-panel-content__wrap {
+        color: rgba(0, 0, 0, 0.6);
+
+        .v-expansion-panel-text__wrapper {
           padding: 10px 0 0 0 !important;
         }
       }
+
       &--active {
         margin: 0 !important;
-        border-color: map-get($light-blue, "base");
-        text-align:center;
+        border-color: map.get(v.$light-blue, "base");
+        text-align: center;
 
-        .v-expansion-panel-header{
+        .v-expansion-panel-title {
           text-align: center;
           flex-direction: column;
           font-weight: bold;

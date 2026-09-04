@@ -1,212 +1,229 @@
 <template>
-<div
-  class="file-list"
->
-  <v-menu
-    v-model="menu"
-    :close-on-content-click="false"
-    :nudge-width="200"
-    offset-x
-  >
-    <template v-slot:activator="{ on, attrs }">
-      <v-btn
-        v-bind="attrs"
-        v-on="on"
-        aria-label="add attachments to message"
-        text
-      >
-        <v-icon>mdi-paperclip</v-icon>
-        <span
-          v-if="selectedFiles.length"
-          class="ml-2"
-        >
-          ({{ selectedFiles.length }})
-        </span>
-      </v-btn>
-    </template>
-
-    <v-card
-      class="file-list-menu"
+  <div class="file-list">
+    <v-menu
+      v-model="menu"
+      :close-on-content-click="false"
+      width="500"
+      location="end"
     >
-      <v-list>
-        <v-list-item>
-          <v-list-item-content>
-            <v-list-item-title
-              class="mb-3"
-            >
+      <template #activator="{ props: menuProps }">
+        <v-btn
+          v-bind="menuProps"
+          aria-label="add attachments to message"
+          variant="text"
+        >
+          <v-icon>mdi-paperclip</v-icon>
+
+          <span
+            v-if="selectedFiles.length"
+            class="ml-2"
+          >
+            ({{ selectedFiles.length }})
+          </span>
+        </v-btn>
+      </template>
+
+      <v-card class="file-list-menu">
+        <v-list>
+          <v-list-item>
+            <v-list-item-title class="mb-3">
               Select files to attach
             </v-list-item-title>
-            <v-list-item-subtitle
-              class="file-list-subtitle"
-            >
+
+            <v-list-item-subtitle class="file-list-subtitle">
               <div>
-                Please choose the file(s) you want to attach from the list below. If your file isn't there, please add it to
+                Please choose the file(s) you want to attach from the list below.
+                If your file isn't there, please add it to
                 <a
                   :href="myFilesUrl"
                   target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  My Files > conversation attachments
+                  My Files &gt; conversation attachments
                 </a>
                 and try again.
               </div>
+
               <v-btn
                 :disabled="isRefreshingFiles || readOnly"
-                @click="refreshFiles"
+                :loading="isRefreshingFiles"
                 color="primary"
                 class="mt-3 px-0"
-                text
+                variant="text"
+                @click="refreshFiles"
               >
                 Refresh File List
               </v-btn>
             </v-list-item-subtitle>
-          </v-list-item-content>
-        </v-list-item>
-      </v-list>
-      <v-divider />
-      <v-list>
-        <v-list-item
-          v-for="(file) in files"
-          :key="file.lmsId"
-        >
-          <v-list-item-action>
+          </v-list-item>
+        </v-list>
+
+        <v-divider />
+
+        <v-list>
+          <v-list-item
+            v-for="file in files"
+            :key="file.lmsId"
+          >
             <v-checkbox
               v-model="selectedFiles"
               :label="label(file)"
               :value="file.lmsId"
               :disabled="readOnly"
-            ></v-checkbox>
-          </v-list-item-action>
-        </v-list-item>
-      </v-list>
-      <v-card-actions>
-        <v-spacer />
-        <v-btn
-          color="primary"
-          @click="menu = false"
-          text
-        >
-          Done
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-menu>
-</div>
+              hide-details
+            />
+          </v-list-item>
+        </v-list>
+
+        <v-card-actions>
+          <v-spacer />
+
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="menu = false"
+          >
+            Done
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-menu>
+  </div>
 </template>
 
-<script>
-import { mapGetters, mapActions, mapMutations } from "vuex";
+<script setup>
+import {
+  ref,
+  computed,
+  onMounted
+} from "vue";
 
-export default {
-  props: {
-    experimentId: {
-      type: Number,
-      required: true
-    },
-    exposureId: {
-      type: String,
-      required: true
-    },
-    containerId: {
-      type: String,
-      required: true
-    },
-    messageId: {
-      type: String,
-      required: true
-    },
-    contentId: {
-      type: String,
-      required: true
-    },
-    readOnly: {
-      type: Boolean,
-      default: false
-    }
-  },
-  data: () => ({
-    menu: false,
-    isRefreshingFiles: false
-  }),
-  computed: {
-    ...mapGetters({
-      all: "messagingContentAttachment/get",
-      allMessageContainers: "messagingMessageContainer/messageContainers"
-    }),
-    container() {
-      return this.allMessageContainers.find(container => container.id === this.containerId);
-    },
-    message() {
-      return this.container.messages.find(message => message.id === this.messageId);
-    },
-    content() {
-      return this.message.content;
-    },
-    attachments: {
-      get() {
-        return this.content.attachments || [];
-      },
-      set(newAttachments) {
-        this.content.attachments = newAttachments;
-      }
-    },
-    selectedFiles: {
-      get() {
-        return this.attachments.map(file => file.lmsId);
-      },
-      set(newSelectedFiles) {
-        this.attachments = this.files.filter(file => newSelectedFiles.includes(file.lmsId));
-      }
-    },
-    files() {
-      if (!this.all || !this.all.length) {
-        return this.attachments;
-      }
+import { attachment as messagingContentAttachmentModule } from "@/store/messaging/attachment.module";
+import { container as messagingMessageContainerModule } from "@/store/messaging/container.module";
 
-      return [...this.attachments, ...this.all.filter(file => !this.attachments.some(att => att.lmsId === file.lmsId))];
-    },
-    buttonColor() {
-      return this.readOnly ? "disabled" : "primary";
-    },
-    myFilesUrl() {
-      return this.container.myFilesUrl || "";
-    }
+defineOptions({
+  name: "FileList"
+});
+
+const props = defineProps({
+  experimentId: {
+    type: Number,
+    required: true
   },
-  methods: {
-    ...mapActions({
-      get: "messagingContentAttachment/getAll"
-    }),
-    ...mapMutations({
-      set: "messagingContentAttachment/set"
-    }),
-    label(file) {
-      return file.displayName || file.filename || "Untitled";
-    },
-    async refreshFiles() {
-      this.isRefreshingFiles = true;
-      await this.get(
-        [
-          this.experimentId,
-          this.exposureId,
-          this.containerId,
-          this.messageId,
-          this.contentId
-        ]
-      );
-      this.isRefreshingFiles = false;
-    }
+  exposureId: {
+    type: String,
+    required: true
   },
-  async mounted() {
-    await this.get(
-      [
-        this.experimentId,
-        this.exposureId,
-        this.containerId,
-        this.messageId,
-        this.contentId
-      ]
+  containerId: {
+    type: String,
+    required: true
+  },
+  messageId: {
+    type: String,
+    required: true
+  },
+  contentId: {
+    type: String,
+    required: true
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const messagingContentAttachmentStore = messagingContentAttachmentModule();
+const messagingMessageContainerStore = messagingMessageContainerModule();
+
+const menu = ref(false);
+const isRefreshingFiles = ref(false);
+
+const all = computed(() => {
+  return messagingContentAttachmentStore.attachments || [];
+});
+
+const allMessageContainers = computed(() => {
+  return messagingMessageContainerStore.messageContainers || [];
+});
+
+const container = computed(() => {
+  return allMessageContainers.value.find(
+    currentContainer => currentContainer.id === props.containerId
+  );
+});
+
+const message = computed(() => {
+  return container.value?.messages.find(
+    currentMessage => currentMessage.id === props.messageId
+  );
+});
+
+const content = computed(() => {
+  return message.value?.content || {};
+});
+
+const attachments = computed({
+  get() {
+    return content.value.attachments || [];
+  },
+
+  set(value) {
+    content.value.attachments = value;
+  }
+});
+
+const selectedFiles = computed({
+  get() {
+    return attachments.value.map(file => file.lmsId);
+  },
+
+  set(value) {
+    attachments.value = files.value.filter(file =>
+      value.includes(file.lmsId)
     );
   }
-}
+});
+
+const files = computed(() => {
+  if (!all.value.length) {
+    return attachments.value;
+  }
+
+  return [
+    ...attachments.value,
+    ...all.value.filter(file => {
+      return !attachments.value.some(
+        attachment => attachment.lmsId === file.lmsId
+      );
+    })
+  ];
+});
+
+const myFilesUrl = computed(() => {
+  return container.value?.myFilesUrl || "";
+});
+
+const label = file => {
+  return file.displayName || file.filename || "Untitled";
+};
+
+const refreshFiles = async () => {
+  isRefreshingFiles.value = true;
+
+  await messagingContentAttachmentStore.getAll([
+    props.experimentId,
+    props.exposureId,
+    props.containerId,
+    props.messageId,
+    props.contentId
+  ]);
+
+  isRefreshingFiles.value = false;
+};
+
+onMounted(async () => {
+  await refreshFiles();
+});
 </script>
 
 <style scoped>
@@ -215,12 +232,32 @@ export default {
     border: none;
   }
 }
+
 .file-list-menu {
   max-width: 500px;
+
   & .file-list-subtitle {
+    /* Vuetify's v-list-item-subtitle defaults to a single-line webkit-line-clamp,
+       which was silently clipping this multi-line instructional text (and hiding
+       the Refresh File List button below it) after the first ~16px line. */
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
     white-space: normal;
     flex-direction: column;
     align-items: center;
+    /* v-list-item-subtitle defaults to medium-emphasis opacity (~0.6), which was
+       muting the link's color below - a child's opacity can never exceed 1 to
+       counteract it, so reset it here and replicate the dimming via color
+       instead (which the link's own color declaration can independently win over,
+       unlike opacity). Keeps the paragraph text at the same dimmer look as before. */
+    opacity: 1;
+    color: rgba(0, 0, 0, 0.6);
+
+    a {
+      color: rgb(var(--v-theme-primary));
+    }
   }
 }
 </style>

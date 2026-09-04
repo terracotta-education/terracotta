@@ -1,44 +1,37 @@
 <template>
-<v-alert
-  :value="hasAlert"
-  :type="alert.type"
-  @input="handleDismiss"
-  class="status-alert"
-  dismissible
-  outlined
-  text
->
-  {{ alert.message }}
-</v-alert>
+  <v-alert
+    :model-value="alertStore.hasAlert"
+    :type="alertStore.alertType"
+    class="status-alert"
+    closable
+    variant="outlined"
+    @update:model-value="handleDismiss"
+  >
+    {{ alertStore.alertMessage }}
+  </v-alert>
 </template>
 
-<script>
-import { mapActions, mapGetters } from "vuex";
+<script setup>
+import { alert } from "@/store/alert.module";
 
-export default {
-  name: "StatusAlert",
-  computed: {
-    ...mapGetters({
-      alert: "alert/alert"
-    }),
-    hasAlert() {
-      return this.alert != null && this.alert.message && this.alert.type;
-    }
-  },
-  methods: {
-    ...mapActions({
-      clearAlert: "alert/clearAlert"
-    }),
-    handleDismiss() {
-      this.clearAlert();
-    }
-  }
-}
+defineOptions({
+  name: "StatusAlert"
+});
+
+const alertStore = alert();
+
+const handleDismiss = () => {
+  alertStore.clear();
+};
 </script>
 
 <style scoped lang="scss">
 .status-alert {
   max-width: fit-content;
   margin: 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  background-color: white;
 }
 </style>

@@ -42,7 +42,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     // position ("no viable alternative at input"), and Spring Data JPA doesn't allow mixing
     // named and positional parameters within the same query, so all three are positional.
     @NativeQuery(
-        value = """
+        """
             SELECT
                 MIN(p.id) AS id,
                 lu.email AS email
@@ -68,7 +68,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     // boolean - the JDBC driver hands that back as a Long, so the return type here has to be
     // Long (not boolean/Boolean) or Spring Data's proxy fails trying to cast it directly.
     @NativeQuery(
-        value = """
+        """
             SELECT EXISTS (
                 SELECT 1
                 FROM terr_participant p

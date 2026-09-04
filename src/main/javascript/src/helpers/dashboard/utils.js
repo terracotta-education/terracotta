@@ -38,10 +38,6 @@ export function milliToMinutes(ms) {
   return ms / 1000 / 60;
 }
 
-export function milliToHours(ms) {
-  return ms / 1000 / 60 / 60;
-}
-
 export function minutesToMillis(minutes) {
   return minutes * 60 * 1000;
 }

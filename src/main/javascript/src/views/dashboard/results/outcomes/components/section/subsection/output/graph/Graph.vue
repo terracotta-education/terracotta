@@ -7,88 +7,84 @@
 />
 </template>
 
-<script>
-import { mapGetters } from "vuex"
+<script setup>
+import { computed } from "vue";
+
 import Chart from "./components/Chart.vue";
+import { resultsDashboard as useResultsDashboardStore } from "@/store/dashboard/results.module";
 
-export default {
-  name: "Graph",
-  components: {
-    Chart
+defineOptions({
+  name: "OutcomeGraph"
+});
+
+const props = defineProps({
+  displayOutput: {
+    type: Boolean,
+    default: false
   },
-  props: {
-    displayOutput: {
-      type: Boolean,
-      default: false
-    },
-    type: {
-      type: String,
-      default: "condition"
-    }
-  },
-  computed: {
-    ...mapGetters({
-      outcomes: "resultsDashboard/outcomes"
-    }),
-    conditions() {
-      return this.outcomes?.conditions?.rows || [];
-    },
-    exposures() {
-      return this.outcomes?.exposures?.rows || [];
-    },
-    getType() {
-      return this.type; // default to "condition" data
-    },
-    displayChartData() {
-      return this.displayOutput;
-    },
-    graphData() {
-      var dataset;
-
-      switch (this.getType) {
-        case "exposure":
-          dataset = this.orderByTitleAsc(this.exposures);
-          break;
-        case "condition":
-          dataset = this.orderByTitleAsc(this.conditions);
-          break;
-        default:
-          dataset = [];
-      }
-
-      return dataset
-        .filter((ds) => ds.title !== "Overall") // filter "Overall" column from graph data
-        .map(
-          (d) => {
-            return {
-              title: d.title,
-              mean: this.displayChartData ? d.mean : null,
-              scores: this.displayChartData ? d.scores?.length ? d.scores : [] : []
-            }
-          }
-        );
-    },
-    outcomeType() {
-      return this.outcomes?.outcomeType || "";
-    }
-  },
-  methods: {
-    orderByTitleAsc(values) {
-      return values.sort(
-        function(a, b) {
-
-          if (a.title.toUpperCase() < b.title.toUpperCase()) {
-            return -1;
-          }
-
-          if (a.title.toUpperCase() > b.title.toUpperCase()) {
-            return 1;
-          }
-
-          return 0;
-        }
-      )
-    }
+  type: {
+    type: String,
+    default: "condition"
   }
-}
+});
+
+
+const outcomes = computed(() => useResultsDashboardStore().outcomes);
+
+const conditions = computed(() => {
+  return outcomes.value?.conditions?.rows || [];
+});
+
+const exposures = computed(() => {
+  return outcomes.value?.exposures?.rows || [];
+});
+
+const getType = computed(() => {
+  return props.type;
+});
+
+const displayChartData = computed(() => {
+  return props.displayOutput;
+});
+
+const outcomeType = computed(() => {
+  return outcomes.value?.outcomeType || "";
+});
+
+const orderByTitleAsc = (values) => {
+  return [...values].sort((a, b) => {
+    return a.title.localeCompare(b.title, undefined, {
+      sensitivity: "base"
+    });
+  });
+};
+
+const graphData = computed(() => {
+  let dataset;
+
+  switch (getType.value) {
+    case "exposure":
+      dataset = orderByTitleAsc(exposures.value);
+      break;
+    case "condition":
+      dataset = orderByTitleAsc(conditions.value);
+      break;
+    default:
+      dataset = [];
+  }
+
+  return dataset
+    .filter((ds) => ds.title !== "Overall")
+    .map((d) => {
+      return {
+        title: d.title,
+        mean: displayChartData.value ? d.mean : null,
+        scores: displayChartData.value
+          ? d.scores?.length
+            ? d.scores
+            : []
+          : []
+      };
+    });
+});
 </script>

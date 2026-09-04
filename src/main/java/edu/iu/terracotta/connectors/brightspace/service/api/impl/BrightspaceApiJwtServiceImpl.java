@@ -107,7 +107,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
 public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
 
     private final ApiOneUseTokenRepository apiOneUseTokenRepository;

@@ -46,7 +46,7 @@ public final class StatisticsUtils {
 
         values.stream()
             .map(value -> Math.pow(value - mean, 2))
-            .forEach(value -> sum.addAndGet(value));
+            .forEach(sum::addAndGet);
 
         return Math.sqrt(sum.get() / values.size());
     }

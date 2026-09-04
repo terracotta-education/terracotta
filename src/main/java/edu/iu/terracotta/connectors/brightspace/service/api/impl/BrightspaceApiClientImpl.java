@@ -95,7 +95,7 @@ import java.util.stream.Stream;
 @Service
 @RequiredArgsConstructor
 @TerracottaConnector(LmsConnector.BRIGHTSPACE)
-@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference", "PMD.UnusedPrivateMethod", "PMD.LooseCoupling"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement", "PMD.LambdaCanBeMethodReference", "PMD.UnusedPrivateMethod"})
 public class BrightspaceApiClientImpl implements ApiClient {
 
     private final BrightspaceAdvantageAgsServiceImpl brightspaceAdvantageAgsService;

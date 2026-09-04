@@ -25,7 +25,6 @@ import tools.jackson.databind.json.JsonMapper;
 @Getter
 @Setter
 @SuperBuilder
-@SuppressWarnings({"PMD.LooseCoupling"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LmsAssignment implements BaseLmsAssignment {
 

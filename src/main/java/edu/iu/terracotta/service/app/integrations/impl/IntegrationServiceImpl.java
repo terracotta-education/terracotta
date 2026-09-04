@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.integrations.impl;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -219,7 +220,7 @@ public class IntegrationServiceImpl implements IntegrationService {
     }
 
     private Optional<String> analyzeXFrameOptions(String xFrameOptions, String url, String requestingDomain) {
-        String value = xFrameOptions.trim().toUpperCase();
+        String value = xFrameOptions.trim().toUpperCase(Locale.ROOT);
 
         if (Strings.CI.equals(value, "DENY")) {
             return Optional.of("X-Frame-Options: DENY - iframe embedding is blocked");

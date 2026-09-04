@@ -1,88 +1,105 @@
-import {authHeader, isJson} from "@/helpers";
-import store from "@/store/index";
+import { authHeader, isJson } from "@/helpers";
+import { api } from "@/store/api.module";
 
-/**
- * Register methods
- */
 export const conditionService = {
   create,
   update,
   updateAll,
-  delete: _delete
-}
+  delete: deleteCondition
+};
 
-/**
- * Create Condition
- */
 async function create(experimentId) {
-  const requestOptions = {
-    method: "POST",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: null
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${experimentId}/conditions`, requestOptions).then(handleResponse);
+  return request(
+    `/api/experiments/${experimentId}/conditions`,
+    {
+      method: "POST"
+    }
+  );
 }
 
-/**
- * Update Condition
- */
-function update(condition) {
-  const requestOptions = {
-    method: "PUT",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify(condition)
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse);
+async function update(condition) {
+  return request(
+    `/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`,
+    {
+      method: "PUT",
+      body: condition
+    }
+  );
 }
 
-/**
- * Update Condtions
- * @param condition
- */
-function updateAll(conditions) {
-  const requestOptions = {
-    method: "PUT",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-    body: JSON.stringify(conditions)
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${conditions[0].experimentId}/conditions`, requestOptions).then(handleResponse);
+async function updateAll(conditions) {
+  return request(
+    `/api/experiments/${conditions[0].experimentId}/conditions`,
+    {
+      method: "PUT",
+      body: conditions
+    }
+  );
 }
 
-/**
- * Delete Condition
- *
- * (Prefixed function name with underscore because delete is a reserved word in javascript)
- */
-function _delete(condition) {
-  const requestOptions = {
-    method: "DELETE",
-    headers: {...authHeader(), "Content-Type": "application/json"},
-  }
-
-  return fetch(`${store.getters["api/aud"]}/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`, requestOptions).then(handleResponse);
+async function deleteCondition(condition) {
+  return request(
+    `/api/experiments/${condition.experimentId}/conditions/${condition.conditionId}`,
+    {
+      method: "DELETE"
+    }
+  );
 }
 
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-  .then(text => {
-    const data = (text && isJson(text)) ? JSON.parse(text) : text;
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
 
-    if (response.status === 409) {
-      return {
-        message: data
-      }
-    } else if (response.status === 204) {
+  const response = await fetch(`${api().aud}${path}`, {
+    method,
+    headers: {
+      ...authHeader(),
+      ...(body ? { "Content-Type": "application/json" } : {})
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
+
+  return handleResponse(response);
+}
+
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
+
+    const data = text && isJson(text)
+      ? JSON.parse(text)
+      : text;
+
+    if (response.status === 204) {
       return [];
     }
 
-    return data || response
-  }).catch(text => {
-    console.log("handleResponse | catch", {text});
-  })
+    if (response.status === 409) {
+      return {
+        message: data,
+        status: response.status
+      };
+    }
+
+    if (!response?.ok) {
+      return {
+        data,
+        status: response.status,
+        error: data || response
+      };
+    }
+
+    return data || response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

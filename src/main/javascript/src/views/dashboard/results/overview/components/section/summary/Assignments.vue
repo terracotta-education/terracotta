@@ -12,32 +12,27 @@
 </div>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
+
 import icon from "@/assets/assignments.svg";
 import SummaryData from "./components/SummaryData.vue";
 
-export default {
-  name: "Assignments",
-  components: {
-    SummaryData
-  },
-  props: {
-    assignmentCount: {
-      type: Number,
-      required: false,
-      default: 0
-    }
-  },
+defineOptions({
+  name: "OverviewAssignmentsSummary"
+});
 
-  data: () => ({
-    tooltip: "",
-    headerIcon: icon,
-    title: "Components"
-  }),
-  computed: {
-    count() {
-      return this.assignmentCount;
-    }
+const props = defineProps({
+  assignmentCount: {
+    type: Number,
+    required: false,
+    default: 0
   }
-}
+});
+
+const tooltip = "";
+const headerIcon = icon;
+const title = "Components";
+
+const count = computed(() => props.assignmentCount);
 </script>

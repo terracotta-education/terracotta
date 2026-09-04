@@ -11,7 +11,6 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@SuppressWarnings("PMD.LooseCoupling")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BrightspaceScore {
 

@@ -44,7 +44,8 @@ public class AssignmentDataRunner implements ApplicationListener<ApplicationRead
                     try {
                         // fix legacy assignment started date
                         int page = 0;
-                        Page<Assignment> assignments = assignmentRepository.findAll(PageRequest.of(page++, batchSize));
+                        Page<Assignment> assignments = assignmentRepository.findAll(PageRequest.of(page, batchSize));
+                        page++;
 
                         log.info("Starting assignment start date fix...");
                         int processed = 0;
@@ -65,7 +66,8 @@ public class AssignmentDataRunner implements ApplicationListener<ApplicationRead
                                 );
 
                             log.info("Processed {} assignment records...", processed);
-                            assignments = assignmentRepository.findAll(PageRequest.of(page++, batchSize));
+                            assignments = assignmentRepository.findAll(PageRequest.of(page, batchSize));
+                            page++;
                         }
 
                         log.info("Assignment start date fix complete! {} assignment records processed.", processed);

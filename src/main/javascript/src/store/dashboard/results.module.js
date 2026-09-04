@@ -1,76 +1,96 @@
-import {resultsDashboardService} from "@/services";
+import { defineStore } from "pinia";
 
-const state = {
-  resultsDashboard: {
-    experimentId: null,
-    overview: null,
-    outcomes: null
-  }
-}
+import { resultsDashboardService } from "@/services";
 
-const actions = {
-  async getOverview({commit}, experimentId) {
-    try {
-      const response = await resultsDashboardService.overview(experimentId);
-      const results = response?.data;
-
-      commit("setOverview", results.overview);
-    } catch (error) {
-      console.error("overview catch", error);
+export const resultsDashboard = defineStore("resultsDashboard", {
+  state: () => ({
+    resultsDashboard: {
+      experimentId: null,
+      overview: null,
+      outcomes: null
     }
-  },
-  async getOutcomes ({commit}, payload) {
-    // payload = experimentId, body
-    try {
-      const response = await resultsDashboardService.outcomes(...payload);
-      const results = response?.data;
+  }),
 
-      commit("setOutcomes", results.outcomes);
-    } catch (error) {
-      console.error("outcomes catch", error);
+  getters: {
+    overview: state => state.resultsDashboard.overview,
+    outcomes: state => state.resultsDashboard.outcomes
+  },
+
+  actions: {
+    async getOverview(experimentId) {
+      try {
+        const response =
+          await resultsDashboardService.overview(experimentId);
+
+        const overview = response?.data?.overview ?? null;
+
+        this.resultsDashboard = {
+          ...this.resultsDashboard,
+          experimentId,
+          overview
+        };
+
+        return overview;
+      } catch (error) {
+        console.error(
+          "resultsDashboard/getOverview | catch",
+          error
+        );
+
+        this.resultsDashboard = {
+          ...this.resultsDashboard,
+          overview: null
+        };
+
+        return null;
+      }
+    },
+
+    async getOutcomes(payload) {
+      try {
+        const [experimentId, body] = payload;
+        const response = await resultsDashboardService.outcomes(
+          experimentId,
+          body
+        );
+
+        const outcomes = response?.data?.outcomes ?? null;
+
+        this.resultsDashboard = {
+          ...this.resultsDashboard,
+          experimentId,
+          outcomes
+        };
+
+        return outcomes;
+      } catch (error) {
+        console.error(
+          "resultsDashboard/getOutcomes | catch",
+          error
+        );
+
+        this.resultsDashboard = {
+          ...this.resultsDashboard,
+          outcomes: null
+        };
+
+        return null;
+      }
+    },
+
+    clearOutcomes() {
+      this.resultsDashboard = {
+        ...this.resultsDashboard,
+        outcomes: null
+      };
+    },
+
+    resetResultsDashboard() {
+      this.resultsDashboard = {
+        experimentId: null,
+        overview: null,
+        outcomes: null
+      };
     }
-  },
-  clearOverview({commit}) {
-    commit("setOverview", null);
-  },
-  clearOutcomes({commit}) {
-    commit("setOutcomes", null);
-  },
-  resetResultsDashboard({commit}) {
-    commit("setExperimentId", null);
-    commit("setOverview", null);
-    commit("setOutcomes", null);
   }
-}
-
-const mutations = {
-  setExperimentId(state, experimentId) {
-    state.resultsDashboard.experimentId = experimentId;
-  },
-  setOverview(state, overview) {
-    state.resultsDashboard.overview = overview;
-  },
-  setOutcomes(state, outcomes) {
-    state.resultsDashboard.outcomes = outcomes;
-  }
-}
-
-const getters = {
-  resultsDashboard: (state) => {
-    return state.resultsDashboard;
-  },
-  overview: (state) => {
-    return state.resultsDashboard.overview;
-  },
-  outcomes: (state) => {
-    return state.resultsDashboard.outcomes;
-  }
-}
-
-export const resultsDashboard = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+});

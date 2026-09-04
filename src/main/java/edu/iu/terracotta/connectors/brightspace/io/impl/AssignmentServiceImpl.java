@@ -35,7 +35,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.Strings;
 
 @Slf4j
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class AssignmentServiceImpl extends BaseServiceImpl<AssignmentExtended, AssignmentReaderService, AssignmentWriterService> implements AssignmentReaderService, AssignmentWriterService {
 
     private BrightspaceLmsUtilsImpl brightspaceLmsUtils;

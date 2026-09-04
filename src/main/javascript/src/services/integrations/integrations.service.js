@@ -1,43 +1,48 @@
 import { authHeader } from "@/helpers";
-import store from "@/store/index.js";
+import { api } from "@/store/api.module";
 
-/**
- * Register methods
- */
 export const integrationsService = {
   validateIframeUrl
-}
+};
 
-/**
- * Validate iframe URL
- */
 async function validateIframeUrl(url) {
-  const requestOptions = {
+  const response = await fetch(
+    `${api().aud}/integrations/validate/iframe?url=${encodeURIComponent(url)}`,
+    {
       method: "GET",
-      headers: {...authHeader()}
+      headers: {
+        ...authHeader()
+      }
     }
+  );
 
-  return fetch(`${store.getters["api/aud"]}/integrations/validate/iframe?url=${encodeURIComponent(url)}`, requestOptions).then(handleResponse);
+  return handleResponse(response);
 }
 
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response.text()
-    .then(() => {
-      if (!response || !response.ok) {
-        if (response.status === 401 || response.status === 402 || response.status === 500) {
-          console.log("handleResponse | 401/402/500",{response});
-        } else if (response.status === 404) {
-          console.log("handleResponse | 404",{response});
-        }
+async function handleResponse(response) {
+  try {
+    await response.text();
 
-        return false;
+    if (!response?.ok) {
+      if ([401, 402, 500].includes(response.status)) {
+        console.error("handleResponse | auth/server error", {
+          response
+        });
+      } else if (response.status === 404) {
+        console.warn("handleResponse | not found", {
+          response
+        });
       }
 
-      return true;
-    }).catch(text => {
-      console.error("handleResponse | catch",{text});
-    })
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
+
+    return false;
+  }
 }

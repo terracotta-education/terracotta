@@ -12,24 +12,26 @@
 </div>
 </template>
 
-<script>
-  export default {
-    name: "DesignIntro",
-    props: {
-      experiment: {
-        type: Object,
-        required: true
-      }
-    },
-    methods: {
-      saveExit() {
-        this.$router.push({
-          name:"Home",
-          params: {
-            experimentId: this.experiment.experimentId
-          }
-        });
-      }
+<script setup>
+import { useRoute, useRouter } from "vue-router";
+
+defineOptions({
+  name: "ExperimentDesignIntro"
+});
+
+const route = useRoute();
+const router = useRouter();
+
+const saveExit = () => {
+  router.push({
+    name: "Home",
+    params: {
+      experimentId: route.params.experimentId
     }
-  }
+  });
+};
+
+defineExpose({
+  saveExit
+});
 </script>

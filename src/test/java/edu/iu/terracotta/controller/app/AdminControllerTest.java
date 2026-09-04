@@ -26,6 +26,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AdminService;
 
+@SuppressWarnings("deprecation")
 public class AdminControllerTest extends BaseTest {
 
     private AdminController adminController;

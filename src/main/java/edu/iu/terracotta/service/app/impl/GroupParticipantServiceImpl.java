@@ -26,7 +26,6 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 public class GroupParticipantServiceImpl implements GroupParticipantService {
 
     private final AssignmentRepository assignmentRepository;

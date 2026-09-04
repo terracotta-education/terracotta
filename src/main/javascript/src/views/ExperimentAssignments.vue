@@ -1,1718 +1,850 @@
 <template>
-<div
-  id="terracotta-main"
-  tabindex="-1"
->
-  <v-container
-    v-if="loaded && experiment"
-    class="px-0"
-  >
-    <v-row>
-      <v-col
-        cols="12"
-      >
-        <v-divider
-          v-if="!singleConditionExperiment"
-        />
-        <v-tabs
-          v-if="!singleConditionExperiment"
-          v-model="tab"
-          elevation="0"
-          show-arrows
-        >
-          <v-tab
-            v-for="(exposure, eidx) in exposures"
-            :key="eidx"
-            @change="tab = eidx"
-          >
-            <div
-              class="d-flex flex-column align-start py-1"
+  <div id="terracotta-main" tabindex="-1">
+    <div v-if="!loaded" class="spinner-container-assignment">
+      <Spinner height="50px" width="50px" />
+    </div>
+
+    <v-container v-if="loaded && experiment" class="px-0" fluid>
+      <v-row>
+        <v-col cols="12">
+          <ExposureTabs
+            v-model="tab"
+            :exposures="exposures"
+            :rows="rows"
+            :balanced="balanced"
+            :single-condition-experiment="singleConditionExperiment"
+          />
+
+          <v-window v-model="tab">
+            <v-window-item
+              v-for="(exposure, eidx) in exposures"
+              :key="exposure.exposureId"
+              :value="eidx"
+              class="section-components py-3 px-3"
             >
-              <div
-                class="section-tab-set"
-              >
-                Set {{ eidx + 1 }}
-              </div>
-              <div
-                class="d-block mt-4"
-                :class="balanced ? 'section-tab-components-balanced' : 'section-tab-components-unbalanced'"
-              >
-                {{ rows[eidx].length }} Component{{ rows[eidx].length === 1 ? "": "s" }}
-              </div>
-            </div>
-          </v-tab>
-        </v-tabs>
-        <v-divider />
-        <v-tabs-items
-          v-model="tab"
-        >
-          <v-tab-item
-            v-for="(exposure, eidx) in exposures"
-            class="section-components py-3 px-3"
-            :key="eidx"
-          >
-            <div
-              class="d-flex justify-space-between"
-            >
-              <h3>Components</h3>
-              <div
-                v-if="loaded && exposureRows.length"
-                class="component-buttons d-flex justify-space-between"
-              >
+              <div class="components-header d-flex justify-space-between align-center">
+                <h3>Components</h3>
+
                 <div
-                  v-if="isMessagingEnabled"
-                  class="mb-5 mr-5"
+                  v-if="loaded && exposureRows.length"
+                  class="component-buttons d-flex justify-space-between"
                 >
-                  <add-message-dialog
-                    :hasExisting="true"
-                    :isSingleConditionExperiment="singleConditionExperiment"
-                    @add="handleAddMessage($event, exposure)"
-                  />
-                </div>
-                <div>
-                  <add-assignment-dialog
-                    :hasExisting="true"
-                    :isSingleConditionExperiment="singleConditionExperiment"
-                    @multiple="handleAssignmentMultipleVersions(exposure)"
-                    @single="handleAssignmentSingleVersion(exposure)"
-                  />
-                </div>
-              </div>
-            </div>
-            <template
-              v-if="!loaded"
-            >
-              <div
-                class="spinner-container-assignment"
-              >
-                <spinner
-                  height="50px"
-                  width="50px"
-                />
-              </div>
-            </template>
-            <template
-              v-if="loaded"
-            >
-              <v-card
-                v-if="!rows[eidx].length"
-                class="no-assignments-yet d-flex flex-column rounded-lg mb-5 d-inline-block"
-                outlined
-              >
-                <div
-                  class="no-assignments-yet-container"
-                >
-                  <h4>You don't have any components yet</h4>
-                  <div
-                    class="no-components-yet-buttons d-flex flex-row justify-space-between mx-auto"
-                  >
-                    <add-assignment-dialog
+                  <div v-if="isMessagingEnabled" class="mb-5 mr-5">
+                    <AddMessageDialog
+                      :has-existing="true"
+                      :is-single-condition-experiment="singleConditionExperiment"
+                      @add="handleAddMessage($event, exposure)"
+                    />
+                  </div>
+
+                  <div>
+                    <AddAssignmentDialog
+                      :has-existing="true"
+                      :is-single-condition-experiment="singleConditionExperiment"
                       @multiple="handleAssignmentMultipleVersions(exposure)"
                       @single="handleAssignmentSingleVersion(exposure)"
-                      :hasExisting="false"
-                      :isSingleConditionExperiment="singleConditionExperiment"
-                    />
-                    <add-message-dialog
-                      v-if="isMessagingEnabled"
-                      :isSingleConditionExperiment="singleConditionExperiment"
-                      :hasExisting="false"
-                      @add="handleAddMessage($event, exposure)"
-                      class="ml-3"
                     />
                   </div>
                 </div>
-              </v-card>
-              <v-data-table
-                v-if="rows[eidx].length"
-                :headers="assignmentHeaders"
-                :items="rows[eidx]"
-                :expanded.sync="rowsExpanded[eidx]"
-                :sort-by="['assignmentOrder']"
-                :mobile-breakpoint="mobileBreakpoint"
-                :items-per-page="rows[eidx].length"
-                :item-class="() => 'assignment-row'"
-                :key="componentTableKey"
-                item-key="assignmentId"
-                class="v-data-table-alt v-data-table--sorted data-table-assignments mx-3 mb-5 mt-3"
-                hide-default-footer
-                v-sortable-data-table
-                show-expand
-                @sorted="
-                  (event) =>
-                    saveOrder(
-                      event,
-                      rows[eidx],
-                      exposure
-                    )
-                "
-              >
-                <template
-                  v-slot:item.data-table-expand="{ item: row, isExpanded, expand }"
+              </div>
+
+              <template v-if="loaded">
+                <v-card
+                  v-if="!rows[eidx]?.length"
+                  class="no-assignments-yet d-flex flex-column rounded-lg mb-5 d-inline-block"
+                  variant="outlined"
                 >
-                  <v-icon
-                    @click="expand(!isExpanded)"
-                    :aria-label="`Expand component row ${row.title}`"
-                  >
-                    {{ isExpanded ? "mdi-chevron-up" : "mdi-chevron-down" }}
-                  </v-icon>
-                </template>
-                <template
-                  v-slot:item.title="{ item: row }"
-                >
-                  <!-- row slot-->
-                  <v-icon>
-                    {{ rowIcon(row) }}
-                  </v-icon>
-                  {{ row.title }}
-                  <v-chip
-                    v-if="row.treatments.length === 1"
-                    color="lightgrey"
-                    class="v-chip--only-one"
-                    label
-                  >
-                    Only One Version
-                  </v-chip>
-                </template>
-                <template
-                  v-slot:expanded-item="{ item: row }"
-                >
-                  <!-- expanded row (treatments) slot-->
-                  <td
-                    :colspan="assignmentHeaders.length"
-                    class="treatments-table-container"
-                  >
-                    <v-data-table
-                      :headers="treatmentHeaders"
-                      :items="row.treatments"
-                      hide-default-header
-                      hide-default-footer
-                      item-key="treatmentId"
-                      class="treatment-row grey lighten-5"
-                    >
-                      <!-- eslint-disable-next-line -->
-                      <template v-slot:item.title="{ item: treatment }">
-                        <v-icon
-                          class="mr-1 component-icon"
-                        >
-                          {{ rowTreatmentsIcon(row, treatment) }}
-                        </v-icon>
-                        <tool-tip
-                          v-if="showTreatmentRowTooltip(row, treatment)"
-                          :content="treatmentRowTooltipText(row, treatment)"
-                          :ref="`tooltip-${row.assignmentId}-${treatment.treatmentId}`"
-                          aria-label="treatment explanation tooltip"
-                          icon="mdi-information-outline"
-                          alignment="top"
-                          activatorType="icon"
-                          activatorClass="icon-treatment-incomplete"
-                        />
-                        <span
-                          :class="treatmentRowClass(row, treatment)"
-                        >
-                          Treatment
-                        </span>
-                        <v-chip
-                          v-if="!singleConditionExperiment && rows[eidx].find((r) => r.assignmentId === row.assignmentId).treatments.length === conditions.length"
-                          label
-                          :color="
-                            conditionColorMapping[
-                              conditionForTreatment(
-                                exposure.groupConditionList,
-                                treatment.conditionId
-                              ).conditionName
-                            ]
-                          "
-                        >
-                          {{
-                            conditionForTreatment(
-                              exposure.groupConditionList,
-                              treatment.conditionId
-                            ).conditionName
-                          }}
-                        </v-chip>
-                        <div
-                          class="treatment-btn-group"
-                        >
-                          <v-btn
-                            text
-                            tile
-                            class="btn-treatment-edit"
-                            @click="handleEditTreatment(row, treatment)"
-                          >
-                            <v-icon>
-                              {{ editTreatmentIcon(row, treatment) }}
-                            </v-icon>
-                            <span
-                              class="btn-edit"
-                            >
-                              {{ editTreatmentText(row, treatment) }}
-                            </span>
-                          </v-btn>
-                          <v-btn
-                            v-if="isIntegrationAssignment(row, treatment) && !displayTreatmentMenu"
-                            :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
-                            :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
-                            target="_blank"
-                            text
-                            tile
-                          >
-                            <v-icon>mdi-eye-outline</v-icon>
-                            <span class="treatment-btn">Preview</span>
-                          </v-btn>
-                          <v-btn
-                            v-if="!isMessage(row) && !treatment.assessmentDto.integration"
-                            :disabled="!treatment.assessmentDto.questions.length"
-                            @click="handleTreatmentPreview(treatment)"
-                            text
-                            tile
-                          >
-                            <v-icon>mdi-eye-outline</v-icon>
-                            <span class="treatment-btn">Preview</span>
-                          </v-btn>
-                          <v-menu
-                            v-if="isIntegrationAssignment(row, treatment) && displayTreatmentMenu"
-                            :disabled="!treatment.assessmentDto.questions.length || !treatment.assessmentDto.integrationUrlValid"
-                            offset-x
-                            left
-                            attach
-                          >
-                            <template
-                              v-slot:activator="{ on, attrs }"
-                            >
-                              <v-btn
-                                icon
-                                text
-                                tile
-                                v-bind="attrs"
-                                v-on="on"
-                                aria-label="treatment actions"
-                              >
-                                <v-icon>mdi-dots-horizontal</v-icon>
-                              </v-btn>
-                            </template>
-                            <v-list>
-                              <v-list-item
-                                aria-label="preview integration"
-                              >
-                                <v-list-item-title>
-                                  <v-icon>mdi-eye-outline</v-icon>
-                                  <span class="treatment-btn">
-                                    <a
-                                      :href="integrationsPreviewLaunchUrl(treatment.assessmentDto.integrationPreviewUrl)"
-                                      target="_blank"
-                                      class="integration-preview-link"
-                                    >
-                                      Preview
-                                    </a>
-                                  </span>
-                                </v-list-item-title>
-                              </v-list-item>
-                            </v-list>
-                          </v-menu>
-                        </div>
-                      </template>
-                    </v-data-table>
-                  </td>
-                </template>
-                <!-- eslint-disable-next-line -->
-                <template v-slot:item.treatments="{ item: row }">
-                  <!-- red text if treatment count != condition count or a treatment not having an assessment -->
-                  <span
-                    :class="rowTreatmentsColumnClass(row)"
-                  >
-                    {{ row.treatments.length }} / {{ row.treatments.length }}
-                    <tool-tip
-                      v-if="hasIncompleteTreatments(row)"
-                      :content="showRowTreatmentsColumnTooltipText(row)"
-                      :ref="`tooltip-component-${row.assignmentId}`"
-                      aria-label="incomplete treatments explanation tooltip"
-                      icon="mdi-alert-circle-outline"
-                      alignment="top"
-                      activatorType="icon"
-                      activatorClass="label-treatment-incomplete"
-                    />
-                  </span>
-                </template>
-                <!-- eslint-disable-next-line -->
-                <template v-slot:item.drag="{ item: row }">
-                  <!-- dragger slot-->
-                  <span
-                    class="dragger"
-                  >
-                    <v-icon>mdi-drag</v-icon>
-                  </span>
-                </template>
-                <!-- eslint-disable-next-line -->
-                <template v-slot:item.published="{ item: row }">
-                  <!-- row published column slot -->
-                  <span
-                    :class="rowPublishedColumnClass(row)"
-                  >
-                    {{ rowPublishedColumnText(row) }}
-                  </span>
-                </template>
-                <!-- eslint-disable-next-line -->
-                <template v-slot:item.dueDate="{ item: row }">
-                  <!-- row due date column slot -->
-                  {{ dueDate(row) }}
-                </template>
-                <!-- eslint-disable-next-line -->
-                <template v-slot:item.actions="{ item: row }">
-                  <!-- row actions column slot -->
-                  <v-menu
-                    v-model="actionsMenuOpen[row.assignmentId]"
-                    class="component-actions-menu"
-                    offset-y
-                    top
-                    left
-                    attach
-                  >
-                    <template
-                      v-slot:activator="{ on, attrs }"
-                    >
-                      <v-btn
-                        v-bind="{role: attrs.role, 'aria-haspopup': attrs.haspopup}"
-                        v-on="on"
-                        aria-label="actions"
-                        icon
-                        text
-                        tile
-                      >
-                        <v-icon>mdi-dots-horizontal</v-icon>
-                      </v-btn>
-                    </template>
-                    <v-list>
-                      <v-list-item
-                        @click="handleMoveComponent(row)"
-                        :aria-label="`move ${row.title}`"
-                      >
-                        <v-list-item-title
-                          class="d-flex justify-content-center"
-                        >
-                          <v-icon>mdi-arrow-right-top</v-icon>
-                          Move
-                        </v-list-item-title>
-                      </v-list-item>
-                      <v-list-item
-                        :aria-label="`edit ${row.title}`"
-                        @click="handleEditComponent(exposure.exposureId, row)"
-                      >
-                        <v-list-item-title
-                          class="d-flex justify-content-center"
-                        >
-                          <v-icon>mdi-pencil</v-icon>
-                          Edit
-                        </v-list-item-title>
-                      </v-list-item>
-                      <v-list-item
-                        :aria-label="`duplicate ${row.title}`"
-                        @click="handleDuplicateComponent(exposure.exposureId, row)"
-                      >
-                        <v-list-item-title
-                          class="d-flex justify-content-center"
-                        >
-                          <v-icon>mdi-content-duplicate</v-icon>
-                          Duplicate
-                        </v-list-item-title>
-                      </v-list-item>
-                      <v-list-item
-                        v-if="showDeleteComponent(row)"
-                        :aria-label="`delete ${row.title}`"
-                        @click="handleDeleteComponent(exposure.exposureId, row)"
-                      >
-                        <v-list-item-title
-                          class="d-flex justify-content-center"
-                        >
-                          <v-icon>mdi-delete</v-icon>
-                          Delete
-                        </v-list-item-title>
-                      </v-list-item>
-                      <v-list-item
-                        v-if="showPublishComponent(row)"
-                        :aria-label="`publish ${row.title}`"
-                        @click="handlePublishComponent(exposure.exposureId, row)"
-                      >
-                        <v-list-item-title
-                          class="d-flex justify-content-center"
-                        >
-                          <v-icon>mdi-publish</v-icon>
-                          Publish
-                        </v-list-item-title>
-                      </v-list-item>
-                      <v-list-item
-                        v-if="showUnpublishComponent(row)"
-                        :aria-label="`unpublish ${row.title}`"
-                        @click="handleUnpublishComponent(exposure.exposureId, row)"
-                      >
-                        <v-list-item-title
-                          class="d-flex justify-content-center"
-                        >
-                          <v-icon>mdi-publish-off</v-icon>
-                          Unpublish
-                        </v-list-item-title>
-                      </v-list-item>
-                    </v-list>
-                  </v-menu>
-                </template>
-              </v-data-table>
-            </template>
-            <div
-              v-if="!singleConditionExperiment"
-            >
-              <h3
-                class="my-4"
-              >
-                Design
-              </h3>
-              <v-card
-                class="data-table-design px-5 py-5 rounded-lg mx-3 mb-5 d-inline-block"
-                outlined
-              >
-                <div
-                  v-for="group in sortedGroups(exposure.groupConditionList, designExpanded ? null : maxDesignGroups)"
-                  class="groupNames"
-                  :key="group"
-                >
-                  {{ group }} will receive
-                  <v-chip
-                    class="ma-2"
-                    :color="
-                      conditionColorMapping[
-                        groupNameConditionMapping(exposure.groupConditionList)[
-                          group
-                        ]
-                      ]
-                    "
-                    label
-                    :key="group"
-                  >
-                    <!-- Sorted Group Names -->
-                    {{
-                      groupNameConditionMapping(exposure.groupConditionList)[
-                        group
-                      ]
-                    }}
-                  </v-chip>
-                </div>
-                <a
-                  v-if="sortedGroups(exposure.groupConditionList).length > maxDesignGroups"
-                  @click="designExpanded = !designExpanded"
-                  class="text--blue"
-                >
-                  <v-icon
-                    v-if="!designExpanded"
-                    color="blue"
-                  >
-                    mdi-plus
-                  </v-icon>
-                  <v-icon
-                    v-else
-                    color="blue"
-                  >
-                    mdi-minus
-                  </v-icon>
-                  <span>
-                    {{ designExpanded ? "Less" : "More" }}
-                  </span>
-                </a>
-              </v-card>
-            </div>
-          </v-tab-item>
-        </v-tabs-items>
-      </v-col>
-    </v-row>
-  </v-container>
-</div>
+                  <div class="no-assignments-yet-container">
+                    <h4>You don't have any components yet</h4>
+
+                    <div class="no-components-yet-buttons d-flex flex-row justify-space-between mx-auto">
+                      <AddAssignmentDialog
+                        :has-existing="false"
+                        :is-single-condition-experiment="singleConditionExperiment"
+                        @multiple="handleAssignmentMultipleVersions(exposure)"
+                        @single="handleAssignmentSingleVersion(exposure)"
+                      />
+
+                      <AddMessageDialog
+                        v-if="isMessagingEnabled"
+                        :is-single-condition-experiment="singleConditionExperiment"
+                        :has-existing="false"
+                        class="ml-3"
+                        @add="handleAddMessage($event, exposure)"
+                      />
+                    </div>
+                  </div>
+                </v-card>
+
+                <ComponentTable
+                  v-if="rows[eidx]?.length"
+                  :key="componentTableKey"
+                  :rows="rows[eidx]"
+                  :exposure="exposure"
+                  :conditions="conditions"
+                  :condition-color-mapping="conditionColorMapping"
+                  :single-condition-experiment="singleConditionExperiment"
+                  :display-treatment-menu="displayTreatmentMenu"
+                  :can-delete-assignment="canDeleteAssignment"
+                  :exposure-count="exposures.length"
+                  :alert-statuses="alertStatuses"
+                  @save-order="saveOrder($event, rows[eidx], exposure)"
+                  @move="handleMoveComponent"
+                  @edit="handleEditComponent(exposure.exposureId, $event)"
+                  @duplicate="handleDuplicateComponent(exposure.exposureId, $event)"
+                  @delete="handleDeleteComponent(exposure.exposureId, $event)"
+                  @publish="handlePublishComponent(exposure.exposureId, $event)"
+                  @unpublish="handleUnpublishComponent(exposure.exposureId, $event)"
+                  @edit-treatment="handleEditTreatment"
+                  @preview-treatment="handleTreatmentPreview"
+                />
+              </template>
+
+              <ExposureDesignCard
+                v-if="!singleConditionExperiment"
+                :exposure="exposure"
+                :condition-color-mapping="conditionColorMapping"
+              />
+            </v-window-item>
+          </v-window>
+        </v-col>
+      </v-row>
+    </v-container>
+  </div>
 </template>
 
-<script>
-import { mapGetters, mapActions } from "vuex";
+<script setup>
+import { ref, computed, onMounted, nextTick, createApp, toRaw } from "vue";
+import { useRouter } from "vue-router";
+import { useDisplay } from "vuetify";
+import Swal from "sweetalert2";
+
 import { message as messageStatus } from "@/helpers/messaging/status.js";
-import { deleteAttributesFromElement, statusAlert, createStatusAlert, showSkipLink } from "@/helpers/ui-utils.js";
-import AddAssignmentDialog from "@/components/AddAssignmentDialog";
-import AddMessageDialog from "@/views/messaging/components/dialog/AddMessageDialog";
-import moment from "moment";
+import {
+  statusAlert,
+  createStatusAlert,
+  showSkipLink
+} from "@/helpers/ui-utils.js";
+
+import AddAssignmentDialog from "@/components/dialog/AddAssignmentDialog.vue";
+import AddMessageDialog from "@/views/messaging/components/dialog/AddMessageDialog.vue";
 import MoveAssignmentDialog from "@/components/dialog/MoveAssignmentDialog.vue";
-import Sortable from "sortablejs";
-import Spinner from "@/components/Spinner";
-import ToolTip from "@/components/ToolTip.vue";
-import Vue from 'vue';
+import Spinner from "@/components/Spinner.vue";
+import ExposureTabs from "@/components/experiment-assignments/ExposureTabs.vue";
+import ComponentTable from "@/components/experiment-assignments/ComponentTable.vue";
+import ExposureDesignCard from "@/components/experiment-assignments/ExposureDesignCard.vue";
 
-export default {
-  name: "ExperimentAssignments",
-  components: {
-    AddAssignmentDialog,
-    AddMessageDialog,
-    Spinner,
-    ToolTip
+import vuetify from "@/plugins/vuetify";
+
+import { experiment as experimentModule } from "@/store/experiment.module";
+import { exposures as exposuresModule } from "@/store/exposures.module";
+import { assignment as assignmentModule } from "@/store/assignment.module";
+import { condition as conditionModule } from "@/store/condition.module";
+import { api as apiModule } from "@/store/api.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
+import { alert as alertModule } from "@/store/alert.module";
+import { navigation as navigationModule } from "@/store/navigation.module";
+import { container as messagingContainerModule } from "@/store/messaging/container.module";
+
+const props = defineProps({
+  experiment: {
+    type: Object,
+    required: true
   },
-  props: {
-    experiment: {
-      type: Object,
-      required: true
-    },
-    balanced: {
-      type: Boolean
-    },
-    activeExposureSet: { // exposure tab index
-      type: Number,
-      default: 0
+  balanced: {
+    type: Boolean,
+    default: false
+  },
+  activeExposureSet: {
+    type: Number,
+    default: 0
+  }
+});
+
+const router = useRouter();
+const { name: displayName } = useDisplay();
+
+const experimentStore = experimentModule();
+const exposuresStore = exposuresModule();
+const assignmentStore = assignmentModule();
+const conditionStore = conditionModule();
+const apiStore = apiModule();
+const configurationStore = configurationModule();
+const alertStore = alertModule();
+const navigationStore = navigationModule();
+const messagingContainerStore = messagingContainerModule();
+
+const tab = ref(0);
+const loaded = ref(false);
+const componentTableKey = ref(0);
+
+const rowType = {
+  assignment: "assignment",
+  message: "message"
+};
+
+const conditions = computed(() => experimentStore.conditions || []);
+const exposures = computed(() => exposuresStore.exposures || []);
+const assignments = computed(() => assignmentStore.assignments || []);
+const conditionColorMapping = computed(() => conditionStore.conditionColorMapping || {});
+const userId = computed(() => apiStore.userId);
+const allMessageContainers = computed(() => messagingContainerStore.messageContainers || []);
+const configurations = computed(() => configurationStore.configurations || configurationStore.get || {});
+const alertStatuses = computed(() => alertStore.statuses || {});
+
+const experimentId = computed(() => Number(props.experiment.experimentId));
+const canDeleteAssignment = computed(() => !props.experiment.started);
+const singleConditionExperiment = computed(() => conditions.value.length === 1);
+const defaultCondition = computed(() => conditions.value.find(condition => condition.defaultCondition));
+const exposureRows = computed(() => rows.value[tab.value] || []);
+const isMessagingEnabled = computed(() => configurations.value?.messagingEnabled || false);
+const displayTreatmentMenu = computed(() => ["xs", "sm", "md"].includes(displayName.value));
+
+// a plain computed instead of deep-watched refs recalculated imperatively: Vue's reactivity
+// tracks exactly the fields read below, so it only recomputes when one of those fields
+// actually changes instead of deep-diffing the entire assignments/message-container graphs
+const rows = computed(() => {
+  const messageContainers = allMessageContainers.value || [];
+  const messageRows = isMessagingEnabled.value
+    ? messageContainers.map(messageContainer => ({
+        ...messageContainer,
+        assignmentId: messageContainer.id,
+        assignmentOrder: messageContainer.configuration.order,
+        dueDate: null,
+        published: messageContainer.configuration.status === messageStatus.published,
+        sent: messageContainer.configuration.status === messageStatus.sent,
+        error: messageContainer.configuration.status === messageStatus.error,
+        title: messageContainer.configuration.title,
+        treatments: messageContainer.messages
+          .map(message => ({
+            ...message,
+            status: message.configuration.status,
+            treatmentId: message.id,
+            conditionId: message.conditionId,
+            assessmentDto: {
+              integrationPreviewUrl: "",
+              integration: false,
+              integrationUrlValid: false,
+              integrationIframeInfoUrl: "",
+              questions: []
+            }
+          }))
+          .sort((a, b) => a.conditionId - b.conditionId),
+        type: rowType.message
+      }))
+    : [];
+
+  const assignmentsList = assignments.value || [];
+  const assignmentRows = assignmentsList.map(assignment => ({
+    ...assignment,
+    type: rowType.assignment
+  }));
+
+  return exposures.value.map(exposure => {
+    return [
+      ...assignmentRows.filter(row => row.exposureId === exposure.exposureId),
+      ...messageRows.filter(row => row.exposureId === exposure.exposureId)
+    ].sort((a, b) => a.assignmentOrder - b.assignmentOrder);
+  });
+});
+
+const saveOrder = async (event, exposureRows, exposure) => {
+  const moved = exposureRows.splice(event.oldDraggableIndex, 1)[0];
+  exposureRows.splice(event.newDraggableIndex, 0, moved);
+
+  const updated = exposureRows.map((row, index) => ({
+    ...row,
+    assignmentOrder: index + 1
+  }));
+
+  await Promise.allSettled([
+    assignmentStore.saveAssignmentOrder([
+      experimentId.value,
+      exposure.exposureId,
+      updated.filter(row => row.type === rowType.assignment)
+    ]),
+    messagingContainerStore.updateAll([
+      experimentId.value,
+      exposure.exposureId,
+      updated
+        .filter(row => row.type === rowType.message)
+        .map(row => ({
+          ...row,
+          configuration: {
+            ...row.configuration,
+            order: row.assignmentOrder
+          }
+        }))
+    ])
+  ]);
+
+  componentTableKey.value++;
+
+  createStatusAlert(
+    statusAlert(alertStatuses.value.success, "Component order saved")
+  );
+};
+
+const handleCreateAssignment = async (exposureId, conditionIds) => {
+  await navigationStore.saveEditMode({
+    initialPage: "AssignmentCreateAssignment",
+    callerPage: {
+      name: "ExperimentSummary",
+      tab: "components",
+      exposureSet: tab.value
     }
-  },
-  directives: {
-    sortableDataTable: {
-      bind(el, binding, vnode) {
-        const options = {
-          animation: 150,
-          onUpdate: function(event) {
-            vnode.child.$emit("sorted", event);
-          },
-          handle: ".dragger",
-          draggable: ".assignment-row"
-        };
-        Sortable.create(el.querySelector(".data-table-assignments tbody"), options);
-      },
-    },
-  },
-  data: () => ({
-    tab: 0,
-    exposure: null,
-    minTreatments: 2,
-    maxDesignGroups: 2,
-    conditionTreatments: {},
-    conditionColors: [""],
-    rows: [],
-    rowsExpanded: [],
-    designExpanded: false,
-    loaded: false,
-    mobileBreakpoint: 636,
-    assignmentHeaders: [
-      {
-        text: "",
-        align: "start",
-        sortable: false,
-        value: "drag"
-      },
-      {
-        text: "Component Name",
-        align: "start",
-        sortable: false,
-        value: "title"
-      },
-      {
-        text: "Treatments",
-        sortable: false,
-        value: "treatments"
-      },
-      {
-        text: "Due Date",
-        sortable: false,
-        value: "dueDate"
-      },
-      {
-        text: "Status",
-        sortable: false,
-        value: "published"
-      },
-      {
-        text: "Actions",
-        align: "center",
-        sortable: false,
-        value: "actions"
-      },
-      {
-        text: "",
-        sortable: false,
-        value: "data-table-expand"
-      }
-    ],
-    treatmentHeaders: [
-      {
-        text: "Treatment Name",
-        align: "start",
-        sortable: false,
-        value: "title"
-      }
-    ],
-    treatmentIcon: {
-      integration: "mdi-application-brackets-outline",
-      assignment: "mdi-wrench-outline",
-      file: "mdi-file-outline",
-      message: "mdi-message-text-outline"
-    },
-    componentTableKey: 0,
-    actionsMenuOpen: []
-  }),
-  watch: {
-    rowsCount: {
-      handler() {
-        this.calculateRows();
-        this.expandRows();
-      },
-      immediate: true
-    },
-    actionsMenuOpen: {
-      handler() {
-        this.$nextTick(() => {
-          deleteAttributesFromElement(".list-item-move", ["tabindex"]);
-        });
-      },
-        deep: true,
-        immediate: true
-    },
-    allMessageContainers: {
-      handler() {
-        this.calculateRows();
-        this.expandRows();
-      },
-      deep: true
+  });
+
+  router.push({
+    name: "AssignmentCreateAssignment",
+    params: { exposureId },
+    query: { conditionIds: JSON.stringify(conditionIds) }
+  });
+};
+
+const handleAssignmentMultipleVersions = exposure => {
+  return handleCreateAssignment(
+    exposure.exposureId,
+    exposure.groupConditionList.map(item => item.conditionId)
+  );
+};
+
+const handleAssignmentSingleVersion = exposure => {
+  return handleCreateAssignment(
+    exposure.exposureId,
+    [defaultCondition.value.conditionId]
+  );
+};
+
+const handleAssignmentStartedAlert = async assignmentId => {
+  const assignment = assignments.value.find(item => item.assignmentId === assignmentId);
+
+  if (!assignment?.started) {
+    return true;
+  }
+
+  const result = await Swal.fire({
+    icon: "warning",
+    text: "You are currently collecting assignment submissions, and at least one student has submitted the assignment. Making changes could compromise the integrity of your experiment.",
+    showCancelButton: true,
+    confirmButtonText: "OK",
+    cancelButtonText: "Cancel",
+    cancelButtonColor: "#515961",
+    reverseButtons: true
+  });
+
+  return result.isConfirmed;
+};
+
+const handleAssignmentEdit = async (assignment, exposureId) => {
+  const reallyEdit = await handleAssignmentStartedAlert(assignment.assignmentId);
+
+  if (!reallyEdit) {
+    return;
+  }
+
+  await assignmentStore.setCurrentAssignment(assignment);
+  await navigationStore.saveEditMode({
+    initialPage: "AssignmentEditor",
+    callerPage: {
+      name: "ExperimentSummary",
+      tab: "components",
+      exposureSet: tab.value
     }
-  },
-  computed: {
-    ...mapGetters({
-      conditions: "experiment/conditions",
-      exposures: "exposures/exposures",
-      assignments: "assignment/assignments",
-      assignment: "assignment/assignment",
-      consent: "consent/consent",
-      exportdata: "exportdata/exportData",
-      conditionColorMapping: "condition/conditionColorMapping",
-      userId: "api/userId",
-      allMessageContainers: "messagingMessageContainer/messageContainers",
-      configurations: "configuration/get",
-      alertStatuses: "alert/statuses"
-    }),
-    experimentId() {
-      return parseInt(this.experiment.experimentId);
-    },
-    canDeleteAssignment() {
-      return !this.experiment.started;
-    },
-    rowsCount() {
-      return this.assignments.length + this.allMessageContainers.length;
-    },
-    singleConditionExperiment() {
-      return this.conditions.length === 1;
-    },
-    defaultCondition() {
-      return this.conditions.find(c => c.defaultCondition);
-    },
-    displayTreatmentMenu() {
-      switch (this.$vuetify.breakpoint.name) {
-        case "xs":
-        case "sm":
-        case "md":
-          return true;
-        case "lg":
-        case "xl":
-          return false;
-        default:
-          return false;
-      }
-    },
-    rowType() {
-      return {
-        assignment: "assignment",
-        message: "message"
-      };
-    },
-    messageStatuses() {
-      return messageStatus;
-    },
-    exposureRows() {
-      return this.rows[this.tab] || [];
-    },
-    isMessagingEnabled() {
-      return this.configurations?.messagingEnabled || false;
+  });
+
+  router.push({
+    name: "AssignmentEditor",
+    params: {
+      assignmentId: assignment.assignmentId,
+      exposureId
     }
-  },
-  methods: {
-    ...mapActions({
-      fetchExposures: "exposures/fetchExposures",
-      fetchAssignmentsByExposure: "assignment/fetchAssignmentsByExposure",
-      saveAssignmentOrder: "assignment/saveAssignmentOrder",
-      deleteAssignment: "assignment/deleteAssignment",
-      duplicateAssignment: "assignment/duplicateAssignment",
-      checkTreatment: "treatment/checkTreatment",
-      createTreatment: "treatment/createTreatment",
-      createAssessment: "assessment/createAssessment",
-      getConsentFile: "consent/getConsentFile",
-      moveAssignment: "assignment/moveAssignment",
-      setCurrentAssignment: "assignments/setCurrentAssignment",
-      saveEditMode: "navigation/saveEditMode",
-      updateMessageContainer: "messagingMessageContainer/update",
-      updateAllMessageContainers: "messagingMessageContainer/updateAll",
-      sendMessageContainer: "messagingMessageContainer/send",
-      deleteMessageContainer: "messagingMessageContainer/deleteContainer",
-      moveMessageContainer: "messagingMessageContainer/move",
-      duplicateMessageContainer: "messagingMessageContainer/duplicate"
-    }),
-    calculateRows() {
-      // only display message containers if messaging is enabled
-      const messageContainerRows = this.isMessagingEnabled ? this.allMessageContainers.map(
-        (messageContainer) => ({
-          ...messageContainer,
-          assignmentId: messageContainer.id,
-          assignmentOrder: messageContainer.configuration.order,
-          dueDate: null,
-          published: messageContainer.configuration.status === messageStatus.published,
-          sent: messageContainer.configuration.status === messageStatus.sent,
-          error: messageContainer.configuration.status === messageStatus.error,
-          title: messageContainer.configuration.title,
-          treatments: messageContainer.messages.map(
-            (message) => ({
-              ...message,
-              status: message.configuration.status,
-              treatmentId: message.id, // assignment treatment ID is a number, message ID is a UUID; no collisions possible
-              conditionId: message.conditionId,
-              assessmentDto: {
-                integrationPreviewUrl: "",
-                integration: false,
-                integrationUrlValid: false,
-                integrationIframeInfoUrl: "",
-                questions: []
-              }
-            })
-          ).sort((a,b) => a.conditionId - b.conditionId),
-          type: this.rowType.message
-        })
-      ) : [];
+  });
+};
 
-        const assignmentRows = this.assignments.map(
-          (assignment) => ({
-            ...assignment,
-            type: this.rowType.assignment
-          })
-        );
-
-        let rows = [];
-
-        for (let i = 0; i < this.exposures.length; i++) {
-          rows.splice(i, 1,
-            [
-              ...assignmentRows.filter(a => a.exposureId === this.exposures[i].exposureId),
-              ...messageContainerRows.filter(m => m.exposureId === this.exposures[i].exposureId)
-            ]
-            .toSorted((a, b) => a.assignmentOrder - b.assignmentOrder)
-          );
-        }
-
-        this.rows = rows;
-    },
-    messageContainers(exposure) {
-      if (!exposure) {
-        return [];
+const handleMoveAssignment = async (targetExposureId, assignment) => {
+  try {
+    const response = await assignmentStore.moveAssignment([
+      experimentId.value,
+      assignment.exposureId,
+      assignment.assignmentId,
+      {
+        ...assignment,
+        assignmentId: null,
+        exposureId: targetExposureId
       }
+    ]);
 
-      return this.allMessageContainers.filter(m => m.exposureId === exposure.exposureId);
-    },
-    async saveOrder(event, rows, exposure) {
-      const movedItem = rows.splice(event.oldDraggableIndex, 1)[0];
-      rows.splice(event.newDraggableIndex, 0, movedItem);
-      const updated = rows.map(
-        (a, idx) => ({
-          ...a,
-          assignmentOrder: idx + 1,
-        })
-      );
-
-      Promise.allSettled([
-        // update assignments
-        await this.saveAssignmentOrder([
-          this.experiment.experimentId,
-          exposure.exposureId,
-          updated.filter((u) => u.type === this.rowType.assignment),
-        ]),
-        // update messages
-        await this.updateAllMessageContainers(
-          [
-            this.experimentId,
-            exposure.exposureId,
-            updated
-              .filter((u) => u.type === this.rowType.message)
-              .map((u) => ({
-                ...u,
-                configuration: {
-                  ...u.configuration,
-                  order: u.assignmentOrder
-                }
-              }))
-          ]
-        )
-      ]).then(this.componentTableKey++); // force refresh of component table
+    if (response?.status === 201) {
+      await assignmentStore.fetchAssignmentsByExposure([
+        experimentId.value,
+        targetExposureId,
+        true
+      ]);
 
       createStatusAlert(
-        statusAlert(
-          this.alertStatuses.success,
-          "Component order saved"
-        )
+        statusAlert(alertStatuses.value.success, "Assignment moved successfully")
       );
-    },
-    async handleMoveAssignment(targetExposureId, assignment) {
-      try {
-        const response = await this.moveAssignment([
-          this.experiment.experimentId,
-          assignment.exposureId,
-          assignment.assignmentId,
-          {
-            ...assignment,
-            assignmentId: null,
-            exposureId: targetExposureId
-          }
-        ]);
-
-        if (response.status === 201) {
-          let assignmentsByExposure = await this.fetchAssignmentsByExposure([
-            this.experimentId,
-            targetExposureId,
-            true,
-          ]);
-
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.success,
-              "Assignment moved successfully"
-            )
-          );
-
-          return assignmentsByExposure;
-        }
-      } catch (error) {
-        console.error("handleMoveAssignment | catch", { error });
-        createStatusAlert(
-          statusAlert(
-            this.alertStatuses.error,
-            "There was a problem moving the assignment"
-          )
-        );
-      }
-    },
-    async handleCreateAssignment(exposureId, conditionIds) {
-      await this.saveEditMode({
-        initialPage: "AssignmentCreateAssignment",
-        callerPage: {
-          name: "ExperimentSummary",
-          tab: "components",
-          exposureSet: this.tab
-        }
-      });
-      this.$router.push(
-        {
-          name: "AssignmentCreateAssignment",
-          params: {
-            exposureId: exposureId,
-            conditionIds: conditionIds,
-          }
-        }
-      )
-    },
-    // Navigate to EDIT section
-    async handleAssignmentEdit(assignment, exposureId) {
-      const reallyEdit = await this.handleAssignmentStartedAlert(assignment.assignmentId);
-      if (!reallyEdit) {
-        return;
-      }
-      await this.setCurrentAssignment(assignment);
-      await this.saveEditMode({
-        initialPage: "AssignmentEditor",
-        callerPage: {
-          name: "ExperimentSummary",
-          tab: "components",
-          exposureSet: this.tab
-        }
-      });
-      this.$router.push({
-        name: "AssignmentEditor",
-        params: {
-          assignmentId: assignment.assignmentId,
-          exposureId: exposureId
-        }
-      });
-    },
-    async getAssignmentDetails() {
-      await this.fetchExposures(this.experiment.experimentId);
-      return this.exposures;
-    },
-    async handleCreateTreatment(conditionId, assignmentId) {
-      // POST TREATMENT
-      try {
-        return await this.createTreatment([
-          this.experiment.experimentId,
-          conditionId,
-          assignmentId,
-        ]);
-      } catch (error) {
-        console.error("handleCreateTreatment | catch", { error });
-      }
-    },
-    async handleCreateAssessment(conditionId, treatment) {
-      // POST ASSESSMENT TITLE & HTML (description)
-      try {
-        return await this.createAssessment([
-          this.experiment.experimentId,
-          conditionId,
-          treatment.treatmentId,
-        ]);
-      } catch (error) {
-        console.error("handleCreateAssessment | catch", { error });
-      }
-    },
-    async handleDeleteAssignment(eid, a) {
-      // DELETE ASSIGNMENT
-      const reallyDelete = await this.$swal({
-        icon: "question",
-        text: `Are you sure you want to delete the assignment "${a.title}"?`,
-        showCancelButton: true,
-        confirmButtonText: "Yes, delete it",
-        cancelButtonText: "No, cancel",
-        cancelButtonColor: "#515961",
-      });
-      if (reallyDelete?.isConfirmed) {
-        try {
-          let assignmentDeleted = await this.deleteAssignment([
-            this.experimentId,
-            eid,
-            a.assignmentId,
-          ]);
-
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.success,
-              "Assignment deleted successfully"
-            )
-          );
-
-          return assignmentDeleted;
-        } catch (error) {
-          console.error("handleDeleteQuestion | catch", { error });
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.error,
-              "There was a problem deleting the assignment"
-            )
-          );
-        }
-      }
-    },
-    async handleDuplicateAssignment(eid, a) {
-      // DUPLICATE ASSIGNMENT experimentId, exposureId, assignmentId
-      try {
-        const response = await this.duplicateAssignment([
-          this.experimentId,
-          eid,
-          a.assignmentId,
-        ]);
-
-        if (response.status === 201) {
-          let assignments = await this.fetchAssignmentsByExposure([
-            this.experimentId,
-            eid,
-            true,
-          ]);
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.success,
-              "Assignment duplicated successfully"
-            )
-          );
-
-          return assignments;
-        }
-      } catch (error) {
-        console.error("handleDuplicateQuestion | catch", { error });
-        createStatusAlert(
-          statusAlert(
-            this.alertStatuses.error,
-            "There was a problem duplicating the assignment"
-          )
-        );
-      }
-    },
-    async goToBuilder(conditionId, assignmentId) {
-      const reallyEdit = await this.handleAssignmentStartedAlert(assignmentId);
-      if (!reallyEdit) {
-        return;
-      }
-      await this.saveEditMode({
-        initialPage: "TerracottaBuilder",
-        callerPage: {
-          name: "ExperimentSummary",
-          tab: "components",
-          exposureSet: this.tab
-        }
-      });
-      // create the treatment
-      const treatment = await this.handleCreateTreatment(
-        conditionId,
-        assignmentId
-      );
-
-      if (![200, 201].includes(treatment.status)) {
-        this.$swal(
-          `There was a problem creating your treatment: ${treatment.data}`
-        );
-        return false;
-      }
-
-      // create the assessment
-      const assessment = await this.handleCreateAssessment(
-        conditionId,
-        treatment?.data
-      );
-
-      if (![200, 201].includes(assessment.status)) {
-        this.$swal(
-          `There was a problem creating your assessment: ${assessment.data}`
-        );
-        return false;
-      }
-
-      // send user to builder with the treatment and assessment ids
-      this.$router.push({
-        name: "TerracottaBuilder",
-        params: {
-          experimentId: this.experiment.experimentId,
-          conditionId: conditionId,
-          treatmentId: treatment?.data?.treatmentId,
-          assessmentId: assessment?.data?.assessmentId,
-          current_assignment: JSON.stringify(this.assignments.find((a) => a.assignmentId === assignmentId))
-        },
-      });
-    },
-    // For Mapping Sorted Group Name with associated Condition
-    groupNameConditionMapping(groupConditionList) {
-      const groupConditionMap = {};
-      groupConditionList?.map(
-        (group) => (groupConditionMap[group.groupName] = group.conditionName)
-      );
-      return groupConditionMap;
-    },
-    conditionForTreatment(groupConditionList, conditionId) {
-      return groupConditionList.find((c) => c.conditionId === conditionId);
-    },
-    // For Sorting Group Names
-    sortedGroups(groupConditionList, limit) {
-      const newGroups = groupConditionList?.map((group) => group.groupName);
-      return newGroups?.sort().filter((g, i) => limit ? i < limit : true);
-    },
-    dueDate(row) {
-      return row.dueDate != null ? moment(row.dueDate).format("MMM D, YYYY hh:mma") : "";
-    },
-    async handleAssignmentStartedAlert(assignmentId) {
-      var assignment = this.assignments.find((a) => a.assignmentId === assignmentId);
-      if (!assignment.started) {
-        return true;
-      }
-      const result = await this.$swal({
-        icon: "warning",
-        text: "You are currently collecting assignment submissions, and at least one student has submitted the assignment. Making changes could compromise the integrity of your experiment.",
-        showCancelButton: true,
-        confirmButtonText: "OK",
-        cancelButtonText: "Cancel",
-        cancelButtonColor: "#515961",
-        showLoaderOnConfirm: true,
-        reverseButtons: true,
-        allowOutsideClick: () => !this.$swal.isLoading(),
-      });
-      return result.isConfirmed;
-    },
-    expandRows() {
-      this.rowsExpanded = [];
-      this.rows.forEach((exposureRows, eidx) => this.rowsExpanded[eidx] = [...exposureRows]);
-    },
-    async handleAssignmentMultipleVersions(exposure) {
-      // create an assignment normal
-      await this.handleCreateAssignment(
-        exposure.exposureId,
-        JSON.stringify(exposure.groupConditionList.map(a => a.conditionId))
-      );
-    },
-    async handleAssignmentSingleVersion(exposure) {
-      // create an assignment with the default condition
-      await this.handleCreateAssignment(
-        exposure.exposureId,
-        JSON.stringify([this.defaultCondition.conditionId])
-      );
-    },
-    integrationsPreviewLaunchUrl(url = "http://localhost") {
-      return `/integrations/preview?url=${btoa(url)}`;
-    },
-    handleTreatmentPreview(treatment) {
-      window.open(`/preview/experiments/${this.experimentId}/conditions/${treatment.conditionId}/treatments/${treatment.treatmentId}?ownerId=${this.userId}`, "_blank");
-    },
-     async handleMoveComponent(row) {
-      const availableExposures = this.exposures.filter(e => e.exposureId !== row.exposureId);
-      let selectedExposure = await this.handleDisplayMoveAssignmentDialog(availableExposures, row.title);
-
-      if (!selectedExposure || selectedExposure.isDismissed) {
-        // no exposure selected, or dialog dismissed
-        return;
-      }
-
-      switch (row.type) {
-        case this.rowType.assignment:
-          await this.handleMoveAssignment(selectedExposure.value.exposureId, row);
-          break;
-        case this.rowType.message:
-          this.handleMoveMessageContainer(selectedExposure.value.exposureId, row);
-          break;
-        default:
-          break;
-      }
-    },
-    async handleEditComponent(exposureId, row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          await this.handleAssignmentEdit(row, exposureId);
-          break;
-        case this.rowType.message:
-          await this.handleEditMessageContainer(row.id, exposureId);
-          break;
-        default:
-          break;
-      }
-    },
-    async handleDuplicateComponent(exposureId, row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          await this.handleDuplicateAssignment(exposureId, row);
-          break;
-        case this.rowType.message:
-          await this.handleDuplicateMessageContainer(row);
-          break;
-        default:
-          break;
-      }
-    },
-    showDeleteComponent(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return this.canDeleteAssignment;
-        case this.rowType.message:
-          return ![messageStatus.queued, messageStatus.sent, messageStatus.deleted].includes(row.configuration.status)
-            && row.treatments.every(treatment => treatment.status !== messageStatus.sent);
-        default:
-          return false;
-      }
-    },
-    showPublishComponent(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return false;
-        case this.rowType.message:
-          return row.configuration.status === messageStatus.unpublished && !this.hasIncompleteTreatments(row);
-        default:
-          return false;
-      }
-    },
-    showUnpublishComponent(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return false;
-        case this.rowType.message:
-          return row.configuration.status === messageStatus.published;
-        default:
-          return false;
-      }
-    },
-    async handleDeleteComponent(exposureId, row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          await this.handleDeleteAssignment(exposureId, row);
-          break;
-        case this.rowType.message:
-          await this.handleDeleteMessageContainer(row);
-          break;
-        default:
-          break;
-      }
-    },
-    async handlePublishComponent(exposureId, row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          break;
-        case this.rowType.message:
-          await this.updateMessageContainer(
-            [
-              this.experimentId,
-              exposureId,
-              row.id,
-              {
-                ...row,
-                configuration: {
-                  ...row.configuration,
-                  status: messageStatus.published
-                }
-              }
-            ]
-          );
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.success,
-              "Message published successfully"
-            )
-          );
-          break;
-        default:
-          break;
-      }
-    },
-    async handleUnpublishComponent(exposureId, row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          break;
-        case this.rowType.message:
-          await this.updateMessageContainer(
-            [
-              this.experimentId,
-              exposureId,
-              row.id,
-              {
-                ...row,
-                configuration: {
-                  ...row.configuration,
-                  status: messageStatus.unpublished
-                }
-              }
-            ]
-          );
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.success,
-              "Message unpublished successfully"
-            )
-          );
-          break;
-        default:
-          break;
-      }
-    },
-    rowIcon(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return this.treatmentIcon.file;
-        case this.rowType.message:
-          return this.treatmentIcon.message;
-        default:
-          return "";
-      }
-    },
-    rowTreatmentsIcon(row, treatmentRow) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return treatmentRow.assessmentDto.integration ? this.treatmentIcon.integration : this.treatmentIcon.assignment;
-        case this.rowType.message:
-          return this.treatmentIcon.message;
-        default:
-          return "";
-      }
-    },
-    rowTreatmentsColumnClass(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-        case this.rowType.message:
-          return this.hasIncompleteTreatments(row) ? "label-treatment-incomplete" : "label-treatment-complete";
-        default:
-          return "";
-      }
-    },
-    hasIncompleteTreatments(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          if (row.treatments.some(treatment => treatment.assessmentDto.integration && !treatment.assessmentDto.integrationUrlValid)) {
-            return true;
-          }
-
-          return row.treatments.some(treatment => !(treatment.assessmentDto && treatment.assessmentDto.questions && treatment.assessmentDto.questions.length));
-        case this.rowType.message:
-          return !row.treatments.every((treatment) => [messageStatus.ready, messageStatus.disabled, messageStatus.sent].includes(treatment.configuration.status));
-        default:
-          return false;
-      }
-    },
-    showRowTreatmentsColumnTooltipText(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return "Set up your assignment by creating " + (row.treatments.length > 1 ? "treatments" : "a treatment") + ".";
-        case this.rowType.message:
-          return "Set up your message container by creating " + (row.treatments.length > 1 ? "messages" : "a message") + ".";
-        default:
-          return "";
-      }
-    },
-    rowPublishedColumnClass(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return row.published ? "label-treatment-complete" : "label-treatment-incomplete";
-        case this.rowType.message:
-          return !(row.published || row.sent) || this.hasIncompleteTreatments(row) || row.error ? "label-treatment-incomplete" : "label-treatment-complete";
-        default:
-          return "";
-      }
-    },
-    rowPublishedColumnText(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-        case this.rowType.message:
-          if (row.published) {
-            return "Published";
-          } else if (row.sent) {
-            return "Sent";
-          } else if (row.error) {
-            return "Error";
-          } else {
-            return "Unpublished";
-          }
-        default:
-          return "";
-      }
-    },
-    showTreatmentRowTooltip(row, treatment) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          if (treatment.assessmentDto.integration && !treatment.assessmentDto.integrationUrlValid) {
-            return true;
-          }
-
-          return !(treatment.assessmentDto && treatment.assessmentDto.questions.length);
-        case this.rowType.message:
-          return ![messageStatus.ready, messageStatus.disabled, messageStatus.sent].includes(treatment.configuration.status);
-        default:
-          return false;
-      }
-    },
-    treatmentRowTooltipText(row, treatment) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          if (treatment.assessmentDto.integration && !treatment.assessmentDto.integrationUrlValid) {
-            return "Error rendering content. Please check the URL.";
-          }
-
-          return "Please add content to this treatment.";
-        case this.rowType.message:
-          return "Please create a message for this treatment.";
-        default:
-          return "";
-      }
-    },
-    treatmentRowClass(row, treatment) {
-      return this.showTreatmentRowTooltip(row, treatment) ? "label-treatment-incomplete" : "label-treatment-complete";
-    },
-    async handleEditTreatment(row, treatment) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          this.goToBuilder(treatment.conditionId, row.assignmentId);
-          break;
-        case this.rowType.message:
-          this.handleMessageAction(row.id, treatment.id);
-          break;
-        default:
-          break;
-      }
-    },
-    editTreatmentIcon(row, treatment) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return "mdi-pencil";
-        case this.rowType.message:
-          return ![messageStatus.queued, messageStatus.processing, messageStatus.sent, messageStatus.deleted].includes(treatment.configuration.status) ? "mdi-pencil" : "mdi-eye";
-        default:
-          break;
-      }
-    },
-    editTreatmentText(row, treatment) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return "Edit";
-        case this.rowType.message:
-          return ![messageStatus.queued, messageStatus.processing, messageStatus.sent, messageStatus.deleted].includes(treatment.configuration.status) ? "Edit" : "View";
-        default:
-          break;
-      }
-    },
-    isIntegrationAssignment(row, treatment) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return treatment.assessmentDto.integration;
-        case this.rowType.message:
-        default:
-          return false;
-      }
-    },
-    isMessage(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return false;
-        case this.rowType.message:
-          return true;
-        default:
-          return false;
-      }
-    },
-    async handleAddMessage(version, exposure) {
-      await this.saveEditMode({
-        initialPage: "MessageContainer",
-        callerPage: {
-          name: "ExperimentSummary",
-          tab: "components",
-          exposureSet: this.tab
-        }
-      });
-      this.$router.push({
-        name: "MessageContainer",
-        params: {
-          experimentId: this.experimentId,
-          exposureId: exposure.exposureId,
-          version: version,
-          mode: "NEW"
-        }
-      });
-    },
-    showMoveAction(row) {
-      if (this.exposures.length <= 1) {
-        return false;
-      }
-
-      switch (row.type) {
-        case this.rowType.assignment:
-          return this.exposures.length > 1;
-        case this.rowType.message:
-          return ![messageStatus.queued, messageStatus.processing, messageStatus.sent, messageStatus.deleted].includes(row.configuration.status)
-            && row.treatments.every(treatment => treatment.status !== messageStatus.sent);
-        default:
-          return false;
-      }
-    },
-    showSendAction(row) {
-      switch (row.type) {
-        case this.rowType.assignment:
-          return false;
-        case this.rowType.message:
-          return row.published === messageStatus.ready;
-        default:
-          return false;
-      }
-    },
-    async handleEditMessageContainer(messageContainerId, exposureId) {
-      await this.saveEditMode({
-        initialPage: "MessageContainer",
-        callerPage: {
-          name: "ExperimentSummary",
-          tab: "components",
-          exposureSet: this.exposureSetIndex
-        }
-      });
-      this.$router.push({
-        name: "MessageContainer",
-        params: {
-          experimentId: this.experimentId,
-          exposureId: exposureId,
-          version: null,
-          mode: "EDIT",
-          containerId: messageContainerId
-        }
-      });
-    },
-    async handleSendMessageContainer(messageContainer) {
-      try {
-        await this.sendMessageContainer(
-          [
-            this.experimentId,
-            messageContainer.exposureId,
-            messageContainer.id
-          ]
-        );
-      } catch (error) {
-        console.error("handleSend | catch", { error });
-      }
-    },
-    async handleDeleteMessageContainer(messageContainer) {
-      const reallyDelete = await this.$swal({
-        icon: "question",
-        text: `Are you sure you want to delete the message container "${messageContainer.title}"?`,
-        showCancelButton: true,
-        confirmButtonText: "Yes, delete it",
-        cancelButtonText: "No, cancel",
-      });
-      if (reallyDelete?.isConfirmed) {
-        try {
-          await this.deleteMessageContainer(
-            [
-              this.experimentId,
-              messageContainer.exposureId,
-              messageContainer.id
-            ]
-          );
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.success,
-              "Message container deleted successfully"
-            )
-          );
-        } catch (error) {
-          console.error("handleDeleteMessageContainer | catch", { error });
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.error,
-              "There was a problem deleting the message container"
-            )
-          );
-        }
-      }
-    },
-    async handleMoveMessageContainer(targetExposureId, messageContainer) {
-      try {
-        await this.moveMessageContainer([
-          this.experimentId,
-          messageContainer.exposureId,
-          messageContainer.id,
-          {
-            ...messageContainer,
-            exposureId: targetExposureId
-          }
-        ]);
-        createStatusAlert(
-          statusAlert(
-            this.alertStatuses.success,
-            "Message container moved successfully"
-          )
-        );
-      } catch (error) {
-        console.error("handleMoveMessageContainer | catch", { error });
-        createStatusAlert(
-          statusAlert(
-            this.alertStatuses.error,
-            "There was a problem moving the message container"
-          )
-        );
-      }
-    },
-    async handleDuplicateMessageContainer(messageContainer) {
-      try {
-        await this.duplicateMessageContainer([
-          this.experimentId,
-          messageContainer.exposureId,
-          messageContainer.id
-        ]);
-        createStatusAlert(
-          statusAlert(
-            this.alertStatuses.success,
-            "Message container duplicated successfully"
-          )
-        );
-      } catch (error) {
-        console.error("handleDuplicateMessageContainer | catch", { error });
-        createStatusAlert(
-          statusAlert(
-            this.alertStatuses.error,
-            "There was a problem duplicating the message container"
-          )
-        );
-      }
-    },
-    async handleMessageAction(messageContainerId, messageId) {
-      await this.saveEditMode({
-        initialPage: "Message",
-        callerPage: {
-          name: "ExperimentSummary",
-          tab: "components",
-          exposureSet: this.exposureSetIndex
-        }
-      });
-      this.$router.push(
-        {
-          name: "Message",
-          params: {
-            messageId: messageId,
-            containerId: messageContainerId
-          }
-        }
-      )
-    },
-    handleDisplayMoveAssignmentDialog(availableExposures, assignmentTitle) {
-      return this.$swal({
-        html: '<div id="dialog-move-assignment"></div>',
-        showCancelButton: true,
-        confirmButtonText: "Move",
-        cancelButtonText: "Cancel",
-        reverseButtons: true,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        focusConfirm: false,
-        customClass: {
-          confirmButton: "response-option-confirm",
-          popup: "move-assignment-popup"
-        },
-        preConfirm: () => {
-          const exposureOption = this.$swal.getPopup().querySelector("input#exposure-option-selected");
-
-          if (exposureOption && exposureOption.value) {
-            return { exposureId: exposureOption.value };
-          }
-
-          // no value selected; prompt user to select one
-          this.$swal.showValidationMessage("Please select an exposure to move the assignment to.");
-        },
-        willOpen: () => {
-          var MoveAssignmentDialogClass = Vue.extend(MoveAssignmentDialog);
-          var moveAssignmentDialog = new MoveAssignmentDialogClass({
-            propsData: {
-              exposures: availableExposures,
-              assignmentName: assignmentTitle
-            }
-          });
-          moveAssignmentDialog.$mount(document.getElementById("dialog-move-assignment"));
-        },
-        didOpen: () => {
-          const exposureSetSelect = this.$swal.getHtmlContainer().querySelector("#move-radio-group");
-
-          if (exposureSetSelect) {
-            exposureSetSelect.focus();
-          }
-        }
-      });
     }
-  },
-  async mounted() {
-    showSkipLink(true);
-    this.tab = parseInt(this.activeExposureSet);
-    this.calculateRows();
-    this.loaded = true;
+  } catch (error) {
+    console.error("handleMoveAssignment | catch", error);
+    createStatusAlert(
+      statusAlert(alertStatuses.value.error, "There was a problem moving the assignment")
+    );
   }
 };
+
+const handleDeleteAssignment = async (exposureId, assignment) => {
+  const result = await Swal.fire({
+    icon: "question",
+    text: `Are you sure you want to delete the assignment "${assignment.title}"?`,
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "No, cancel",
+    cancelButtonColor: "#515961"
+  });
+
+  if (!result?.isConfirmed) {
+    return;
+  }
+
+  try {
+    await assignmentStore.deleteAssignment([
+      experimentId.value,
+      exposureId,
+      assignment.assignmentId
+    ]);
+
+    createStatusAlert(
+      statusAlert(alertStatuses.value.success, "Assignment deleted successfully")
+    );
+  } catch (error) {
+    console.error("handleDeleteAssignment | catch", error);
+    createStatusAlert(
+      statusAlert(alertStatuses.value.error, "There was a problem deleting the assignment")
+    );
+  }
+};
+
+const handleDuplicateAssignment = async (exposureId, assignment) => {
+  try {
+    const response = await assignmentStore.duplicateAssignment([
+      experimentId.value,
+      exposureId,
+      assignment.assignmentId
+    ]);
+
+    if (response?.status === 201) {
+      await assignmentStore.fetchAssignmentsByExposure([
+        experimentId.value,
+        exposureId,
+        true
+      ]);
+
+      createStatusAlert(
+        statusAlert(alertStatuses.value.success, "Assignment duplicated successfully")
+      );
+    }
+  } catch (error) {
+    console.error("handleDuplicateAssignment | catch", error);
+    createStatusAlert(
+      statusAlert(alertStatuses.value.error, "There was a problem duplicating the assignment")
+    );
+  }
+};
+
+const goToBuilder = async (treatment, assignmentId, exposureId) => {
+  const reallyEdit = await handleAssignmentStartedAlert(assignmentId);
+
+  if (!reallyEdit) {
+    return;
+  }
+
+  await navigationStore.saveEditMode({
+    initialPage: "TerracottaBuilder",
+    callerPage: {
+      name: "ExperimentSummary",
+      tab: "components",
+      exposureSet: tab.value
+    }
+  });
+
+  // The row's treatment (and its assessment) already exist - fetched from the
+  // backend along with the assignment - so we navigate straight to the builder
+  // with those existing IDs rather than creating a new treatment/assessment.
+  router.push({
+    name: "TerracottaBuilder",
+    params: {
+      experimentId: experimentId.value,
+      exposureId,
+      assignmentId,
+      conditionId: treatment.conditionId,
+      treatmentId: treatment.treatmentId,
+      assessmentId: treatment.assessmentDto.assessmentId
+    },
+    state: {
+      current_assignment: toRaw(assignments.value.find(item => item.assignmentId === assignmentId))
+    }
+  });
+};
+
+const handleEditTreatment = ({ row, treatment }) => {
+  if (row.type === rowType.assignment) {
+    return goToBuilder(treatment, row.assignmentId, row.exposureId);
+  }
+
+  return handleMessageAction(row.id, treatment.id);
+};
+
+const handleTreatmentPreview = treatment => {
+  window.open(
+    `/preview/experiments/${experimentId.value}/conditions/${treatment.conditionId}/treatments/${treatment.treatmentId}?ownerId=${userId.value}`,
+    "_blank"
+  );
+};
+
+const handleMoveComponent = async row => {
+  const availableExposures = exposures.value.filter(exposure => exposure.exposureId !== row.exposureId);
+  const selectedExposure = await handleDisplayMoveAssignmentDialog(availableExposures, row.title);
+
+  if (!selectedExposure || selectedExposure.isDismissed) {
+    return;
+  }
+
+  if (row.type === rowType.assignment) {
+    await handleMoveAssignment(selectedExposure.value.exposureId, row);
+    return;
+  }
+
+  await handleMoveMessageContainer(selectedExposure.value.exposureId, row);
+};
+
+const handleEditComponent = async (exposureId, row) => {
+  if (row.type === rowType.assignment) {
+    await handleAssignmentEdit(row, exposureId);
+    return;
+  }
+
+  await handleEditMessageContainer(row.id, exposureId);
+};
+
+const handleDuplicateComponent = async (exposureId, row) => {
+  if (row.type === rowType.assignment) {
+    await handleDuplicateAssignment(exposureId, row);
+    return;
+  }
+
+  await handleDuplicateMessageContainer(row);
+};
+
+const handleDeleteComponent = async (exposureId, row) => {
+  if (row.type === rowType.assignment) {
+    await handleDeleteAssignment(exposureId, row);
+    return;
+  }
+
+  await handleDeleteMessageContainer(row);
+};
+
+const handlePublishComponent = async (exposureId, row) => {
+  if (row.type !== rowType.message) {
+    return;
+  }
+
+  await messagingContainerStore.update([
+    experimentId.value,
+    exposureId,
+    row.id,
+    {
+      ...row,
+      configuration: {
+        ...row.configuration,
+        status: messageStatus.published
+      }
+    }
+  ]);
+
+  createStatusAlert(
+    statusAlert(alertStatuses.value.success, "Message published successfully")
+  );
+};
+
+const handleUnpublishComponent = async (exposureId, row) => {
+  if (row.type !== rowType.message) {
+    return;
+  }
+
+  await messagingContainerStore.update([
+    experimentId.value,
+    exposureId,
+    row.id,
+    {
+      ...row,
+      configuration: {
+        ...row.configuration,
+        status: messageStatus.unpublished
+      }
+    }
+  ]);
+
+  createStatusAlert(
+    statusAlert(alertStatuses.value.success, "Message unpublished successfully")
+  );
+};
+
+const handleAddMessage = async (version, exposure) => {
+  await navigationStore.saveEditMode({
+    initialPage: "MessageContainer",
+    callerPage: {
+      name: "ExperimentSummary",
+      tab: "components",
+      exposureSet: tab.value
+    }
+  });
+
+  router.push({
+    name: "MessageContainer",
+    params: { experimentId: experimentId.value },
+    query: {
+      exposureId: exposure.exposureId,
+      version,
+      mode: "NEW"
+    }
+  });
+};
+
+const handleEditMessageContainer = async (messageContainerId, exposureId) => {
+  await navigationStore.saveEditMode({
+    initialPage: "MessageContainer",
+    callerPage: {
+      name: "ExperimentSummary",
+      tab: "components",
+      exposureSet: tab.value
+    }
+  });
+
+  router.push({
+    name: "MessageContainer",
+    params: { experimentId: experimentId.value },
+    query: {
+      exposureId,
+      mode: "EDIT",
+      containerId: messageContainerId
+    }
+  });
+};
+
+const handleDeleteMessageContainer = async messageContainer => {
+  const result = await Swal.fire({
+    icon: "question",
+    text: `Are you sure you want to delete the message container "${messageContainer.title}"?`,
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "No, cancel"
+  });
+
+  if (!result?.isConfirmed) {
+    return;
+  }
+
+  try {
+    await messagingContainerStore.deleteContainer([
+      experimentId.value,
+      messageContainer.exposureId,
+      messageContainer.id
+    ]);
+
+    createStatusAlert(
+      statusAlert(alertStatuses.value.success, "Message container deleted successfully")
+    );
+  } catch (error) {
+    console.error("handleDeleteMessageContainer | catch", error);
+    createStatusAlert(
+      statusAlert(alertStatuses.value.error, "There was a problem deleting the message container")
+    );
+  }
+};
+
+const handleMoveMessageContainer = async (targetExposureId, messageContainer) => {
+  try {
+    await messagingContainerStore.move([
+      experimentId.value,
+      messageContainer.exposureId,
+      messageContainer.id,
+      {
+        ...messageContainer,
+        exposureId: targetExposureId
+      }
+    ]);
+
+    createStatusAlert(
+      statusAlert(alertStatuses.value.success, "Message container moved successfully")
+    );
+  } catch (error) {
+    console.error("handleMoveMessageContainer | catch", error);
+    createStatusAlert(
+      statusAlert(alertStatuses.value.error, "There was a problem moving the message container")
+    );
+  }
+};
+
+const handleDuplicateMessageContainer = async messageContainer => {
+  try {
+    await messagingContainerStore.duplicate([
+      experimentId.value,
+      messageContainer.exposureId,
+      messageContainer.id
+    ]);
+
+    createStatusAlert(
+      statusAlert(alertStatuses.value.success, "Message container duplicated successfully")
+    );
+  } catch (error) {
+    console.error("handleDuplicateMessageContainer | catch", error);
+    createStatusAlert(
+      statusAlert(alertStatuses.value.error, "There was a problem duplicating the message container")
+    );
+  }
+};
+
+const handleMessageAction = async (messageContainerId, messageId) => {
+  await navigationStore.saveEditMode({
+    initialPage: "Message",
+    callerPage: {
+      name: "ExperimentSummary",
+      tab: "components",
+      exposureSet: tab.value
+    }
+  });
+
+  router.push({
+    name: "Message",
+    query: {
+      messageId,
+      containerId: messageContainerId
+    }
+  });
+};
+
+const handleDisplayMoveAssignmentDialog = (availableExposures, assignmentName) => {
+  let dialogApp = null;
+
+  return Swal.fire({
+    html: '<div id="dialog-move-assignment"></div>',
+    showCancelButton: true,
+    confirmButtonText: "Move",
+    cancelButtonText: "Cancel",
+    reverseButtons: true,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    focusConfirm: false,
+    customClass: {
+      confirmButton: "response-option-confirm",
+      popup: "move-assignment-popup"
+    },
+    preConfirm: () => {
+      const exposureOption = Swal.getPopup().querySelector("input#exposure-option-selected");
+
+      if (exposureOption?.value) {
+        return {
+          exposureId: exposureOption.value
+        };
+      }
+
+      Swal.showValidationMessage("Please select an exposure to move the assignment to.");
+      return false;
+    },
+    didOpen: () => {
+      const mountTarget = document.getElementById("dialog-move-assignment");
+      dialogApp = createApp(MoveAssignmentDialog, {
+        exposures: availableExposures,
+        assignmentName
+      });
+      dialogApp.use(vuetify);
+      dialogApp.mount(mountTarget);
+
+      const exposureSetSelect = Swal.getHtmlContainer().querySelector("#move-radio-group");
+      exposureSetSelect?.focus();
+    },
+    willClose: () => {
+      dialogApp?.unmount();
+    }
+  });
+};
+
+onMounted(async () => {
+  showSkipLink(true);
+  tab.value = Number(props.activeExposureSet);
+  await nextTick();
+  loaded.value = true;
+});
 </script>
 
 <style lang="scss">
-@import "~@/styles/variables";
-
-.v-tabs-bar {
+.v-tabs {
   height: auto;
+
   .v-tab {
     padding: 16px 16px;
   }
 }
+
+// Vuetify 2's expanded-item slot auto-wrapped the consumer's <td> in
+// tr.v-data-table__expanded__content. Vuetify 3 renamed the slot to expanded-row and
+// stopped auto-wrapping - the consumer (ComponentTable.vue) now provides its own <tr>
+// (class v-data-table__tr--expanded, matching Vuetify 3's naming for the equivalent
+// internal case) - without which this selector had nothing valid to match at all (the
+// migrated template omitted the <tr> entirely until this fix, producing invalid markup:
+// a <td> with no <tr> parent).
 .v-data-table
-  > .v-data-table__wrapper
+  > .v-table__wrapper
   tbody
-  tr.v-data-table__expanded__content {
+  tr.v-data-table__tr--expanded {
   box-shadow: none;
-  border-bottom: 0 !important;
-  > td {
-    background-color: #fafafa !important;
-    .v-data-table__wrapper {
+
+  // desktop only: ComponentTable.vue's mobile-card view puts a real 32px
+  // white "spacer" border-bottom on each expanded row (see its own scoped
+  // styles) to space component cards apart - this !important unconditionally
+  // zeroed that back out. Kept for desktop, where a thin 1px divider
+  // (ComponentTable.vue's own unlayered border-bottom rule) is what's wanted
+  // instead of Vuetify's own default border/shadow.
+  &:not(.expanded-row--mobile) {
+    border-bottom: 0 !important;
+  }
+
+  &:not(.expanded-row--mobile) > td {
+    // matches the nested treatment table's own background (map.get($grey, "lightest"),
+    // set in ComponentTable.vue) - a mismatched shade here was visible as a lighter
+    // strip wherever this td has padding the nested table doesn't fill (e.g. the last
+    // row's added bottom padding for the rounded card corner)
+    background-color: map.get($grey, "lightest") !important;
+
+    .v-table__wrapper {
       border: none !important;
       border-radius: 0;
     }
   }
+
+  // mobile only: the outer <td> stays plain white (ComponentTable.vue's own
+  // scoped rule) so its padding-bottom reads as a real gap between cards,
+  // and the nested v-table__wrapper keeps its own rounded bottom corners
+  // (also ComponentTable.vue) instead of being flattened back to 0 here.
+  &.expanded-row--mobile > td .v-table__wrapper {
+    border: none !important;
+  }
 }
-.v-tooltip__content {
+
+.v-tooltip > .v-overlay__content {
   max-width: 400px;
-  opacity: 1.0 !important;
-  background-color: rgba(55,61,63, 1.0) !important;
+  opacity: 1 !important;
+  background-color: rgba(55, 61, 63, 1) !important;
+  color: #fff !important;
+
   a {
     color: #afdcff;
   }
 }
+
 .no-assignments-yet {
   flex-direction: column;
   width: 100%;
@@ -1720,6 +852,7 @@ export default {
   justify-content: center;
   background-color: #fffcf7 !important;
   border-color: #ffe0b2 !important;
+
   & .no-components-yet-buttons {
     min-width: fit-content;
     max-width: fit-content;
@@ -1727,23 +860,26 @@ export default {
     max-height: fit-content;
   }
 }
+
 .no-assignments-yet-container {
   width: fit-content;
   margin: 0 auto;
-}
-.no-assignments-yet-container {
+
   > h4 {
     width: fit-content;
     margin: 0 auto;
- }
+  }
 }
+
 .section-tab-set {
   color: black;
   opacity: 0.74;
 }
+
 .label-treatment-complete {
   padding-right: 10px;
 }
+
 .treatment-btn,
 .label-treatment-complete,
 .section-tab-components-balanced,
@@ -1751,23 +887,28 @@ export default {
   text-transform: none !important;
   opacity: 0.87 !important;
 }
+
 .treatment-btn,
 .label-treatment-complete,
 .section-tab-components-balanced {
   color: black !important;
 }
+
 .v-btn--disabled {
   .treatment-btn {
     color: rgba(0, 0, 0, 0.26) !important;
   }
 }
+
 .section-tab-components-unbalanced {
-  color: map-get($red, "base") !important;
+  color: map.get($red, "base") !important;
 }
+
 div.section-components.py-3.px-3 {
   padding-top: 40px !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
+
   > div.spinner-container-assignment {
     width: 100%;
     height: 100px;
@@ -1775,26 +916,29 @@ div.section-components.py-3.px-3 {
     margin-top: 12px !important;
     margin-left: 0 !important;
     list-style: none;
-    display: -webkit-box;
-    display: -moz-box;
-    display: -ms-flexbox;
-    display: -webkit-flex;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: thin solid rgba(0,0,0,.12) !important;
+    border: thin solid rgba(0, 0, 0, 0.12) !important;
     border-radius: 8px !important;
   }
 }
+
 div.no-assignments-yet.px-5.py-5.mx-3.mb-5,
 div.data-table-assignments.mx-3.mb-5.mt-3,
 div.data-table-design.px-5.py-5.rounded-lg.mx-3.mb-5.d-inline-block {
   margin-left: 0 !important;
 }
+
+div.data-table-design.px-5.py-5.rounded-lg.mx-3.mb-5.d-inline-block {
+  border: thin solid rgb(224, 224, 224) !important;
+}
+
 div.data-table-assignments.mx-3.mb-5.mt-3 {
   margin-right: 0 !important;
   margin-bottom: 40px !important;
 }
+
 td.treatments-table-container td,
 td.treatments-table-container td span,
 div.data-table-assignments.mx-3.mb-5.mt-3 td,
@@ -1803,64 +947,77 @@ div.data-table-assignments.mx-3.mb-5.mt-3 th span {
   min-width: fit-content;
   white-space: nowrap;
 }
+
 td.treatments-table-container td,
 td.treatments-table-container td span {
   white-space: normal;
 }
-td.treatments-table-container .v-data-table__wrapper table {
-  padding: 0 35px !important;
+
+td.treatments-table-container .v-table__wrapper table {
+  padding: 0 !important;
 }
-.v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tbody > tr > th,
-.v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > tfoot > tr > th,
-.v-application--is-ltr .v-data-table > .v-data-table__wrapper > table > thead > tr > th,
-div.data-table-assignments > .v-data-table__wrapper > table > tbody > tr > td:not(.treatments-table-container)  {
+
+.v-locale--is-ltr .v-data-table > .v-table__wrapper > table > tbody > tr > th,
+.v-locale--is-ltr .v-data-table > .v-table__wrapper > table > tfoot > tr > th,
+.v-locale--is-ltr .v-data-table > .v-table__wrapper > table > thead > tr > th,
+div.data-table-assignments > .v-table__wrapper > table > tbody > tr > td:not(.treatments-table-container) {
   padding: 4px !important;
 }
-div.data-table-assignments > .v-data-table__wrapper > table > tbody > tr > td:not(.treatments-table-container),
+
+div.data-table-assignments > .v-table__wrapper > table > tbody > tr > td:not(.treatments-table-container),
 div.data-table-design > div.groupNames > span.v-chip.v-chip--label > span.v-chip__content {
   white-space: normal !important;
 }
+
 .treatment-btn-group {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   float: right;
   margin-top: 5px;
+
   & .v-btn {
     padding: 0 8px;
   }
 }
+
 span.v-chip.v-chip--label,
-span.v-chip.v-chip--label > span.v-chip__content {
+span.v-chip.v-chip--label > .v-chip__content {
   min-height: fit-content !important;
   height: unset !important;
   max-width: 400px !important;
 }
+
 a.integration-preview-link {
-  color: rgba(0, 0, 0, .87) !important;
+  color: rgba(0, 0, 0, 0.87) !important;
   text-decoration: none;
   font-size: 1rem;
 }
+
 .component-icon {
-  color: rgba(0, 0, 0, .54) !important;
+  color: rgba(0, 0, 0, 0.54) !important;
 }
+
+div.components-header {
+  /* the heading and the Add Message/Add Assignment buttons have nowhere to
+     go at narrow widths without this - the buttons row's max-width:
+     fit-content held its own preferred size regardless of available space,
+     pushing it off-screen to the right instead of dropping below. */
+  flex-wrap: wrap;
+  row-gap: 16px;
+}
+
 div.component-buttons {
   max-width: fit-content;
+  /* lets Add Message/Add Assignment stack instead of overflowing off-screen
+     once the two buttons together no longer fit even on their own row. */
+  flex-wrap: wrap;
+  row-gap: 16px;
 }
+
 .swal2-styled {
   &.swal2-cancel {
-    background-color: map-get($swal, "cancel" );
+    background-color: map.get($swal, "cancel") !important;
   }
-}
-</style>
-
-<style lang="scss" scoped>
-@import "~@/styles/variables";
-
-.treatments-table-container::v-deep .icon-treatment-incomplete,
-.data-table-assignments::v-deep .label-treatment-incomplete {
-  text-transform: none !important;
-  opacity: 0.87 !important;
-  color: map-get($red, "base") !important;
 }
 </style>

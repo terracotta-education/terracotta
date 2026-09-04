@@ -1,87 +1,97 @@
 <template>
-<div>
-  <v-radio-group
-    v-model="selectedExposureOption"
-    column="true"
-    id="move-radio-group"
-  >
-    <template
-      v-slot:label
+  <div>
+    <v-radio-group
+      id="move-radio-group"
+      v-model="selectedExposureOption"
     >
-      <h2><b>Move Assignment Options</b></h2>
-      <p>
-        Choose the exposure set you wish to move <b>{{ assignmentName }}</b> to.
-      </p>
-    </template>
-    <v-radio
-      v-for="(exposure) in exposures"
-      :value="exposure.exposureId"
-      :key="exposure.exposureId"
-      class="exposure-radio-option"
-      color="primary"
-      ripple="true"
-    >
-      <template
-        v-slot:label
-      >
-        <div
-          class="exposure-radio-option-label"
-        >
-          {{ exposure.title }}
+      <template #label>
+        <div class="move-radio-label">
+          <h2>
+            <b>Move Assignment Options</b>
+          </h2>
+
+          <p>
+            Choose the exposure set you wish to move
+            <b>{{ assignmentName }}</b>
+            to.
+          </p>
         </div>
       </template>
-    </v-radio>
-  </v-radio-group>
-  <input
-    id="exposure-option-selected"
-    type="hidden"
-  />
-</div>
+
+      <v-radio
+        v-for="exposure in exposures"
+        :key="exposure.exposureId"
+        :value="exposure.exposureId"
+        class="exposure-radio-option"
+        color="primary"
+        ripple
+      >
+        <template #label>
+          <div class="exposure-radio-option-label">
+            {{ exposure.title }}
+          </div>
+        </template>
+      </v-radio>
+    </v-radio-group>
+
+    <input
+      id="exposure-option-selected"
+      :value="selectedExposureOption"
+      type="hidden"
+    />
+  </div>
 </template>
 
-<script>
-  import Vuetify from "vuetify/lib";
+<script setup>
+import {
+  ref,
+  watch
+} from "vue";
 
-  export default {
-    name: "MoveAssignmentDialog",
-    vuetify: new Vuetify(),
-    props: {
-      assignmentName: {
-        type: String,
-        required: true
-      },
-      exposures: {
-        type: Array,
-        required: true
-      }
-    },
-    data: () => ({
-      selectedExposureOption: null
-    }),
-    watch: {
-      selectedExposureOption: {
-        handler(newValue) {
-          if (document.getElementById("exposure-option-selected")) {
-            document.getElementById("exposure-option-selected").value = newValue;
-          }
+defineOptions({
+  name: "MoveAssignmentDialog"
+});
 
-          if (document.getElementsByClassName("response-option-confirm")[0]) {
-            document.getElementsByClassName("response-option-confirm")[0].disabled = newValue === null;
-          }
-        },
-        immediate: true
-      },
-      exposures: {
-        handler(newValue) {
-          if (newValue.length === 1) {
-            // only one exposure, pre-select it for the user
-            this.selectedExposureOption = newValue[0].exposureId;
-          }
-        },
-        immediate: true
-      }
-    }
+const props = defineProps({
+  assignmentName: {
+    type: String,
+    required: true
+  },
+  exposures: {
+    type: Array,
+    required: true
   }
+});
+
+const selectedExposureOption = ref(null);
+
+watch(
+  () => props.exposures,
+  exposures => {
+    if (exposures.length === 1) {
+      selectedExposureOption.value = exposures[0].exposureId;
+    }
+  },
+  {
+    immediate: true
+  }
+);
+
+watch(
+  selectedExposureOption,
+  value => {
+    const confirmButton = document.getElementsByClassName(
+      "response-option-confirm"
+    )[0];
+
+    if (confirmButton) {
+      confirmButton.disabled = value === null;
+    }
+  },
+  {
+    immediate: true
+  }
+);
 </script>
 
 <style lang="scss" scoped>
@@ -91,20 +101,24 @@ div.swal2-popup.swal2-modal.move-assignment-popup {
 
 #move-radio-group {
   display: grid !important;
-  > legend.v-label {
-    > h2 {
+
+  .move-radio-label {
+    h2 {
       text-align: left !important;
     }
-    > p {
+
+    p {
       display: block !important;
       text-align: left !important;
       font-size: 1.125em;
     }
   }
+
   & .exposure-radio-option-label {
     margin-left: 8px !important;
     font-weight: 400 !important;
   }
+
   & .exposure-radio-option {
     min-width: 80%;
     margin: 8px auto;

@@ -1,114 +1,117 @@
-import { authHeader, isJson } from '@/helpers'
-import store from '@/store/index.js'
+import { authHeader, isJson } from "@/helpers";
+import { api } from "@/store/api.module";
 
-// /**
-//  * Register methods
-//  */
 export const participantService = {
   getAll,
   getById,
   updateParticipants,
   updateParticipant
+};
+
+async function getAll(experimentId, refresh = false) {
+  return request(
+    `/api/experiments/${experimentId}/participants?refresh=${refresh}`
+  );
 }
 
-/**
- * Get all Participants
- */
-function getAll(experimentId, refresh = false) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/participants?refresh=${refresh}`,
-    requestOptions
-  ).then(handleResponse)
+async function getById(
+  experimentId,
+  participantId
+) {
+  return request(
+    `/api/experiments/${experimentId}/participants/${participantId}`
+  );
 }
 
-/**
- * Get individual Participant
- */
-function getById(experimentId, participantId) {
-  const requestOptions = {
-    method: 'GET',
-    headers: authHeader(),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experimentId}/participants/${participantId}`,
-    requestOptions
-  ).then(handleResponse)
+async function updateParticipants(
+  experimentId,
+  participantDetails
+) {
+  return request(
+    `/api/experiments/${experimentId}/participants`,
+    {
+      method: "PUT",
+      body: participantDetails
+    }
+  );
 }
 
-/**
- * Update Participants
- */
-function updateParticipants(experiementId, participantDetails) {
-  const requestOptions = {
-    method: 'PUT',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify(participantDetails),
-  }
-
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiementId}/participants`,
-    requestOptions
-  ).then(handleResponse)
+async function updateParticipant(
+  experimentId,
+  participantDetails
+) {
+  return request(
+    `/api/experiments/${experimentId}/participants/${participantDetails.participantId}`,
+    {
+      method: "PUT",
+      body: participantDetails
+    }
+  );
 }
 
-/**
- * Update Participant
- */
- function updateParticipant(experiementId, participantDetails) {
-  const requestOptions = {
-    method: 'PUT',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify(participantDetails),
-  }
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    body
+  } = options;
 
-  return fetch(
-    `${store.getters['api/aud']}/api/experiments/${experiementId}/participants/${participantDetails.participantId}`,
-    requestOptions
-  ).then(handleResponse)
+  const response = await fetch(`${api().aud}${path}`, {
+    method,
+    headers: {
+      ...authHeader(),
+      ...(body ? { "Content-Type": "application/json" } : {})
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
+
+  return handleResponse(response);
 }
 
-/**
- * Handle API response
- */
-function handleResponse(response) {
-  return response
-    .text()
-    .then((text) => {
-      const data = (text && isJson(text)) ? JSON.parse(text) : text
+async function handleResponse(response) {
+  try {
+    const text = await response.text();
 
-      if (response.status === 204) {
-        // no participants exist yet for this experiment - a genuine empty result, not a
-        // failure, but the body is empty so there's nothing for JSON.parse to return an array
-        return []
+    const data = text && isJson(text)
+      ? JSON.parse(text)
+      : text;
+
+    if (response.status === 204) {
+      return [];
+    }
+
+    if (response.status === 401) {
+      return {
+        message: data,
+        status: response.status
+      };
+    }
+
+    if (!response?.ok) {
+      if ([402, 500].includes(response.status)) {
+        console.error("handleResponse | auth/server error", {
+          response
+        });
+      } else if (response.status === 404) {
+        console.warn("handleResponse | not found", {
+          response
+        });
       }
 
-      if (!response || !response.ok) {
-        if (
-          response.status === 402 ||
-          response.status === 500
-        ) {
-          console.log('handleResponse | 402/500', { response })
-        } else if (response.status === 401) {
-          console.log('handleResponse | 401', { response })
-          return {
-            message: data
-          }
-        } else if (response.status === 404) {
-          console.log('handleResponse | 404', { response })
-        }
+      return {
+        status: response.status,
+        error: data || response
+      };
+    }
 
-        return response
-      }
+    return data || response;
+  } catch (error) {
+    console.error("handleResponse | catch", {
+      error
+    });
 
-      return data || response
-    })
-    .catch((text) => {
-      console.log('handleResponse | catch', { text })
-    })
+    return {
+      error,
+      status: response?.status
+    };
+  }
 }

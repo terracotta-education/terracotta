@@ -34,7 +34,6 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_messaging_container_configuration")
 public class MessageContainerConfiguration extends BaseMessageEntity {

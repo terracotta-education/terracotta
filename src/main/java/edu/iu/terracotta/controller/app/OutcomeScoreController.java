@@ -144,7 +144,7 @@ public class OutcomeScoreController {
         } catch (InvalidParticipantException | DataServiceException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw new DataServiceException("Error 105: There was an error updating the outcome score list. No outcome scores were updated.");
+            throw new DataServiceException("Error 105: There was an error updating the outcome score list. No outcome scores were updated.", ex);
         }
     }
 

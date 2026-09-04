@@ -1,4 +1,17 @@
-.v-card__title, 
-.v-card__text {
-  word-break: normal;
+.v-card {
+  background-color: white;
+  &-title,
+  &__text {
+    word-break: normal;
+  }
+  &-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+    hyphens: none !important;
+    letter-spacing: .0125em;
+    line-height: 2rem;
+    overflow-wrap: normal !important;
+    white-space: normal !important;
+    word-wrap: normal !important;
+  }
 }

@@ -40,7 +40,7 @@ import java.util.Map;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = ConditionController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ConditionController {
 

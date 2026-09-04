@@ -1,48 +1,45 @@
-import { exposuresService } from '@/services'
+import { defineStore } from "pinia";
 
-const state = {
-  exposures: null,
-}
+import { exposuresService } from "@/services";
 
-const actions = {
-  async fetchExposures ({ commit }, experimentId) {
-    return exposuresService
-      .getAll(experimentId)
-      .then((data) => {
-        commit('setExposuresService', data)
-      })
-      .catch((response) => {
-        console.log('fetchExposures | catch', { response })
-      });
-  },
-  async createExposures ({state}, experimentId) {
-    return await exposuresService
-      .createExposures(experimentId)
-      .catch((response) => {
-        console.log('createExposures | catch', { response, state })
-      });
-  },
-  resetExposures({state}) {
-    state.exposures = [];
-  },
-}
+export const exposures = defineStore("exposures", {
+  state: () => ({
+    exposures: []
+  }),
 
-const mutations = {
-  setExposuresService(state, data) {
-    state.exposures = data
+  getters: {
+    hasExposures: state => state.exposures.length > 0
   },
-};
 
-const getters = {
-  exposures(state) {
-    return state.exposures
-  },
-}
+  actions: {
+    async fetchExposures(experimentId) {
+      try {
+        const data = await exposuresService.getAll(experimentId);
 
-export const exposures = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters,
-}
+        this.exposures = data || [];
+
+        return this.exposures;
+      } catch (error) {
+        console.error("exposures/fetchExposures | catch", error);
+
+        this.exposures = [];
+
+        return [];
+      }
+    },
+
+    async createExposures(experimentId) {
+      try {
+        return await exposuresService.createExposures(experimentId);
+      } catch (error) {
+        console.error("exposures/createExposures | catch", error);
+
+        return null;
+      }
+    },
+
+    resetExposures() {
+      this.exposures = [];
+    }
+  }
+});

@@ -1,363 +1,418 @@
 <template>
-<div
-  v-if="isLoaded"
->
-  <v-row>
-    <div
-      class="col-10"
+  <div v-if="isLoaded">
+    <v-row>
+      <v-col cols="10">
+        <v-text-field
+          v-model="title"
+          :disabled="readOnly"
+          :hide-details="validationErrors.title === null"
+          :error-messages="validationErrors.title"
+          label="Message container title"
+          variant="outlined"
+        />
+      </v-col>
+    </v-row>
+
+    <p class="text-medium-emphasis pb-0">
+      This will create an unpublished message container in Canvas. Please note:
+      the message container title is not the same as your message's subject
+      line, which you will create for each treatment.
+    </p>
+
+    <v-divider />
+
+    <v-tabs
+      v-model="tab"
+      class="tabs"
     >
-      <v-text-field
-        v-model="title"
-        :disabled="readOnly"
-        :hide-details="validationErrors.title === null"
-        :error-messages="validationErrors.title"
-        label="Message container title"
-        outlined
-      />
-    </div>
-  </v-row>
-  <p
-    class="grey--text text--darken-2 pb-0"
-  >
-    This will create an unpublished message container in Canvas. Please note: the message container title is not the same as your message's subject line, which you will create for each treatment.
-  </p>
-  <v-divider />
-  <v-tabs
-    v-model="tab"
-    class="tabs"
-  >
-    <v-tab>Settings</v-tab>
-  </v-tabs>
-  <v-divider />
-  <v-tabs-items
-    v-model="tab"
-  >
-    <v-tab-item
-      class="my-5 px-2"
-    >
-      <h4
-        class="mb-4"
+      <v-tab value="settings">
+        Settings
+      </v-tab>
+    </v-tabs>
+
+    <v-divider />
+
+    <v-window v-model="tab">
+      <v-window-item
+        value="settings"
+        class="my-5 px-2"
       >
-        Settings at this level -- the container level -- will be applied to all treatments within the container. Settings can also be applied at the treatment level.
-      </h4>
-      <type
-        :type="type"
-        :readOnly="readOnly"
-        :validatedErrors="validationErrors.type"
-        @updated="updateType"
-        label="Send all messages in the container as:"
-      />
-      <to-consented-only
-        :selected="toConsentedOnly"
-        :readOnly="readOnly"
-        :experiment="experiment"
-        @updated="updateToConsentedOnly"
-      />
-      <reply-to
-        v-if="showReplyTo"
-        :replyTos="replyTo"
-        :readOnly="readOnly"
-        @updated="updateReplyTo"
-        ref="replyTo"
-      />
-      <scheduler
-        :sendAt="sendAt"
-        :readOnly="readOnly"
-        :validatedErrors="validationErrors.sendAt"
-        @updated="updateSendAt"
-        label="Decide when you would like the message to be sent."
-      />
-    </v-tab-item>
-  </v-tabs-items>
-</div>
+        <h4 class="mb-4">
+          Settings at this level, the container level, will be applied to all
+          treatments within the container. Settings can also be applied at the
+          treatment level.
+        </h4>
+
+        <Type
+          :type="type"
+          :read-only="readOnly"
+          :validated-errors="validationErrors.type"
+          label="Send all messages in the container as:"
+          @updated="updateType"
+        />
+
+        <ToConsentedOnly
+          :selected="toConsentedOnly"
+          :read-only="readOnly"
+          :experiment="experiment"
+          @updated="updateToConsentedOnly"
+        />
+
+        <ReplyTo
+          v-if="showReplyTo"
+          ref="replyTo"
+          :reply-tos="replyToList"
+          :read-only="readOnly"
+          @updated="updateReplyTo"
+        />
+
+        <Scheduler
+          :send-at="sendAt"
+          :read-only="readOnly"
+          :validated-errors="validationErrors.sendAt"
+          label="Decide when you would like the message to be sent."
+          @updated="updateSendAt"
+        />
+      </v-window-item>
+    </v-window>
+  </div>
 </template>
 
-<script>
-import { mapGetters, mapActions } from "vuex";
+<script setup>
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+} from "vue";
+
+import {
+  useRoute,
+  useRouter
+} from "vue-router";
+
+import Swal from "sweetalert2";
 import { editableMessageStatuses } from "@/helpers/messaging/status.js";
-import { shrinkContainer, widenContainer, adjustBodyTopPadding, statusAlert } from "@/helpers/ui-utils.js";
-import { initValidations, validateContainer } from "@/helpers/messaging/validation.js";
+import {
+  shrinkContainer,
+  widenContainer,
+  adjustBodyTopPadding,
+  statusAlert,
+  createStatusAlert
+} from "@/helpers/ui-utils.js";
+import {
+  initValidations,
+  validateContainer
+} from "@/helpers/messaging/validation.js";
+
 import ReplyTo from "@/views/messaging/components/form/ReplyTo.vue";
 import Scheduler from "@/views/messaging/components/form/Scheduler.vue";
 import ToConsentedOnly from "@/views/messaging/components/form/ToConsentedOnly.vue";
 import Type from "@/views/messaging/components/form/Type.vue";
 
-export default {
-  name: "MessageContainer",
-  components: {
-    ReplyTo,
-    Scheduler,
-    ToConsentedOnly,
-    Type
+import { experiment as experimentModule } from "@/store/experiment.module";
+import { container as messagingMessageContainerModule } from "@/store/messaging/container.module";
+import { alert as alertModule } from "@/store/alert.module";
+
+defineOptions({
+  name: "MessageContainer"
+});
+
+const route = useRoute();
+const router = useRouter();
+
+
+const experimentStore = experimentModule();
+const messagingMessageContainerStore = messagingMessageContainerModule();
+const alertStore = alertModule();
+
+const isLoaded = ref(false);
+const tab = ref("settings");
+const container = ref(null);
+const validationErrors = ref(null);
+const replyTo = ref(null);
+
+const experiments = computed(() => {
+  return experimentStore.experiments || [];
+});
+
+const allMessageContainers = computed(() => {
+  return messagingMessageContainerStore.messageContainers || [];
+});
+
+const alertStatuses = computed(() => {
+  return alertStore.statuses;
+});
+
+const experimentId = computed(() => {
+  return Number.parseInt(route.params.experimentId, 10);
+});
+
+const exposureId = computed(() => {
+  return route.query.exposureId;
+});
+
+const experiment = computed(() => {
+  return experiments.value.find(
+    item => item.experimentId === experimentId.value
+  );
+});
+
+const versions = {
+  multiple: "MULTIPLE",
+  single: "SINGLE"
+};
+
+const modes = {
+  new: "NEW",
+  edit: "EDIT"
+};
+
+const version = computed(() => {
+  return route.query.version || versions.multiple;
+});
+
+const mode = computed(() => {
+  return route.query.mode || modes.new;
+});
+
+const isNew = computed(() => {
+  return mode.value === modes.new;
+});
+
+const single = computed(() => {
+  return version.value === versions.single;
+});
+
+const configuration = computed(() => {
+  return container.value?.configuration || {};
+});
+
+const configurationId = computed(() => {
+  return configuration.value.id;
+});
+
+const containerId = computed(() => {
+  return container.value?.id || null;
+});
+
+const replyToList = computed({
+  get() {
+    return configuration.value?.replyTo || [];
   },
-  data: () => ({
-    isLoaded: false,
-    tab: null,
-    container: null,
-    validationErrors: null
-  }),
-  computed: {
-    ...mapGetters({
-      editMode: "navigation/editMode",
-      experiments: "experiment/experiments",
-      allMessageContainers: "messagingMessageContainer/messageContainers",
-      alertStatuses: "alert/statuses"
-    }),
-    experiment() {
-      return this.experiments.find(e => e.experimentId === this.experimentId);
-    },
-    experimentId() {
-      return this.$route.params.experimentId;
-    },
-    exposureId() {
-      return this.$route.params.exposureId;
-    },
-    configuration() {
-      return this.container.configuration;
-    },
-    configurationId() {
-      return this.configuration.id;
-    },
-    containerId() {
-      return this.container.id;
-    },
-    version() {
-      return this.$route.params.version || this.versions.multiple;
-    },
-    mode() {
-      return this.$route.params.mode || this.modes.new;
-    },
-    versions() {
-      return {
-        multiple: "MULTIPLE",
-        single: "SINGLE"
-      }
-    },
-    modes() {
-      return {
-        new: "NEW",
-        edit: "EDIT"
-      }
-    },
-    isNew() {
-      return this.mode === this.modes.new;
-    },
-    single() {
-      return this.version === this.versions.single;
-    },
-    messageTypes() {
-      return [
-        {id: "CONVERSATION", label: "Conversation"},
-        {id: "EMAIL", label: "Email"}
-      ]
-    },
-    replyTo: {
-      get() {
-        return this.configuration?.replyTo || [];
-      },
-      set(newReplyTo) {
-        this.configuration.replyTo = newReplyTo;
-      }
-    },
-    sendAt: {
-      get() {
-        return this.configuration?.sendAt || null;
-      },
-      set(newSendAt) {
-        this.configuration.sendAt = newSendAt;
-        this.configuration.sendAtTimezoneOffset = new Date().getTimezoneOffset();
-      }
-    },
-    title: {
-      get() {
-        return this.configuration?.title || "";
-      },
-      set(newTitle) {
-        this.configuration.title = newTitle;
-      }
-    },
-    toConsentedOnly: {
-      get() {
-        return this.configuration?.toConsentedOnly || false;
-      },
-      set(newToConsentedOnly) {
-        this.configuration.toConsentedOnly = newToConsentedOnly;
-      }
-    },
-    type: {
-      get() {
-        return this.configuration?.type || null;
-      },
-      set(newType) {
-        this.configuration.type = newType;
-      }
-    },
-    readOnly() {
-      return !editableMessageStatuses.includes(this.configuration.status);
-    },
-    showReplyTo() {
-      return this.configuration.type === "EMAIL";
-    },
 
-    getSaveExitPage() {
-      return this.editMode?.callerPage?.name || "Home";
-    }
-  },
-  methods: {
-    ...mapActions({
-      createMessageContainer: "messagingMessageContainer/create",
-      updateMessageContainer: "messagingMessageContainer/update"
-    }),
-    updateReplyTo(newReplyTo) {
-      this.replyTo = newReplyTo.map(
-        r => ({
-          ...r,
-          containerConfigurationId: this.configurationId
-        })
-      );
-    },
-    updateSendAt(newSendAt) {
-      this.sendAt = newSendAt;
-    },
-    updateType(newType) {
-      this.type = newType;
-    },
-    updateToConsentedOnly(newToConsentedOnly) {
-      this.toConsentedOnly = newToConsentedOnly;
-    },
-    async saveExit() {
-      // wait for reply-to child to complete validation
-      let replyToValid = this.$refs.replyTo ? await this.$refs.replyTo.updateReplyTo() : true;
-
-      if (!replyToValid) {
-        // reply-to validation failed; do not proceed with saving and exiting
-        return false;
-      }
-
-      this.validationErrors = validateContainer(this.container);
-
-      if (this.validationErrors.hasErrors) {
-        this.$swal("Please complete all required sections.");
-        return false;
-      }
-
-      if (!this.containerId) {
-        // create new message container
-        let newContainer = await this.createMessageContainer(
-          [
-            this.experimentId,
-            this.exposureId,
-            this.single
-          ]
-        );
-
-        // update replyTos to add newly-added ones
-        newContainer.configuration.replyTo = [
-          ...this.replyTo
-            .map(r => ({
-              ...r,
-              containerConfigurationId: newContainer.configuration.id,
-              messageConfigurationId: null
-            }))
-          ];
-
-        // update newContainer with configuration
-        this.container = {
-          ...newContainer,
-          configuration: {
-            ...newContainer.configuration,
-            title: this.title,
-            sendAt: this.sendAt,
-            sendAtTimezoneOffset: new Date().getTimezoneOffset(),
-            type: this.type,
-            toConsentedOnly: this.toConsentedOnly
-          }
-        };
-      }
-
-      // update existing message container
-      await this.updateMessageContainer(
-        [
-          this.experimentId,
-          this.exposureId,
-          this.containerId,
-          this.container
-        ]
-      );
-      this.$router.push({
-        name: "ExperimentSummary",
-        params: {
-          experiment_id: this.experimentId,
-          exposure_id: this.exposureId,
-          ...statusAlert(
-             this.alertStatuses.success,
-            "Message container saved successfully."
-          )
-        }
-      });
-    }
-  },
-  async mounted() {
-    widenContainer();
-    adjustBodyTopPadding();
-
-    if (this.isNew) {
-      // is new; create new message container
-      this.container = {
-        configuration: {
-          id: null,
-          containerId: null,
-          status: "UNPUBLISHED",
-          title: null,
-          toConsentedOnly: false,
-          replyTo: [
-              {
-                  id: null,
-                  containerConfigurationId: null,
-                  messageConfigurationId: null,
-                  email: this.experiment.createdByEmail || "",
-              }
-          ],
-          sendAt: null,
-          sendAtTimezoneOffset: new Date().getTimezoneOffset(),
-          type: "NONE",
-          order: 1
-        }
-      }
-    } else {
-      // is edit; use existing message container
-      this.container = this.allMessageContainers.find(mc => mc.id === this.$route.params.containerId);
-      this.container = {
-        ...this.container,
-        configuration: {
-          ...this.container.configuration,
-          // ensure timezone offeset is set to current timezone
-          sendAtTimezoneOffset: new Date().getTimezoneOffset()
-        }
-      }
-    }
-
-    this.validationErrors = initValidations().container;
-    this.isLoaded = true;
-  },
-  beforeUnmount() {
-    shrinkContainer();
-    adjustBodyTopPadding("");
+  set(value) {
+    configuration.value.replyTo = value;
   }
-}
+});
+
+const sendAt = computed({
+  get() {
+    return configuration.value?.sendAt || null;
+  },
+
+  set(value) {
+    configuration.value.sendAt = value;
+    configuration.value.sendAtTimezoneOffset =
+      new Date().getTimezoneOffset();
+  }
+});
+
+const title = computed({
+  get() {
+    return configuration.value?.title || "";
+  },
+
+  set(value) {
+    configuration.value.title = value;
+  }
+});
+
+const toConsentedOnly = computed({
+  get() {
+    return configuration.value?.toConsentedOnly || false;
+  },
+
+  set(value) {
+    configuration.value.toConsentedOnly = value;
+  }
+});
+
+const type = computed({
+  get() {
+    return configuration.value?.type || null;
+  },
+
+  set(value) {
+    configuration.value.type = value;
+  }
+});
+
+const readOnly = computed(() => {
+  return !editableMessageStatuses.includes(configuration.value.status);
+});
+
+const showReplyTo = computed(() => {
+  return configuration.value.type === "EMAIL";
+});
+
+const updateReplyTo = value => {
+  replyToList.value = value.map(item => ({
+    ...item,
+    containerConfigurationId: configurationId.value
+  }));
+};
+
+const updateSendAt = value => {
+  sendAt.value = value;
+};
+
+const updateType = value => {
+  type.value = value;
+};
+
+const updateToConsentedOnly = value => {
+  toConsentedOnly.value = value;
+};
+
+const createDraftContainer = () => {
+  return {
+    configuration: {
+      id: null,
+      containerId: null,
+      status: "UNPUBLISHED",
+      title: null,
+      toConsentedOnly: false,
+      replyTo: [
+        {
+          id: null,
+          containerConfigurationId: null,
+          messageConfigurationId: null,
+          email: experiment.value?.createdByEmail || ""
+        }
+      ],
+      sendAt: null,
+      sendAtTimezoneOffset: new Date().getTimezoneOffset(),
+      type: "NONE",
+      order: 1
+    }
+  };
+};
+
+const loadExistingContainer = () => {
+  const existingContainer = allMessageContainers.value.find(
+    messageContainer => messageContainer.id === route.query.containerId
+  );
+
+  return {
+    ...existingContainer,
+    configuration: {
+      ...existingContainer.configuration,
+      sendAtTimezoneOffset: new Date().getTimezoneOffset()
+    }
+  };
+};
+
+const saveExit = async () => {
+  const replyToValid = replyTo.value
+    ? await replyTo.value.updateReplyTo()
+    : true;
+
+  if (!replyToValid) {
+    return false;
+  }
+
+  validationErrors.value = validateContainer(container.value);
+
+  if (validationErrors.value.hasErrors) {
+    Swal.fire("Please complete all required sections.");
+    return false;
+  }
+
+  if (!containerId.value) {
+    const newContainer =
+      await messagingMessageContainerStore.create([
+        experimentId.value,
+        exposureId.value,
+        single.value
+      ]);
+
+    newContainer.configuration.replyTo = replyToList.value.map(item => ({
+      ...item,
+      containerConfigurationId: newContainer.configuration.id,
+      messageConfigurationId: null
+    }));
+
+    container.value = {
+      ...newContainer,
+      configuration: {
+        ...newContainer.configuration,
+        title: title.value,
+        sendAt: sendAt.value,
+        sendAtTimezoneOffset: new Date().getTimezoneOffset(),
+        type: type.value,
+        toConsentedOnly: toConsentedOnly.value
+      }
+    };
+  }
+
+  await messagingMessageContainerStore.update([
+    experimentId.value,
+    exposureId.value,
+    containerId.value,
+    container.value
+  ]);
+
+  createStatusAlert(
+    statusAlert(alertStatuses.value.success, "Message container saved successfully.")
+  );
+
+  router.push({
+    name: "ExperimentSummary",
+    params: {
+      experimentId: experimentId.value
+    }
+  });
+
+  return true;
+};
+
+onMounted(() => {
+  widenContainer();
+  adjustBodyTopPadding();
+
+  container.value = isNew.value
+    ? createDraftContainer()
+    : loadExistingContainer();
+
+  validationErrors.value = initValidations().container;
+  isLoaded.value = true;
+});
+
+onBeforeUnmount(() => {
+  shrinkContainer();
+  adjustBodyTopPadding("");
+});
+
+defineExpose({
+  saveExit
+});
 </script>
 
 <style lang="scss">
 .v-expansion-panels {
-  &, & > div {
+  &,
+  & > div {
     width: 100%;
   }
 }
+
 .terracotta-builder {
-  .v-expansion-panel-header {
+  .v-expansion-panel-title {
     &--active {
-      border-bottom: 2px solid map-get($grey, "lighten-2");
+      border-bottom: 2px solid map.get($grey, "lighter");
     }
+
     h2 {
       display: inline-block;
       max-height: 1em;
@@ -375,15 +430,18 @@ export default {
       }
     }
   }
+
   .tabs {
-    border-top: 1px solid map-get($grey, "lighten-2");
-    border-bottom: 1px solid map-get($grey, "lighten-2");
+    border-top: 1px solid map.get($grey, "lighter");
+    border-bottom: 1px solid map.get($grey, "lighter");
   }
+
   .header-container {
     width: 100%;
     min-height: fit-content;
     padding-bottom: 10px;
   }
+
   h4.label-treatment,
   h4.label-condition-name {
     display: inline;

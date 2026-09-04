@@ -4,7 +4,7 @@
     <v-col>
       <v-img
         class="mx-auto mt-7 mb-7"
-        src="@/assets/terracotta_logo.svg"
+        :src="terracottaLogo"
         alt="Terracotta Logo"
         max-width="173"
       />
@@ -13,7 +13,7 @@
         max-width="700"
       >
         <v-card-title
-          class="text-h5"
+          class="text-headline-small text-wrap"
         >
           Terracotta wants to access your {{ lmsTitle }} account
         </v-card-title>
@@ -74,45 +74,45 @@
 </v-container>
 </template>
 
-<script>
-import { mapGetters } from "vuex";
-import ToolTip from "@/components/ToolTip.vue";
+<script setup>
+import { computed } from "vue";
 
-export default {
-  components: {
-    ToolTip
-  },
-  data: () => ({
-    tooltipRefs: [
-      "ref-list-submissions-tooltip",
-      "ref-manage-assignments-tooltip"
-    ]
-  }),
-  computed: {
-    ...mapGetters({
-      lmsApiOAuthURL: "api/lmsApiOAuthURL",
-      configurations: "configuration/get"
-    }),
-    lmsTitle() {
-      return this.configurations.lmsTitle || "LMS";
-    }
-  }
-}
+import ToolTip from "@/components/ToolTip.vue";
+import { api } from "@/store/api.module";
+import terracottaLogo from "@/assets/terracotta_logo.svg";
+import { configuration } from "@/store/configuration.module";
+
+const apiStore = api();
+const configurationStore = configuration();
+
+const lmsApiOAuthURL = computed(() => {
+  return apiStore.lmsApiOAuthURL;
+});
+
+const configurations = computed(() => {
+  return configurationStore.get;
+});
+
+const lmsTitle = computed(() => {
+  return configurations.value?.lmsTitle || "LMS";
+});
 </script>
 
 <style lang="scss" scoped>
-@import "../styles/custom";
-
 .oauth-permissions-card {
   padding: 32px;
 }
 .oauth-permissions-card__text {
   color: rgba(0, 0, 0, 0.87) !important;
 }
-.v-tooltip__content {
+// tooltip content is teleported outside this component's DOM subtree, so :deep() (a descendant
+// selector rooted at this component's scope attribute) can't reach it - :global() is required
+:global(.v-tooltip > .v-overlay__content) {
   max-width: 400px;
   opacity: 1.0 !important;
   background-color: rgba(55,61,63, 1.0) !important;
+  color: #fff !important;
+
   a {
     color: #afdcff;
   }
