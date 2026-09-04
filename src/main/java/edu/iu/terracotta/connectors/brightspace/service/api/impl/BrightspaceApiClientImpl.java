@@ -211,7 +211,10 @@ public class BrightspaceApiClientImpl implements ApiClient {
 
             createLineItem(assignmentExtended, assignment, orgUnitId);
 
-            return getWriter(apiUser, AssignmentWriterService.class)
+            // serialize explicit nulls for the optional fields we don't set (e.g. ShortTitle,
+            // ModuleStartDate/EndDate, Description, Duration): Brightspace's JSON binder rejected
+            // the create request when those keys were omitted from the request body entirely
+            return getWriter(apiUser, AssignmentWriterService.class, true)
                 .createAssignment(orgUnitId, assignmentExtended.getAssignment())
                 .orElseThrow(() -> new ApiException(String.format("Failed to create Assignment in Brightspace course for orgUnitId [%s]", orgUnitId)));
         } catch (Exception e) {
@@ -849,6 +852,10 @@ public class BrightspaceApiClientImpl implements ApiClient {
 
     private <T extends BrightspaceWriterService<?, T>> T getWriter(LtiUserEntity apiUser, Class<T> clazz) throws ApiException {
         return getWriterInternal(apiUser, clazz, getOauthToken(apiUser));
+    }
+
+    private <T extends BrightspaceWriterService<?, T>> T getWriter(LtiUserEntity apiUser, Class<T> clazz, boolean serializeNulls) throws ApiException {
+        return getApiFactory(apiUser).getWriter(clazz, getOauthToken(apiUser), serializeNulls);
     }
 
     private <T extends BrightspaceWriterService<?, T>> T getWriter(String baseUrl, Class<T> clazz, String tokenOverride) throws ApiException {

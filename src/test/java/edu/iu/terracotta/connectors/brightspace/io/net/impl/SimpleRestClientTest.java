@@ -245,9 +245,34 @@ class SimpleRestClientTest {
     }
 
     @Test
-    void testExtractErrorMessageNonJsonContentTypeReturnsNullMessage() throws Exception {
+    void testExtractErrorMessageNonJsonContentTypeFallsBackToRawBody() throws Exception {
         CloseableHttpResponse response = httpResponse(403);
         when(response.getEntity()).thenReturn(new StringEntity("forbidden", ContentType.TEXT_PLAIN));
+        CloseableHttpClient httpClient = mockClientReturning(response);
+
+        try (MockedStatic<HttpClientBuilder> _ = mockHttpClientBuilder(httpClient)) {
+            BrightspaceException exception = assertThrows(BrightspaceException.class, () -> simpleRestClient.sendApiGet(token(), URL, 100, 100));
+
+            assertEquals("forbidden", exception.getBrightspaceErrorMessage());
+        }
+    }
+
+    @Test
+    void testExtractErrorMessageBlankBodyReturnsNullMessage() throws Exception {
+        CloseableHttpResponse response = httpResponse(403);
+        when(response.getEntity()).thenReturn(new StringEntity("", ContentType.TEXT_PLAIN));
+        CloseableHttpClient httpClient = mockClientReturning(response);
+
+        try (MockedStatic<HttpClientBuilder> _ = mockHttpClientBuilder(httpClient)) {
+            BrightspaceException exception = assertThrows(BrightspaceException.class, () -> simpleRestClient.sendApiGet(token(), URL, 100, 100));
+
+            assertNull(exception.getBrightspaceErrorMessage());
+        }
+    }
+
+    @Test
+    void testExtractErrorMessageNoEntityReturnsNullMessage() throws Exception {
+        CloseableHttpResponse response = httpResponse(403);
         CloseableHttpClient httpClient = mockClientReturning(response);
 
         try (MockedStatic<HttpClientBuilder> _ = mockHttpClientBuilder(httpClient)) {

@@ -1,6 +1,7 @@
 package edu.iu.terracotta.connectors.brightspace.io.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -318,11 +319,12 @@ public class AssignmentServiceImplTest {
     }
 
     @Test
-    void testCreateAssignment_lineItemIdNull_throwsNullPointerException() throws IOException {
-        // BUG: Map.of(key, value) throws an NPE if value is null (per its javadoc). Here
-        // "assignment.getLineItem().getId()" is null whenever the caller hasn't already
-        // populated the AGS line item id, so createAssignment throws an unchecked
-        // NullPointerException instead of the checked IOException its signature promises.
+    void testCreateAssignment_lineItemIdNull_completesWithNullLineItemIdInSecureParams() throws IOException {
+        // the line item id is null here whenever lineitem creation failed upstream and was
+        // swallowed (see BrightspaceApiClientImpl.createLineItem's ConnectionException catch).
+        // createAssignment should still complete a best-effort assignment (gradebook sync just
+        // won't work) instead of crashing -- Map.of(key, value), which was used here previously,
+        // throws an NPE on a null value; a null-tolerant map fixes that.
         Assignment assignment = Assignment.builder().build();
         assignment.setGradeObject(GradeObject.builder().id(1L).build());
         assignment.setDropboxFolder(DropboxFolder.builder().id(20L).build());
@@ -331,7 +333,13 @@ public class AssignmentServiceImplTest {
 
         when(ltiAdvantageQuickLinkService.create(ORG_UNIT_ID, 30L)).thenReturn(Optional.of(LtiAdvantageQuickLink.builder().linkId(31L).publicUrl("https://x/{orgUnitId}").build()));
 
-        assertThrows(NullPointerException.class, () -> assignmentService.createAssignment(ORG_UNIT_ID, assignment));
+        Optional<AssignmentExtended> result = assignmentService.createAssignment(ORG_UNIT_ID, assignment);
+
+        assertTrue(result.isPresent());
+        JsonMapper jsonMapper = JsonMapper.builder().build();
+        Map<String, Object> secureParams = jsonMapper.readValue(result.get().getSecureParams(), new TypeReference<Map<String, Object>>() { });
+        assertTrue(secureParams.containsKey(BrightspaceAssignmentMetadata.LTI_ASSIGNMENT_ID));
+        assertNull(secureParams.get(BrightspaceAssignmentMetadata.LTI_ASSIGNMENT_ID));
     }
 
     @Test
