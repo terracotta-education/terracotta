@@ -372,39 +372,47 @@ public class SimpleRestClient implements RestClient {
      * @return The Brightspace human-readable error string or null if unable to extract it
      */
     private String extractErrorMessageFromResponse(HttpResponse response) {
-        if (response.getEntity() == null || response.getEntity().getContentType() == null) {
+        if (response.getEntity() == null) {
             return null;
         }
 
-        String contentType = response.getEntity().getContentType().getValue();
-        String message = null;
+        String responseBody;
 
-        if (contentType.contains(MediaType.APPLICATION_JSON_VALUE)) {
+        try {
+            responseBody = EntityUtils.toString(response.getEntity());
+        } catch (IOException e) {
+            log.error("Unable to read body of error response from Brightspace", e);
+            return null;
+        }
+
+        // log the raw body regardless of content type, so a response Brightspace (or a
+        // proxy/WAF in front of it) sends back as non-JSON is still visible for diagnosis
+        log.error("Body of error response from Brightspace: [{}]", responseBody);
+
+        if (StringUtils.isBlank(responseBody)) {
+            return null;
+        }
+
+        String contentType = response.getEntity().getContentType() != null ? response.getEntity().getContentType().getValue() : null;
+
+        if (contentType != null && contentType.contains(MediaType.APPLICATION_JSON_VALUE)) {
             JsonMapper jsonMapper = ResponseParserServiceImpl.getJsonParser(false);
-            String responseBody = null;
 
             try {
-                responseBody = EntityUtils.toString(response.getEntity());
-                log.error("Body of error response from Brightspace: [{}]", responseBody);
                 BrightspaceErrorResponse errorResponse = jsonMapper.readValue(responseBody, BrightspaceErrorResponse.class);
                 List<BrightspaceErrorResponse.ErrorMessage> errors = errorResponse.getErrors();
 
                 if (errors != null) {
-                    message = errors.stream()
+                    return errors.stream()
                         .map(BrightspaceErrorResponse.ErrorMessage::getMessage)
                         .collect(Collectors.joining(", "));
-                } else {
-                    message = responseBody;
                 }
             } catch (Exception e) {
-                // Returned JSON was not in expected format. Fall back to returning the whole response body, if any
-                if (StringUtils.isNotBlank(responseBody)) {
-                    message = responseBody;
-                }
+                // Returned JSON was not in expected format. Fall back to returning the whole response body below.
             }
         }
 
-        return message;
+        return responseBody;
     }
 
     private Optional<String> handleResponse(HttpResponse httpResponse, HttpRequestBase request) throws IOException {
