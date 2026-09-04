@@ -107,11 +107,7 @@ public class UserExtendedImpl extends BaseImpl<UserExtended, UserReaderExtended,
                     callback.accept(response);
                 }
             }
-        } catch (IOException | InvalidOauthTokenException e) {
-            lmsUserBatchWriteService.markFailed(batchId, e.getMessage());
-
-            throw e;
-        } catch (RuntimeException e) {
+        } catch (IOException | RuntimeException e) {
             lmsUserBatchWriteService.markFailed(batchId, e.getMessage());
 
             throw e;

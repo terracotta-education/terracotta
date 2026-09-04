@@ -1,59 +1,80 @@
-import {consentService} from '@/services'
+import { defineStore } from "pinia";
 
-const state = {
-  file: null,
-  title: ''
-}
+import { consentService } from "@/services";
 
-const actions = {
-  resetConsent: ({commit}) => {
-    commit('setConsentTitle', '')
+export const consent = defineStore("consent", {
+  state: () => ({
+    file: null,
+    title: ""
+  }),
+
+  getters: {
+    consent: state => state,
+    consentFile: state => state.file,
+    consentTitle: state => state.title,
+    hasConsent: state => Boolean(state.file || state.title)
   },
-  createConsent: ({state}, payload) => {
-    // payload = experimentId, pdfFile, state.title
-    return consentService.create(...payload).then((response) => {
-      if (response.status !== 200) {
-        throw new Error("Consent file upload failed", {state});
+
+  actions: {
+    resetConsent() {
+      this.file = null;
+      this.title = "";
+    },
+
+    async createConsent(payload) {
+      try {
+        const response = await consentService.create(...payload);
+
+        if (response?.status !== 200) {
+          throw new Error("Consent file upload failed");
+        }
+
+        return response;
+      } catch (error) {
+        console.error("consent/createConsent | catch", {
+          error,
+          state: this.$state
+        });
+
+        throw error;
       }
-    });
-  },
-  setConsentTitle: ({commit}, title) => {
-    commit('setConsentTitle', title);
-  },
-  async getConsentFile({state}, experimentId) {
-    return await consentService.getConsentFile(experimentId).then(response => {
-      if (response.status === 200) {
-        return response.base;
-      } else if (response.status === 404) {
+    },
+
+    setConsentTitle(title) {
+      this.title = title || "";
+    },
+
+    setConsentFile(file) {
+      this.file = file || null;
+    },
+
+    async getConsentFile(experimentId) {
+      try {
+        const response =
+          await consentService.getConsentFile(experimentId);
+
+        if (response?.status === 200) {
+          return response.base;
+        }
+
+        if (response?.status === 404) {
+          return null;
+        }
+
+        console.error(
+          "consent/getConsentFile | unexpected response",
+          {
+            state: this.$state,
+            response
+          }
+        );
+
         return null;
-      } else {
-        console.log('getConsentFile | catch', {state, response})
+      } catch (error) {
+        console.error("consent/getConsentFile | catch", error);
+
+        return null;
       }
-    })
-    .catch(response => console.log('getConsentFile | catch', {response}))
+    }
   }
-
-}
-
-const mutations = {
-  setConsent(state, consent) {
-    state = consent
-  },
-  setConsentTitle(state, title) {
-    state.title = title
-  }
-}
-
-const getters = {
-  consent(state) {
-    return state
-  },
-}
-
-export const consent = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+});

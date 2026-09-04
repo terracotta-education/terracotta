@@ -1,119 +1,138 @@
 <template>
-<div>
-  <template>
-    <response-row
+  <div>
+    <ResponseRow
       v-for="answer in answers"
       :key="answer.answerId"
       :correct="getColor(answer)"
     >
-      <div
-        class="d-flex justify-space-between align-center w-100"
-      >
-        <div
-          class="question-input"
-        >
-          <template
+      <div class="d-flex justify-space-between align-center w-100">
+        <div class="question-input">
+          <v-radio-group
             v-if="!readonly"
+            v-model="response"
+            @update:model-value="emitValueChanged"
+            hide-details
           >
-            <v-radio-group
-              v-model="response"
-              @change="emitValueChanged"
-            >
-              <v-radio
-                :value="answer.answerId"
-                :aria-label="`select option ${answer.html}`"
-                class="radioButton"
-              >
-              </v-radio>
-            </v-radio-group>
-          </template>
-          <template
-            v-if="readonly"
+            <v-radio
+              :value="answer.answerId"
+              :aria-label="`select option ${answer.html}`"
+              class="radioButton"
+            />
+          </v-radio-group>
+
+          <v-radio-group
+            v-else
+            :model-value="answer.studentResponse"
+            :disabled="readonly"
+            hide-details
           >
-            <v-radio-group
-              v-model="answer.studentResponse"
-              :disabled="readonly"
-            >
-              <v-radio
-                :value="answer.answerId"
-                :aria-label="`option ${answer.html}`"
-                class="radioButton"
-              >
-              </v-radio>
-            </v-radio-group>
-          </template>
-          <span
-            v-html="answer.html"
-          >
-          </span>
+            <v-radio
+              :value="answer.answerId"
+              :aria-label="`option ${answer.html}`"
+              class="radioButton"
+            />
+          </v-radio-group>
+
+          <span v-html="answer.html" />
         </div>
-        <template
-          v-if="readonly"
-        >
+
+        <template v-if="readonly">
           <span
             v-if="answer.studentResponse"
-            :class="getColor(answer) ? 'green--text' : 'red--text'"
+            :class="getColor(answer) ? 'correct-text' : 'incorrect-text'"
             class="decorator"
           >
             Student Response
           </span>
+
           <span
             v-if="showAnswers && answer.correct && !answer.studentResponse"
-            :class="getColor(answer) ? 'green--text' : 'red--text'"
+            :class="getColor(answer) ? 'correct-text' : 'incorrect-text'"
             class="decorator"
           >
             Correct Response
           </span>
         </template>
       </div>
-    </response-row>
-  </template>
-</div>
+    </ResponseRow>
+  </div>
 </template>
 
-<script>
-import ResponseRow from "./ResponseRow.vue";
+<script setup>
+import {
+  ref,
+  watch
+} from "vue";
 
-export default {
-  props: [
-    "answers",
-    "value",
-    "responses",
-    "readonly",
-    "showAnswers"
-  ],
-  components: {
-    ResponseRow
+import ResponseRow from "@/views/student/ResponseRow.vue";
+
+defineOptions({
+  name: "MultipleChoiceResponseEditor"
+});
+
+const props = defineProps({
+  answers: {
+    type: Array,
+    default: () => []
   },
-  data() {
-    return {
-      response: this.value,
-    };
+  modelValue: {
+    type: [Number, String, null],
+    default: null
   },
-  watch: {
-    value() {
-      this.response = this.value;
-    },
+  responses: {
+    type: Array,
+    default: () => []
   },
-  methods: {
-    emitValueChanged() {
-      this.$emit("input", this.response);
-    },
-    getColor(answer) {
-      if (this.readonly) {
-        if (answer.correct) {
-          if (!this.showAnswers && !answer.studentResponse) {
-            return null;
-          }
-          return true;
-        }
-        if (!answer.correct && answer.studentResponse) {
-          return false;
-        }
+  readonly: {
+    type: Boolean,
+    default: false
+  },
+  showAnswers: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const emit = defineEmits([
+  "update:modelValue"
+]);
+
+const response = ref(props.modelValue);
+
+watch(
+  () => props.modelValue,
+  value => {
+    response.value = value;
+  }
+);
+
+const emitValueChanged = value => {
+  response.value = value;
+  emit("update:modelValue", response.value);
+};
+
+const getColor = answer => {
+  if (props.readonly) {
+    if (answer.correct) {
+      if (
+        !props.showAnswers &&
+        !answer.studentResponse
+      ) {
+        return null;
       }
-      return null;
+
+      return true;
+    }
+
+    if (
+      !answer.correct &&
+      answer.studentResponse
+    ) {
+      return false;
     }
   }
+
+  return null;
 };
 </script>
 
@@ -122,15 +141,27 @@ export default {
   display: flex;
   flex-direction: row;
   align-items: center;
+  height: 68px;
 }
+
 .radioButton {
   margin-top: 2px;
 }
+
 .w-100 {
   width: 100%;
 }
+
 .decorator {
   font-weight: 500;
   font-size: 0.9rem;
+}
+
+.correct-text {
+  color: map.get($green, "base") !important;
+}
+
+.incorrect-text {
+  color: map.get($red, "base") !important;
 }
 </style>

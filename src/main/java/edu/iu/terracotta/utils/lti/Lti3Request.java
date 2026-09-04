@@ -69,7 +69,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Setter
-@SuppressWarnings({"PMD.GuardLogStatement", "ConstantConditions", "PMD.SingletonClassReturningNewInstance", "unchecked", "PMD.LooseCoupling"})
+@SuppressWarnings({"PMD.GuardLogStatement", "ConstantConditions", "PMD.SingletonClassReturningNewInstance", "unchecked"})
 public class Lti3Request {
 
     @Value("${app.lti.data.verbose.logging.enabled:false}")

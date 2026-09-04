@@ -392,6 +392,27 @@ public class ExperimentServiceImplTest extends BaseTest {
         assertEquals(1, retVal.getRejectedParticipants());
     }
 
+    // the pagination while loop only exits once participantsList holds the empty terminating
+    // page, so consent.expectedConsent must come from participantCount (the running total
+    // across every page, already used for potentialParticipants above) - not
+    // participantsList.size(), which at that point is always 0 regardless of how many
+    // participants actually exist. That bug showed up as an impossible ratio like "4/0" on
+    // the Consent row of the experiment summary status page.
+    @Test
+    public void testToDtoExpectedConsentUsesTotalParticipantCountAcrossAllPages() {
+        Participant rejected = mock(Participant.class);
+        when(rejected.getDateRevoked()).thenReturn(Timestamp.from(Instant.now()));
+        when(rejected.getConsent()).thenReturn(false);
+        when(rejected.getLtiUserEntity()).thenReturn(ltiUserEntity);
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any(Pageable.class)))
+            .thenReturn(List.of(participant, rejected))
+            .thenReturn(Collections.emptyList());
+
+        ExperimentDto retVal = experimentService.toDto(experiment, false, false, false, securedInfo);
+
+        assertEquals(2, retVal.getConsent().getExpectedConsent());
+    }
+
     @Test
     public void testToDtoNullConsentCountsAsRejectedNotAccepted() {
         Participant nullConsent = mock(Participant.class);

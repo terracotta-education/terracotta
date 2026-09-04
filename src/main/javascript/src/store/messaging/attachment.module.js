@@ -1,37 +1,44 @@
+import { defineStore } from "pinia";
+
 import { messageContentAttachmentService } from "@/services";
 
-const state = {
-  messageContentAttachments: []
-}
+export const attachment = defineStore("messagingContentAttachment", {
+  state: () => ({
+    messageContentAttachments: []
+  }),
 
-const actions = {
-  async getAll({ commit }, payload) {
-    // payload = experimentId, exposureId, containerId, messageId, contentId
-    try {
-      const response = await messageContentAttachmentService.getAll(...payload);
-      commit("set", response);
-    } catch (e) {
-      console.error("getAll catch", {e});
+  getters: {
+    attachments: state => state.messageContentAttachments,
+
+    attachmentCount: state =>
+      state.messageContentAttachments.length,
+
+    hasAttachments: state =>
+      state.messageContentAttachments.length > 0
+  },
+
+  actions: {
+    async getAll(payload) {
+      try {
+        const response =
+          await messageContentAttachmentService.getAll(...payload);
+
+        this.messageContentAttachments = Array.isArray(response)
+          ? response
+          : [];
+
+        return this.messageContentAttachments;
+      } catch (error) {
+        console.error("attachment/getAll | catch", error);
+
+        this.messageContentAttachments = [];
+
+        return [];
+      }
+    },
+
+    resetAttachments() {
+      this.messageContentAttachments = [];
     }
   }
-}
-
-const mutations = {
-  set(state, messageContentAttachments) {
-    state.messageContentAttachments = messageContentAttachments || [];
-  }
-}
-
-const getters = {
-  get: (state) => {
-    return state.messageContentAttachments;
-  }
-}
-
-export const attachment = {
-  namespaced: true,
-  state,
-  actions,
-  getters,
-  mutations
-}
+});

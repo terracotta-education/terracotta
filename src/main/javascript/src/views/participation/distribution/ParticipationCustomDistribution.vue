@@ -1,217 +1,249 @@
 <template>
   <div>
-    <h1
-      class="mb-5"
-    >
+    <h1 class="mb-5">
       Select the percent of students you would like to receive each condition
     </h1>
+
     <div
-      class="row mx-2"
+      class="mx-auto my-0"
     >
-      <div
-        class="col-9 label"
+      <v-row class="mx-2">
+        <v-col cols="9" class="label">
+          Condition
+        </v-col>
+
+        <v-col cols="3" class="label text-right">
+          Distribution
+        </v-col>
+      </v-row>
+
+      <v-card
+        class="mt-2 mb-3 py-3 mx-auto lighten-5 rounded-lg"
+        variant="outlined"
       >
-        Condition
-      </div>
-      <div
-        class="col-3 label text-right"
-      >
-        Distribution
-      </div>
-    </div>
-    <v-card
-      class="mt-2 mb-3 py-3 mx-auto lighten-5 rounded-lg"
-      outlined
-    >
-      <v-card-text
-        v-for="(condition, index) in conditions"
-        :key="condition.conditionId"
-        class="pa-5"
-      >
-        <v-row
-          class="justify-space-between align-center"
+        <v-card-text
+          v-for="(condition, index) in conditions"
+          :key="condition.conditionId"
+          class="pa-5"
         >
-          <v-col
-            cols="9"
-            class="py-0"
-          >
-            <v-card-title
-              class="ma-0 pa-0 body-1"
+          <v-row class="justify-space-between align-center">
+            <v-col
+              cols="9"
+              class="py-0"
             >
-              {{ condition.name }} will receive
-            </v-card-title>
-          </v-col>
-          <v-col
-            cols="3"
-            class="py-0"
-          >
-            <v-text-field
-              v-model="distributionValue[index]"
-              :error="touched && !isValidAt(index)"
-              :aria-label="`Input distribution percentage for ${condition.name}`"
-              class="pa-0 ma-0 text-right"
-              suffix="%"
-              inputmode="decimal"
-              hide-details
-              outlined
-              required
-              @input="touched = true"
-            ></v-text-field>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
-    <p
-      v-if="touched && isDisabled"
-      class="errorMessage mt-3"
-    >
-      Enter a percentage of zero or greater for each condition. The values must add up to 100%
-      &mdash; they currently add up to {{ displayTotal }}%.
-    </p>
-    <v-btn
-      :disabled="isDisabled"
-      @click="updateDistribution('ParticipationSummary')"
-      elevation="0"
-      class="mt-3"
-      color="primary"
-    >
-      Continue
-    </v-btn>
+              <v-card-title class="ma-0 pa-0 body-1">
+                {{ condition.name }} will receive
+              </v-card-title>
+            </v-col>
+
+            <v-col
+              cols="3"
+              class="py-0"
+            >
+              <v-text-field
+                v-model="distributionValue[index]"
+                :error="touched && !isValidAt(index)"
+                :aria-label="`Input distribution percentage for ${condition.name}`"
+                class="pa-0 ma-0 text-right"
+                suffix="%"
+                inputmode="decimal"
+                variant="outlined"
+                hide-details
+                required
+                @input="touched = true"
+              />
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
+
+      <p
+        v-if="touched && isDisabled"
+        class="errorMessage mt-3"
+      >
+        Enter a percentage of zero or greater for each condition. The values must add up to 100%
+        &mdash; they currently add up to {{ displayTotal }}%.
+      </p>
+
+      <v-btn
+        :disabled="isDisabled"
+        elevation="0"
+        class="mt-3"
+        color="primary"
+        @click="updateDistribution('ParticipationSummary')"
+      >
+        Continue
+      </v-btn>
+    </div>
   </div>
 </template>
 
-<script>
-import { mapActions, mapGetters } from "vuex";
+<script setup>
+import {
+  ref,
+  computed,
+  watch
+} from "vue";
 
-export default {
-  name: "ParticipationCustomDistribution",
-  props: {
-    experiment: {
-      type: Object,
-      required: true
-    }
-  },
-  // NOTE: must be a regular function, not an arrow function. An arrow function
-  // does not receive the component instance as `this`, which is what caused
-  // "Cannot read properties of undefined (reading 'experiment')".
-  data() {
-    return {
-      distributionValue: this.seedDistribution(this.experiment.conditions),
-      touched: false
-    };
-  },
-  computed: {
-    ...mapGetters({
-      editMode: "navigation/editMode"
-    }),
-    getSaveExitPage() {
-      return this.editMode?.callerPage?.name || "Home";
-    },
-    conditions() {
-      return this.experiment.conditions || [];
-    },
-    experimentId() {
-      return this.experiment.experimentId;
-    },
-    /**
-     * Parsed inputs. Blank/garbage entries become NaN rather than silently
-     * coercing to 0 (`Number("")` is 0) or being truncated (`parseInt("50.5")`
-     * is 50, `parseInt("50abc")` is 50).
-     */
-    numericValues() {
-      return this.distributionValue.map((value) => {
-        const trimmed = String(value ?? "").trim();
-        return trimmed === "" ? NaN : Number(trimmed);
-      });
-    },
-    totalDistribution() {
-      return this.numericValues.reduce(
-        (acc, curr) => acc + (Number.isFinite(curr) ? curr : 0),
-        0
+import { useRouter } from "vue-router";
+import Swal from "sweetalert2";
+
+import { condition as conditionModule } from "@/store/condition.module";
+import { navigation as navigationModule } from "@/store/navigation.module";
+
+defineOptions({
+  name: "ParticipationCustomDistribution"
+});
+
+const props = defineProps({
+  experiment: {
+    type: Object,
+    required: true
+  }
+});
+
+const router = useRouter();
+
+const conditionStore = conditionModule();
+const navigationStore = navigationModule();
+
+const seedDistribution = conditions => {
+  return (conditions || []).map(
+    condition => condition.distributionPct ?? ""
+  );
+};
+
+const distributionValue = ref(seedDistribution(props.experiment.conditions));
+const touched = ref(false);
+
+// Re-seed if the parent swaps in a freshly fetched experiment after mount.
+watch(
+  () => props.experiment.conditions,
+  conditions => {
+    distributionValue.value = seedDistribution(conditions);
+    touched.value = false;
+  }
+);
+
+const editMode = computed(() => {
+  return navigationStore.editMode;
+});
+
+const getSaveExitPage = computed(() => {
+  return editMode.value?.callerPage?.name || "Home";
+});
+
+const conditions = computed(() => {
+  return props.experiment.conditions || [];
+});
+
+const experimentId = computed(() => {
+  return props.experiment.experimentId;
+});
+
+// Blank/garbage entries become NaN rather than silently coercing to 0
+// (`Number("")` is 0) or being truncated (`parseInt("50.5")` is 50,
+// `parseInt("50abc")` is 50).
+const numericValues = computed(() => {
+  return distributionValue.value.map(value => {
+    const trimmed = String(value ?? "").trim();
+
+    return trimmed === "" ? NaN : Number(trimmed);
+  });
+});
+
+const totalDistribution = computed(() => {
+  return numericValues.value.reduce(
+    (accumulator, current) =>
+      accumulator + (Number.isFinite(current) ? current : 0),
+    0
+  );
+});
+
+// Rounded to 2dp so float sums like 99.99999999999999 still pass.
+const roundedTotal = computed(() => {
+  return Math.round(totalDistribution.value * 100) / 100;
+});
+
+const displayTotal = computed(() => {
+  return Number.isInteger(roundedTotal.value)
+    ? roundedTotal.value
+    : roundedTotal.value.toFixed(2);
+});
+
+const isValidAt = index => {
+  const value = numericValues.value[index];
+
+  return Number.isFinite(value) && value >= 0;
+};
+
+const isDisabled = computed(() => {
+  return (
+    !conditions.value.length ||
+    numericValues.value.some((_, index) => !isValidAt(index)) ||
+    roundedTotal.value !== 100
+  );
+});
+
+const updateDistribution = async path => {
+  const updatedConditions = conditions.value.map(
+    (condition, index) => ({
+      ...condition,
+      distributionPct: numericValues.value[index],
+      experimentId: experimentId.value
+    })
+  );
+
+  try {
+    const response =
+      await conditionStore.updateConditions(
+        updatedConditions
       );
-    },
-    /** Rounded to 2dp so float sums like 99.99999999999999 still pass. */
-    roundedTotal() {
-      return Math.round(this.totalDistribution * 100) / 100;
-    },
-    displayTotal() {
-      return Number.isInteger(this.roundedTotal)
-        ? this.roundedTotal
-        : this.roundedTotal.toFixed(2);
-    },
-    isDisabled() {
-      return (
-        !this.conditions.length ||
-        this.numericValues.some((_, index) => !this.isValidAt(index)) ||
-        this.roundedTotal !== 100
-      );
-    }
-  },
-  watch: {
-    // Re-seed if the parent swaps in a freshly fetched experiment after mount.
-    // Not deep, so this only fires when the conditions array itself changes.
-    "experiment.conditions": function (conditions) {
-      this.distributionValue = this.seedDistribution(conditions);
-      this.touched = false;
-    }
-  },
-  methods: {
-    ...mapActions({
-      updateConditions: "condition/updateConditions"
-    }),
-    seedDistribution(conditions) {
-      return (conditions || []).map((condition) =>
-        condition.distributionPct ?? ""
-      );
-    },
-    isValidAt(index) {
-      const value = this.numericValues[index];
-      return Number.isFinite(value) && value >= 0;
-    },
-    updateDistribution(path) {
-      const updatedConditions = this.conditions.map((condition, index) => {
-        return {
-          ...condition,
-          distributionPct: this.numericValues[index],
-          experimentId: this.experimentId
-        };
+
+    if (response?.status === 200) {
+      router.push({
+        name: path,
+        params: {
+          experiment: experimentId.value
+        }
       });
 
-      this.updateConditions(updatedConditions)
-        .then((response) => {
-          if (response?.status === 200) {
-            this.$router.push({
-              name: path,
-              params: { experiment: this.experimentId }
-            });
-          } else {
-            this.$swal(response?.error || "Could not save the distribution.");
-          }
-        })
-        .catch((error) => {
-          console.error("updateConditions | catch", { error });
-          this.$swal("Could not save the distribution. Please try again.");
-        });
-    },
-    saveExit() {
-      if (this.isDisabled) {
-        this.$router.push({
-          name: this.getSaveExitPage,
-          params: {
-            experiment: this.experimentId
-          }
-        });
-      } else {
-        this.updateDistribution(this.getSaveExitPage);
-      }
+      return;
     }
+
+    await Swal.fire(
+      response?.error ||
+      "There was an error updating the condition distribution."
+    );
+  } catch (error) {
+    console.error(
+      "updateConditions | catch",
+      error
+    );
   }
 };
+
+const saveExit = () => {
+  if (isDisabled.value) {
+    router.push({
+      name: getSaveExitPage.value,
+      params: {
+        experiment: experimentId.value
+      }
+    });
+
+    return;
+  }
+
+  updateDistribution(getSaveExitPage.value);
+};
+
+defineExpose({
+  saveExit
+});
 </script>
 
 <style lang="scss" scoped>
-@import "~@/styles/variables";
-
 .label {
   font-weight: 500;
   font-size: 12px;
@@ -221,22 +253,19 @@ export default {
   color: #5f6368;
 }
 
-// These target Vuetify's internal markup, which lives inside a child
-// component, so `scoped` blocks them without a deep selector.
-// Vue 2: ::v-deep — Vue 3: :deep(...)
-::v-deep .v-input__slot {
+:deep(.v-input__control) {
   margin: 0;
 }
 
-::v-deep .v-text-field__details {
-  display: none;
-}
-
-::v-deep .text-right input {
+:deep(.v-field__input) {
   text-align: right;
 }
 
+:deep(.v-messages) {
+  display: none;
+}
+
 .errorMessage {
-  color: map-get($red, "base");
+  color: map.get($red, "base");
 }
 </style>

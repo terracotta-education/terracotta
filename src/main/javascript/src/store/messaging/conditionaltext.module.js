@@ -1,60 +1,62 @@
-const state = {
-  messageConditionalTexts: [],
-  messageConditionalText: null,
-  messageConditionalTextEditId: null
-}
+import { defineStore } from "pinia";
 
-const actions = {
-  reset({ commit }) {
-    commit("setMessageConditionalTexts", []);
-    commit("setMessageConditionalText", null);
-    commit("setMessageConditionalTextEditId", null);
-  }
-}
+export const conditionaltext = defineStore("messagingConditionalText", {
+  state: () => ({
+    messageConditionalTexts: [],
+    messageConditionalText: null,
+    messageConditionalTextEditId: null
+  }),
 
-const mutations = {
-  addMessageConditionalTexts(state, messageConditionalTexts) {
-    if (messageConditionalTexts === null) {
-      return;
-    }
+  getters: {
+    hasConditionalTexts: state =>
+      state.messageConditionalTexts.length > 0
+  },
 
-    messageConditionalTexts.forEach((messageConditionalText) => {
-      const index = state.messageConditionalTexts.findIndex(m => m.label === messageConditionalText.label);
+  actions: {
+    reset() {
+      this.messageConditionalTexts = [];
+      this.messageConditionalText = null;
+      this.messageConditionalTextEditId = null;
+    },
 
-      if (index !== -1) {
-        state.messageConditionalTexts.splice(index, 1, messageConditionalText);
-      } else {
-        state.messageConditionalTexts.push(messageConditionalText);
+    addConditionalTexts(messageConditionalTexts) {
+      if (!Array.isArray(messageConditionalTexts)) {
+        return;
       }
-    });
-  },
-  setMessageConditionalTexts(state, messageConditionalTexts) {
-    state.messageConditionalTexts = messageConditionalTexts;
-  },
-  setMessageConditionalText(state, messageConditionalText) {
-    state.messageConditionalText = messageConditionalText;
-  },
-  setMessageConditionalTextEditId(state, messageConditionalTextEditId) {
-    state.messageConditionalTextEditId = messageConditionalTextEditId;
-  }
-}
 
-const getters = {
-  messageConditionalTexts: (state) => {
-    return state.messageConditionalTexts;
-  },
-  messageConditionalText: (state) => {
-    return state.messageConditionalText;
-  },
-  messageConditionalTextEditId: (state) => {
-    return state.messageConditionalTextEditId;
-  }
-}
+      messageConditionalTexts.forEach(item => {
+        if (!item) return;
 
-export const conditionaltext = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+        const index = this.messageConditionalTexts.findIndex(
+          existing => existing && existing.label === item.label
+        );
+
+        if (index !== -1) {
+          this.messageConditionalTexts.splice(index, 1, item);
+        } else {
+          this.messageConditionalTexts.push(item);
+        }
+      });
+    },
+
+    addMessageConditionalTexts(messageConditionalTexts) {
+      this.addConditionalTexts(messageConditionalTexts);
+    },
+
+    setConditionalText(messageConditionalText) {
+      this.messageConditionalText = messageConditionalText;
+    },
+
+    setMessageConditionalText(messageConditionalText) {
+      this.setConditionalText(messageConditionalText);
+    },
+
+    setConditionalTextEditId(messageConditionalTextEditId) {
+      this.messageConditionalTextEditId = messageConditionalTextEditId;
+    },
+
+    setMessageConditionalTextEditId(messageConditionalTextEditId) {
+      this.setConditionalTextEditId(messageConditionalTextEditId);
+    }
+  }
+});

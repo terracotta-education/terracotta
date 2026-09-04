@@ -1,44 +1,50 @@
+import { defineStore } from "pinia";
+
 import { integrationsService } from "@/services";
 
-const state = {
-  validation: {
-    iframeUrlValid: false
-  }
-}
-
-const actions = {
-  async validateIframeUrl({ commit }, url) {
-    try {
-      const response = await integrationsService.validateIframeUrl(url);
-      commit("setIframeValid", response);
-    } catch (e) {
-      console.error("validateIframeUrl catch", {e});
+export const integrations = defineStore("integrations", {
+  state: () => ({
+    validation: {
+      iframeUrlValid: false
     }
-  }
-}
+  }),
 
-const mutations = {
-  setIframeValid(state, iframeUrlValid) {
-    state.validation = {
-        ...state.validation,
-        iframeUrlValid: iframeUrlValid
-    }
-  }
-}
-
-const getters = {
-  get: (state) => {
-    return state.validation;
+  getters: {
+    isIframeUrlValid: state => state.validation.iframeUrlValid
   },
-  isIframeUrlValid: (state) => {
-      return state.validation?.iframeUrlValid || false;
-  }
-}
 
-export const integrations = {
-  namespaced: true,
-  state,
-  actions,
-  getters,
-  mutations
-}
+  actions: {
+    setIframeValid(valid) {
+      this.validation = {
+        ...this.validation,
+        iframeUrlValid: Boolean(valid)
+      };
+    },
+
+    async validateIframeUrl(url) {
+      try {
+        const response =
+          await integrationsService.validateIframeUrl(url);
+
+        this.validation.iframeUrlValid = Boolean(response);
+
+        return response;
+      } catch (error) {
+        console.error(
+          "integrations/validateIframeUrl | catch",
+          error
+        );
+
+        this.validation.iframeUrlValid = false;
+
+        return false;
+      }
+    },
+
+    resetValidation() {
+      this.validation = {
+        iframeUrlValid: false
+      };
+    }
+  }
+});

@@ -28,9 +28,9 @@ with a valid certificate launching the jar file with the right configuration fil
 
 Customizing
 -----------
-Use the application.properties to control various aspects of the Spring Boot application (like setting up your own database
+Use the application.yml to control various aspects of the Spring Boot application (like setting up your own database
 connection). The example file has some sections with self-explanatory titles. It is recommended to 
-use a properties file external to the jar to avoid storing sensitive values in your code: 
+use a properties/YAML file external to the jar to avoid storing sensitive values in your code: 
 
 ```--spring.config.location=/home/yourhomefolder/application-local.properties```
 
@@ -58,7 +58,7 @@ Use the following steps to mostly automate creation of a liquibase database migr
     docker run --name mysql57 -p 3406:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=terracotta -d mysql:5.7
     ```
 
-2. Configure your local application.properties file to connect to this Docker MySQL database. Also set the `ddl-auto` setting to `update`.
+2. Configure your local application.yml file to connect to this Docker MySQL database. Also set the `ddl-auto` setting to `update`.
 
     application-local.properties
     ```

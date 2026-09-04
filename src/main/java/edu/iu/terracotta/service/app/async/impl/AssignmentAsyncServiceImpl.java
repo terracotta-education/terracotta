@@ -67,7 +67,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
     private final AnswerFileSubmissionRepository answerFileSubmissionRepository;
@@ -331,7 +331,8 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
             while (participantNameMap.containsValue(participantName)) {
                 // handle duplicate participant names
-                participantName = String.format("%s (%d)", participant.getLtiUserEntity().getDisplayName(), index++);
+                participantName = String.format("%s (%d)", participant.getLtiUserEntity().getDisplayName(), index);
+                index++;
             }
 
             participantNameMap.put(participant.getParticipantId(), participantName);

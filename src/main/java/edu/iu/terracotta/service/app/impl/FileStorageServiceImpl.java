@@ -44,7 +44,6 @@ import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -67,6 +66,7 @@ import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -388,7 +388,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     private void parseAndUpdateElements(Document doc, String attribute, String prefixToSearch, String stringToSearch, boolean alreadyToken, String localUrl) {
-        Elements elements = doc.getElementsByAttributeValueStarting(attribute, localUrl + prefixToSearch);
+        List<Element> elements = doc.getElementsByAttributeValueStarting(attribute, localUrl + prefixToSearch);
 
         for (Element element:elements) {
             String originalLink = element.attr(attribute);

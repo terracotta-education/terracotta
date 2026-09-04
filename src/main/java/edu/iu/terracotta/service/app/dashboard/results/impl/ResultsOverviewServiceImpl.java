@@ -72,7 +72,7 @@ import static edu.iu.terracotta.dao.model.dto.dashboard.results.overview.assignm
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings({"rawtypes", "PMD.GuardLogStatement"})
 public class ResultsOverviewServiceImpl implements ResultsOverviewService {
 
     private final AssessmentRepository assessmentRepository;

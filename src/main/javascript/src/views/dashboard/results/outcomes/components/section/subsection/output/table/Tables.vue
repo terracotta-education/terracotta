@@ -34,38 +34,32 @@
 </div>
 </template>
 
-<script>
-import { mapGetters } from "vuex";
-import Conditions from "./Conditions";
-import Exposures from "./Exposures"
+<script setup>
+import { ref, computed } from "vue";
 
-export default {
-  name: "Tables",
-  components: {
-    Conditions,
-    Exposures
-  },
-  data: () => ({
-    selectedTable: "condition"
-  }),
-  computed: {
-    ...mapGetters({
-      conditions: "experiment/conditions",
-      experiment: "experiment/experiment",
-      exposures: "exposures/exposures",
-      outcomes: "outcome/outcomes"
-    }),
-    experimentExposures() {
-      return this.exposures || [];
-    }
-  },
-  methods: {
-    setSelectedTable(tableName) {
-      this.selectedTable = tableName;
-      this.$emit("type", tableName);
-    }
-  }
-}
+import Conditions from "./Conditions.vue";
+import Exposures from "./Exposures.vue";
+import { exposures as useExposuresStore } from "@/store/exposures.module";
+
+defineOptions({
+  name: "OutcomeTables"
+});
+
+const emit = defineEmits(["type"]);
+
+
+const selectedTable = ref("condition");
+
+const exposuresStore = useExposuresStore();
+
+const experimentExposures = computed(() => {
+  return exposuresStore.exposures || [];
+});
+
+const setSelectedTable = (tableName) => {
+  selectedTable.value = tableName;
+  emit("type", tableName);
+};
 </script>
 
 <style scoped>
@@ -76,7 +70,7 @@ div.container-tables {
   width: 100%;
   min-width: 100%;
 
-  > .row {
+  > .v-row {
     margin: 0;
     width: 100%;
   }

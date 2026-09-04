@@ -38,6 +38,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.lms.LmsUserBatchWriteService;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
 
+@SuppressWarnings("unchecked")
 public class CanvasAdvantageMembershipServiceImplTest extends BaseTest {
 
     @InjectMocks private CanvasAdvantageMembershipServiceImpl canvasAdvantageMembershipService;

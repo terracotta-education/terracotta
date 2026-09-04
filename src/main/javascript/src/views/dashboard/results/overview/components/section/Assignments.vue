@@ -7,7 +7,6 @@
     :tableData="rows"
     :tooltips="tooltips"
     :includeNote="true"
-    :showExpand="true"
     :hasOverall="true"
     noSubmissionsMessage="No submissions yet"
     titleHeader="Component name"
@@ -15,41 +14,43 @@
 </v-row>
 </template>
 
-<script>
-import DataTable from "./subsection/DataTable";
+<script setup>
+import { computed } from "vue";
 
-export default {
-  name: "Assignments",
-  props: {
-    assignmentsData: {
-      type: Object,
-      required: false
-    }
-  },
-  components: {
-    DataTable
-  },
-  computed: {
-    tooltips() {
-      return [
-        {
-          id: "submissionRate",
-          message: "This value is calculated by dividing the total number of component submissions by the total number of consenting participants."
-        }
-      ]
-    },
-    sectionData() {
-      return this.assignmentsData || {};
-    },
-    rows() {
-      return this.sectionData.rows || [];
-    }
+import DataTable from "./subsection/DataTable.vue";
+
+defineOptions({
+  name: "OverviewAssignmentsSection"
+});
+
+const props = defineProps({
+  assignmentsData: {
+    type: Object,
+    required: false
   }
-}
+});
+
+const tooltips = [
+  {
+    id: "submissionRate",
+    message: "This value is calculated by dividing the total number of component submissions by the total number of consenting participants."
+  }
+];
+
+const sectionData = computed(() => {
+  return props.assignmentsData || {};
+});
+
+const rows = computed(() => {
+  return sectionData.value.rows || [];
+});
 </script>
 
 <style scoped>
-div.container-data-table {
+/* DataTable.vue is a separate (shared) child component, so :deep() is required here to reach
+   its rendered rows - anchoring on .container-table (this component's own root) means this only
+   affects this Assignments.vue instance, not other sections reusing the same DataTable.vue */
+.container-table :deep(div.container-data-table) {
   & .data-table {
     & tbody {
       tr:nth-last-child(2) {
@@ -59,28 +60,44 @@ div.container-data-table {
           border-bottom: none !important;
         }
       }
-      & tr:last-child {
+      /* excludes Vuetify's own "No data available" placeholder row - it's
+         also technically tr:last-child when the table is empty, but isn't
+         the real "Overall" summary row this highlight is meant for. */
+      & tr:last-child:not(.v-data-table-rows-no-data) {
         position: relative;
-        background-color: #f6fbff;
+        background-color: #f6fbff !important;
         border-bottom-left-radius: 10px;
         border-bottom-right-radius: 10px;
-        -webkit-box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
-        -moz-box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
-        box-shadow: 20px 0 0 2px #f6fbff, -20px 0 0 2px #f6fbff;
         z-index: 0;
 
-        &::after {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: -3px;
-          right: 0;
-          height: 0;
-          margin-left: -10px !important;
-          width: Calc(100% + 20px) !important;
-          -webkit-box-shadow: 12px 0 0 .5px lightgrey, -12px 0 0 .5px lightgrey;
-          -moz-box-shadow: 12px 0 0 .5px lightgrey, -12px 0 0 .5px lightgrey;
-          box-shadow: 12px 0 0 .5px lightgrey, -12px 0 0 .5px lightgrey;
+        &:hover {
+          background-color: #f6fbff !important;
+        }
+
+        /* tr:nth-last-child(2) above suppresses the previous row's own border-bottom, so this
+           is the only divider between it and this "Overall" row */
+        td {
+          border-top: 1px solid lightgrey;
+        }
+
+        /* on narrow screens each row renders as its own floating card (see DataTable.vue)
+           instead of a table row/cell - the highlight has to live on that card rather than
+           the row, since the row's own box has bottom padding the card doesn't fill, which
+           otherwise leaves the row's background visible as a strip below the card */
+        &.mobile-row {
+          background-color: transparent !important;
+
+          &:hover {
+            background-color: transparent !important;
+          }
+
+          td {
+            border-top: none;
+          }
+
+          .mobile-card {
+            background-color: #f6fbff !important;
+          }
         }
       }
     }
@@ -90,5 +107,10 @@ div.container-data-table {
     float: left;
     color: #666666;
   }
+}
+h3 {
+  font-weight: 700;
+  padding: 0;
+  margin: 0;
 }
 </style>

@@ -37,9 +37,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatch;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchProcessing;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
@@ -544,8 +547,30 @@ public class ParticipantServiceImplTest extends BaseTest {
         List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, false, securedInfo, true);
 
         assertEquals(1, retVal.size());
-        // side effect proving refreshParticipants()'s real body executed
+        // refresh=true goes through the throttled refreshParticipantsIfStale (not a direct,
+        // unconditional refreshParticipants call) - never synced before, so it's stale and this
+        // real body executes anyway; lmsUserBatchAsyncService.success(...) is a side effect
+        // proving refreshParticipants() itself ran underneath it
+        verify(participantService).refreshParticipantsIfStale(1L);
         verify(lmsUserBatchAsyncService).success(any(UUID.class));
+    }
+
+    // the manual-participation selection page was the only caller passing refresh=true, and was
+    // forcing a full unthrottled sync on every instructor page load - confirm a second call
+    // within the throttle window now skips the LMS sync entirely instead of repeating it.
+    @Test
+    public void testGetParticipantsNonStudentWithRefreshSkipsSyncWhenRecentlySynced() throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
+        when(participantRepository.findByExperiment_ExperimentId(anyLong(), any())).thenReturn(List.of(participant), Collections.emptyList());
+        when(ltiContextEntity.getLastParticipantSync()).thenReturn(Instant.now());
+        // this experiment already has participants, so the course-level freshness check applies
+        // instead of being bypassed as a first-ever sync
+        when(participantRepository.countByExperiment_ExperimentId(1L)).thenReturn(5L);
+
+        List<ParticipantDto> retVal = participantService.getParticipants(1L, USER_ID, false, securedInfo, true);
+
+        assertEquals(1, retVal.size());
+        verify(participantService, never()).refreshParticipants(anyLong());
+        verify(lmsUserBatchAsyncService, never()).success(any());
     }
 
     @Test
@@ -1206,6 +1231,44 @@ public class ParticipantServiceImplTest extends BaseTest {
             DataServiceException.class,
             () -> participantService.postConsentSubmission(participant, securedInfo)
         );
+    }
+
+    // refreshParticipants writes lms_user_batch via a REQUIRES_NEW sub-transaction
+    // (LmsUserBatchWriteService), so its own transaction must run under READ_COMMITTED rather
+    // than MySQL's default REPEATABLE READ - otherwise its later reads (e.g. the findByBatchId
+    // pagination loop) use a snapshot frozen before that sub-transaction committed and see
+    // nothing, even though the rows are genuinely there. Self-invocation means only the actual
+    // entry point's isolation setting takes effect for a whole call chain, so every public method
+    // that can be an entry point into refreshParticipants needs this set directly - a plain
+    // Mockito test can't exercise the real DB behavior this guards against, but it can at least
+    // catch this attribute being silently dropped in a future refactor.
+    @Test
+    public void testEntryPointsIntoRefreshParticipantsUseReadCommittedIsolation() throws NoSuchMethodException {
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("getParticipants", long.class, String.class, boolean.class, SecuredInfo.class, boolean.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("refreshParticipants", long.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("refreshParticipantsIfStale", long.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("ensureParticipantExists", long.class, SecuredInfo.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("prepareParticipation", Long.class, SecuredInfo.class, UUID.class)
+        );
+        assertIsolationReadCommitted(
+            ParticipantServiceImpl.class.getMethod("startPrepareParticipation", long.class, SecuredInfo.class)
+        );
+    }
+
+    private void assertIsolationReadCommitted(java.lang.reflect.Method method) {
+        Transactional transactional = method.getAnnotation(Transactional.class);
+
+        assertNotNull(transactional, method.getName() + " is missing @Transactional");
+        assertEquals(Isolation.READ_COMMITTED, transactional.isolation(), method.getName() + " must use READ_COMMITTED isolation");
     }
 
 }

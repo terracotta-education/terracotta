@@ -16,7 +16,6 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SuppressWarnings({"PMD.LooseCoupling"})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ToolConfigurationDto {
 

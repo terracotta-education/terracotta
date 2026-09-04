@@ -34,6 +34,7 @@ import edu.iu.terracotta.dao.repository.export.data.ExperimentDataExportReposito
 import edu.iu.terracotta.runner.export.data.model.ExperimentDataExportScheduleMessage;
 import edu.iu.terracotta.runner.export.data.model.ExperimentDataExportScheduleResult;
 
+@SuppressWarnings("unchecked")
 class ExperimentDataExportSchedulerServiceImplTest extends BaseTest {
 
     @Mock private ExperimentDataExportRepository experimentDataExportRepository;

@@ -74,13 +74,15 @@ public class AnswerServiceImpl implements AnswerService {
         int answerOrder = 0;
 
         for (AnswerMcSubmissionOption answerMcSubmissionOption : answerMcSubmissionOptions) {
-            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder++, showCorrectAnswer));
+            answerDtoList.add(toDtoMC(answerMcSubmissionOption.getAnswerMc(), answerOrder, showCorrectAnswer));
+            answerOrder++;
         }
 
         // check for any missing answers and add them to the list as well
         for (AnswerMc answerMc : answerList) {
             if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getAnswerMcId()))) {
-                answerDtoList.add(toDtoMC(answerMc, answerOrder++, showCorrectAnswer));
+                answerDtoList.add(toDtoMC(answerMc, answerOrder, showCorrectAnswer));
+                answerOrder++;
             }
         }
 

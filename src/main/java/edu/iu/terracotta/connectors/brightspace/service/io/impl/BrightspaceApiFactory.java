@@ -45,7 +45,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-@SuppressWarnings({"rawtypes", "unchecked", "PMD.LooseCoupling"})
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class BrightspaceApiFactory {
 
     public Map<Class<? extends BrightspaceReaderService>, Class<? extends BaseServiceImpl>> readerMap;

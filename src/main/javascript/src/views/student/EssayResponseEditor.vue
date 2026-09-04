@@ -1,80 +1,96 @@
 <template>
-<response-row>
-  <v-textarea
-    v-if="!readonly"
-    v-model="response"
-    :rows="10"
-    :counter="true"
-    @input="onInput"
-  >
-    <template
-      #counter
+  <ResponseRow>
+    <v-textarea
+      v-if="!readonly"
+      v-model="response"
+      :rows="10"
+      :counter="true"
+      aria-label="Your response"
+      @update:model-value="onInput"
     >
-      <div
-        class="counter"
-      >
-        {{ wordCount }} word{{ wordCount !== 1 ? "s" : "" }}
-      </div>
-    </template>
-  </v-textarea>
-  <v-textarea
-    v-if="readonly"
-    v-model="studentResponse"
-    @input="onInput"
-    :rows="10"
-    :counter="true"
-    readonly
-  >
-  </v-textarea>
-</response-row>
+      <template #counter>
+        <div class="counter">
+          {{ wordCount }} word{{ wordCount !== 1 ? "s" : "" }}
+        </div>
+      </template>
+    </v-textarea>
+
+    <v-textarea
+      v-else
+      v-model="studentResponse"
+      :rows="10"
+      :counter="true"
+      aria-label="Your submitted response"
+      readonly
+    />
+  </ResponseRow>
 </template>
 
-<script>
+<script setup>
+import {
+  ref,
+  computed,
+  watch
+} from "vue";
+
 import Countable from "countable";
-import ResponseRow from "./ResponseRow.vue";
 
-export default {
-  name: "EssayResponseEditor",
-  components: {
-    ResponseRow
-  },
-  props: [
-    "value",
-    "readonly",
-    "answer"
-  ],
-  data: () => ({
-    response: this.value,
-    wordCount: 0
-  }),
-  watch: {
-    value() {
-      this.response = this.value;
+import ResponseRow from "@/views/student/ResponseRow.vue";
 
-      if (this.response) {
-        this.updateWordCount();
-      }
-    },
+defineOptions({
+  name: "EssayResponseEditor"
+});
+
+const props = defineProps({
+  modelValue: {
+    type: String,
+    default: null
   },
-  computed: {
-    studentResponse() {
-      return this.answer?.response;
+  readonly: {
+    type: Boolean,
+    default: false
+  },
+  answer: {
+    type: Object,
+    default: null
+  }
+});
+
+const emit = defineEmits([
+  "update:modelValue"
+]);
+
+const response = ref(props.modelValue);
+const wordCount = ref(0);
+
+const studentResponse = computed(() => {
+  return props.answer?.response || "";
+});
+
+const updateWordCount = () => {
+  Countable.count(response.value || "", counter => {
+    wordCount.value = counter.words;
+  });
+};
+
+watch(
+  () => props.modelValue,
+  value => {
+    response.value = value;
+
+    if (response.value) {
+      updateWordCount();
+    } else {
+      wordCount.value = 0;
     }
   },
-  methods: {
-    onInput() {
-      this.emitValueChanged();
-      this.updateWordCount();
-    },
-    emitValueChanged() {
-      this.$emit("input", this.response);
-    },
-    updateWordCount() {
-      Countable.count(this.response, (counter) => {
-        this.wordCount = counter.words;
-      });
-    },
-  }
+  { immediate: true }
+);
+
+const onInput = value => {
+  response.value = value;
+  emit("update:modelValue", response.value);
+  updateWordCount();
 };
 </script>
 

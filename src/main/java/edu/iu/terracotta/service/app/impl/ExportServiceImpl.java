@@ -111,7 +111,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class ExportServiceImpl implements ExportService {
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -156,6 +156,9 @@ public class ExportServiceImpl implements ExportService {
     @Value("${app.export.enable.readme:true}")
     private boolean exportReadmeEnabled;
 
+    @Value("${experiment.data.export.local.path.root}")
+    private String experimentDataExportLocalPathRoot;
+
     private long consentedParticipantsCount;
     private List<Assignment> assignments;
     private List<ExposureGroupCondition> exposureGroupConditions;
@@ -199,7 +202,8 @@ public class ExportServiceImpl implements ExportService {
             // participants.csv
             handleParticpantsCsv(participants, files);
 
-            participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize));
+            page++;
+            participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize));
         }
 
         // experiment.csv
@@ -287,7 +291,8 @@ public class ExportServiceImpl implements ExportService {
                 outcomeService.updateOutcomeGrades(outcome.getOutcomeId(), securedInfo, false, submissionsByLmsAssignmentId);
             }
 
-            outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(++outcomesPage, exportBatchSize)).getContent();
+            outcomesPage++;
+            outcomes = outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId, PageRequest.of(outcomesPage, exportBatchSize)).getContent();
         }
 
         Path path = createTempFile();
@@ -341,7 +346,8 @@ public class ExportServiceImpl implements ExportService {
                         });
                     });
 
-                outcomeScores = outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                page++;
+                outcomeScores = outcomeScoreRepository.findByOutcome_Exposure_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
             }
         }
     }
@@ -490,7 +496,8 @@ public class ExportServiceImpl implements ExportService {
                         })
                 );
 
-                submissions = submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                page++;
+                submissions = submissionRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
             }
         }
     }
@@ -519,7 +526,8 @@ public class ExportServiceImpl implements ExportService {
                         })
                     );
 
-                questions = questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                page++;
+                questions = questionRepository.findByAssessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
             }
         }
     }
@@ -623,7 +631,8 @@ public class ExportServiceImpl implements ExportService {
                         });
                     });
 
-                questionSubmissions = questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                page++;
+                questionSubmissions = questionSubmissionRepository.findBySubmission_Participant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
             }
         }
     }
@@ -651,7 +660,8 @@ public class ExportServiceImpl implements ExportService {
                         })
                     );
 
-                answerMcs = answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                page++;
+                answerMcs = answerMcRepository.findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
             }
         }
     }
@@ -674,7 +684,8 @@ public class ExportServiceImpl implements ExportService {
 
             while (CollectionUtils.isNotEmpty(participants)) {
                 participants.forEach(participant -> participantsByUserId.put(participant.getLtiUserEntity().getUserId(), participant));
-                participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize));
+                page++;
+                participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize));
             }
 
             messageLogs.stream()
@@ -791,7 +802,8 @@ public class ExportServiceImpl implements ExportService {
                         printStream.print(removePersonalIdentifiersFromEvent(event.getJson()));
                     });
 
-                events = eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(++page, exportBatchSize)).getContent();
+                page++;
+                events = eventRepository.findByParticipant_Experiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize)).getContent();
             }
 
             printStream.println();
@@ -886,7 +898,10 @@ public class ExportServiceImpl implements ExportService {
     }
 
     private Path createTempFile() throws IOException {
-        return Files.createTempFile("export." + UUID.randomUUID().toString(), null);
+        // not the no-arg overload - that resolves to the shared, world-writable OS temp
+        // directory (java.io.tmpdir); use this app's own dedicated export directory instead,
+        // matching FileStorageServiceImpl's identical convention for the same purpose
+        return Files.createTempFile(Paths.get(experimentDataExportLocalPathRoot), "export." + UUID.randomUUID().toString(), null);
     }
 
     private CSVWriter createCsvFileWriter(Path path) throws IOException {

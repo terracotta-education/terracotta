@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  */
 
 @Slf4j
-@SuppressWarnings({"unchecked", "rawtypes", "PMD.GuardLogStatement", "PMD.LooseCoupling", "PMD.UnusedPrivateMethod"})
+@SuppressWarnings({"unchecked", "rawtypes", "PMD.GuardLogStatement", "PMD.UnusedPrivateMethod"})
 public abstract class BaseServiceImpl<T, R extends BrightspaceReaderService, W extends BrightspaceWriterService> implements BrightspaceReaderService<T, R>, BrightspaceWriterService<T, W> {
 
     protected String baseUrl;

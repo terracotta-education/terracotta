@@ -1,192 +1,219 @@
-import {outcomeService} from "@/services";
+import { defineStore } from "pinia";
 
-const state = {
-  outcome: null,
-  outcomes: [],
-  outcomeScores: [],
-  outcomePotentials: [],
-  experimentOutcomes: null
-}
+import { outcomeService } from "@/services";
 
-const actions = {
-  async resetOutcome ({commit}) {
-    commit("resetOutcome");
+export const outcome = defineStore("outcome", {
+  state: () => ({
+    outcome: null,
+    outcomes: [],
+    outcomeScores: [],
+    outcomePotentials: [],
+    experimentOutcomes: []
+  }),
+
+  getters: {
+    hasOutcome: state => Boolean(state.outcome),
+    hasOutcomes: state => state.outcomes.length > 0
   },
-  async resetOutcomePotentials ({commit}) {
-    commit("resetOutcomePotentials");
-  },
-  async createOutcome ({commit}, payload) {
-    // payload = experimentId, exposureId, title, max_points, external, lmsType, lmsOutcomeId
-    return outcomeService.create(...payload)
-      .then(response => {
-        if (response?.status === 200 || response?.status === 201) {
-          const outcome = response.data
-          commit("setOutcome", outcome);
 
-          return outcome;
+  actions: {
+    resetOutcome() {
+      this.outcome = null;
+    },
+
+    resetOutcomePotentials() {
+      this.outcomePotentials = [];
+    },
+
+    async createOutcome(payload) {
+      try {
+        const response = await outcomeService.create(...payload);
+
+        if (
+          response?.status === 200 ||
+          response?.status === 201
+        ) {
+          const outcomeData = response.data;
+          this.setOutcome(outcomeData);
+
+          return outcomeData;
         }
-      })
-      .catch(response => console.log("createOutcome | catch", {response}))
-  },
-  async updateOutcome({commit}, payload) {
-    // payload = experimentId, exposureId, outcome
-    return outcomeService.updateOutcome(...payload)
-      .then(response => {
-        if (response.status === 200) {
-          commit("setOutcome", payload);
-        }
 
-        return response;
-      })
-      .catch(response => console.log("updateOutcome | catch", {response, commit}))
-  },
-  async deleteOutcome ({commit}, payload) {
-    return outcomeService.deleteOutcome(...payload)
-    .then(response => {
-      if (response?.status === 200) {
-        commit("resetOutcome");
+        return null;
+      } catch (error) {
+        console.error("outcome/createOutcome | catch", error);
 
-        return response;
+        return null;
       }
-    })
-    .catch(response => console.log("deleteOutcome | catch", {response}))
-  },
-  async fetchOutcomeById({commit,state}, payload) {
-    // payload = experimentId, exposureId, outcomeId
-    const outcomeId = payload[2]
-    if (parseInt(state.outcome?.outcomeId) !== parseInt(outcomeId)) {
-      commit("resetOutcome");
-    }
-    return outcomeService.getById(...payload)
-    .then(response => {
-      if (response.status === 200) {
-        commit("setOutcome", response.data);
+    },
+
+    async updateOutcome(payload) {
+      try {
+        const response =
+          await outcomeService.updateOutcome(...payload);
+
+        if (response?.status === 200) {
+          this.setOutcome(payload[2]);
+        }
+
+        return response;
+      } catch (error) {
+        console.error("outcome/updateOutcome | catch", error);
+
+        return null;
       }
-    })
-    .catch(response => console.log("fetchOutcomeById | catch", {response}))
-  },
-  async fetchOutcomes({commit}, payload) {
-    // payload = experimentId, exposureId
-    return outcomeService.getAll(...payload)
-      .then(response => {
-        if ((response.status === 200 || response.status===204) && response.data) {
-          commit("setOutcomes", response.data);
+    },
+
+    async deleteOutcome(payload) {
+      try {
+        const response =
+          await outcomeService.deleteOutcome(...payload);
+
+        if (response?.status === 200) {
+          this.outcome = null;
         }
 
         return response;
-      })
-      .catch(response => console.log("fetchOutcomes | catch", {response}))
-  },
-  async fetchOutcomesByExposures({commit}, payload) {
-    // payload = experimentId, exposureIds
-    return outcomeService.getByExperimentId(...payload)
-      .then(response => {
-        commit("setExperimentOutcomes", response);
+      } catch (error) {
+        console.error("outcome/deleteOutcome | catch", error);
 
-        return response;
-      })
-  },
-  async fetchOutcomesByExperimentId({commit}, payload) {
-    // payload = experimentId
-    return outcomeService.getAllByExperimentId(...payload)
-      .then(response => {
-        commit("setOutcomes", response.data);
+        return null;
+      }
+    },
 
-        return response;
-      })
-  },
-  async fetchOutcomeScores({commit}, payload) {
-    // payload = experimentId, exposureId, outcomeId
-    return outcomeService.getOutcomeScoresById(...payload)
-      .then(response => {
-        if ((response.status === 200 || response.status===204) && response.data) {
-          commit("setOutcomeScores", response.data);
+    async fetchOutcomeById(payload) {
+      try {
+        const outcomeId = payload[2];
+        const isDifferentOutcome =
+          parseInt(this.outcome?.outcomeId) !== parseInt(outcomeId);
+
+        const response = await outcomeService.getById(...payload);
+
+        if (response?.status === 200) {
+          this.setOutcome(response.data);
+        } else if (isDifferentOutcome) {
+          this.outcome = null;
         }
 
         return response;
-      })
-      .catch(response => console.log("fetchOutcomeScores | catch", {response}))
-  },
-  async updateOutcomeScores({dispatch}, payload) {
-    // payload = experimentId, exposureId, outcomeId, scores
-    return outcomeService.updateOutcomeScores(...payload)
-      .then(() => {
-        dispatch("fetchOutcomeScores", payload);
-      })
-      .catch(response => console.log("updateOutcomeScores | catch", {response}))
-  },
-  async fetchOutcomePotentials({commit}, experimentId) {
-    return outcomeService.getOutcomePotentials(parseInt(experimentId))
-      .then(response => {
-        if (response.status === 200 && response.data) {
-          commit("setOutcomePotentials", response.data);
+      } catch (error) {
+        console.error("outcome/fetchOutcomeById | catch", error);
+
+        return null;
+      }
+    },
+
+    async fetchOutcomes(payload) {
+      try {
+        const response = await outcomeService.getAll(...payload);
+
+        if ([200, 204].includes(response?.status)) {
+          this.outcomes = response?.data || [];
         }
 
         return response;
-      })
-      .catch(response => console.log("fetchOutcomePotentials | catch", {response}))
-  }
-}
+      } catch (error) {
+        console.error("outcome/fetchOutcomes | catch", error);
 
-const mutations = {
-  resetOutcome(state) {
-    state.outcome = null;
-  },
-  resetOutcomePotentials(state) {
-    state.outcomePotentials = [];
-  },
-  setOutcome(state, data) {
-    // data = experimentId, exposureId, outcome
-    const outcome = (Array.isArray(data))? data[2] : data;
-    if (outcome.outcomeId) {
-      state.outcome = outcome;
-    }
-  },
-  setOutcomes(state, data) {
-    state.outcomes = data;
-  },
-  setOutcomePotentials(state, data) {
-    state.outcomePotentials = data;
-  },
-  setOutcomeScores(state, data) {
-    state.outcomeScores = data;
-  },
-  setExperimentOutcomes(state, data) {
-    let arr = [];
+        return null;
+      }
+    },
 
-    for (const exposureList of data) {
-      if (exposureList.data?.length) {
-        for (const outcome of exposureList.data) {
-          arr.push(outcome);
+    async fetchOutcomesByExposures(payload) {
+      try {
+        // one request for all of the experiment's outcomes instead of one request per exposure
+        const [experimentId] = payload;
+        const response =
+          await outcomeService.getAllByExperimentId(experimentId);
+
+        this.experimentOutcomes = response?.data || [];
+
+        return response;
+      } catch (error) {
+        console.error(
+          "outcome/fetchOutcomesByExposures | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async fetchOutcomesByExperimentId(payload) {
+      try {
+        const response =
+          await outcomeService.getAllByExperimentId(...payload);
+
+        this.outcomes = response?.data || [];
+
+        return response;
+      } catch (error) {
+        console.error(
+          "outcome/fetchOutcomesByExperimentId | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    async fetchOutcomeScores(payload) {
+      try {
+        const response =
+          await outcomeService.getOutcomeScoresById(...payload);
+
+        if ([200, 204].includes(response?.status)) {
+          this.outcomeScores = response?.data || [];
         }
+
+        return response;
+      } catch (error) {
+        console.error("outcome/fetchOutcomeScores | catch", error);
+
+        return null;
+      }
+    },
+
+    async updateOutcomeScores(payload) {
+      try {
+        await outcomeService.updateOutcomeScores(...payload);
+
+        return this.fetchOutcomeScores(payload);
+      } catch (error) {
+        console.error("outcome/updateOutcomeScores | catch", error);
+
+        return null;
+      }
+    },
+
+    async fetchOutcomePotentials(experimentId) {
+      try {
+        const response =
+          await outcomeService.getOutcomePotentials(
+            parseInt(experimentId)
+          );
+
+        if (response?.status === 200) {
+          this.outcomePotentials = response?.data || [];
+        }
+
+        return response;
+      } catch (error) {
+        console.error(
+          "outcome/fetchOutcomePotentials | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    setOutcome(data) {
+      const outcomeData = Array.isArray(data) ? data[2] : data;
+
+      if (outcomeData?.outcomeId) {
+        this.outcome = outcomeData;
       }
     }
-    state.experimentOutcomes = arr;
   }
-}
-
-const getters = {
-  outcome(state) {
-    return state.outcome;
-  },
-  outcomes(state) {
-    return state.outcomes;
-  },
-  outcomeScores(state) {
-    return state.outcomeScores;
-  },
-  outcomePotentials(state) {
-    return state.outcomePotentials;
-  },
-  experimentOutcomes(state) {
-    return state.experimentOutcomes;
-  }
-}
-
-export const outcome = {
-  namespaced: true,
-  state,
-  actions,
-  mutations,
-  getters
-}
+});

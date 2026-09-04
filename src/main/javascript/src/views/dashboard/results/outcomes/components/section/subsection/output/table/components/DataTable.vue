@@ -2,89 +2,88 @@
 <v-data-table
   :headers="tableHeaders"
   :items="computedTableData"
-  :mobile-breakpoint="mobileBreakpoint"
-  :items-per-page="computedTableData.length"
+  :items-per-page="-1"
   class="v-data-table-alt"
-  item-key="title"
-  disable-sort
-  hide-default-footer
+  item-value="title"
 >
+  <template #bottom></template>
 </v-data-table>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
 import { timeFormat, percent } from "@/helpers/dashboard/utils.js";
 
-export default {
-  name: "DataTable",
-  props: {
-    tableData: {
-      type: Array,
-      required: true
-    },
-    titleHeader: {
-      type: String,
-      required: true
-    },    outcomeType: {
-      type: String,
-      required: true
-    }
-  },
-  data: () => ({
-    mobileBreakpoint: 636,
-  }),
-  computed: {
-    computedTableData() {
-      // process the datatable-specific data format
-      return this.tableData.map(
-        (t) => {
-          switch (this.outcomeType) {
-            case "TIME_ON_TASK":
-              return {
-                title: t.title,
-                number: t.number,
-                standardDeviation: timeFormat(t.standardDeviation),
-                mean: timeFormat(t.mean)
-              }
-            case "AVERAGE_ASSIGNMENT_SCORE":
-            case "STANDARD":
-            default:
-              return {
-                title: t.title,
-                number: t.number,
-                standardDeviation: percent(t.standardDeviation) + "%",
-                mean: percent(t.mean) + "%"
-              }
-          }
-        }
-      );
-    },
-    tableHeaders() {
-      return [
-        {
-          text: this.titleHeader,
-          value: "title",
-          align: "start",
-          width: "35%"
-        },
-        {
-          text: "N",
-          value: "number",
-          align: "center"
-        },
-        {
-          text: "Mean",
-          value: "mean",
-          align: "center"
-        },
-        {
-          text: "Standard deviation",
-          value: "standardDeviation",
-          align: "center"
+defineOptions({
+  name: "DataTable"
+});
 
-        }
-      ]
-    }
+const props = defineProps({
+  tableData: {
+    type: Array,
+    required: true
+  },
+  titleHeader: {
+    type: String,
+    required: true
+  },
+  outcomeType: {
+    type: String,
+    required: true
   }
-}
+});
+
+const computedTableData = computed(() => {
+  return (props.tableData ?? []).map((t) => {
+    switch (props.outcomeType) {
+      case "TIME_ON_TASK":
+        return {
+          title: t.title,
+          number: t.number,
+          standardDeviation: timeFormat(t.standardDeviation),
+          mean: timeFormat(t.mean)
+        };
+
+      case "AVERAGE_ASSIGNMENT_SCORE":
+      case "STANDARD":
+      default:
+        return {
+          title: t.title,
+          number: t.number,
+          standardDeviation: percent(t.standardDeviation) + "%",
+          mean: percent(t.mean) + "%"
+        };
+    }
+  });
+});
+
+const tableHeaders = computed(() => {
+  return [
+    {
+      title: props.titleHeader,
+      key: "title",
+      align: "start",
+      width: "35%",
+      sortable: false
+    },
+    {
+      title: "N",
+      key: "number",
+      align: "center",
+      sortable: false
+    },
+    {
+      title: "Mean",
+      key: "mean",
+      align: "center",
+      sortable: false
+    },
+    {
+      title: "Standard deviation",
+      key: "standardDeviation",
+      align: "center",
+      sortable: false
+    }
+  ];
+});
 </script>

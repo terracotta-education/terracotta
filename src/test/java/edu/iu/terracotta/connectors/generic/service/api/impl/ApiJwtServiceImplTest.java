@@ -115,7 +115,7 @@ import io.jsonwebtoken.Jwts.SIG;
  * ambiguous-mock hazards for @InjectMocks. Naming the field under test "apiJwtServiceImpl" (instead
  * of "apiJwtService") avoids shadowing the inherited interface mock.
  */
-@SuppressWarnings({"unchecked", "PMD.LooseCoupling"})
+@SuppressWarnings("unchecked")
 public class ApiJwtServiceImplTest extends BaseTest {
 
     private static final String ISSUER_LMS_OAUTH_API_TOKEN_REQUEST = "lmsOAuthAPITokenRequest";

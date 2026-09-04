@@ -1,174 +1,258 @@
 <template>
-<div>
-  <h1>Create your component</h1>
-  <p>This will create an unpublished component shell in {{ lmsTitle }} and will be the way Terracotta will deliver treatments to students.</p>
-  <v-row>
-    <div
-      class="col-6"
+  <div>
+    <h1>Create your component</h1>
+
+    <p>
+      This will create an unpublished component shell in {{ lmsTitle }} and will
+      be the way Terracotta will deliver treatments to students.
+    </p>
+
+    <v-row>
+      <v-col cols="6">
+        <v-text-field
+          v-model="title"
+          :rules="rules"
+          label="Component name"
+          variant="outlined"
+        />
+      </v-col>
+    </v-row>
+
+    <v-divider />
+
+    <v-tabs
+      v-model="tab"
+      class="tabs"
     >
-      <v-text-field
-        v-model="assignment.title"
-        :rules="rules"
-        label="Component name"
-        outlined
+      <v-tab value="settings">
+        Settings
+      </v-tab>
+    </v-tabs>
+
+    <v-divider />
+
+    <v-window v-model="tab">
+      <v-window-item
+        value="settings"
+        class="my-5"
       >
-      </v-text-field>
-    </div>
-  </v-row>
-  <v-divider />
-  <v-tabs
-    v-model="tab"
-    class="tabs"
-  >
-    <v-tab>Settings</v-tab>
-  </v-tabs>
-  <v-divider />
-  <v-tabs-items
-    v-model="tab"
-  >
-    <v-tab-item
-      class="my-5"
-    >
-      <assignment-settings />
-    </v-tab-item>
-  </v-tabs-items>
-</div>
+        <AssignmentSettings />
+      </v-window-item>
+    </v-window>
+  </div>
 </template>
 
-<script>
-import { mapGetters, mapActions, mapMutations } from "vuex";
-import { statusAlert, createStatusAlert } from "@/helpers/ui-utils.js";
-import AssignmentSettings from "./AssignmentSettings.vue";
+<script setup>
+import {
+  ref,
+  computed,
+  onMounted
+} from "vue";
 
-export default {
-  name: "CreateAssignment",
-  components: {
-    AssignmentSettings,
-  },
-  data: () => ({
-    tab: null,
-    rules: [
-      v => v && !!v.trim() || "Component Name is required",
-      v => (v || "").length <= 255 || "A maximum of 255 characters is allowed"
-      ],
-  }),
-  computed: {
-    ...mapGetters({
-      assignment: "assignment/assignment",
-      configurations: "configuration/get",
-      alertStatuses: "alert/statuses"
-    }),
-    experimentId() {
-      return parseInt(this.$route.params.experimentId);
-    },
-    exposureId() {
-      return parseInt(this.$route.params.exposureId);
-    },
-    conditionIds() {
-      return JSON.parse(this.$route.params.conditionIds);
-    },
-    contDisabled() {
-      return !this.assignment.title;
-    },
-    lmsTitle() {
-      return this.configurations?.lmsTitle || "LMS";
-    }
-  },
-  methods: {
-    async saveExit() {
-      this.handleSaveAssignment();
-    },
-    ...mapActions({
-      createAssignment: "assignment/createAssignment",
-      createTreatment: "treatment/createTreatment",
-      createAssessment: "assessment/createAssessment"
-    }),
-    ...mapMutations({
-      setAssignment: "assignment/setAssignment",
-    }),
-    async handleSaveAssignment() {
-      // POST ASSESSMENT TITLE & HTML (description) & SETTINGS
-      try {
-        const response = await this.createAssignment([this.experimentId, this.exposureId, this.assignment, 1]);
-        await this.handleCreateTreatmentsForAssignment(this.experimentId, response.data.assignmentId);
+import {
+  useRoute,
+  useRouter
+} from "vue-router";
 
-        if (response?.status === 201) {
-          this.$router.push({
-            name: "ExperimentSummary",
-            params: {
-              experimentId: this.experimentId,
-              assignmentId: response.data.assignmentId,
-              ...statusAlert(
-                this.alertStatuses.success,
-                "Assignment created successfully."
-              )
-            }
-          })
-        } else {
-          this.$swal(`${response}`);
-          createStatusAlert(
-            statusAlert(
-              this.alertStatuses.error,
-              "There was an issue creating the assignment. Please try again."
-            )
-          );
-        }
-      } catch (error) {
-        console.error("createAssignment | catch", {error})
-        this.$swal("There was an error creating the assignment.");
-        createStatusAlert(
-          statusAlert(
-            this.alertStatuses.error,
-            "There was an issue creating the assignment. Please try again."
-          )
-        );
-      }
-    },
-    async handleCreateTreatmentsForAssignment(experimentId, assignmentId) {
-      // create a treatment for each condition
-      const treatmentRequests = [];
+import Swal from "sweetalert2";
 
-      this.conditionIds.forEach(conditionId => {
-        treatmentRequests.push(this.createTreatment([experimentId, conditionId, assignmentId]));
-      });
+import {
+  statusAlert,
+  createStatusAlert
+} from "@/helpers/ui-utils.js";
 
-      const allTreatmentCreateRequests = Promise.all(treatmentRequests);
+import AssignmentSettings from "@/views/assignment/AssignmentSettings.vue";
 
-      try {
-        const treatments = await allTreatmentCreateRequests;
+import { assignment as assignmentModule } from "@/store/assignment.module";
+import { treatment as treatmentModule } from "@/store/treatment.module";
+import { assessment as assessmentModule } from "@/store/assessment.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
+import { alert as alertModule } from "@/store/alert.module";
 
-        const assessmentRequests = [];
+defineOptions({
+  name: "CreateAssignment"
+});
 
-        treatments.forEach(treatment => {
-          assessmentRequests.push(this.createAssessmentForTreatment(treatment.data.conditionId, treatment.data.treatmentId));
-        });
+const route = useRoute();
+const router = useRouter();
 
-        const allAssessmentCreateRequests = Promise.all(assessmentRequests);
+const assignmentStore = assignmentModule();
+const treatmentStore = treatmentModule();
+const assessmentStore = assessmentModule();
+const configurationStore = configurationModule();
+const alertStore = alertModule();
 
-        await allAssessmentCreateRequests;
-      } catch (error) {
-          console.log("CreateAssignment.handleCreateTreatmentsForAssignment | catch", error);
-      }
+const tab = ref("settings");
 
+const rules = [
+  value =>
+    value && !!value.trim() ||
+    "Component Name is required",
+  value =>
+    (value || "").length <= 255 ||
+    "A maximum of 255 characters is allowed"
+];
 
-    },
-    async createAssessmentForTreatment(conditionId, treatmentId) {
-      // POST ASSESSMENT TITLE & HTML (description)
-      try {
-        return await this.createAssessment([
-          this.experimentId,
-          conditionId,
-          treatmentId,
-        ]);
-      } catch (error) {
-        console.error("handleCreateAssessment | catch", { error });
-      }
-    }
-  },
-  async created () {
-    this.setAssignment({
-      numOfSubmissions: null
+const assignment = computed(() => {
+  return assignmentStore.assignment;
+});
+
+const configurations = computed(() => {
+  return configurationStore.configurations;
+});
+
+const alertStatuses = computed(() => {
+  return alertStore.statuses;
+});
+
+const experimentId = computed(() => {
+  return Number.parseInt(route.params.experimentId, 10);
+});
+
+const exposureId = computed(() => {
+  return Number.parseInt(route.params.exposureId, 10);
+});
+
+const conditionIds = computed(() => {
+  return JSON.parse(route.query.conditionIds || "[]");
+});
+
+const lmsTitle = computed(() => {
+  return configurations.value?.lmsTitle || "LMS";
+});
+
+const title = computed({
+  get: () => assignment.value?.title || "",
+
+  set: (newTitle) => {
+    assignmentStore.setAssignment({
+      ...assignment.value,
+      title: newTitle
     });
   }
+});
+
+const handleSaveAssignment = async () => {
+  try {
+    const response = await assignmentStore.createAssignment([
+      experimentId.value,
+      exposureId.value,
+      assignment.value,
+      1
+    ]);
+
+    if (response?.status !== 201) {
+      await Swal.fire(
+        "There was an error creating the assignment. Please try again."
+      );
+
+      createStatusAlert(
+        statusAlert(
+          alertStatuses.value.error,
+          "There was an issue creating the assignment. Please try again."
+        )
+      );
+
+      return false;
+    }
+
+    await handleCreateTreatmentsForAssignment(
+      experimentId.value,
+      response.data.assignmentId
+    );
+
+    createStatusAlert(
+      statusAlert(alertStatuses.value.success, "Assignment created successfully.")
+    );
+
+    router.push({
+      name: "ExperimentSummary",
+      params: {
+        experimentId: experimentId.value
+      }
+    });
+
+    return true;
+  } catch (error) {
+    console.error("createAssignment | catch", { error });
+
+    await Swal.fire(
+      "There was an error creating the assignment."
+    );
+
+    createStatusAlert(
+      statusAlert(
+        alertStatuses.value.error,
+        "There was an issue creating the assignment. Please try again."
+      )
+    );
+
+    return false;
+  }
 };
+
+const handleCreateTreatmentsForAssignment = async (
+  currentExperimentId,
+  assignmentId
+) => {
+  try {
+    const treatments = await Promise.all(
+      conditionIds.value.map(conditionId => {
+        return treatmentStore.createTreatment([
+          currentExperimentId,
+          conditionId,
+          assignmentId
+        ]);
+      })
+    );
+
+    await Promise.all(
+      treatments.map(treatment => {
+        return createAssessmentForTreatment(
+          treatment.data.conditionId,
+          treatment.data.treatmentId
+        );
+      })
+    );
+  } catch (error) {
+    console.log(
+      "CreateAssignment.handleCreateTreatmentsForAssignment | catch",
+      error
+    );
+  }
+};
+
+const createAssessmentForTreatment = async (
+  conditionId,
+  treatmentId
+) => {
+  try {
+    return await assessmentStore.createAssessment([
+      experimentId.value,
+      conditionId,
+      treatmentId
+    ]);
+  } catch (error) {
+    console.error(
+      "handleCreateAssessment | catch",
+      { error }
+    );
+
+    return null;
+  }
+};
+
+const saveExit = async () => {
+  await handleSaveAssignment();
+};
+
+onMounted(() => {
+  assignmentStore.setAssignment({
+    numOfSubmissions: null
+  });
+});
+
+defineExpose({
+  saveExit
+});
 </script>

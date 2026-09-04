@@ -142,7 +142,7 @@ public class RegistrationController {
         try {
             answer = registrationService.callDynamicRegistration(token, toolRegistrationDto, platformRegistrationDto.getRegistration_endpoint());
         } catch (ConnectionException e) {
-            e.printStackTrace();
+            log.error("Error during dynamic registration", e);
         }
 
         model.addAttribute("registration_confirmation", answer);

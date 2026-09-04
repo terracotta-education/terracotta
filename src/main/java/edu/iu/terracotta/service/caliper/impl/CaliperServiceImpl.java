@@ -67,7 +67,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class CaliperServiceImpl implements CaliperService {
 
     public static final String DATA_VERSION = "http://purl.imsglobal.org/ctx/caliper/v1p2";

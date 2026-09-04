@@ -17,49 +17,44 @@
 </div>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
+
 import { percent } from "@/helpers/dashboard/utils.js";
 import icon from "@/assets/participants.svg";
 import PercentBar from "./components/PercentBar.vue";
 import SummaryData from "./components/SummaryData.vue";
 
-export default {
-  name: "Participants",
-  components: {
-    PercentBar,
-    SummaryData
-  },
-  props: {
-    participantsData: {
-      type: Object,
-      required: false
-    }
-  },
-  data: () => ({
-    tooltip: "The number of people who consented to participate in the experiment",
-    headerIcon: icon,
-    title: "Participants"
-  }),
-  computed: {
-    sectionData() {
-      return this.participantsData || {};
-    },
-    count() {
-      return this.sectionData.count || 0;
-    },
-    enrollment() {
-      return this.sectionData.classEnrollment || 0;
-    },
-    consentRate() {
-      return this.sectionData.consentRate || 0;
-    }
-  },
-  methods: {
-    toPercent(value) {
-      return percent(value);
-    }
+defineOptions({
+  name: "OverviewParticipantsSummary"
+});
+
+const props = defineProps({
+  participantsData: {
+    type: Object,
+    required: false
   }
-}
+});
+
+const tooltip = "The number of people who consented to participate in the experiment";
+const headerIcon = icon;
+const title = "Participants";
+
+const sectionData = computed(() => {
+  return props.participantsData || {};
+});
+
+const count = computed(() => {
+  return sectionData.value.count || 0;
+});
+
+const consentRate = computed(() => {
+  return sectionData.value.consentRate || 0;
+});
+
+const toPercent = (value) => {
+  return percent(value);
+};
 </script>
 
 <style scoped>

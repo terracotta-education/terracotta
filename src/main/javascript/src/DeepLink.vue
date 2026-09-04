@@ -17,7 +17,7 @@
           class="mt-15"
         >
           <v-img
-            src="@/assets/terracotta_logo.svg"
+            :src="terracottaLogo"
             alt="Terracotta Logo"
             class="terracotta-logo mb-4 mx-auto"
             max-width="200"
@@ -34,24 +34,25 @@
           </p>
           <v-row>
             <form
-              :action="deepLinkReturnUrl"
+              ref="formRef"
               id="deep-link-response-form"
+              :action="deepLinkReturnUrl"
               method="POST"
             >
               <v-btn
-                :disabled="!sendToLmsEnabled"
-                @click="sendToLms"
+                :disabled="!sendToLmsEnabled || isLoading"
+                :loading="isLoading"
+                @click.prevent="sendToLms"
                 class="experiment-btn"
                 color="primary"
                 elevation="0"
               >
                 ADD TERRACOTTA TO YOUR COURSE
               </v-btn>
-              <div
-                class="form-group"
-              >
+
+              <div class="form-group">
                 <input
-                  id="jwt"
+                  ref="jwtInput"
                   name="JWT"
                   type="hidden"
                 />
@@ -65,58 +66,58 @@
 </v-app>
 </template>
 
-<script>
-import { mapActions } from "vuex";
+<script setup>
+import { computed, onMounted, ref, toRef } from "vue";
+import { api as useApiStore } from "@/store/api.module";
+import terracottaLogo from "@/assets/terracotta_logo.svg";
 
-export default {
-props: {
+const props = defineProps({
   id: {
     type: String,
     required: true
   }
-},
-data: () => ({
-  ltiDeepLink: null,
-}),
-computed: {
-  deepLinkReturnUrl() {
-    return this.ltiDeepLink ? this.ltiDeepLink.returnUrl : null;
-  },
-  sendToLmsEnabled() {
-    return this.deepLinkReturnUrl !== null;
+});
+
+const id = toRef(props, "id");
+const formRef = ref(null);
+const jwtInput = ref(null);
+const ltiDeepLink = ref(null);
+const isLoading = ref(false);
+const error = ref(null);
+
+const deepLinkReturnUrl = computed(() => ltiDeepLink.value?.returnUrl || null);
+const sendToLmsEnabled = computed(() => !!deepLinkReturnUrl.value && !!ltiDeepLink.value?.jwt);
+
+const getJwt = async () => {
+  isLoading.value = true;
+  error.value = null;
+  try {
+    const data = await useApiStore().deepLinkJwt(id.value);
+    if (jwtInput.value) {
+      jwtInput.value.value = data.jwt;
+    }
+    ltiDeepLink.value = data;
+  } catch (err) {
+    console.error("Error:", err);
+    error.value = err;
+  } finally {
+    isLoading.value = false;
   }
-},
-methods: {
-  ...mapActions({
-    deepLinkJwt: "api/deepLinkJwt"
-  }),
-  sendToLms() {
-    document.getElementById("deep-link-response-form").submit();
-  },
-  getJwt() {
-    this.deepLinkJwt(this.id).then(
-      data => {
-        // set the JWT string in the form
-        document.getElementById("jwt").value = data.jwt;
-        this.ltiDeepLink = data;
-      }
-    ).catch(
-      error => {
-        console.error("Error:", error);
-      }
-    );
-  }
-},
-mounted() {
-  this.getJwt();
-}
 };
+
+const sendToLms = () => {
+  formRef.value?.submit();
+};
+
+onMounted(() => {
+  getJwt();
+});
 </script>
 
 <style lang="scss">
 .deep-link {
   & .terracotta-appbg {
-    background: url("~@/assets/terracotta_appbg.jpg") no-repeat center center;
+    background: url("@/assets/terracotta_appbg.jpg") no-repeat center center;
     background-size: cover;
     height: 100%;
     width: 100%;

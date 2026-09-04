@@ -60,7 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement", "PMD.LooseCoupling"})
+@SuppressWarnings("PMD.GuardLogStatement")
 public class MessageSendServiceImpl implements MessageSendService {
 
     private final LmsUserBatchRepository lmsUserBatchRepository;
@@ -217,7 +217,8 @@ public class MessageSendServiceImpl implements MessageSendService {
             entityManager.clear();
 
             // get next batch of participants
-            participantsPageRequest = PageRequest.of(++participantsPage, batchSize);
+            participantsPage++;
+            participantsPageRequest = PageRequest.of(participantsPage, batchSize);
             participants.set(participantRepository.findByExperiment_ExperimentId(message.getExperimentId(), participantsPageRequest));
         }
 
