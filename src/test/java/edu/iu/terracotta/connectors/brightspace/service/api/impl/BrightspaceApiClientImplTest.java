@@ -111,6 +111,7 @@ public class BrightspaceApiClientImplTest extends BaseTest {
                 when(mock.getReader(eq(LtiAdvantageLinkReaderService.class), any(OauthToken.class))).thenReturn(ltiAdvantageLinkReaderService);
                 when(mock.getReader(eq(UserGradeValueReaderService.class), any(OauthToken.class))).thenReturn(userGradeValueReaderService);
                 when(mock.getWriter(eq(AssignmentWriterService.class), any(OauthToken.class))).thenReturn(brightspaceAssignmentWriterService);
+                when(mock.getWriter(eq(AssignmentWriterService.class), any(OauthToken.class), any(Boolean.class))).thenReturn(brightspaceAssignmentWriterService);
             }
         );
     }

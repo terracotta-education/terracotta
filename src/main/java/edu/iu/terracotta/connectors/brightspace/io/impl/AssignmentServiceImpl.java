@@ -28,6 +28,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -177,11 +178,14 @@ public class AssignmentServiceImpl extends BaseServiceImpl<AssignmentExtended, A
 
         AssignmentExtended assignmentExtended = AssignmentExtended.builder().build();
         assignmentExtended.setAssignment(assignment);
+        // Map.of() rejects a null value outright; the line item's ID can legitimately be null
+        // here if lineitem creation upstream failed and was swallowed (best-effort assignment
+        // creation continues without it), so use a null-tolerant map instead of crashing
         assignmentExtended.setSecureParams(
             JsonMapper.builder()
             .build()
             .writeValueAsString(
-                Map.of(
+                Collections.singletonMap(
                     BrightspaceAssignmentMetadata.LTI_ASSIGNMENT_ID, assignment.getLineItem().getId()
                 )
             )
