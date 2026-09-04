@@ -358,7 +358,10 @@ public class BrightspaceApiClientImpl implements ApiClient {
                 createLineItem(assignmentExtended, assignment, orgUnitId);
             }
 
-            return getWriter(assignment.getExposure().getExperiment().getCreatedBy(), AssignmentWriterService.class)
+            // see createLmsAssignment: serialize explicit nulls, or Brightspace's JSON binder
+            // rejects content-module creation outright when this restore path needs to
+            // (re)create one
+            return getWriter(assignment.getExposure().getExperiment().getCreatedBy(), AssignmentWriterService.class, true)
                 .createAssignment(orgUnitId, assignmentExtended.getAssignment())
                 .orElseThrow(() -> new ApiException(String.format("Failed to create Assignment in Brightspace course by orgUnitId [%s]", orgUnitId)));
         } catch (Exception e) {
@@ -644,7 +647,9 @@ public class BrightspaceApiClientImpl implements ApiClient {
 
             createLineItem(assignmentExtended, experiment, consentDocument, orgUnitId);
 
-            return getWriter(instructorUser, AssignmentWriterService.class)
+            // see createLmsAssignment: serialize explicit nulls, or Brightspace's JSON binder
+            // rejects content-module creation outright
+            return getWriter(instructorUser, AssignmentWriterService.class, true)
                 .createAssignment(orgUnitId, assignmentExtended.getAssignment())
                 .orElseThrow(() -> new ApiException(String.format("Failed to create Consent Assignment in Brightspace course by orgUnitId [%s]", orgUnitId)));
         } catch (Exception e) {
