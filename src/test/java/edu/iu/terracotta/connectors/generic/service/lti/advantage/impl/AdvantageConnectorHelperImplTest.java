@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -210,6 +211,25 @@ public class AdvantageConnectorHelperImplTest extends BaseTest {
         // calls to getToken() mean four postForEntity() invocations - the point being neither
         // failure gets cached, so both outer calls actually attempt the request from scratch
         verify(restTemplate, times(4)).postForEntity(anyString(), any(HttpEntity.class), any(Class.class));
+    }
+
+    @Test
+    public void testGetTokenSurfacesOriginalFailureWhenJsonRetryAlsoFails() throws GeneralSecurityException, IOException {
+        when(ltiJwtService.generateTokenRequestJWT(any(PlatformDeployment.class))).thenReturn("jwt");
+        RuntimeException formEncodedFailure = new RuntimeException("invalid_grant: Invalid signature");
+        RuntimeException jsonRetryFailure = new RuntimeException("invalid_request: Missing grant_type parameter");
+        // the JSON payload retry always fails against a spec-compliant OAuth2 token endpoint
+        // (only form-urlencoded bodies are parsed), so its generic failure should not bury the
+        // original, more useful failure reason from the first, correctly form-encoded attempt
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class)))
+            .thenThrow(formEncodedFailure)
+            .thenThrow(jsonRetryFailure);
+        doReturn(restTemplate).when(advantageConnectorHelper).createRestTemplate();
+        when(exceptionMessageGenerator.exceptionMessage(anyString(), any())).thenReturn("wrapped-message");
+
+        assertThrows(ConnectionException.class, () -> advantageConnectorHelper.getToken(platformDeployment, "scope"));
+
+        verify(exceptionMessageGenerator).exceptionMessage(anyString(), eq(formEncodedFailure));
     }
 
     @Test

@@ -151,6 +151,12 @@ public class SimpleRestClient implements RestClient {
 
             response.setContent(content.orElse(null));
             response.setResponseCode(httpResponse.getStatusLine().getStatusCode());
+        } catch (BrightspaceException e) {
+            // the error response body is logged by extractErrorMessageFromResponse; log the
+            // outgoing request body alongside it so the two can be compared to see exactly
+            // what Brightspace rejected, without needing apiRequestLogEnabled turned on
+            log.error("{} request to URL: [{}] failed with body: [{}]", method, url, json);
+            throw e;
         } finally {
             action.releaseConnection();
         }
