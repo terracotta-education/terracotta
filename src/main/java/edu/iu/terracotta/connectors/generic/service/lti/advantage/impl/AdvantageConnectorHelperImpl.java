@@ -204,8 +204,22 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         } catch (Exception ex) {
             log.error("Error getting the token: '{}'", ex.getMessage());
             log.error("Can't get the token. Exception. We will try again with a JSON Payload");
-            HttpEntity request2 = createTokenRequestJSON(scope, platformDeployment);
-            return restTemplate.postForEntity(postTokenUrl, request2, LtiToken.class);
+
+            try {
+                HttpEntity request2 = createTokenRequestJSON(scope, platformDeployment);
+                return restTemplate.postForEntity(postTokenUrl, request2, LtiToken.class);
+            } catch (Exception jsonRetryEx) {
+                // the JSON payload retry is a fallback for a non-compliant IdP; when it also
+                // fails, surface the original form-encoded failure (the actual cause) rather than
+                // the retry's failure, since a spec-compliant OAuth2 token endpoint only parses
+                // application/x-www-form-urlencoded bodies and will always reject a JSON one with
+                // a generic "missing parameter" error that masks what really went wrong
+                if (ex != jsonRetryEx) {
+                    ex.addSuppressed(jsonRetryEx);
+                }
+
+                throw ex;
+            }
         }
     }
 
