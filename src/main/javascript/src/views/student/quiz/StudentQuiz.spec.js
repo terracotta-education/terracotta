@@ -316,6 +316,60 @@ describe("StudentQuiz", () => {
     expect(wrapper.text()).toContain("Your answers have been submitted.");
   });
 
+  it("does not crash on submit when launch_assignment omits questionSubmissionDtoList (a fresh attempt)", async () => {
+    // regression test: launch_assignment previously assigned this field to submissions.value
+    // unchecked, so a null/missing value (as a fresh attempt with no prior question submissions
+    // can return) made the later saveAnswers()'s submissions.value.find(...) throw
+    // "submissions.value.find is not a function"
+    mockReportStepByStep({
+      launch_assignment: {
+        status: 200,
+        data: {
+          experimentId: "1",
+          conditionId: 101,
+          treatmentId: 102,
+          assessmentId: 103,
+          submissionId: 104,
+          questionSubmissionDtoList: null
+        }
+      }
+    });
+    submissionService.createQuestionSubmissions.mockResolvedValue({ status: 201, data: {} });
+
+    const wrapper = mountComponent(StudentQuiz, {
+      props: { experimentId: "1" },
+      global: { stubs: stubbedChildren }
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    const questionCard = wrapper.findComponent({ name: "StudentQuizQuestionCard" });
+    await questionCard.vm.$emit("update:question-values", [
+      { questionId: 10, answerId: 100, response: null }
+    ]);
+    await flushPromises();
+
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+
+    expect(submissionService.createQuestionSubmissions).toHaveBeenCalledWith(
+      "1", 101, 102, 103, 104,
+      [
+        expect.objectContaining({
+          questionId: 10,
+          answerSubmissionDtoList: [
+            expect.objectContaining({ answerId: 100, response: null })
+          ]
+        })
+      ]
+    );
+
+    expect(wrapper.text()).toContain("Your answers have been submitted.");
+  });
+
   it("delegates file downloads from the question card to the submission store and clears the in-flight id", async () => {
     mockReportStepByStep();
     let resolveDownload;

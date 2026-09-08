@@ -430,7 +430,10 @@ const attempt = async (preferLmsChecks = false) => {
       treatmentId.value = data.treatmentId;
       assessmentId.value = data.assessmentId;
       submissionId.value = data.submissionId;
-      submissions.value = data.questionSubmissionDtoList;
+      // a fresh attempt with no prior question submissions can come back with this field
+      // missing/null rather than []; without the array check, saveAnswers' submissions.value.find(...)
+      // throws "submissions.value.find is not a function"
+      submissions.value = Array.isArray(data.questionSubmissionDtoList) ? data.questionSubmissionDtoList : [];
       // must resolve before checking isIntegration: it reads assessmentStore.assessment,
       // which this call is what populates in the first place
       await getQuestions(data.experimentId, data.conditionId, data.assessmentId, data.treatmentId, data.submissionId);
