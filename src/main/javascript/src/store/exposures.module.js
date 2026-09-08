@@ -16,7 +16,22 @@ export const exposures = defineStore("exposures", {
       try {
         const data = await exposuresService.getAll(experimentId);
 
-        this.exposures = data || [];
+        // a failed HTTP response resolves to an error object (e.g. {status, error}) rather than
+        // throwing, so an array check is needed here to catch that case as a failure too - without
+        // it, this.exposures ends up non-array and callers doing exposures.value.find(...)/
+        // .map(...)/.filter(...) throw "exposures.value.find is not a function"
+        if (!Array.isArray(data)) {
+          console.error(
+            "exposures/fetchExposures | non-array response",
+            { data }
+          );
+
+          this.exposures = [];
+
+          return [];
+        }
+
+        this.exposures = data;
 
         return this.exposures;
       } catch (error) {
