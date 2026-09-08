@@ -471,22 +471,21 @@ public class AssessmentServiceImpl implements AssessmentService {
                 }
             }
 
-            // remove questions not passed in - also drop them from assessment's own
-            // questions collection (already lazily loaded above via isIntegration()),
-            // otherwise the stale in-memory reference to a now-deleted row makes the
-            // save(assessment) merge below fail trying to re-resolve it
-            CollectionUtils.emptyIfNull(existingQuestionIds).stream()
-                .forEach(existingQuestionId -> {
-                    questionRepository.deleteByQuestionId(existingQuestionId);
-                    assessment.getQuestions().removeIf(question -> existingQuestionId.equals(question.getQuestionId()));
-                });
+            // remove questions not passed in by dropping them from assessment's own questions
+            // collection (already lazily loaded above via isIntegration()) - Assessment.questions
+            // has orphanRemoval = true, so JPA deletes them on the save(assessment) below.
+            // This used to ALSO call questionRepository.deleteByQuestionId(...) explicitly for
+            // each one, racing with that same orphan-removal cascade: the explicit delete would
+            // succeed, but the subsequent SELECT that another deleteByQuestionId(...) call runs
+            // auto-flushes first, and that flush tries to cascade-delete the already-deleted
+            // question again via the orphan removal, throwing "DetachedObjectException: Given
+            // entity is not associated with the persistence context"
+            assessment.getQuestions().removeIf(
+                question -> existingQuestionIds.contains(question.getQuestionId())
+            );
         } else {
-            // delete all questions from the assessment; none were passed in
-            List<Question> questions = questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId());
-
-            CollectionUtils.emptyIfNull(questions).stream()
-                .forEach(question -> questionRepository.deleteByQuestionId(question.getQuestionId()));
-
+            // delete all questions from the assessment; none were passed in. See comment above:
+            // clear() alone is enough, orphanRemoval on Assessment.questions handles the delete
             assessment.getQuestions().clear();
         }
     }
