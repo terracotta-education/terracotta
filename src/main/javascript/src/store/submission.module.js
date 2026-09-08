@@ -21,9 +21,24 @@ export const submission = defineStore("submission", {
       try {
         const { data } = await submissionService.getAll(...payload);
 
-        this.submissions = data || [];
+        // a failed HTTP response resolves to an error object (e.g. {status, error}) rather than
+        // throwing, so an array check is needed here to catch that case as a failure too - without
+        // it, this.submissions ends up non-array and callers doing this.submissions.find(...)/
+        // .map(...) throw "submissions.find is not a function"
+        if (!Array.isArray(data)) {
+          console.error(
+            "submissions/fetchSubmissions | non-array response",
+            { data }
+          );
 
-        return data || [];
+          this.submissions = [];
+
+          return [];
+        }
+
+        this.submissions = data;
+
+        return data;
       } catch (error) {
         console.error(
           "submissions/fetchSubmissions | catch",
@@ -107,9 +122,22 @@ export const submission = defineStore("submission", {
         const { data } =
           await submissionService.getQuestionSubmissions(...payload);
 
-        this.questionSubmissions = data || [];
+        // see fetchSubmissions: a failed HTTP response resolves to a non-array error object
+        // rather than throwing, so it must be caught here too
+        if (!Array.isArray(data)) {
+          console.error(
+            "submissions/fetchQuestionSubmissions | non-array response",
+            { data }
+          );
 
-        return data || [];
+          this.questionSubmissions = [];
+
+          return [];
+        }
+
+        this.questionSubmissions = data;
+
+        return data;
       } catch (error) {
         console.error(
           "submissions/fetchQuestionSubmissions | catch",
