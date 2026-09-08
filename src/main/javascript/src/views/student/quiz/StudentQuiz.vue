@@ -260,10 +260,82 @@ watch(selectedSubmissionId, () => {
   }
 });
 
-watch(answerableQuestions, questions => {
-  questionValues.value = questions
+// data-loss safety net: there's no autosave in this app, and telling a student their
+// session expired means they have to relaunch, which would otherwise throw away
+// whatever they'd typed since their last submit. draftStorageKey is keyed by
+// experimentId + assessmentId (not submissionId, which may not be stable across a
+// relaunch) - see saveDraftAnswers/clearDraftAnswers and the answerableQuestions
+// watch below for the restore side.
+const draftStorageKey = computed(() => `terracotta-quiz-draft-${props.experimentId}-${assessmentId.value}`);
+
+const saveDraftAnswers = () => {
+  try {
+    localStorage.setItem(
+      draftStorageKey.value,
+      JSON.stringify({ questionValues: questionValues.value, savedAt: Date.now() })
+    );
+  } catch (error) {
+    // e.g. storage blocked (cross-site iframe privacy restrictions) or full - fail
+    // silently, there's nothing more we can do
+    console.error("StudentQuiz/saveDraftAnswers | catch", error);
+  }
+};
+
+const clearDraftAnswers = () => {
+  try {
+    localStorage.removeItem(draftStorageKey.value);
+  } catch (error) {
+    console.error("StudentQuiz/clearDraftAnswers | catch", error);
+  }
+};
+
+watch(() => apiStore.sessionExpired, expired => {
+  if (expired) saveDraftAnswers();
+});
+
+watch(answerableQuestions, async questions => {
+  const freshValues = questions
     .filter(q => q.questionType !== "INTEGRATION")
     .map(q => ({ questionId: q.questionId, answerId: null, response: null }));
+
+  questionValues.value = freshValues;
+
+  let draft = null;
+
+  try {
+    draft = JSON.parse(localStorage.getItem(draftStorageKey.value) || "null");
+  } catch (error) {
+    console.error("StudentQuiz/restoreDraftAnswers | catch", error);
+  }
+
+  if (!draft?.questionValues?.length) {
+    return;
+  }
+
+  const freshIds = new Set(freshValues.map(q => q.questionId));
+
+  if (!draft.questionValues.some(q => freshIds.has(q.questionId))) {
+    clearDraftAnswers(); // draft is for a different/stale question set - discard, don't offer it
+    return;
+  }
+
+  const result = await Swal.fire({
+    target: "#app",
+    icon: "question",
+    text: "We found unsaved answers from your last session. Would you like to restore them?",
+    showCancelButton: true,
+    confirmButtonText: "Yes, restore",
+    cancelButtonText: "No, start fresh"
+  });
+
+  if (result.isConfirmed) {
+    questionValues.value = freshValues.map(q => {
+      const saved = draft.questionValues.find(d => d.questionId === q.questionId);
+      return saved ? { ...q, answerId: saved.answerId, response: saved.response } : q;
+    });
+  }
+
+  clearDraftAnswers();
 });
 
 watch(integrationTokenExpirationRemaining, newValue => {
@@ -335,6 +407,7 @@ const submitQuiz = async () => {
     if (view?.status === 200) {
       assignmentData.value = view.data;
       submitted.value = true;
+      clearDraftAnswers();
     }
   } catch (error) {
     submissions.value = null;

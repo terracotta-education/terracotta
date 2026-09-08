@@ -14,7 +14,8 @@ export const api = defineStore("api", {
     assignmentId: "",
     consent: "",
     userId: "",
-    lmsApiOAuthURL: ""
+    lmsApiOAuthURL: "",
+    sessionExpired: false
   }),
 
   getters: {
@@ -34,6 +35,28 @@ export const api = defineStore("api", {
       this.consent = decodedToken.consent || "";
       this.userId = decodedToken.userId || "";
       this.userInfo = userInfo(decodedToken.roles || []);
+    },
+
+    // must be a plain method, not a getter - a getter is a cached computed() that
+    // wouldn't change once evaluated, but this check is time-based (Date.now()) and
+    // needs to be re-evaluated fresh on every call
+    isApiTokenExpired() {
+      if (!this.apiToken) {
+        return false; // no token yet - nothing to call "expired"
+      }
+
+      try {
+        const { exp } = jwtDecode(this.apiToken);
+
+        return typeof exp === "number" && exp * 1000 <= Date.now();
+      } catch (error) {
+        console.error("api/isApiTokenExpired | catch", error);
+        return true; // can't decode it - treat as unusable, fail safe
+      }
+    },
+
+    markSessionExpired() {
+      this.sessionExpired = true;
     },
 
     async setLtiToken(token) {
