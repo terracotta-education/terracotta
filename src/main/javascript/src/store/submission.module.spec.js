@@ -58,6 +58,18 @@ describe("submission store", () => {
       expect(store.submissions).toEqual([]);
     });
 
+    it("falls back to [] when the service resolves a non-array error object instead of throwing", async () => {
+      // a failed HTTP response (e.g. 401/403/500) resolves to {status, error} rather than
+      // rejecting - this must be treated as a fetch failure too, or callers doing
+      // store.submissions.find(...)/.map(...) would throw "submissions.find is not a function"
+      submissionService.getAll.mockResolvedValue({ data: { status: 403, error: "Forbidden" } });
+
+      const result = await store.fetchSubmissions(["a"]);
+
+      expect(result).toEqual([]);
+      expect(store.submissions).toEqual([]);
+    });
+
     it("returns [] on error", async () => {
       submissionService.getAll.mockRejectedValue(new Error("fail"));
 
@@ -155,6 +167,17 @@ describe("submission store", () => {
 
     it("falls back to [] when data missing", async () => {
       submissionService.getQuestionSubmissions.mockResolvedValue({});
+
+      const result = await store.fetchQuestionSubmissions(["a"]);
+
+      expect(result).toEqual([]);
+      expect(store.questionSubmissions).toEqual([]);
+    });
+
+    it("falls back to [] when the service resolves a non-array error object instead of throwing", async () => {
+      submissionService.getQuestionSubmissions.mockResolvedValue({
+        data: { status: 403, error: "Forbidden" }
+      });
 
       const result = await store.fetchQuestionSubmissions(["a"]);
 
