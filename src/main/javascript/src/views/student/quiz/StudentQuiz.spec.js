@@ -45,6 +45,7 @@ import {
   previewService
 } from "@/services";
 import { mountComponent } from "@/test-utils/mount";
+import { api as apiModule } from "@/store/api.module";
 import StudentQuiz from "./StudentQuiz.vue";
 
 const stubbedChildren = {
@@ -314,6 +315,124 @@ describe("StudentQuiz", () => {
     );
 
     expect(wrapper.text()).toContain("Your answers have been submitted.");
+    expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
+  });
+
+  describe("data-loss safety net: draft answers", () => {
+    it("saves the current answers to localStorage when the session expires", async () => {
+      mockReportStepByStep();
+
+      const wrapper = mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      const questionCard = wrapper.findComponent({ name: "StudentQuizQuestionCard" });
+      await questionCard.vm.$emit("update:question-values", [
+        { questionId: 10, answerId: 100, response: null }
+      ]);
+      await flushPromises();
+
+      const apiStore = apiModule();
+      apiStore.markSessionExpired();
+      await flushPromises();
+
+      const draft = JSON.parse(localStorage.getItem("terracotta-quiz-draft-1-103"));
+      expect(draft.questionValues).toEqual([
+        { questionId: 10, answerId: 100, response: null }
+      ]);
+    });
+
+    it("offers to restore a matching draft on load and repopulates answers when confirmed", async () => {
+      localStorage.setItem("terracotta-quiz-draft-1-103", JSON.stringify({
+        questionValues: [{ questionId: 10, answerId: 100, response: null }],
+        savedAt: Date.now()
+      }));
+      mockReportStepByStep();
+
+      const wrapper = mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      expect(Swal.fire).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "We found unsaved answers from your last session. Would you like to restore them?" })
+      );
+
+      const questionCard = wrapper.findComponent({ name: "StudentQuizQuestionCard" });
+      expect(questionCard.props("questionValues")).toEqual([
+        { questionId: 10, answerId: 100, response: null }
+      ]);
+      expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
+    });
+
+    it("leaves fresh blank answers and still clears the draft when the restore prompt is declined", async () => {
+      localStorage.setItem("terracotta-quiz-draft-1-103", JSON.stringify({
+        questionValues: [{ questionId: 10, answerId: 100, response: null }],
+        savedAt: Date.now()
+      }));
+      Swal.fire.mockResolvedValueOnce({ isConfirmed: false });
+      mockReportStepByStep();
+
+      const wrapper = mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      const questionCard = wrapper.findComponent({ name: "StudentQuizQuestionCard" });
+      expect(questionCard.props("questionValues")).toEqual([
+        { questionId: 10, answerId: null, response: null }
+      ]);
+      expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
+    });
+
+    it("discards a draft for a different question set without prompting", async () => {
+      localStorage.setItem("terracotta-quiz-draft-1-103", JSON.stringify({
+        questionValues: [{ questionId: 999, answerId: 5, response: null }],
+        savedAt: Date.now()
+      }));
+      mockReportStepByStep();
+
+      mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      expect(Swal.fire).not.toHaveBeenCalledWith(
+        expect.objectContaining({ text: expect.stringContaining("unsaved answers") })
+      );
+      expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
+    });
+
+    it("does not crash when localStorage access throws", async () => {
+      const getItemSpy = vi.spyOn(localStorage, "getItem").mockImplementation(() => {
+        throw new Error("blocked");
+      });
+      mockReportStepByStep();
+
+      const wrapper = mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      expect(wrapper.findComponent({ name: "StudentQuizQuestionCard" }).exists()).toBe(true);
+      getItemSpy.mockRestore();
+    });
   });
 
   it("delegates file downloads from the question card to the submission store and clears the in-flight id", async () => {

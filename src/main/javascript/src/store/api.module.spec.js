@@ -172,6 +172,42 @@ describe("api store", () => {
     consoleSpy.mockRestore();
   });
 
+  describe("isApiTokenExpired", () => {
+    it("returns false when apiToken is empty", () => {
+      expect(store.apiToken).toBe("");
+      expect(store.isApiTokenExpired()).toBe(false);
+    });
+
+    it("returns false for a token with a future exp", () => {
+      store.apiToken = makeToken({ exp: Math.floor(Date.now() / 1000) + 3600 });
+
+      expect(store.isApiTokenExpired()).toBe(false);
+    });
+
+    it("returns true for a token with a past exp", () => {
+      store.apiToken = makeToken({ exp: Math.floor(Date.now() / 1000) - 3600 });
+
+      expect(store.isApiTokenExpired()).toBe(true);
+    });
+
+    it("returns true and logs when the token can't be decoded", () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      store.apiToken = "not-a-real-jwt";
+
+      expect(store.isApiTokenExpired()).toBe(true);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  it("markSessionExpired sets sessionExpired to true", () => {
+    expect(store.sessionExpired).toBe(false);
+
+    store.markSessionExpired();
+
+    expect(store.sessionExpired).toBe(true);
+  });
+
   it("reportStep resolves with the service's response", async () => {
     apiService.reportStep.mockResolvedValue({ status: 200 });
 
