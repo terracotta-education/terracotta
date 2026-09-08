@@ -140,11 +140,13 @@ import {
   ref,
   computed,
   defineAsyncComponent,
+  nextTick,
   onMounted,
   onBeforeUnmount
 } from "vue";
 
 import { useRoute } from "vue-router";
+import Swal from "sweetalert2";
 
 import Assignment from "@/views/obsolete/Assignment.vue";
 import Integrations from "@/views/integrations/Integrations.vue";
@@ -196,6 +198,9 @@ const childLoaded = ref(false);
 const integrationsTokenAlert = ref(null);
 
 let refreshInterval = null;
+let sessionExpired = false;
+let refreshInFlight = false; // avoid overlapping calls if the interval tick and a
+                              // visibilitychange fire close together
 
 // -------------------------------------
 // Pinia State
@@ -285,11 +290,64 @@ const showSkipLink = computed(() => {
 // -------------------------------------
 
 const refreshToken = () => {
-  return apiStore.refreshToken(apiToken.value);
+  return apiStore.refreshToken();
 };
 
 const retrieveConfiguration = () => {
   return configurationStore.retrieve();
+};
+
+// clears stale persisted state (e.g. pinia-plugin-persistedstate's auth token) on every
+// fresh mount, without wiping StudentQuiz.vue's draft-answer safety net keys, which need
+// to survive exactly the relaunch this mount represents
+const clearStaleStorageExceptDrafts = () => {
+  const draftPrefix = "terracotta-quiz-draft-";
+
+  Object.keys(localStorage)
+    .filter(key => !key.startsWith(draftPrefix))
+    .forEach(key => localStorage.removeItem(key));
+};
+
+const stopTokenMonitoring = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+
+  document.removeEventListener("visibilitychange", handleVisibilityChange);
+};
+
+const checkAndRefreshToken = async () => {
+  if (sessionExpired || refreshInFlight || !apiToken.value) {
+    return;
+  }
+
+  if (apiStore.isApiTokenExpired()) {
+    sessionExpired = true;
+    stopTokenMonitoring();
+    apiStore.markSessionExpired();
+    await nextTick(); // let StudentQuiz.vue's draft-save watcher react first
+
+    await Swal.fire(
+      "Your session has expired. Please return to your course and re-open this assignment to continue."
+    );
+
+    return;
+  }
+
+  refreshInFlight = true;
+
+  try {
+    await refreshToken();
+  } finally {
+    refreshInFlight = false;
+  }
+};
+
+const handleVisibilityChange = () => {
+  if (document.visibilityState === "visible") {
+    checkAndRefreshToken();
+  }
 };
 
 // -------------------------------------
@@ -297,21 +355,21 @@ const retrieveConfiguration = () => {
 // -------------------------------------
 
 onMounted(async () => {
-  localStorage.clear();
+  clearStaleStorageExceptDrafts();
 
   if (!isTreatmentPreview.value) {
     await retrieveConfiguration();
   }
 
   refreshInterval = window.setInterval(() => {
-    refreshToken();
+    checkAndRefreshToken();
   }, 1000 * 60 * 59);
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
 });
 
 onBeforeUnmount(() => {
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-  }
+  stopTokenMonitoring();
 });
 </script>
 
