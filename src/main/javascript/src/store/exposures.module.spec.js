@@ -47,6 +47,19 @@ describe("exposures store", () => {
       expect(result).toEqual([]);
     });
 
+    it("resets exposures to [] when the service resolves a non-array error object instead of throwing", async () => {
+      // a failed HTTP response (e.g. 401/403/500) resolves to an object like {status, error}
+      // rather than rejecting - this must be treated as a fetch failure too, or components
+      // calling exposures.value.find()/.map()/.filter() would throw
+      store.exposures = [{ exposureId: 1 }];
+      exposuresService.getAll.mockResolvedValue({ status: 403, error: "Forbidden" });
+
+      const result = await store.fetchExposures(10);
+
+      expect(store.exposures).toEqual([]);
+      expect(result).toEqual([]);
+    });
+
     it("resets exposures to [] and logs on error", async () => {
       store.exposures = [{ exposureId: 1 }];
       exposuresService.getAll.mockRejectedValue(new Error("boom"));
