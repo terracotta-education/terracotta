@@ -16,7 +16,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -133,7 +132,8 @@ public class AssessmentServiceImplTest extends BaseTest {
 
         when(assessment.isAllowStudentViewResponses()).thenReturn(true);
         when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
-        when(assessment.getQuestions()).thenReturn(Collections.emptyList());
+        // mutable: processAssessmentQuestions calls .clear()/.removeIf() on this directly
+        when(assessment.getQuestions()).thenReturn(new ArrayList<>());
         when(assessmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
         when(assessmentDto.getQuestions()).thenReturn(List.of(questionDto));
         when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
@@ -347,11 +347,13 @@ public class AssessmentServiceImplTest extends BaseTest {
         AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
         IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
-        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Arrays.asList(question)); // requires modifiable list
         // a real mutable list, standing in for Hibernate's own lazily-loaded (and by this point
         // already-initialized, via the earlier isIntegration() calls) assessment.questions
-        // collection - proves it gets kept in sync with the DB delete below, rather than still
-        // holding a stale reference to the now-deleted row when save(assessment) merges
+        // collection - proves clear() empties it (Assessment.questions has orphanRemoval = true,
+        // so JPA deletes the underlying rows on the save(assessment) below - no explicit
+        // questionRepository.deleteByQuestionId(...) call needed, or wanted: it used to race with
+        // that same orphan-removal cascade and throw "DetachedObjectException: Given entity is
+        // not associated with the persistence context" once more than one question was deleted)
         List<Question> assessmentQuestions = new ArrayList<>(List.of(question));
         when(assessment.getQuestions()).thenReturn(assessmentQuestions);
 
@@ -360,7 +362,7 @@ public class AssessmentServiceImplTest extends BaseTest {
         verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean());
         verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
-        verify(questionRepository).deleteByQuestionId(anyLong());
+        verify(questionRepository, never()).deleteByQuestionId(anyLong());
         assertTrue(assessmentQuestions.isEmpty());
     }
 
@@ -381,8 +383,35 @@ public class AssessmentServiceImplTest extends BaseTest {
 
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
-        verify(questionRepository).deleteByQuestionId(2L);
-        verify(questionRepository, never()).deleteByQuestionId(1L);
+        verify(questionRepository, never()).deleteByQuestionId(anyLong());
+        assertEquals(List.of(question), assessmentQuestions);
+    }
+
+    @Test
+    public void testUpdateAssessmentWithMultipleDeletedQuestionsRemovesAllStaleQuestionsFromAssessmentQuestionsCollection()
+        throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
+        AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
+        IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
+        // regression test: removing more than one stale question used to call
+        // questionRepository.deleteByQuestionId(...) once per question, explicitly deleting each
+        // row while ALSO removing it from assessment.getQuestions() (which has orphanRemoval =
+        // true). That raced the two deletion mechanisms against each other - the first explicit
+        // delete would succeed, but the next deleteByQuestionId(...) call's own auto-flush would
+        // then try to cascade-delete the already-deleted question again via the orphan-removal,
+        // throwing "DetachedObjectException: Given entity is not associated with the persistence
+        // context". Relying solely on orphanRemoval (no explicit delete call at all) avoids that.
+        Question staleQuestion1 = mock(Question.class);
+        when(staleQuestion1.getQuestionId()).thenReturn(2L);
+        Question staleQuestion2 = mock(Question.class);
+        when(staleQuestion2.getQuestionId()).thenReturn(3L);
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(new ArrayList<>(List.of(question, staleQuestion1, staleQuestion2)));
+        when(questionDto.getQuestionId()).thenReturn(1L);
+        List<Question> assessmentQuestions = new ArrayList<>(List.of(question, staleQuestion1, staleQuestion2));
+        when(assessment.getQuestions()).thenReturn(assessmentQuestions);
+
+        assessmentService.updateAssessment(1L, assessmentDto, true);
+
+        verify(questionRepository, never()).deleteByQuestionId(anyLong());
         assertEquals(List.of(question), assessmentQuestions);
     }
 
@@ -392,7 +421,6 @@ public class AssessmentServiceImplTest extends BaseTest {
         AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
         IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
         when(assessmentDto.getQuestions()).thenReturn(Collections.emptyList());
-        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
 
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
@@ -400,6 +428,7 @@ public class AssessmentServiceImplTest extends BaseTest {
         verify(questionRepository, never()).findByQuestionId(anyLong());
         verify(questionService, never()).updateQuestion(anyMap());
         verify(questionRepository, never()).deleteById(anyLong());
+        verify(questionRepository, never()).deleteByQuestionId(anyLong());
     }
 
     // TerracottaBuilder.vue's plain "save assessment settings" PUT never includes a questions
