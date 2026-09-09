@@ -155,7 +155,12 @@ public class ParticipantController {
             try {
                 participantService.postConsentSubmission(participant, securedInfo);
             } catch (ConnectionException e) {
-                throw new RuntimeException("Failed to post grade to the LMS for consent submission", e);
+                // don't let a failed grade sync (e.g. the LMS rejecting it because the consent
+                // assignment's attempt limit was already reached) block the student from
+                // recording their actual consent decision below - the two are independent
+                // outcomes, and the student shouldn't be stuck unable to consent over a
+                // gradebook sync issue
+                log.warn("Failed to post grade to the LMS for consent submission for participant ID: [{}]", participantId, e);
             }
 
             try {
