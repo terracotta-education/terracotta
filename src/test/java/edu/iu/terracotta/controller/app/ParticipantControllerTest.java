@@ -186,13 +186,22 @@ public class ParticipantControllerTest extends BaseTest {
     }
 
     @Test
-    void updateParticipantLearnerConnectionExceptionWrappedTest() throws Exception {
+    void updateParticipantLearnerConnectionExceptionDoesNotBlockConsentTest() throws Exception {
+        // a failed grade sync to the LMS (e.g. Canvas rejecting it because the consent
+        // assignment's attempt limit was already reached) must not prevent the student's
+        // actual consent decision from being recorded - the two are independent outcomes
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
         when(participantService.getParticipant(2L, 1L, USER_ID, true)).thenReturn(participant);
         doThrow(new ConnectionException("lms down")).when(participantService).postConsentSubmission(participant, securedInfo);
+        when(participantService.changeConsent(participantDto, securedInfo, 1L)).thenReturn(participant);
+        when(participantService.toDto(participant, securedInfo)).thenReturn(participantDto);
 
-        assertThrows(RuntimeException.class, () -> participantController.updateParticipant(1L, 2L, participantDto, httpServletRequest));
+        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(1L, 2L, participantDto, httpServletRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(participantDto, response.getBody());
+        verify(participantService).changeConsent(participantDto, securedInfo, 1L);
     }
 
     @Test
