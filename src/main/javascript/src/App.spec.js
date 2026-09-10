@@ -186,4 +186,44 @@ describe("App", () => {
     expect(localStorage.getItem("terracotta-api")).toBeNull();
     expect(localStorage.getItem("terracotta-quiz-draft-1-2")).toBe("{}");
   });
+
+  describe("frame resize reporting (lti.frameResize)", () => {
+    const originalTop = window.top;
+
+    afterEach(() => {
+      Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+    });
+
+    it("does not report a height to the parent when not embedded in an iframe", async () => {
+      const postMessageSpy = vi.spyOn(window, "postMessage");
+
+      await mountApp();
+
+      expect(postMessageSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({ subject: "lti.frameResize" }),
+        "*"
+      );
+    });
+
+    it("reports the real measured page height to the parent LMS on mount when embedded in an iframe", async () => {
+      Object.defineProperty(window, "top", { value: {}, configurable: true });
+      Object.defineProperty(document.body, "offsetHeight", { value: 1234, configurable: true });
+      Object.defineProperty(document.documentElement, "offsetHeight", { value: 1000, configurable: true });
+      const postMessageSpy = vi.spyOn(window.parent, "postMessage");
+
+      await mountApp();
+
+      expect(postMessageSpy).toHaveBeenCalledWith({ subject: "lti.frameResize", height: 1234 }, "*");
+    });
+
+    it("stops reporting once unmounted", async () => {
+      Object.defineProperty(window, "top", { value: {}, configurable: true });
+      const disconnectSpy = vi.spyOn(ResizeObserver.prototype, "disconnect");
+
+      const { wrapper } = await mountApp();
+      wrapper.unmount();
+
+      expect(disconnectSpy).toHaveBeenCalled();
+    });
+  });
 });
