@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import Home from "../views/Home.vue";
 import OAuth2Redirect from "@/views/OAuth2Redirect.vue";
 import { experiment as useExperimentStore } from "@/store/experiment.module";
+import { isEmbeddedInAnIframe } from "@/helpers/ui-utils.js";
 
 const routes = [
   {
@@ -416,10 +417,34 @@ const routes = [
   }
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+  routes,
+  // window.scrollTo (what returning a location here actually does) only ever
+  // touches THIS document's own window - it has no effect for the normal
+  // LTI-launched case, where the app runs inside an iframe that's kept resized to
+  // fit its content exactly (see App.vue's frame-resize reporting), so there's
+  // nothing to scroll inside the iframe itself: the page that actually scrolls is
+  // the LMS's own outer page, which this window can't reach. The postMessage call
+  // below is the real fix for that case - Canvas's own documented postMessage API
+  // for exactly this ("Scrolls the iframe all the way to the top of its container" -
+  // see doc/api/lti_window_post_message.md in canvas-lms). Both are driven by the
+  // same savedPosition check (non-null specifically on browser back/forward), so a
+  // popstate navigation is left alone by both instead of jumping to top - this is
+  // the one place Vue Router already reliably tells you which kind of navigation
+  // this is, which is why the postMessage lives here instead of a separate
+  // router.afterEach that would have to reconstruct that same distinction less
+  // reliably.
+  scrollBehavior(to, from, savedPosition) {
+    if (!savedPosition && isEmbeddedInAnIframe()) {
+      window.parent.postMessage({ subject: "lti.scrollToTop" }, "*");
+    }
+
+    return savedPosition || { top: 0 };
+  }
 })
+
+export default router;
 
 function beforeExperimentSteps(to, from, next) {
   // don't load new data after consent title screen
