@@ -147,3 +147,15 @@ export function showSkipLink(show) {
     value: show
   });
 }
+
+// shared by App.vue (frame-resize reporting) and router/index.js (scroll-to-top on
+// navigation) - both need to know whether to bother talking to a parent frame at all.
+export function isEmbeddedInAnIframe() {
+  try {
+    return window.self !== window.top;
+  } catch {
+    // a cross-origin parent throws on window.top access in some browsers - if we
+    // can't tell, assume embedded, since that's the case this exists for
+    return true;
+  }
+}

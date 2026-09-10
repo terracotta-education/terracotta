@@ -165,6 +165,7 @@ const StudentConsent = defineAsyncComponent(() => import("@/views/student/Studen
 
 import { api as apiModule } from "@/store/api.module";
 import { configuration as configurationModule } from "@/store/configuration.module";
+import { isEmbeddedInAnIframe } from "@/helpers/ui-utils.js";
 
 defineOptions({
   name: "App"
@@ -323,16 +324,6 @@ const clearStaleStorageExceptDrafts = () => {
 // public/js/integrations/resize/ already use on the OTHER side of a similar handshake
 // (an embedded integration tool reporting ITS size to Terracotta), for consistency.
 let frameResizeObserver = null;
-
-const isEmbeddedInAnIframe = () => {
-  try {
-    return window.self !== window.top;
-  } catch {
-    // a cross-origin parent throws on window.top access in some browsers - if we
-    // can't tell, assume embedded, since that's the case this exists for
-    return true;
-  }
-};
 
 const notifyParentOfHeight = () => {
   const height = Math.max(document.body.offsetHeight, document.documentElement.offsetHeight);
