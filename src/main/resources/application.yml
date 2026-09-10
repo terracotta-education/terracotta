@@ -22,6 +22,16 @@ server:
   # since a too-small value fails silently as this exact "Request header is too large" error.
   max-http-header-size: 32KB
 
+management:
+  health:
+    mail:
+      # spring-boot-starter-mail's JavaMailSender is only used here to build MimeMessage
+      # objects (see MessageEmailServiceImpl); actual delivery goes through AWS SES, not
+      # SMTP, so this indicator's default localhost:25 connectivity check is meaningless -
+      # it was failing the health endpoint (and flooding the log) for a transport nothing
+      # actually sends through.
+      enabled: false
+
 # if true, it will display the LTI messages and never jump to the app part. Set to false for prod.
 lti13:
   demoMode: true

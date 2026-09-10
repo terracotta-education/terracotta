@@ -61,8 +61,20 @@ defineProps({
     }
   }
 
+  // before the embedded tool posts its resize message (handleIntegrationsResize in
+  // StudentQuiz.vue), we don't know its real content height yet. This used to fall
+  // back to min-height: 100vh, but that measures against THIS document's own
+  // viewport - stacked on top of whatever else is already on the page (retake
+  // banner, submission details, etc.), it guaranteed this document's total height
+  // exceeded one viewport, which is exactly what produced the reported double
+  // scrollbar: this document needing to scroll AND the LMS's outer iframe (not yet
+  // told to resize, since that only happens once the message arrives) also needing
+  // to scroll to show all of it. A fixed, modest default has no such guarantee -
+  // worst case the iframe's own content needs to scroll internally for the brief
+  // window before the real height arrives, which is far less disruptive than the
+  // whole page reliably overflowing on every load.
   & .no-resize {
-    min-height: 100vh;
+    min-height: 600px;
   }
 }
 </style>
