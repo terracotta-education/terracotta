@@ -543,7 +543,11 @@ const handleIntegrationsResize = event => {
     const iframe = document.getElementById("integration-iframe");
     if (!iframe || iframe.height === event.data.height) return;
     iframe.height = `${event.data.height}px`;
-    window.parent.postMessage({ subject: "lti.frameResize", height: event.data.height + 200 }, "*");
+    // no longer posting lti.frameResize to the LMS parent here directly - App.vue's
+    // ResizeObserver on document.body picks up the resulting layout change (this
+    // iframe growing/shrinking) and reports the real measured page height itself,
+    // for every page in the app, not just this one flow. That's more accurate than
+    // this handler's own height + a flat 200px guess at surrounding chrome ever was.
   }
 };
 
