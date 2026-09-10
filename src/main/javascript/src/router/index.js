@@ -418,7 +418,17 @@ const routes = [
 
 export default createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+  routes,
+  // no scrollBehavior meant every navigation (create assignment, edit assignment,
+  // create/edit message, etc.) just kept whatever scroll position the PREVIOUS page
+  // happened to be at, since this is a single persistent document/window across
+  // route changes, not a real page load - a create/edit page reached after scrolling
+  // partway down a long components list opened already scrolled partway down too.
+  // savedPosition (restored on browser back/forward) is preserved deliberately -
+  // only fresh forward navigations reset to top.
+  scrollBehavior(to, from, savedPosition) {
+    return savedPosition || { top: 0 };
+  }
 })
 
 function beforeExperimentSteps(to, from, next) {
