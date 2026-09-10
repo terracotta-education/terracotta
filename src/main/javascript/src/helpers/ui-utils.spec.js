@@ -14,7 +14,8 @@ import {
   handleTooltipOpening,
   statusAlert,
   createStatusAlert,
-  showSkipLink
+  showSkipLink,
+  isEmbeddedInAnIframe
 } from "./ui-utils";
 import { alert as alertStore } from "@/store/alert.module";
 import { configuration as configurationStore } from "@/store/configuration.module";
@@ -331,5 +332,34 @@ describe("showSkipLink", () => {
 
     const store = configurationStore();
     expect(store.configurations.showSkipLink).toBe(false);
+  });
+});
+
+describe("isEmbeddedInAnIframe", () => {
+  const originalTop = window.top;
+
+  afterEach(() => {
+    Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+  });
+
+  it("returns false when window.top is this window (not embedded)", () => {
+    expect(isEmbeddedInAnIframe()).toBe(false);
+  });
+
+  it("returns true when window.top differs from window.self (embedded)", () => {
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+
+    expect(isEmbeddedInAnIframe()).toBe(true);
+  });
+
+  it("assumes embedded when reading window.top throws (cross-origin parent)", () => {
+    Object.defineProperty(window, "top", {
+      configurable: true,
+      get() {
+        throw new Error("cross-origin");
+      }
+    });
+
+    expect(isEmbeddedInAnIframe()).toBe(true);
   });
 });
