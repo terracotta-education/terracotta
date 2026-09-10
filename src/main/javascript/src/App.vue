@@ -308,6 +308,53 @@ const clearStaleStorageExceptDrafts = () => {
     .forEach(key => localStorage.removeItem(key));
 };
 
+// Tells the LMS platform (Canvas et al - this is the standard LTI Platform Messages
+// postMessage subject, not Terracotta-specific) how tall this page actually is, so it
+// can size ITS OWN iframe (the one wrapping the whole Terracotta tool) to fit,
+// instead of leaving it at whatever default height the platform picked. Without
+// this, that outer iframe can end up shorter than Terracotta's real content, which
+// means a second, outer scrollbar on top of whatever's already inside the tool - the
+// same double-scrollbar failure mode already fixed for the student integration
+// quiz's own nested iframe, just one level up. This runs for every page in the app
+// (not just that one flow), reacting to any layout change, not just the cases that
+// happen to already have their own resize handling.
+//
+// Matches the height calculation the resize-observer scripts under
+// public/js/integrations/resize/ already use on the OTHER side of a similar handshake
+// (an embedded integration tool reporting ITS size to Terracotta), for consistency.
+let frameResizeObserver = null;
+
+const isEmbeddedInAnIframe = () => {
+  try {
+    return window.self !== window.top;
+  } catch {
+    // a cross-origin parent throws on window.top access in some browsers - if we
+    // can't tell, assume embedded, since that's the case this exists for
+    return true;
+  }
+};
+
+const notifyParentOfHeight = () => {
+  const height = Math.max(document.body.offsetHeight, document.documentElement.offsetHeight);
+
+  window.parent.postMessage({ subject: "lti.frameResize", height }, "*");
+};
+
+const startFrameResizeReporting = () => {
+  if (!isEmbeddedInAnIframe()) {
+    return;
+  }
+
+  notifyParentOfHeight();
+  frameResizeObserver = new ResizeObserver(notifyParentOfHeight);
+  frameResizeObserver.observe(document.body);
+};
+
+const stopFrameResizeReporting = () => {
+  frameResizeObserver?.disconnect();
+  frameResizeObserver = null;
+};
+
 const stopTokenMonitoring = () => {
   if (refreshInterval) {
     clearInterval(refreshInterval);
@@ -366,10 +413,12 @@ onMounted(async () => {
   }, 1000 * 60 * 59);
 
   document.addEventListener("visibilitychange", handleVisibilityChange);
+  startFrameResizeReporting();
 });
 
 onBeforeUnmount(() => {
   stopTokenMonitoring();
+  stopFrameResizeReporting();
 });
 </script>
 
