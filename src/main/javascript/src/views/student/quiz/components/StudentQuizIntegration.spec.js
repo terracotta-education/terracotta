@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { mountComponent } from "@/test-utils/mount";
 import StudentQuizIntegration from "./StudentQuizIntegration.vue";
@@ -33,53 +33,33 @@ describe("StudentQuizIntegration", () => {
   });
 
   describe("fallback height (before a resize message arrives)", () => {
-    const originalInnerHeight = window.innerHeight;
-
-    afterEach(() => {
-      vi.restoreAllMocks();
-      Object.defineProperty(window, "innerHeight", { value: originalInnerHeight, configurable: true });
-    });
-
     // real content height is unknown until the embedded tool posts a resize message
     // (which - see StudentQuizIntegration.vue's own comment - isn't guaranteed to
-    // ever happen at all), so in the meantime the iframe is sized to whatever
-    // viewport space is actually left below it, not a fixed guess.
-    it("sizes the iframe to the remaining viewport space below it", async () => {
+    // ever happen at all), so in the meantime the iframe gets a flat CSS min-height
+    // via the no-resize class, rather than one measured off window.innerHeight - that
+    // measurement isn't independent of this component's own output, since App.vue's
+    // own resize reporting sizes the LMS's outer iframe (this window) off this
+    // document's height, which this fallback itself contributes to. Feeding a
+    // "remaining viewport space" measurement back into the thing driving the
+    // viewport's own size grows without bound.
+    it("does not set an inline height - the no-resize class's flat min-height applies instead", () => {
       const wrapper = mountComponent(StudentQuizIntegration, {
         props: { assessment, integration, hasResizeMessage: false }
       });
 
-      Object.defineProperty(window, "innerHeight", { value: 900, configurable: true });
-      vi.spyOn(wrapper.find("iframe").element, "getBoundingClientRect").mockReturnValue({ top: 200 });
-      window.dispatchEvent(new Event("resize"));
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.find("iframe").attributes("style")).toContain("height: 700px");
+      expect(wrapper.find("iframe").attributes("style")).toBeFalsy();
+      expect(wrapper.find("iframe").classes()).toContain("no-resize");
     });
 
-    it("clamps to a sane minimum instead of collapsing when little viewport room is left", async () => {
+    it("still sets no inline height once a resize message has arrived, leaving the embedded tool's own real height in control", async () => {
       const wrapper = mountComponent(StudentQuizIntegration, {
         props: { assessment, integration, hasResizeMessage: false }
       });
-
-      Object.defineProperty(window, "innerHeight", { value: 900, configurable: true });
-      vi.spyOn(wrapper.find("iframe").element, "getBoundingClientRect").mockReturnValue({ top: 850 });
-      window.dispatchEvent(new Event("resize"));
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.find("iframe").attributes("style")).toContain("height: 300px");
-    });
-
-    it("clears the inline height once a resize message has arrived, leaving the embedded tool's own real height in control", async () => {
-      const wrapper = mountComponent(StudentQuizIntegration, {
-        props: { assessment, integration, hasResizeMessage: false }
-      });
-
-      expect(wrapper.find("iframe").attributes("style")).toContain("height");
 
       await wrapper.setProps({ hasResizeMessage: true });
 
       expect(wrapper.find("iframe").attributes("style")).toBeFalsy();
+      expect(wrapper.find("iframe").classes()).not.toContain("no-resize");
     });
   });
 
