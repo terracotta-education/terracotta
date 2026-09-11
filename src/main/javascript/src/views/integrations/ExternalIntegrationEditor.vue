@@ -680,12 +680,16 @@ div.row-sections {
     min-height: 56px;
   }
 
-  :deep(.v-label:not(.v-field-label--floating)) {
+  // .v-field-label, not the bare .v-label these two rules used to target - a
+  // v-checkbox's own label is a .v-label too (just not a field's), and centering it
+  // this same way (on top of it already being centered by v-selection-control's own
+  // flexbox) shifted it out of alignment with its checkbox icon.
+  :deep(.v-field-label:not(.v-field-label--floating)) {
     top: 50%;
     transform: translateY(-50%);
   }
 
-  :deep(.v-label.v-field-label--floating) {
+  :deep(.v-field-label.v-field-label--floating) {
     top: 10px;
   }
 }

@@ -139,6 +139,37 @@ describe("AssignmentEditor", () => {
     expect(button.props("disabled")).toBe(true);
   });
 
+  it("disables the Continue button when the title is only whitespace", async () => {
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 20,
+      title: "   "
+    });
+
+    const { wrapper } = mountEditor({ assignmentId: 20, title: "   " });
+    await wrapper.vm.$nextTick();
+    await new Promise(resolve => setTimeout(resolve));
+    await wrapper.vm.$nextTick();
+
+    const button = findContinueButton(wrapper);
+    expect(button.props("disabled")).toBe(true);
+  });
+
+  it("saveExit is a no-op when the title is only whitespace", async () => {
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 20,
+      title: "   "
+    });
+
+    const { wrapper } = mountEditor({ assignmentId: 20, title: "   " });
+    await wrapper.vm.$nextTick();
+    await new Promise(resolve => setTimeout(resolve));
+
+    await wrapper.vm.saveExit();
+
+    expect(assignmentService.updateAssignment).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("enables Continue once a title is present and saves on click", async () => {
     assignmentService.fetchAssignment.mockResolvedValue({
       assignmentId: 20,
