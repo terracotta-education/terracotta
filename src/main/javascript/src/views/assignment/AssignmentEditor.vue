@@ -4,6 +4,7 @@
       <v-col cols="6">
         <v-text-field
           v-model="title"
+          :rules="rules"
           label="Component name"
           variant="outlined"
         />
@@ -94,6 +95,15 @@ const alertStore = alertModule();
 
 const tab = ref("settings");
 
+const rules = [
+  value =>
+    value && !!value.trim() ||
+    "Component Name is required",
+  value =>
+    (value || "").length <= 255 ||
+    "A maximum of 255 characters is allowed"
+];
+
 const assignment = computed(() => {
   return assignmentStore.assignment;
 });
@@ -141,7 +151,7 @@ const resolvedExposureId = computed(() => {
 });
 
 const contDisabled = computed(() => {
-  return !assignment.value?.title;
+  return !assignment.value?.title?.trim();
 });
 
 const getSaveExitPage = computed(() => {
