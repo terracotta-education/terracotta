@@ -284,7 +284,12 @@ onBeforeRouteUpdate(async (to, from, next) => {
     position: sticky;
     position: -webkit-sticky;
     top: 0;
-    height: 100vh;
+    // not height: 100vh - sticky positioning doesn't need it (the sidebar sticks
+    // within its grid area regardless), and forcing it here inflated the whole grid,
+    // and therefore document.body, to a full viewport tall on short pages (the
+    // assignment/message editors) even though their real content is much shorter -
+    // see the .v-application__wrap comment in _global.scss for the other half of this.
+    max-height: 100vh;
     grid-area: aside;
   }
 
