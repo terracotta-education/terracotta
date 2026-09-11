@@ -98,6 +98,7 @@ describe("CreateAssignment", () => {
 
     const { wrapper, assignmentStore } = mountCreate();
     assignmentStore.setAssignment({ title: "My new assignment" });
+    await wrapper.vm.$nextTick();
 
     await wrapper.vm.saveExit();
     await new Promise(resolve => setTimeout(resolve));
@@ -121,11 +122,34 @@ describe("CreateAssignment", () => {
     });
   });
 
+  it("saveExit is a no-op and does not call the API when the title is blank", async () => {
+    const { wrapper } = mountCreate();
+
+    await wrapper.vm.saveExit();
+    await new Promise(resolve => setTimeout(resolve));
+
+    expect(assignmentService.create).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("saveExit is a no-op and does not call the API when the title is only whitespace", async () => {
+    const { wrapper, assignmentStore } = mountCreate();
+    assignmentStore.setAssignment({ title: "   " });
+    await wrapper.vm.$nextTick();
+
+    await wrapper.vm.saveExit();
+    await new Promise(resolve => setTimeout(resolve));
+
+    expect(assignmentService.create).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("shows an error and does not navigate when assignment creation fails", async () => {
     assignmentService.create.mockResolvedValue({ status: 400, data: "bad" });
 
     const { wrapper, assignmentStore } = mountCreate();
     assignmentStore.setAssignment({ title: "My new assignment" });
+    await wrapper.vm.$nextTick();
 
     await wrapper.vm.saveExit();
     await new Promise(resolve => setTimeout(resolve));
@@ -141,7 +165,9 @@ describe("CreateAssignment", () => {
     // `response?.status !== 201` branch instead of the outer catch.
     assignmentService.create.mockRejectedValue(new Error("network down"));
 
-    const { wrapper } = mountCreate();
+    const { wrapper, assignmentStore } = mountCreate();
+    assignmentStore.setAssignment({ title: "My new assignment" });
+    await wrapper.vm.$nextTick();
 
     await wrapper.vm.saveExit();
     await new Promise(resolve => setTimeout(resolve));
