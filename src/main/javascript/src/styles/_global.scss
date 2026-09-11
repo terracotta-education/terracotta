@@ -38,7 +38,12 @@ body {
 // self-reinforcing instead: body can never report shorter than whatever height the
 // iframe already has, so a short page (e.g. the assignment/message editors) can never
 // shrink the iframe back down, leaving blank space below its real content.
-.v-application__wrap {
+//
+// Scoped to .app--embedded (see App.vue's isEmbedded) - a plain top-level page like
+// the treatment preview window (window.open, not embedded) still wants the normal
+// full-viewport-filling default; removing it there just leaves a short page floating
+// in a mostly-blank browser tab instead of fixing anything.
+.app--embedded .v-application__wrap {
   min-height: unset !important;
 }
 
