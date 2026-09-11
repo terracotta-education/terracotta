@@ -7,16 +7,18 @@
       be the way Terracotta will deliver treatments to students.
     </p>
 
-    <v-row>
-      <v-col cols="6">
-        <v-text-field
-          v-model="title"
-          :rules="rules"
-          label="Component name"
-          variant="outlined"
-        />
-      </v-col>
-    </v-row>
+    <v-form ref="form">
+      <v-row>
+        <v-col cols="6">
+          <v-text-field
+            v-model="title"
+            :rules="rules"
+            label="Component name"
+            variant="outlined"
+          />
+        </v-col>
+      </v-row>
+    </v-form>
 
     <v-divider />
 
@@ -83,6 +85,7 @@ const configurationStore = configurationModule();
 const alertStore = alertModule();
 
 const tab = ref("settings");
+const form = ref(null);
 
 const rules = [
   value =>
@@ -243,7 +246,13 @@ const createAssessmentForTreatment = async (
 };
 
 const saveExit = async () => {
-  await handleSaveAssignment();
+  const { valid } = await form.value.validate();
+
+  if (!valid) {
+    return false;
+  }
+
+  return await handleSaveAssignment();
 };
 
 onMounted(() => {

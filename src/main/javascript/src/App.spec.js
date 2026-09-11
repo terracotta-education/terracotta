@@ -187,6 +187,28 @@ describe("App", () => {
     expect(localStorage.getItem("terracotta-quiz-draft-1-2")).toBe("{}");
   });
 
+  describe("app--embedded class (see _global.scss's .v-application__wrap override)", () => {
+    const originalTop = window.top;
+
+    afterEach(() => {
+      Object.defineProperty(window, "top", { value: originalTop, configurable: true });
+    });
+
+    it("is not applied to a plain top-level page (e.g. the treatment preview window)", async () => {
+      const { wrapper } = await mountApp();
+
+      expect(wrapper.classes()).not.toContain("app--embedded");
+    });
+
+    it("is applied when embedded in an iframe (the real LTI tool)", async () => {
+      Object.defineProperty(window, "top", { value: {}, configurable: true });
+
+      const { wrapper } = await mountApp();
+
+      expect(wrapper.classes()).toContain("app--embedded");
+    });
+  });
+
   describe("frame resize reporting (lti.frameResize)", () => {
     const originalTop = window.top;
 

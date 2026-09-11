@@ -1,6 +1,7 @@
 <template>
   <v-app
     :style="appStyle"
+    :class="{ 'app--embedded': isEmbedded }"
     tabindex="0"
   >
     <SkipTo
@@ -226,6 +227,15 @@ const configuration = computed(
 const appStyle = computed(() => {
   return route.meta.appStyle;
 });
+
+// Distinguishes the real embedded LTI tool (where App.vue's own resize reporting
+// resizes an outer iframe to fit, so this app's content should be allowed to be
+// shorter than a full viewport) from a plain top-level page like the treatment
+// preview window (opened via window.open, not embedded - see
+// ExperimentAssignments.vue's handleTreatmentPreview) or /oauth2-redirect, where a
+// normal page filling at least the browser's own viewport is exactly what's wanted.
+// See the .app--embedded rule in _global.scss for the other half of this.
+const isEmbedded = isEmbeddedInAnIframe();
 
 const isIntegration = computed(() => {
   return props.integrationData != null;
