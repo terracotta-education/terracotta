@@ -181,7 +181,7 @@ describe("ComponentTable", () => {
 
     const addBox = wrapper.find(".treatment-add-box");
     expect(addBox.exists()).toBe(true);
-    expect(wrapper.text()).toContain("Click to add treatment");
+    expect(wrapper.text()).toContain("Click to build treatment");
     expect(wrapper.text()).toContain("Needs attention");
 
     await addBox.trigger("click");
@@ -207,7 +207,7 @@ describe("ComponentTable", () => {
     expect(wrapper.text()).toContain("No condition name");
   });
 
-  it("also emits add-treatment when the 'Click to add treatment' link itself is clicked, and shows an actions menu with Edit enabled and Preview disabled", async () => {
+  it("also emits add-treatment when the 'Click to build treatment' link itself is clicked, and shows an actions menu with Edit enabled and Preview disabled", async () => {
     mountTable([
       assignmentRow({ treatments: [completeTreatment(10, 1), completeTreatment(11, 2)] })
     ]);

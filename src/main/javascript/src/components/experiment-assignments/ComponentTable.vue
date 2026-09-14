@@ -111,7 +111,7 @@
                         class="treatment-add-link ml-2"
                         @click="handlePlaceholderEdit(row, item)"
                       >
-                        Click to add treatment
+                        Click to build treatment
                       </button>
                     </div>
 
@@ -1140,7 +1140,7 @@ onBeforeUnmount(() => {
   color: inherit;
 }
 
-// just the "+" square - the "Click to add treatment" text is a separate link
+// just the "+" square - the "Click to build treatment" text is a separate link
 // alongside it, not inside the dashed box
 .treatment-add-box {
   display: inline-flex;
