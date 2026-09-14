@@ -153,7 +153,7 @@ describe("ComponentTable", () => {
     expect(tooltip.props("icon")).toBe("mdi-circle");
   });
 
-  it("counts a treatment record that exists but lacks content as NOT added yet, in both the ratio and the section label", () => {
+  it("counts a treatment record that exists but lacks content as NOT built yet, in both the ratio and the section label", () => {
     mountTable([
       assignmentRow({ treatments: [completeTreatment(10, 1), completeTreatment(11, 2), incompleteTreatment(12, 3)] })
     ]);
@@ -161,15 +161,15 @@ describe("ComponentTable", () => {
     // 3 treatment records exist, but only 2 have real content - the ratio and label
     // should both read "2 of 3", not "3 of 3"
     expect(wrapper.text()).toContain("2 of 3");
-    expect(wrapper.text()).toContain("TREATMENTS - 2 of 3 added");
+    expect(wrapper.text()).toContain("TREATMENTS - 2 of 3 built");
   });
 
-  it("renders the 'TREATMENTS - X of Y added' section label for a multi-condition row", () => {
+  it("renders the 'TREATMENTS - X of Y built' section label for a multi-condition row", () => {
     mountTable([assignmentRow()]);
-    expect(wrapper.text()).toContain("TREATMENTS - 3 of 3 added");
+    expect(wrapper.text()).toContain("TREATMENTS - 3 of 3 built");
   });
 
-  it("suppresses the 'TREATMENTS - X of Y added' section label for a single-condition experiment", () => {
+  it("suppresses the 'TREATMENTS - X of Y built' section label for a single-condition experiment", () => {
     mountTable([assignmentRow()], { singleConditionExperiment: true });
     expect(wrapper.find(".treatments-section-label").exists()).toBe(false);
   });
@@ -262,7 +262,7 @@ describe("ComponentTable", () => {
 
     expect(wrapper.text()).toContain("Only One Version");
     // the ratio's numerator counts complete treatments, not just treatment records -
-    // this one exists but has no content yet, so it doesn't count as "added"
+    // this one exists but has no content yet, so it doesn't count as "built"
     expect(wrapper.text()).toContain("0 of 1");
     expect(wrapper.find(".label-treatment-incomplete").exists()).toBe(true);
 
@@ -541,7 +541,7 @@ describe("ComponentTable", () => {
     expect(wrapper.emitted("save-order")).toBeFalsy();
   });
 
-  // regression guard for a gap that appeared above "TREATMENTS - N of N added" on
+  // regression guard for a gap that appeared above "TREATMENTS - N of N built" on
   // the last component: a CSS rule keyed off tbody's structural :last-child <tr>
   // (meant to vertically-center the last assignment row's own content) actually
   // matched that row's own expanded-row sibling instead, since every row starts

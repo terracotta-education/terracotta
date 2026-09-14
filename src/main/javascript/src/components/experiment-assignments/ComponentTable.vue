@@ -75,7 +75,7 @@
               v-if="!singleConditionExperiment"
               class="treatments-section-label"
             >
-              TREATMENTS - {{ completeTreatmentsCountForRow(row) }} of {{ treatmentsTotalForRow(row) }} added
+              TREATMENTS - {{ completeTreatmentsCountForRow(row) }} of {{ treatmentsTotalForRow(row) }} built
             </div>
 
             <v-data-table
@@ -715,16 +715,16 @@ const isTreatmentIncomplete = (row, treatment) => {
   return false;
 };
 
-// the Treatments column's denominator, and the "TREATMENTS - X of Y added" label's Y -
+// the Treatments column's denominator, and the "TREATMENTS - X of Y built" label's Y -
 // a single-version row is always shown against its own treatment count (so "1 of 1"),
 // not the experiment's total conditions
 const treatmentsTotalForRow = row => {
   return isSingleVersionRow(row) ? row.treatments.length : props.conditions.length;
 };
 
-// the Treatments column's numerator, and the "TREATMENTS - X of Y added" label's X -
+// the Treatments column's numerator, and the "TREATMENTS - X of Y built" label's X -
 // a treatment record existing isn't the same as it being done: one that's incomplete
-// renders as an add-treatment placeholder rather than counting toward "added"
+// renders as an add-treatment placeholder rather than counting toward "built"
 const completeTreatmentsCountForRow = row => {
   return row.treatments.filter(treatment => !isTreatmentIncomplete(row, treatment)).length;
 };
@@ -1197,7 +1197,7 @@ onBeforeUnmount(() => {
   // treatments-table-container <td>'s old (buggy) 8px top padding comfortably
   // absorbed the -6px pull-up. Once that padding was correctly zeroed out (see
   // .assignment-row--last's comment elsewhere in this file), nothing was left to
-  // absorb it, and this table crept 6px up into the "TREATMENTS - N of N added"
+  // absorb it, and this table crept 6px up into the "TREATMENTS - N of N built"
   // label above it - covering that label's own border-bottom entirely, which is
   // what actually made the divider disappear.
   margin-top: 0 !important;
@@ -1413,7 +1413,7 @@ onBeforeUnmount(() => {
       // structural :last-child the LAST row's own expanded-row sibling, not the
       // summary row itself - a :last-child selector here landed this padding on
       // .treatments-table-container instead, which visibly pushed "TREATMENTS - N
-      // of N added" down with an 8px gap above it that had nothing to do with
+      // of N built" down with an 8px gap above it that had nothing to do with
       // centering anything.
       &.assignment-row--last:not(.v-data-table__tr--mobile) > td {
         padding-top: 8px !important;
