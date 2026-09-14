@@ -36,7 +36,7 @@
       </template>
 
       <template #item.title="{ item: row }">
-        <div class="title-cell d-flex align-center">
+        <div class="title-cell d-flex align-center flex-wrap">
           <div class="icon-circle" :class="rowIconCircleClass(row)">
             <v-icon>{{ rowIcon(row) }}</v-icon>
           </div>
@@ -93,26 +93,28 @@
                   class="treatment-row-content treatment-add-row d-flex align-center"
                 >
                   <div class="treatment-add-main">
-                    <div class="treatment-info-group d-flex align-center">
+                    <div class="treatment-info-group d-flex align-center flex-wrap">
                       <div class="icon-circle" :class="placeholderIconCircleClass(row, item.treatment)">
                         <v-icon>{{ placeholderIcon(row, item.treatment) }}</v-icon>
                       </div>
                       <span class="treatment-add-condition-name mr-2">{{ conditionDisplayName(row, item.condition) }}</span>
-                      <button
-                        type="button"
-                        class="treatment-add-box"
-                        :aria-label="`add treatment for ${conditionDisplayName(row, item.condition)}`"
-                        @click="handlePlaceholderEdit(row, item)"
-                      >
-                        <v-icon>mdi-plus</v-icon>
-                      </button>
-                      <button
-                        type="button"
-                        class="treatment-add-link ml-2"
-                        @click="handlePlaceholderEdit(row, item)"
-                      >
-                        Click to build treatment
-                      </button>
+                      <div class="treatment-add-action d-flex align-center">
+                        <button
+                          type="button"
+                          class="treatment-add-box"
+                          :aria-label="`add treatment for ${conditionDisplayName(row, item.condition)}`"
+                          @click="handlePlaceholderEdit(row, item)"
+                        >
+                          <v-icon>mdi-plus</v-icon>
+                        </button>
+                        <button
+                          type="button"
+                          class="treatment-add-link ml-2"
+                          @click="handlePlaceholderEdit(row, item)"
+                        >
+                          Click to build treatment
+                        </button>
+                      </div>
                     </div>
 
                     <v-tooltip
@@ -555,7 +557,7 @@ const isSingleVersionRow = row => row.treatments.length === 1;
 // misleading - see the identical override in TreatmentRow.vue's own conditionName
 const conditionDisplayName = (row, condition) => {
   if (isSingleVersionRow(row)) {
-    return "TREATMENT";
+    return "Treatment";
   }
 
   return condition.name || "No condition name";
@@ -969,6 +971,20 @@ onBeforeUnmount(() => {
 // since a fixed margin can't track the outer table's actual column widths.
 .treatment-info-group {
   margin-left: var(--treatment-indent, 32px);
+  // row-gap only (not gap) - column spacing between the icon/name/action group is
+  // already handled by their own mr-2/ml-2 margins; this just keeps the wrapped
+  // .treatment-add-action from sitting flush against the line above it once it
+  // drops to its own row on a narrow screen (see .treatment-add-action's comment).
+  row-gap: 8px;
+}
+
+// the "+" box and "Click to build treatment" link as one unit, not two independent
+// flex items - without this, flex-wrap on .treatment-info-group above could wrap
+// them onto separate lines from each other (the box on one, the link dangling alone
+// on the next) instead of moving the whole "add a treatment" control down together
+// once it no longer fits next to the icon/condition name on a narrow screen.
+.treatment-add-action {
+  flex-wrap: nowrap;
 }
 
 // small relative to the "X of Y" text next to it (confirmed against a direct
