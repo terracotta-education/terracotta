@@ -35,6 +35,7 @@ import {
 import { experiment as experimentModule } from "@/store/experiment.module";
 import { participants as participantsModule } from "@/store/participants.module";
 import { api as apiModule } from "@/store/api.module";
+import { assessment as assessmentModule } from "@/store/assessment.module";
 import { mountComponent } from "@/test-utils/mount";
 import StudentSubmissionGrading from "./StudentSubmissionGrading.vue";
 
@@ -169,6 +170,42 @@ describe("StudentSubmissionGrading", () => {
       1, 10, 100, 500, 900
     );
     expect(wrapper.vm.selectedSubmissionId).toBe(900);
+  });
+
+  // Grading students of the same assignment one after another leaves
+  // assessmentStore.assessment holding the PREVIOUS student's fetch when this one
+  // mounts - stale, but for the same assessment, so SubmissionSelector.vue's
+  // immediate auto-select watcher can see a non-empty (if wrong-participant) list
+  // and fire before this component's own fetchAssessment/initAttempts have run,
+  // landing its response on a throwaway fallback object instead of the real one
+  it("still loads the response when the submission selector auto-selects before this component's own fetch resolves", async () => {
+    assessmentModule().assessment = assessmentFixture;
+
+    let resolveFetch;
+    assessmentService.fetchAssessment.mockReturnValue(
+      new Promise(resolve => {
+        resolveFetch = resolve;
+      })
+    );
+
+    const wrapper = mount();
+    await wrapper.vm.$nextTick();
+
+    // the auto-select already fired and its (now-stale-by-the-time-it-lands) fetch
+    // is in flight, before this component's own fetchAssessment has resolved at all
+    expect(submissionService.studentResponse).toHaveBeenCalledWith(
+      1, 10, 100, 500, 900
+    );
+
+    resolveFetch({ data: assessmentFixture });
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.currentAttempt.loaded).toBe(true);
+    expect(wrapper.vm.currentAttempt.studentResponse).toEqual(studentResponseFixture);
+    expect(wrapper.text()).toContain("Correct Response");
   });
 
   it("marks the correct answer and the (incorrect) student response for an MC question", async () => {
