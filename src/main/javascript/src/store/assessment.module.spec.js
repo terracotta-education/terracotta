@@ -157,6 +157,34 @@ describe("assessment store", () => {
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalled();
     });
+
+    // e.g. an instructor hitting Back then immediately clicking into another
+    // student's grading page for the same assessment - the first (now-abandoned)
+    // fetch can resolve after the second, more recent one
+    it("does not let a slower, out-of-order response overwrite a newer one", async () => {
+      let resolveFirst;
+      const firstResponse = new Promise(resolve => {
+        resolveFirst = resolve;
+      });
+
+      assessmentService.fetchAssessment
+        .mockReturnValueOnce(firstResponse)
+        .mockResolvedValueOnce({ data: { assessmentId: 2 } });
+
+      const firstCall = store.fetchAssessment([1, 2, 3, 4]);
+      const secondResult = await store.fetchAssessment([1, 2, 3, 4]);
+
+      expect(secondResult).toEqual({ assessmentId: 2 });
+      expect(store.assessment).toEqual({ assessmentId: 2 });
+
+      resolveFirst({ data: { assessmentId: 1 } });
+      const firstResult = await firstCall;
+
+      // the stale call reports back whatever is currently in the store (the
+      // newer, correct data), not its own now-discarded response
+      expect(firstResult).toEqual({ assessmentId: 2 });
+      expect(store.assessment).toEqual({ assessmentId: 2 });
+    });
   });
 
   describe("fetchAssessmentForSubmission", () => {
@@ -179,6 +207,31 @@ describe("assessment store", () => {
 
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalled();
+    });
+
+    // fetchAssessment and fetchAssessmentForSubmission write the same
+    // this.assessment field, so the staleness guard is shared across both, not
+    // just within a single action
+    it("does not let a slower fetchAssessment response overwrite a newer fetchAssessmentForSubmission one", async () => {
+      let resolveFetchAssessment;
+      const fetchAssessmentResponse = new Promise(resolve => {
+        resolveFetchAssessment = resolve;
+      });
+
+      assessmentService.fetchAssessment.mockReturnValueOnce(fetchAssessmentResponse);
+      assessmentService.fetchAssessmentForSubmission.mockResolvedValueOnce({
+        data: { assessmentId: 2 }
+      });
+
+      const firstCall = store.fetchAssessment([1, 2, 3, 4]);
+      const secondResult = await store.fetchAssessmentForSubmission([1, 2, 3, 4, 5]);
+
+      expect(secondResult).toEqual({ assessmentId: 2 });
+
+      resolveFetchAssessment({ data: { assessmentId: 1 } });
+      await firstCall;
+
+      expect(store.assessment).toEqual({ assessmentId: 2 });
     });
   });
 
