@@ -192,6 +192,16 @@ describe("ComponentTable", () => {
     });
   });
 
+  it("shows 'Treatment' instead of the condition name for a single-version row's add-treatment placeholder", () => {
+    mountTable([
+      assignmentRow({ treatments: [incompleteTreatment(10, 1)] })
+    ]);
+
+    expect(wrapper.text()).toContain("Only One Version");
+    expect(wrapper.find(".treatment-add-condition-name").text()).toBe("Treatment");
+    expect(wrapper.find(".treatment-add-box").attributes("aria-label")).toBe("add treatment for Treatment");
+  });
+
   it("renders no add-treatment placeholder when every condition already has a treatment", () => {
     mountTable([assignmentRow()]);
 

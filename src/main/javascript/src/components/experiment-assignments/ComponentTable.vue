@@ -97,11 +97,11 @@
                       <div class="icon-circle" :class="placeholderIconCircleClass(row, item.treatment)">
                         <v-icon>{{ placeholderIcon(row, item.treatment) }}</v-icon>
                       </div>
-                      <span class="treatment-add-condition-name mr-2">{{ conditionDisplayName(item.condition) }}</span>
+                      <span class="treatment-add-condition-name mr-2">{{ conditionDisplayName(row, item.condition) }}</span>
                       <button
                         type="button"
                         class="treatment-add-box"
-                        :aria-label="`add treatment for ${conditionDisplayName(item.condition)}`"
+                        :aria-label="`add treatment for ${conditionDisplayName(row, item.condition)}`"
                         @click="handlePlaceholderEdit(row, item)"
                       >
                         <v-icon>mdi-plus</v-icon>
@@ -142,7 +142,7 @@
                     <template #activator="{ props: menuProps }">
                       <v-btn
                         v-bind="menuProps"
-                        :aria-label="`treatment actions for ${conditionDisplayName(item.condition)}`"
+                        :aria-label="`treatment actions for ${conditionDisplayName(row, item.condition)}`"
                         :style="columnOffsetStyle(columnOffsets.actions)"
                         class="treatment-add-actions-btn"
                         icon="mdi-dots-vertical"
@@ -549,7 +549,17 @@ const isSingleVersionRow = row => row.treatments.length === 1;
 // shaped exposure.groupConditionList items TreatmentRow.vue's own condition chip
 // reads from instead. Every condition should have a name; this is a fallback for the
 // case where one somehow doesn't, not an expected/normal state.
-const conditionDisplayName = condition => condition.name || "No condition name";
+//
+// a single-version row's lone (real or placeholder) treatment applies to every
+// condition alike, so naming the one condition it happens to be tied to is
+// misleading - see the identical override in TreatmentRow.vue's own conditionName
+const conditionDisplayName = (row, condition) => {
+  if (isSingleVersionRow(row)) {
+    return "Treatment";
+  }
+
+  return condition.name || "No condition name";
+};
 
 watch(
   () => props.rows,
