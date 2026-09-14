@@ -1043,6 +1043,19 @@ onMounted(async () => {
   ]);
 
   initAttempts();
+
+  // SubmissionSelector.vue auto-selects the latest submission via a watcher that
+  // fires immediately, which can land before this async block does - i.e. before
+  // attempts.value exists yet. If that happened, the watch(selectedSubmissionId, ...)
+  // below already ran once, but currentAttempt had nothing in attempts.value to
+  // match yet, so it fell back to a throwaway default object; that call's fetched
+  // response was written onto an object that's already been discarded now that
+  // attempts.value is populated for real. selectedSubmissionId itself never changed
+  // again, so nothing else would re-trigger it - do it explicitly now that a real
+  // attempt entry is guaranteed to exist to receive it.
+  if (selectedSubmissionId.value) {
+    loadSubmissionResponses(selectedSubmissionId.value);
+  }
 });
 
 defineExpose({
