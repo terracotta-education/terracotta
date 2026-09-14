@@ -152,6 +152,33 @@ describe("submission store", () => {
 
       expect(result).toBeNull();
     });
+
+    // e.g. StudentSubmissionGrading.vue switching between two attempts (or
+    // students) quickly enough that the first, now-abandoned fetch resolves after
+    // the second - without this guard the grading page could end up showing an
+    // earlier attempt's (or no) response for the one actually selected
+    it("does not let a slower, out-of-order response overwrite a newer one", async () => {
+      let resolveFirst;
+      const firstResponse = new Promise(resolve => {
+        resolveFirst = resolve;
+      });
+
+      submissionService.studentResponse
+        .mockReturnValueOnce(firstResponse)
+        .mockResolvedValueOnce({ data: { answer: "second" } });
+
+      const firstCall = store.fetchStudentResponse(["a"]);
+      const secondResult = await store.fetchStudentResponse(["b"]);
+
+      expect(secondResult).toEqual({ answer: "second" });
+      expect(store.studentResponse).toEqual({ answer: "second" });
+
+      resolveFirst({ data: { answer: "first" } });
+      const firstResult = await firstCall;
+
+      expect(firstResult).toEqual({ answer: "second" });
+      expect(store.studentResponse).toEqual({ answer: "second" });
+    });
   });
 
   describe("fetchQuestionSubmissions", () => {
