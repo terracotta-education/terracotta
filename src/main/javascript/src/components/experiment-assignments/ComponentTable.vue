@@ -555,7 +555,7 @@ const isSingleVersionRow = row => row.treatments.length === 1;
 // misleading - see the identical override in TreatmentRow.vue's own conditionName
 const conditionDisplayName = (row, condition) => {
   if (isSingleVersionRow(row)) {
-    return "Treatment";
+    return "TREATMENT";
   }
 
   return condition.name || "No condition name";

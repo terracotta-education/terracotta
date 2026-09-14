@@ -203,13 +203,13 @@ describe("TreatmentRow", () => {
     expect(wrapper.find(".treatment-condition-name").text()).toBe("Condition A");
   });
 
-  it("shows 'Treatment' instead of the condition name for a single-version (Only One Version) row", () => {
+  it("shows 'TREATMENT' instead of the condition name for a single-version (Only One Version) row", () => {
     mountRow({
       row: assignmentRow(1),
       treatment: fileTreatment()
     });
 
-    expect(wrapper.find(".treatment-condition-name").text()).toBe("Treatment");
+    expect(wrapper.find(".treatment-condition-name").text()).toBe("TREATMENT");
   });
 
   it("falls back to 'No condition name' when a condition has no name (should never happen, but isn't silently blank if it does)", () => {

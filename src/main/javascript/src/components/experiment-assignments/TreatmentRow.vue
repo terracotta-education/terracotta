@@ -185,7 +185,7 @@ const isSingleVersionRow = computed(() => props.row.treatments.length === 1);
 // somehow doesn't, not an expected/normal state
 const conditionName = computed(() => {
   if (isSingleVersionRow.value) {
-    return "Treatment";
+    return "TREATMENT";
   }
 
   return conditionForTreatment.value?.conditionName || "No condition name";
