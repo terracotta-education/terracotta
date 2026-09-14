@@ -175,9 +175,21 @@ const conditionForTreatment = computed(() => {
   );
 });
 
+// a component with only one treatment (the "Only One Version" chip's own condition)
+// isn't really tied to the specific condition its lone treatment happens to be
+// recorded under - showing that condition's name here would misleadingly imply the
+// treatment is condition-specific, when it applies to every condition alike
+const isSingleVersionRow = computed(() => props.row.treatments.length === 1);
+
 // every condition should have a name - this fallback is for the case where one
 // somehow doesn't, not an expected/normal state
-const conditionName = computed(() => conditionForTreatment.value?.conditionName || "No condition name");
+const conditionName = computed(() => {
+  if (isSingleVersionRow.value) {
+    return "Treatment";
+  }
+
+  return conditionForTreatment.value?.conditionName || "No condition name";
+});
 
 const showTreatmentRowTooltip = computed(() => {
   if (props.row.type === rowType.assignment) {
