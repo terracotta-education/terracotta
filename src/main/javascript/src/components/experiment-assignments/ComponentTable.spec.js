@@ -421,16 +421,30 @@ describe("ComponentTable", () => {
     expect(text).toContain("There are versions of this component that have not yet been created. Be sure to create all versions before publishing.");
   });
 
-  it("skips the status tooltip for Sent/Error message rows, which have no reviewed copy", () => {
+  it("shows message-specific hover help for Unpublished and Sent message rows", () => {
     mountTable([
-      messageRow({ sent: true, published: false }),
-      messageRow({ assignmentId: 3, error: true })
+      messageRow(),
+      messageRow({ assignmentId: 3, sent: true, published: false })
+    ]);
+
+    const text = document.body.textContent;
+
+    expect(text).toContain(
+      "This message has not yet been published, and will not send until it is. Click the 3 dots to the right to publish."
+    );
+    expect(text).toContain("This message has been sent.");
+    expect(text).not.toContain("This component has not yet been published in the LMS, and cannot be accessed by students.");
+  });
+
+  it("skips the status tooltip for an Error message row, which has no reviewed copy", () => {
+    mountTable([
+      messageRow({ error: true })
     ]);
 
     const text = document.body.textContent;
 
     expect(text).not.toContain("This component has been published in the LMS.");
-    expect(text).not.toContain("This component has not yet been published in the LMS, and cannot be accessed by students.");
+    expect(text).not.toContain("This message has been sent.");
   });
 
   it("renders an actions menu button per row, with a row-specific aria-label", () => {

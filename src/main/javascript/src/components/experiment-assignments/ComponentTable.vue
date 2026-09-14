@@ -825,15 +825,22 @@ const rowPublishedColumnText = row => {
   return "Unpublished";
 };
 
-// only Published/Unpublished have copy in the design - Sent/Error (message-only
-// states) aren't covered there, so those pills fall back to no tooltip rather than
-// guessing unreviewed wording for them.
+// Error (message-only) has no copy in the design, so that pill falls back to no
+// tooltip rather than guessing unreviewed wording for it.
 const statusTooltipText = row => {
   if (row.published) {
     return "This component has been published in the LMS.";
   }
 
-  if (!row.sent && !row.error) {
+  if (row.sent) {
+    return "This message has been sent.";
+  }
+
+  if (!row.error) {
+    if (row.type === rowType.message) {
+      return "This message has not yet been published, and will not send until it is. Click the 3 dots to the right to publish.";
+    }
+
     return "This component has not yet been published in the LMS, and cannot be accessed by students.";
   }
 
