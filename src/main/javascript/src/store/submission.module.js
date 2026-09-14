@@ -2,6 +2,14 @@ import { defineStore } from "pinia";
 
 import { submissionService } from "@/services";
 
+// Guards fetchStudentResponse below against an out-of-order response overwriting a
+// newer one - see the identical guard in assessment.module.js's fetchAssessment for
+// the full reasoning. StudentSubmissionGrading.vue calls this once per attempt/
+// submission switch, so switching attempts (or students) quickly enough that an
+// earlier request resolves after a later one previously meant the grading page could
+// end up showing an earlier attempt's (or no) response for the one actually selected.
+let studentResponseRequestId = 0;
+
 export const submission = defineStore("submission", {
   state: () => ({
     submissions: [],
@@ -100,9 +108,15 @@ export const submission = defineStore("submission", {
     },
 
     async fetchStudentResponse(payload) {
+      const requestId = ++studentResponseRequestId;
+
       try {
         const { data } =
           await submissionService.studentResponse(...payload);
+
+        if (requestId !== studentResponseRequestId) {
+          return this.studentResponse;
+        }
 
         this.studentResponse = data;
 
