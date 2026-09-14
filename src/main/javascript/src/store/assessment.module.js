@@ -2,6 +2,15 @@ import { defineStore } from "pinia";
 
 import { assessmentService } from "@/services";
 
+// Shared by fetchAssessment and fetchAssessmentForSubmission (both write the same
+// this.assessment field) so a stale response from either can't clobber a newer one.
+// Navigating quickly between two instructor grading pages for the same assessment
+// (e.g. Back, then straight into another student) fires a new fetch before the
+// previous one has resolved; without this, whichever response happens to land last
+// wins, even if it's the older request - intermittently leaving the just-mounted
+// page showing the wrong (or no) submissions.
+let assessmentRequestId = 0;
+
 function buildQuestionFromPayload(payload) {
   const [
     ,
@@ -102,9 +111,15 @@ export const assessment = defineStore("assessment", {
     },
 
     async fetchAssessment(payload) {
+      const requestId = ++assessmentRequestId;
+
       try {
         const response =
           await assessmentService.fetchAssessment(...payload);
+
+        if (requestId !== assessmentRequestId) {
+          return this.assessment;
+        }
 
         this.assessment = response?.data ?? null;
 
@@ -120,11 +135,17 @@ export const assessment = defineStore("assessment", {
     },
 
     async fetchAssessmentForSubmission(payload) {
+      const requestId = ++assessmentRequestId;
+
       try {
         const response =
           await assessmentService.fetchAssessmentForSubmission(
             ...payload
           );
+
+        if (requestId !== assessmentRequestId) {
+          return this.assessment;
+        }
 
         this.assessment = response?.data ?? null;
 
