@@ -165,20 +165,22 @@ public class ApiOAuthProviderProcessingFilterTest extends BaseTest {
         verify(filterChain, never()).doFilter(any(), any());
     }
 
-    // documents current behavior: validateToken(...) can return null for an expired token
+    // validateToken(...) returns null (rather than throwing) for an expired token
     // (ApiJwtServiceImpl.validateToken catches ExpiredJwtException internally and returns null
-    // rather than rethrowing) - this filter already null-checks before dereferencing, so the
-    // request silently proceeds to the filter chain without issuer/oneUse validation, rather than
-    // being rejected with a 401 like the ExpiredJwtException catch block below is designed to do.
+    // rather than rethrowing). This must be rejected with a 401 exactly like the
+    // ExpiredJwtException/SecurityException catches below - otherwise the request would silently
+    // proceed to the controller, whose own SecuredInfo extraction re-validates (and re-logs) the
+    // identical failure a second time instead of failing fast here.
     @Test
-    void testDoFilterValidateTokenReturnsNullStillProceeds() throws Exception {
+    void testDoFilterValidateTokenReturnsNullSetsUnauthorizedStatus() throws Exception {
         filter = new ApiOAuthProviderProcessingFilter(apiJwtService, apiTokenService);
         when(httpRequest.getHeader("Authorization")).thenReturn("Bearer abc123");
         when(apiJwtService.validateToken("abc123")).thenReturn(null);
 
         filter.doFilter(httpRequest, httpResponse, filterChain);
 
-        verify(filterChain).doFilter(httpRequest, httpResponse);
+        verify(httpResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, never()).doFilter(any(), any());
     }
 
     @Test
