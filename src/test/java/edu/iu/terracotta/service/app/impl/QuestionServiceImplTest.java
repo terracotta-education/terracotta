@@ -43,7 +43,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -64,6 +63,7 @@ public class QuestionServiceImplTest extends BaseTest {
 
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.singletonList(question));
         when(questionRepository.save(any(Question.class))).thenReturn(questionMc);
+        when(questionRepository.saveAndFlush(any(Question.class))).thenReturn(questionMc);
         when(questionRepository.findByQuestionId(anyLong())).thenReturn(question);
 
         when(answerService.duplicateAnswersForQuestion(anyLong(), any(Question.class))).thenReturn(Collections.emptyList());
@@ -96,7 +96,7 @@ public class QuestionServiceImplTest extends BaseTest {
     @Test
     public void testDuplicateQuestionsForAssessmentNotIntegration() throws DataServiceException, QuestionNotMatchingException {
         when(questionMc.isIntegration()).thenReturn(false);
-        when(questionRepository.save(any(Question.class))).thenReturn(questionMc);
+        when(questionRepository.saveAndFlush(any(Question.class))).thenReturn(questionMc);
 
         List<Question> result = questionService.duplicateQuestionsForAssessment(1L, assessment);
 
@@ -111,14 +111,15 @@ public class QuestionServiceImplTest extends BaseTest {
     @Test
     public void testDuplicateQuestionsForAssessmentIsIntegration() throws DataServiceException, QuestionNotMatchingException {
         when(questionMc.isIntegration()).thenReturn(true);
-        when(questionRepository.save(any(Question.class))).thenReturn(questionMc);
+        when(questionRepository.saveAndFlush(any(Question.class))).thenReturn(questionMc);
 
         List<Question> result = questionService.duplicateQuestionsForAssessment(1L, assessment);
 
         assertNotNull(result);
         assertEquals(1, result.size());
         verify(integrationService).duplicate(any(), any(Question.class));
-        verify(questionRepository, times(2)).save(any(Question.class));
+        verify(questionRepository).saveAndFlush(any(Question.class));
+        verify(questionRepository).save(any(Question.class));
     }
 
     @Test
