@@ -82,19 +82,31 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
 
             if (StringUtils.hasText(token)) {
                 Jws<Claims> tokenClaims = apiJwtService.validateToken(token);
-                if (tokenClaims != null) {
-                    if (!"TERRACOTTA".equals(tokenClaims.getPayload().getIssuer())) {
-                        throw new IllegalStateException("API token is invalid");
-                    }
 
-                    // TODO add here any other checks we want to perform.
+                if (tokenClaims == null) {
+                    // validateToken(...) returns null (rather than throwing) for a token that
+                    // fails validation without raising ExpiredJwtException/SecurityException here
+                    // - see ApiJwtServiceImpl.validateToken, which catches ExpiredJwtException
+                    // internally and returns null instead of rethrowing. Reject it the same way
+                    // the catches below do: without this, the request silently proceeds to the
+                    // controller, whose own SecuredInfo extraction re-validates (and re-logs) the
+                    // identical failure a second time instead of failing fast here.
+                    log.warn("Error handling JWT token: token failed validation");
+                    ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
 
-                    if ((Boolean) tokenClaims.getPayload().get("oneUse")) {
-                        boolean exists = apiDataService.findAndDeleteOneUseToken(token);
+                if (!"TERRACOTTA".equals(tokenClaims.getPayload().getIssuer())) {
+                    throw new IllegalStateException("API token is invalid");
+                }
 
-                        if (!exists) {
-                            throw new IllegalStateException("OneUse token does not exist or has been already used");
-                        }
+                // TODO add here any other checks we want to perform.
+
+                if ((Boolean) tokenClaims.getPayload().get("oneUse")) {
+                    boolean exists = apiDataService.findAndDeleteOneUseToken(token);
+
+                    if (!exists) {
+                        throw new IllegalStateException("OneUse token does not exist or has been already used");
                     }
                 }
             }
