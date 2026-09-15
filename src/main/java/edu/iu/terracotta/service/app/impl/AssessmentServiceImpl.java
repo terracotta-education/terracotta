@@ -80,6 +80,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.persistence.EntityManager;
@@ -491,8 +492,26 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
     }
 
+    // Question rows are referenced - but not cascade-owned - by QuestionSubmission.question, a
+    // required @ManyToOne FK (see QuestionSubmission.java); orphanRemoval on
+    // Assessment.questions/Assessment.submissions has no explicit cascade attribute, so Hibernate
+    // processes both as implicit cascade=REMOVE when the Assessment itself is removed. Confirmed
+    // via AssessmentDeletionCascadeRealHibernateTest: when assessmentRepository.deleteByAssessmentId
+    // (a derived delete - loads then EntityManager.remove()s each match, so cascades DO apply)
+    // cascades Assessment.questions before it finishes cascading Assessment.submissions ->
+    // Submission.questionSubmissions, it schedules the Question deletes first, and Hibernate's
+    // pre-delete nullability check on the not-yet-deleted QuestionSubmission rows then throws
+    // "not-null property references a null or transient value for ... QuestionSubmission.question"
+    // - a real bug, not just a theoretical ordering concern. Explicitly deleting every Submission
+    // (and everything cascaded under it) before deleting the Assessment itself removes the
+    // ordering hazard entirely, mirroring the identical precaution QuestionServiceImpl.deleteById
+    // already takes for the same reason. @Transactional (previously absent) makes this atomic:
+    // without it, the two separate repository writes below would each auto-commit independently
+    // (see the identical, confirmed atomicity bug fixed in QuestionServiceImpl.deleteById).
     @Override
+    @Transactional
     public void deleteById(Long id) throws EmptyResultDataAccessException {
+        submissionRepository.deleteAll(submissionRepository.findByAssessment_AssessmentId(id));
         assessmentRepository.deleteByAssessmentId(id);
     }
 

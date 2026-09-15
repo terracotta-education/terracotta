@@ -87,7 +87,7 @@ import edu.iu.terracotta.service.app.AssignmentTreatmentService;
     }
 )
 @ActiveProfiles("test")
-class AssessmentDuplicationRealHibernateIT {
+class AssessmentDuplicationRealHibernateTest {
 
     @Autowired private PlatformDeploymentRepository platformDeploymentRepository;
     @Autowired private ToolDeploymentRepository toolDeploymentRepository;
