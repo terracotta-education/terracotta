@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -100,7 +101,9 @@ public class AssignmentTreatmentServiceImplTest extends BaseTest {
 
         assertNotNull(retVal);
         verify(treatment, never()).setAssignment(any(Assignment.class));
-        verify(treatmentRepository, never()).saveAndFlush(any());
+        // once for the initial duplicate save; the second, assessment-linking saveAndFlush
+        // only happens when an existing assessment was found (not this no-assessment case)
+        verify(treatmentRepository, times(1)).saveAndFlush(any());
         verify(treatment).setVersion(0);
     }
 
@@ -118,7 +121,8 @@ public class AssignmentTreatmentServiceImplTest extends BaseTest {
         assertNotNull(retVal);
         assertNotNull(retVal.getAssessmentDto());
         verify(treatment).setAssignment(assignment);
-        verify(treatmentRepository).saveAndFlush(any(Treatment.class));
+        // once for the initial duplicate save, once more after linking the new assessment
+        verify(treatmentRepository, times(2)).saveAndFlush(any(Treatment.class));
         verify(treatment).setVersion(0);
     }
 
