@@ -84,6 +84,32 @@ describe("message store", () => {
       expect(result).toBeNull();
       expect(store.preview).toBeNull();
     });
+
+    // e.g. clicking "Preview as" for student A, then quickly clicking student B
+    // before A's preview has finished loading - A's now-abandoned fetch can resolve
+    // after B's
+    it("does not let a slower, out-of-order response overwrite a newer one", async () => {
+      let resolveFirst;
+      const firstResponse = new Promise(resolve => {
+        resolveFirst = resolve;
+      });
+
+      messageService.fetchPreview
+        .mockReturnValueOnce(firstResponse)
+        .mockResolvedValueOnce({ html: "<p>student B</p>" });
+
+      const firstCall = store.fetchPreview(["a"]);
+      const secondResult = await store.fetchPreview(["b"]);
+
+      expect(secondResult).toEqual({ html: "<p>student B</p>" });
+      expect(store.preview).toEqual({ html: "<p>student B</p>" });
+
+      resolveFirst({ html: "<p>student A</p>" });
+      const firstResult = await firstCall;
+
+      expect(firstResult).toEqual({ html: "<p>student B</p>" });
+      expect(store.preview).toEqual({ html: "<p>student B</p>" });
+    });
   });
 
   describe("sendTest", () => {

@@ -329,7 +329,13 @@ public class QuestionServiceImpl implements QuestionService {
             originalQuestion.setVersion(0);
             originalQuestion.setAssessment(newAssessment);
             originalQuestion.setIntegration(null);
-            Question newQuestion = questionRepository.save(originalQuestion);
+
+            // saveAndFlush (not save): duplicateAnswersForQuestion/integrationService.duplicate
+            // below immediately use newQuestion as the FK for their own inserts. Without an
+            // explicit flush here, those can run before this Question's IDENTITY-generated ID
+            // is materialized - see the identical fix/rationale in
+            // AssignmentTreatmentServiceImpl.duplicateTreatment.
+            Question newQuestion = questionRepository.saveAndFlush(originalQuestion);
 
             answerService.duplicateAnswersForQuestion(originalQuestionId, newQuestion);
 

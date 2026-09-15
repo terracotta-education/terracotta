@@ -24,6 +24,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -38,6 +39,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextReposit
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
@@ -90,7 +92,25 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     @Override
     @Transactional(rollbackFor = { ApiException.class })
     public void handleAssignmentTasksInLmsByContext(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
-        List<LmsAssignment> lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
+        List<LmsAssignment> lmsAssignments;
+
+        try {
+            lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
+        } catch (ApiException e) {
+            if (ExceptionUtils.getRootCause(e) instanceof LmsOAuthException) {
+                // the instructor hasn't (yet) completed the Canvas API authorization prompt shown
+                // on launch (see Lti3Controller#getOAuth2APITokenRedirectURL) - an ordinary,
+                // expected state for a user who hasn't clicked through it, not an application
+                // failure. This method is @Async with a void return, so any exception escaping it
+                // is caught solely by Spring's default AsyncUncaughtExceptionHandler, which logs
+                // at ERROR with a full stack trace - needlessly alarming for this case.
+                log.warn("Skipping LMS assignment sync for context ID: [{}] - user does not yet have a Canvas API token", securedInfo.getContextId());
+                return;
+            }
+
+            throw e;
+        }
+
         checkAndRestoreAssignmentsInLmsByContext(securedInfo, lmsAssignments);
         handleObsoleteAssignmentsInLmsByContext(securedInfo, lmsAssignments);
     }

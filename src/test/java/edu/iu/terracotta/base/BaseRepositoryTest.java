@@ -150,6 +150,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(List.of(assessment));
             when(assessmentRepository.findByTreatment_Assignment_AssignmentIdIn(any())).thenReturn(List.of(assessment));
             when(assessmentRepository.save(any(Assessment.class))).thenReturn(assessment);
+            when(assessmentRepository.saveAndFlush(any(Assessment.class))).thenReturn(assessment);
             when(assignmentRepository.findAssignmentsToCheckByContext(anyLong())).thenReturn(List.of(assignment));
             when(assignmentRepository.findByAssignmentId(anyLong())).thenReturn(assignment);
             when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(List.of(assignment));
@@ -224,6 +225,8 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(questionRepository.findByQuestionId(anyLong())).thenReturn(question);
             when(questionRepository.save(any(Question.class))).thenReturn(question);
             when(questionRepository.save(any(QuestionMc.class))).thenReturn(questionMc);
+            when(questionRepository.saveAndFlush(any(Question.class))).thenReturn(question);
+            when(questionRepository.saveAndFlush(any(QuestionMc.class))).thenReturn(questionMc);
             when(questionSubmissionRepository.save(any(QuestionSubmission.class))).thenReturn(questionSubmission);
             when(submissionRepository.findById(anyLong())).thenReturn(Optional.of(submission));
             when(submissionRepository.findByParticipant_Id(anyLong())).thenReturn(List.of(submission));

@@ -80,6 +80,33 @@ describe("StudentQuizQuestionCard", () => {
     expect(questionValues[0].answerId).toBe(11);
   });
 
+  // if questionValues has no entry yet for this question, the MC/ESSAY/FILE editors
+  // below would otherwise v-model into a disposable {} that vanishes on the next
+  // re-evaluation, silently losing whatever the student typed - this emits a real,
+  // tracked entry via v-model:question-values instead
+  it("emits a new questionValues entry for a question with none yet, instead of falling back to a throwaway object", () => {
+    const question = { questionId: 1, questionType: "MC", html: "Pick one", points: 2, answers: [] };
+
+    const wrapper = mountComponent(StudentQuizQuestionCard, {
+      props: { ...baseProps, question, questionValues: [] }
+    });
+
+    expect(wrapper.emitted("update:question-values")).toBeTruthy();
+    expect(wrapper.emitted("update:question-values").at(-1)[0]).toEqual([
+      { questionId: 1, answerId: null, response: null }
+    ]);
+  });
+
+  it("does not emit again when this question's entry already exists", () => {
+    const question = { questionId: 1, questionType: "MC", html: "Pick one", points: 2, answers: [] };
+
+    const wrapper = mountComponent(StudentQuizQuestionCard, {
+      props: { ...baseProps, question, questionValues: [{ questionId: 1, answerId: null, response: null }] }
+    });
+
+    expect(wrapper.emitted("update:question-values")).toBeFalsy();
+  });
+
   it("renders an EssayResponseEditor for ESSAY questions and mutates the matching questionValues entry on input", async () => {
     const question = { questionId: 2, questionType: "ESSAY", html: "Explain", points: 3 };
     const questionValues = [{ questionId: 2, answerId: null, response: null }];

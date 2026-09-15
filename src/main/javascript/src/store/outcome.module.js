@@ -2,6 +2,18 @@ import { defineStore } from "pinia";
 
 import { outcomeService } from "@/services";
 
+// Shared by every action below that writes the singular this.outcome field
+// (createOutcome, updateOutcome, fetchOutcomeById) so a stale response from any of
+// them can't clobber a newer one - see the identical guard in assessment.module.js's
+// fetchAssessment for the full reasoning. fetchOutcomeById previously guarded only
+// its OWN failure branch (isDifferentOutcome), leaving the success path able to
+// overwrite this.outcome unconditionally.
+let outcomeRequestId = 0;
+
+// Same reasoning, for the separate this.outcomeScores field fetchOutcomeScores
+// writes.
+let outcomeScoresRequestId = 0;
+
 export const outcome = defineStore("outcome", {
   state: () => ({
     outcome: null,
@@ -26,6 +38,8 @@ export const outcome = defineStore("outcome", {
     },
 
     async createOutcome(payload) {
+      const requestId = ++outcomeRequestId;
+
       try {
         const response = await outcomeService.create(...payload);
 
@@ -34,7 +48,10 @@ export const outcome = defineStore("outcome", {
           response?.status === 201
         ) {
           const outcomeData = response.data;
-          this.setOutcome(outcomeData);
+
+          if (requestId === outcomeRequestId) {
+            this.setOutcome(outcomeData);
+          }
 
           return outcomeData;
         }
@@ -48,11 +65,13 @@ export const outcome = defineStore("outcome", {
     },
 
     async updateOutcome(payload) {
+      const requestId = ++outcomeRequestId;
+
       try {
         const response =
           await outcomeService.updateOutcome(...payload);
 
-        if (response?.status === 200) {
+        if (response?.status === 200 && requestId === outcomeRequestId) {
           this.setOutcome(payload[2]);
         }
 
@@ -82,12 +101,18 @@ export const outcome = defineStore("outcome", {
     },
 
     async fetchOutcomeById(payload) {
+      const requestId = ++outcomeRequestId;
+
       try {
         const outcomeId = payload[2];
         const isDifferentOutcome =
           parseInt(this.outcome?.outcomeId) !== parseInt(outcomeId);
 
         const response = await outcomeService.getById(...payload);
+
+        if (requestId !== outcomeRequestId) {
+          return response;
+        }
 
         if (response?.status === 200) {
           this.setOutcome(response.data);
@@ -158,11 +183,13 @@ export const outcome = defineStore("outcome", {
     },
 
     async fetchOutcomeScores(payload) {
+      const requestId = ++outcomeScoresRequestId;
+
       try {
         const response =
           await outcomeService.getOutcomeScoresById(...payload);
 
-        if ([200, 204].includes(response?.status)) {
+        if ([200, 204].includes(response?.status) && requestId === outcomeScoresRequestId) {
           this.outcomeScores = response?.data || [];
         }
 
