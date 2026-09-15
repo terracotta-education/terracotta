@@ -184,7 +184,7 @@ describe("QuestionEditor", () => {
     const { assessmentService } = await import("@/services");
     expect(swalFire).toHaveBeenCalled();
     expect(assessmentService.deleteQuestion).toHaveBeenCalledWith(
-      "1", "4", 2, 3, question.questionId
+      "1", "4", "2", 3, question.questionId
     );
   });
 

@@ -439,7 +439,7 @@ const configurations = computed(() => configurationStore.get);
 
 const assessmentId = computed(() => parseInt(route.params.assessmentId));
 const conditionId = computed(() => route.params.conditionId);
-const treatmentId = computed(() => parseInt(route.params.treatmentId));
+const treatmentId = computed(() => route.params.treatmentId);
 const participantId = computed(() => route.params.participantId);
 const experimentId = computed(() => route.params.experimentId);
 

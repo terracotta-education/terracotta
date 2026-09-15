@@ -150,7 +150,7 @@ const experimentId = computed(() => {
 });
 
 const treatmentId = computed(() => {
-  return Number.parseInt(route.params.treatmentId, 10);
+  return route.params.treatmentId;
 });
 
 const assessmentId = computed(() => {

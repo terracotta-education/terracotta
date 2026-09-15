@@ -137,7 +137,7 @@ const experimentId = computed(() => {
 });
 
 const assignmentId = computed(() => {
-  return Number.parseInt(route.params.assignmentId, 10);
+  return route.params.assignmentId;
 });
 
 const exposureId = computed(() => {

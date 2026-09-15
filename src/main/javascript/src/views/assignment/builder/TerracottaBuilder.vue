@@ -162,7 +162,7 @@ const assignmentCount = computed(() => assignments.value.length);
 
 const assignmentId = computed(() => currentAssignment.value.assignmentId);
 const assignmentTitle = computed(() => currentAssignment.value.title || "");
-const treatmentId = computed(() => Number.parseInt(route.params.treatmentId, 10));
+const treatmentId = computed(() => route.params.treatmentId);
 const assessmentId = computed(() => Number.parseInt(route.params.assessmentId, 10));
 const conditionId = computed(() => route.params.conditionId);
 
@@ -689,7 +689,7 @@ const duplicate = async fromAssignment => {
   const fromTreatment = assignmentsAvailableToCopy.value
     .map(assignmentAvailableToCopy => {
       return assignmentAvailableToCopy.treatments.find(
-        treatment => treatment.treatmentId === Number.parseInt(selectedTreatment.value.treatmentId, 10)
+        treatment => treatment.treatmentId === selectedTreatment.value.treatmentId
       );
     })
     .filter(treatment => treatment !== undefined);

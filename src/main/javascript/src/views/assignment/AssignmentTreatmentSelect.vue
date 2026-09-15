@@ -109,7 +109,7 @@ const conditions = computed(() => {
 });
 
 const assignmentId = computed(() => {
-  return Number.parseInt(route.params.assignmentId, 10);
+  return route.params.assignmentId;
 });
 
 const exposureId = computed(() => {
@@ -206,10 +206,7 @@ const hasTreatment = condition => {
       return (
         conditionTreatment.treatment &&
         conditionTreatment.condition.conditionId === condition.conditionId &&
-        Number.parseInt(
-          conditionTreatment.treatment.assignmentId,
-          10
-        ) === assignmentId.value
+        conditionTreatment.treatment.assignmentId === assignmentId.value
       );
     }
   );
@@ -227,9 +224,7 @@ const checkConditionTreatments = async () => {
 
     const matchingTreatment =
       treatment?.data?.find(
-        item =>
-          Number.parseInt(item.assignmentId, 10) ===
-          assignmentId.value
+        item => item.assignmentId === assignmentId.value
       );
 
     if (matchingTreatment) {

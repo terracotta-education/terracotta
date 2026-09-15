@@ -127,7 +127,7 @@ describe("AssignmentScores", () => {
     await wrapper.vm.$nextTick();
 
     expect(assignmentService.fetchAssignment).toHaveBeenCalledWith(
-      "1", "2", 3, true
+      "1", "2", "3", true
     );
     expect(participantService.getAll).toHaveBeenCalledWith("1");
 
@@ -171,7 +171,7 @@ describe("AssignmentScores", () => {
       params: {
         experimentId: "1",
         exposureId: "2",
-        assignmentId: 3,
+        assignmentId: "3",
         assessmentId: 500,
         conditionId: 10,
         treatmentId: 100,

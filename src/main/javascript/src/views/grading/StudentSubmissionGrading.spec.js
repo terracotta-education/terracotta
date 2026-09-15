@@ -148,7 +148,7 @@ describe("StudentSubmissionGrading", () => {
     await flushPromises();
 
     expect(assessmentService.fetchAssessment).toHaveBeenCalledWith(
-      1, "10", 100, 500
+      1, "10", "100", 500
     );
   });
 
@@ -167,7 +167,7 @@ describe("StudentSubmissionGrading", () => {
     await flushPromises();
 
     expect(submissionService.studentResponse).toHaveBeenCalledWith(
-      1, "10", 100, 500, 900
+      1, "10", "100", 500, 900
     );
     expect(wrapper.vm.selectedSubmissionId).toBe(900);
   });
@@ -194,7 +194,7 @@ describe("StudentSubmissionGrading", () => {
     // the auto-select already fired and its (now-stale-by-the-time-it-lands) fetch
     // is in flight, before this component's own fetchAssessment has resolved at all
     expect(submissionService.studentResponse).toHaveBeenCalledWith(
-      1, "10", 100, 500, 900
+      1, "10", "100", 500, 900
     );
 
     resolveFetch({ data: assessmentFixture });
@@ -317,7 +317,7 @@ describe("StudentSubmissionGrading", () => {
       ])
     );
     expect(submissionService.updateQuestionSubmissions).toHaveBeenCalledWith(
-      "1", "10", 100, 500, 900,
+      "1", "10", "100", 500, 900,
       expect.any(Array)
     );
     expect(reportStepSpy).toHaveBeenCalledWith({

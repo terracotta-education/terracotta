@@ -167,8 +167,7 @@ const saveExit = async () => {
     const results = await Promise.all(
       selectedAssignmentIds.value.map(assignmentId => {
         const outcomePotential = outcomePotentials.value.find(outcome => {
-          return Number.parseInt(outcome.assignmentId, 10) ===
-            Number.parseInt(assignmentId, 10);
+          return outcome.assignmentId === assignmentId;
         });
 
         return outcomeStore.createOutcome([
@@ -178,7 +177,7 @@ const saveExit = async () => {
           outcomePotential.pointsPossible,
           true,
           outcomePotential.type,
-          Number.parseInt(assignmentId, 10)
+          assignmentId
         ]);
       })
     );

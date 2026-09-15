@@ -88,7 +88,7 @@ describe("AssignmentTreatmentSelect", () => {
     await wrapper.vm.$nextTick();
     await new Promise(resolve => setTimeout(resolve));
 
-    expect(assignmentService.fetchAssignment).toHaveBeenCalledWith(10, "30", 20);
+    expect(assignmentService.fetchAssignment).toHaveBeenCalledWith(10, "30", "20");
     expect(treatmentService.fetchTreatment).toHaveBeenCalledWith(10, 1);
     expect(treatmentService.fetchTreatment).toHaveBeenCalledWith(10, 2);
   });
@@ -121,7 +121,7 @@ describe("AssignmentTreatmentSelect", () => {
     treatmentService.fetchTreatment
       .mockResolvedValueOnce({
         status: 200,
-        data: [{ assignmentId: 20, treatmentId: 501 }]
+        data: [{ assignmentId: "20", treatmentId: 501 }]
       })
       .mockResolvedValueOnce({ status: 200, data: [] });
 
@@ -169,14 +169,14 @@ describe("AssignmentTreatmentSelect", () => {
     await createButtons[0].trigger("click");
     await new Promise(resolve => setTimeout(resolve));
 
-    expect(treatmentService.create).toHaveBeenCalledWith(10, 1, 20);
+    expect(treatmentService.create).toHaveBeenCalledWith(10, 1, "20");
     expect(assessmentService.createAssessment).toHaveBeenCalledWith(10, 1, 501);
     expect(push).toHaveBeenCalledWith({
       name: "TerracottaBuilder",
       params: {
         experimentId: 10,
         exposureId: "30",
-        assignmentId: 20,
+        assignmentId: "20",
         conditionId: 1,
         treatmentId: 501,
         assessmentId: 900
