@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import EssayResponseEditor from "@/views/student/EssayResponseEditor.vue";
 import MultipleChoiceResponseEditor from "@/views/student/MultipleChoiceResponseEditor.vue";
 import FileUploadResponseEditor from "@/views/student/FileUploadResponseEditor.vue";
@@ -92,9 +92,31 @@ const props = defineProps({
   treatmentId: { type: [String, Number], default: null }
 });
 
-defineEmits(["update:question-values", "download-file-response"]);
+const emit = defineEmits(["update:question-values", "download-file-response"]);
 
 const questionValue = computed(() => (props.questionValues ?? []).find(({ questionId }) => questionId === props.question.questionId) || {});
+
+// questionValue above falls back to a disposable {} if this question has no entry
+// in questionValues yet - the MC/ESSAY/FILE editors below v-model straight into its
+// properties, so any answer typed while it's the fallback silently vanishes the
+// moment this computed re-evaluates (the {} is never that same object twice). Ensure
+// a real, tracked entry exists as soon as this card is asked to render a given
+// question, via the same v-model:question-values StudentQuiz.vue already wires up -
+// not a direct props.questionValues.push, since props are otherwise read-only here.
+watch(
+  () => props.question.questionId,
+  () => {
+    const exists = (props.questionValues ?? []).some(({ questionId }) => questionId === props.question.questionId);
+
+    if (!exists) {
+      emit("update:question-values", [
+        ...(props.questionValues ?? []),
+        { questionId: props.question.questionId, answerId: null, response: null }
+      ]);
+    }
+  },
+  { immediate: true }
+);
 
 const questionSubmission = question => props.questionSubmissions?.find(({ questionId }) => questionId === question.questionId);
 

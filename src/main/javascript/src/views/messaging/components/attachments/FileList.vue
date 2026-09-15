@@ -9,6 +9,7 @@
       <template #activator="{ props: menuProps }">
         <v-btn
           v-bind="menuProps"
+          :disabled="!message"
           aria-label="add attachments to message"
           variant="text"
         >
@@ -158,6 +159,12 @@ const message = computed(() => {
   );
 });
 
+// attachments below mutates message.value.content directly once message resolves (a
+// reference into messagingMessageContainerStore's own reactive array, once found),
+// but until allMessageContainers finishes loading, message.value is undefined and
+// this falls back to a disposable {} that a write would silently vanish into. The
+// activator button's :disabled="!message" keeps the menu from even opening until the
+// real message is there - there's no other loading gate on this component at all.
 const content = computed(() => {
   return message.value?.content || {};
 });
