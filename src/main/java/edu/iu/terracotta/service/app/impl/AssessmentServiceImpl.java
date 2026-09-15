@@ -624,7 +624,13 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         from.setTreatment(treatment);
 
-        Assessment newAssessment = save(from);
+        // saveAndFlush (not save): duplicateQuestionsForAssessment below immediately uses
+        // newAssessment as the FK for each duplicated Question's own insert. Without an
+        // explicit flush here, that Question insert can run before this Assessment's
+        // IDENTITY-generated ID is materialized, and Hibernate throws AssertionFailure:
+        // null identifier (Assessment) - see the identical fix/rationale for Treatment in
+        // AssignmentTreatmentServiceImpl.duplicateTreatment.
+        Assessment newAssessment = assessmentRepository.saveAndFlush(from);
 
         // duplicate questions
         questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment);
