@@ -136,6 +136,25 @@ describe("App", () => {
     expect(Swal.fire).toHaveBeenCalledTimes(1);
   });
 
+  // authHeader()/fileAuthHeader() (src/helpers/auth-header.js) call apiStore.markSessionExpired()
+  // directly, independent of this component's own interval/visibility-change check - e.g. some
+  // other component's API call notices the expired token first, before the 59-minute interval
+  // or a visibility change ever fires here (a backgrounded/throttled tab). The dialog must still
+  // show when sessionExpired flips to true from that path, not only from this component's own
+  // detection.
+  it("shows the session-expired dialog when sessionExpired is set from outside this component's own check", async () => {
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval");
+    const { apiStore } = await mountApp();
+    apiStore.apiToken = expiredToken();
+
+    apiStore.markSessionExpired();
+    await flushPromises();
+
+    expect(Swal.fire).toHaveBeenCalledTimes(1);
+    expect(Swal.fire).toHaveBeenCalledWith(expect.stringContaining("return to your course"));
+    expect(clearIntervalSpy).toHaveBeenCalled();
+  });
+
   it("does nothing when there is no apiToken yet", async () => {
     await mountApp();
 
