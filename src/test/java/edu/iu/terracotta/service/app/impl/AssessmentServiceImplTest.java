@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
@@ -104,6 +105,9 @@ public class AssessmentServiceImplTest extends BaseTest {
 
         setup();
         clearInvocations(questionService, submissionService);
+        // @InjectMocks only does constructor injection here, so the separate @PersistenceContext
+        // EntityManager field is never populated unless set explicitly
+        ReflectionTestUtils.setField(assessmentService, "entityManager", entityManager);
 
         retrieveTreatmentAssessment = AssessmentServiceImpl.class.getDeclaredMethod("retrieveTreatmentAssessment", long.class, long.class, long.class);
         retrieveTreatmentAssessment.setAccessible(true);
@@ -150,6 +154,21 @@ public class AssessmentServiceImplTest extends BaseTest {
         Exception exception = assertThrows(DataServiceException.class, () -> { assessmentService.duplicateAssessment(1L, 2L); });
 
         assertEquals("The assessment with the given ID does not exist", exception.getMessage());
+    }
+
+    // duplicateQuestionsForAssessment below immediately uses the returned Assessment as the FK
+    // for each duplicated Question's own insert; saveAndFlush (not save) is what guarantees its
+    // IDENTITY-generated ID is materialized before that happens - see the "null identifier
+    // (Assessment)" AssertionFailure this fixes, matching the earlier Treatment-level bug.
+    @Test
+    public void testDuplicateAssessmentSuccessSavesAndFlushesBeforeDuplicatingQuestions()
+            throws DataServiceException, AssessmentNotMatchingException, edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException, QuestionNotMatchingException {
+        Assessment result = assessmentService.duplicateAssessment(1L, 2L);
+
+        assertNotNull(result);
+        verify(assessmentRepository).saveAndFlush(any(Assessment.class));
+        verify(assessmentRepository, never()).save(any(Assessment.class));
+        verify(questionService).duplicateQuestionsForAssessment(any(), any(Assessment.class));
     }
 
     @Test

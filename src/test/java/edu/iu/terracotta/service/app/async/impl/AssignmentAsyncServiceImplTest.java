@@ -36,6 +36,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
+import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.Assignment;
@@ -101,6 +102,21 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         when(assignmentService.getAllAssignmentsForLmsCourse(any())).thenThrow(new ApiException("lms error"));
 
         assertThrows(ApiException.class, () -> assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo));
+    }
+
+    // an instructor who hasn't (yet) clicked through the Canvas API authorization prompt shown on
+    // launch is an ordinary, expected state, not an application failure - this method is @Async
+    // void, so letting it escape would only be caught (and ERROR-logged with a full stack trace)
+    // by Spring's default AsyncUncaughtExceptionHandler
+    @Test
+    void testHandleAssignmentTasksInLmsByContextSwallowsMissingCanvasTokenException() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        LmsOAuthException rootCause = new LmsOAuthException("User does not have a Canvas API access token nor refresh token!");
+        ApiException tokenFailure = new ApiException("Could not get a Canvas API token for user", rootCause);
+        when(assignmentService.getAllAssignmentsForLmsCourse(any())).thenThrow(new ApiException("Failed to get the list of assignments", tokenFailure));
+
+        assertDoesNotThrow(() -> assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo));
+
+        verify(assignmentRepository, never()).findAssignmentsToCheckByContext(anyLong());
     }
 
     // checkAndRestoreAssignmentsInLmsByContext
