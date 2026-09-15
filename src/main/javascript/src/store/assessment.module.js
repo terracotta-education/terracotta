@@ -2,13 +2,14 @@ import { defineStore } from "pinia";
 
 import { assessmentService } from "@/services";
 
-// Shared by fetchAssessment and fetchAssessmentForSubmission (both write the same
-// this.assessment field) so a stale response from either can't clobber a newer one.
-// Navigating quickly between two instructor grading pages for the same assessment
-// (e.g. Back, then straight into another student) fires a new fetch before the
-// previous one has resolved; without this, whichever response happens to land last
-// wins, even if it's the older request - intermittently leaving the just-mounted
-// page showing the wrong (or no) submissions.
+// Shared by every action below that writes this.assessment (fetchAssessment,
+// fetchAssessmentForSubmission, createAssessment) so a stale response from any of
+// them can't clobber a newer one. Navigating quickly between two instructor grading
+// pages for the same assessment (e.g. Back, then straight into another student)
+// fires a new fetch before the previous one has resolved; without this, whichever
+// response happens to land last wins, even if it's the older request -
+// intermittently leaving the just-mounted page showing the wrong (or no)
+// submissions, or a slow fetch clobbering an assessment createAssessment just made.
 let assessmentRequestId = 0;
 
 function buildQuestionFromPayload(payload) {
@@ -161,6 +162,8 @@ export const assessment = defineStore("assessment", {
     },
 
     async createAssessment(payload) {
+      const requestId = ++assessmentRequestId;
+
       try {
         let response =
           await assessmentService.fetchAssessments(...payload);
@@ -180,7 +183,10 @@ export const assessment = defineStore("assessment", {
           assessmentData = response?.data;
         }
 
-        this.assessment = assessmentData;
+        if (requestId === assessmentRequestId) {
+          this.assessment = assessmentData;
+        }
+
         this.upsertAssessment(assessmentData);
 
         return {

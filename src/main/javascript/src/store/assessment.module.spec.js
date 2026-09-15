@@ -281,6 +281,34 @@ describe("assessment store", () => {
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalled();
     });
+
+    // createAssessment shares the same staleness guard as fetchAssessment/
+    // fetchAssessmentForSubmission (they all write this.assessment) - a slow fetch
+    // started earlier must not clobber an assessment createAssessment just made
+    it("does not let a slower fetchAssessment response overwrite what createAssessment just set", async () => {
+      let resolveFetchAssessment;
+      const fetchAssessmentResponse = new Promise(resolve => {
+        resolveFetchAssessment = resolve;
+      });
+
+      assessmentService.fetchAssessment.mockReturnValueOnce(fetchAssessmentResponse);
+      assessmentService.fetchAssessments.mockResolvedValueOnce({ data: [] });
+      assessmentService.createAssessment.mockResolvedValueOnce({
+        status: 201,
+        data: { assessmentId: 10 }
+      });
+
+      const firstCall = store.fetchAssessment([1, 2, 3, 4]);
+      const createResult = await store.createAssessment([1, 2, 3, "title", "body"]);
+
+      expect(createResult).toEqual({ status: 201, data: { assessmentId: 10 } });
+      expect(store.assessment).toEqual({ assessmentId: 10 });
+
+      resolveFetchAssessment({ data: { assessmentId: 1 } });
+      await firstCall;
+
+      expect(store.assessment).toEqual({ assessmentId: 10 });
+    });
   });
 
   describe("regradeQuestions", () => {
