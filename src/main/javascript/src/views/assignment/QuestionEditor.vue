@@ -154,7 +154,7 @@ const treatmentId = computed(() => {
 });
 
 const assessmentId = computed(() => {
-  return Number.parseInt(route.params.assessmentId, 10);
+  return route.params.assessmentId;
 });
 
 const conditionId = computed(() => {

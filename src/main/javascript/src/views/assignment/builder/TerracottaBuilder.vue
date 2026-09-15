@@ -163,7 +163,7 @@ const assignmentCount = computed(() => assignments.value.length);
 const assignmentId = computed(() => currentAssignment.value.assignmentId);
 const assignmentTitle = computed(() => currentAssignment.value.title || "");
 const treatmentId = computed(() => route.params.treatmentId);
-const assessmentId = computed(() => Number.parseInt(route.params.assessmentId, 10));
+const assessmentId = computed(() => route.params.assessmentId);
 const conditionId = computed(() => route.params.conditionId);
 
 const condition = computed(() => {

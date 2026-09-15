@@ -513,8 +513,7 @@ export const assessment = defineStore("assessment", {
 
       const index = this.assessments.findIndex(
         item =>
-          parseInt(item.assessmentId) ===
-          parseInt(assessmentData.assessmentId)
+          item.assessmentId === assessmentData.assessmentId
       );
 
       if (index >= 0) {

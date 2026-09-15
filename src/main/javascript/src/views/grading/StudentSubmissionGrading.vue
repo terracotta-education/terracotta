@@ -437,7 +437,7 @@ const studentResponse = computed(() => submissionsStore.studentResponse);
 const questionPages = computed(() => assessmentStore.questionPages);
 const configurations = computed(() => configurationStore.get);
 
-const assessmentId = computed(() => parseInt(route.params.assessmentId));
+const assessmentId = computed(() => route.params.assessmentId);
 const conditionId = computed(() => route.params.conditionId);
 const treatmentId = computed(() => route.params.treatmentId);
 const participantId = computed(() => route.params.participantId);

@@ -148,7 +148,7 @@ describe("MultipleChoiceQuestionEditor", () => {
 
     const { assessmentService } = await import("@/services");
     expect(assessmentService.createAnswer).toHaveBeenCalledWith(
-      "1", "4", "2", 3, question.questionId, "", false, 0
+      "1", "4", "2", "3", question.questionId, "", false, 0
     );
     expect(wrapper.emitted("edited")).toBeTruthy();
   });
@@ -162,7 +162,7 @@ describe("MultipleChoiceQuestionEditor", () => {
 
     const { assessmentService } = await import("@/services");
     expect(assessmentService.deleteAnswer).toHaveBeenCalledWith(
-      "1", "4", "2", 3, question.questionId, 10
+      "1", "4", "2", "3", question.questionId, 10
     );
     expect(wrapper.emitted("edited")).toBeTruthy();
   });
