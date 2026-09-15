@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
@@ -59,12 +60,24 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
                 .build();
         }
 
-        log.info(
-            "External integration token: [{}] launched at: [{}]. Previously launched at: [{}]",
-            integrationToken.getToken(),
-            LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC).toString(),
-            integrationToken.getLastLaunchedAt() != null ? LocalDateTime.ofInstant(Instant.ofEpochMilli(integrationToken.getLastLaunchedAt().getTime()), ZoneOffset.UTC).toString() : "N/A"
-        );
+        LocalDateTime launchedAt = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+
+        if (integrationToken.getLastLaunchedAt() == null) {
+            log.info(
+                "Token [{}] launched at: [{}].",
+                integrationToken.getToken(),
+                launchedAt
+            );
+        } else {
+            LocalDateTime previousLaunchedAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(integrationToken.getLastLaunchedAt().getTime()), ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
+
+            log.info(
+                "Token [{}] launched at: [{}]. Previous launch: [{}].",
+                integrationToken.getToken(),
+                launchedAt,
+                previousLaunchedAt
+            );
+        }
 
         integrationToken.setSecuredInfo(securedInfo);
         integrationToken.setLastLaunchedAt(Timestamp.from(Instant.now()));
