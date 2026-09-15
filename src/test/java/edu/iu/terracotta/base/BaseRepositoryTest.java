@@ -224,6 +224,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(platformDeploymentRepository.findByIssAndClientId(anyString(), anyString())).thenReturn(List.of(platformDeployment));
             when(platformDeploymentRepository.getReferenceById(anyLong())).thenReturn(platformDeployment);
             when(questionRepository.findByQuestionId(anyLong())).thenReturn(question);
+            when(questionRepository.findByUuid(any(UUID.class))).thenReturn(question);
             when(questionRepository.save(any(Question.class))).thenReturn(question);
             when(questionRepository.save(any(QuestionMc.class))).thenReturn(questionMc);
             when(questionRepository.saveAndFlush(any(Question.class))).thenReturn(question);

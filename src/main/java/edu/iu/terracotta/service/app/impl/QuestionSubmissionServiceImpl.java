@@ -239,7 +239,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         QuestionSubmissionDto questionSubmissionDto = QuestionSubmissionDto.builder().build();
         questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
         questionSubmissionDto.setSubmissionId(questionSubmission.getSubmission().getSubmissionId());
-        questionSubmissionDto.setQuestionId(questionSubmission.getQuestion().getQuestionId());
+        questionSubmissionDto.setQuestionId(questionSubmission.getQuestion().getUuid());
         questionSubmissionDto.setCalculatedPoints(questionSubmission.getCalculatedPoints());
         questionSubmissionDto.setAlteredGrade(questionSubmission.getAlteredGrade());
         long questionSubmissionId = questionSubmission.getQuestionSubmissionId();
@@ -301,13 +301,16 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
         questionSubmission.setSubmission(submission.get());
 
-        Optional<Question> question = questionRepository.findByAssessment_AssessmentIdAndQuestionId(submission.get().getAssessment().getAssessmentId(), questionSubmissionDto.getQuestionId());
+        // questionSubmissionDto.getQuestionId() is now a uuid, so resolve the entity by uuid and
+        // manually verify it belongs to the submission's assessment (findByAssessment_AssessmentIdAndQuestionId
+        // used to do both checks in a single numeric-id derived query)
+        Question question = questionRepository.findByUuid(questionSubmissionDto.getQuestionId());
 
-        if (question.isEmpty()) {
+        if (question == null || !question.getAssessment().getAssessmentId().equals(submission.get().getAssessment().getAssessmentId())) {
             throw new DataServiceException("Question does not exist or does not belong to the submission and assessment");
         }
 
-        questionSubmission.setQuestion(question.get());
+        questionSubmission.setQuestion(question);
 
         return questionSubmission;
     }
@@ -339,7 +342,12 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
 
-        if (questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(assessmentId, submissionId, questionSubmissionDto.getQuestionId())) {
+        // questionSubmissionDto.getQuestionId() is now a uuid; resolve the numeric FK the
+        // exists-by derived query below still expects
+        Question existingQuestion = questionRepository.findByUuid(questionSubmissionDto.getQuestionId());
+        Long existingQuestionId = existingQuestion != null ? existingQuestion.getQuestionId() : null;
+
+        if (questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(assessmentId, submissionId, existingQuestionId)) {
             throw new DuplicateQuestionException("Error 123: A question submission with question id " + questionSubmissionDto.getQuestionId() + " already exists in assessment with id " + assessmentId);
         }
 

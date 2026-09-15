@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -197,6 +198,10 @@ public class AnswerServiceImplTest extends BaseTest {
     public void testPostAnswerMCFromDtoFailure() {
         when(questionRepository.findByQuestionId(anyLong())).thenReturn(questionMc);
         when(questionRepository.findById(anyLong())).thenReturn(Optional.empty());
+        // override the class-wide findByUuid(any()) default (see BaseRepositoryTest) - any(UUID.class)
+        // also matches the null the unresolved findById(...) above leaves on the dto's questionId,
+        // so this override is needed to keep fromDtoMC's lookup genuinely "not found" here
+        when(questionRepository.findByUuid(any())).thenReturn(null);
         AnswerDto answerDto = AnswerDto.builder().answerOrder(0).build();
 
         Exception exception = assertThrows(DataServiceException.class, () -> { answerService.postAnswerMC(answerDto, 1L); });
@@ -220,8 +225,9 @@ public class AnswerServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoMCSuccess() throws DataServiceException {
-        when(questionRepository.findById(anyLong())).thenReturn(Optional.of(question));
-        AnswerDto answerDto = AnswerDto.builder().answerId(1L).html("html").correct(true).answerOrder(2).questionId(1L).build();
+        UUID questionUuid = UUID.randomUUID();
+        when(questionRepository.findByUuid(questionUuid)).thenReturn(question);
+        AnswerDto answerDto = AnswerDto.builder().answerId(1L).html("html").correct(true).answerOrder(2).questionId(questionUuid).build();
 
         AnswerMc answerMcResult = answerService.fromDtoMC(answerDto);
 
@@ -233,8 +239,8 @@ public class AnswerServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoMCQuestionNotFound() {
-        when(questionRepository.findById(anyLong())).thenReturn(Optional.empty());
-        AnswerDto answerDto = AnswerDto.builder().questionId(1L).build();
+        when(questionRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        AnswerDto answerDto = AnswerDto.builder().questionId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(DataServiceException.class, () -> { answerService.fromDtoMC(answerDto); });
 
@@ -314,11 +320,12 @@ public class AnswerServiceImplTest extends BaseTest {
     @Test
     public void testBuildHeaders() {
         UriComponentsBuilder ucBuilder = UriComponentsBuilder.newInstance().scheme("https").host("localhost");
+        UUID questionUuid = UUID.randomUUID();
 
-        HttpHeaders headers = answerService.buildHeaders(ucBuilder, 1L, 2L, 3L, 4L, 5L, 6L);
+        HttpHeaders headers = answerService.buildHeaders(ucBuilder, 1L, 2L, 3L, 4L, questionUuid, 6L);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/conditions/2/treatments/3/assessments/4/questions/5/answers/6"));
+        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/conditions/2/treatments/3/assessments/4/questions/" + questionUuid + "/answers/6"));
     }
 
 }

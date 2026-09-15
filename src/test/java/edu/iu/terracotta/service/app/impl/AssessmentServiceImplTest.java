@@ -143,7 +143,8 @@ public class AssessmentServiceImplTest extends BaseTest {
         when(assessmentDto.getQuestions()).thenReturn(List.of(questionDto));
         when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(condition.getDefaultCondition()).thenReturn(true);
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        UUID questionUuid = question.getUuid();
+        when(questionDto.getQuestionId()).thenReturn(questionUuid);
         when(regradeDetails.getEditedMCQuestionIds()).thenReturn(List.of(1L));
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
     }
@@ -344,18 +345,19 @@ public class AssessmentServiceImplTest extends BaseTest {
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
         AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
         IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        UUID questionUuid = question.getUuid();
+        when(questionDto.getQuestionId()).thenReturn(questionUuid);
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
         verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean());
-        verify(questionRepository).findByQuestionId(anyLong());
+        verify(questionRepository).findByUuid(any(UUID.class));
         verify(questionService).updateQuestion(anyMap());
         verify(questionRepository, never()).deleteById(anyLong());
     }
 
     @Test
     public void testUpdateAssessmentWithQuestionNotFound() throws QuestionNotMatchingException {
-        when(questionRepository.findByQuestionId(anyLong())).thenReturn(null);
+        when(questionRepository.findByUuid(any(UUID.class))).thenReturn(null);
         Exception exception = assertThrows(QuestionNotMatchingException.class, () -> { assessmentService.updateAssessment(1L, assessmentDto, true); });
 
         assertEquals(TextConstants.QUESTION_NOT_MATCHING, exception.getMessage());
@@ -397,7 +399,8 @@ public class AssessmentServiceImplTest extends BaseTest {
         Question staleQuestion = mock(Question.class);
         when(staleQuestion.getQuestionId()).thenReturn(2L);
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(new ArrayList<>(List.of(question, staleQuestion)));
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        UUID questionUuid = question.getUuid();
+        when(questionDto.getQuestionId()).thenReturn(questionUuid);
         List<Question> assessmentQuestions = new ArrayList<>(List.of(question, staleQuestion));
         when(assessment.getQuestions()).thenReturn(assessmentQuestions);
 
@@ -425,7 +428,8 @@ public class AssessmentServiceImplTest extends BaseTest {
         Question staleQuestion2 = mock(Question.class);
         when(staleQuestion2.getQuestionId()).thenReturn(3L);
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(new ArrayList<>(List.of(question, staleQuestion1, staleQuestion2)));
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        UUID questionUuid = question.getUuid();
+        when(questionDto.getQuestionId()).thenReturn(questionUuid);
         List<Question> assessmentQuestions = new ArrayList<>(List.of(question, staleQuestion1, staleQuestion2));
         when(assessment.getQuestions()).thenReturn(assessmentQuestions);
 

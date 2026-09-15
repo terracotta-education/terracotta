@@ -15,6 +15,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public interface AnswerService {
 
@@ -27,7 +28,7 @@ public interface AnswerService {
     AnswerMc findByAnswerId(Long answerId);
     List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map);
     void deleteByIdMC(Long id) throws EmptyResultDataAccessException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, UUID questionId, Long answerId);
     void limitReached(Long questionId) throws MultipleChoiceLimitReachedException;
     List<AnswerMc> duplicateAnswersForQuestion(Long originalQuestionId, Question newQuestion) throws QuestionNotMatchingException;
     String getQuestionType(Long questionId);

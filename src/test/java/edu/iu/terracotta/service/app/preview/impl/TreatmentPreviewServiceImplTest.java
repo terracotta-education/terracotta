@@ -110,7 +110,7 @@ class TreatmentPreviewServiceImplTest extends BaseTest {
         assertEquals(treatment.getUuid(), submissionDto.getTreatmentId());
         assertEquals(1, submissionDto.getQuestionSubmissionDtoList().size());
         assertEquals(1L, submissionDto.getQuestionSubmissionDtoList().get(0).getQuestionSubmissionId());
-        assertEquals(1L, submissionDto.getQuestionSubmissionDtoList().get(0).getQuestionId());
+        assertEquals(question.getUuid(), submissionDto.getQuestionSubmissionDtoList().get(0).getQuestionId());
         assertEquals(List.of(answerDto), submissionDto.getQuestionSubmissionDtoList().get(0).getAnswerDtoList());
     }
 
@@ -119,6 +119,8 @@ class TreatmentPreviewServiceImplTest extends BaseTest {
         UUID uuid = UUID.randomUUID();
         Question secondQuestion = mock(Question.class);
         when(secondQuestion.getQuestionId()).thenReturn(2L);
+        UUID secondQuestionUuid = UUID.randomUUID();
+        when(secondQuestion.getUuid()).thenReturn(secondQuestionUuid);
         when(assessment.getQuestions()).thenReturn(List.of(question, secondQuestion));
         when(treatmentPreviewRepository.findByUuidAndTreatment_TreatmentIdAndExperiment_ExperimentIdAndCondition_ConditionIdAndOwner_UserKey(uuid, 3L, 1L, 2L, "owner-id"))
             .thenReturn(Optional.of(treatmentPreview));
@@ -133,9 +135,9 @@ class TreatmentPreviewServiceImplTest extends BaseTest {
         List<edu.iu.terracotta.dao.model.dto.QuestionSubmissionDto> questionSubmissions = result.getSubmission().getQuestionSubmissionDtoList();
         assertEquals(2, questionSubmissions.size());
         assertEquals(1L, questionSubmissions.get(0).getQuestionSubmissionId());
-        assertEquals(1L, questionSubmissions.get(0).getQuestionId());
+        assertEquals(question.getUuid(), questionSubmissions.get(0).getQuestionId());
         assertEquals(2L, questionSubmissions.get(1).getQuestionSubmissionId());
-        assertEquals(2L, questionSubmissions.get(1).getQuestionId());
+        assertEquals(secondQuestionUuid, questionSubmissions.get(1).getQuestionId());
     }
 
 }

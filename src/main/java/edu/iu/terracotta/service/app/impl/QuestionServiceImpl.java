@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +78,12 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public Question getQuestion(Long id) {
         return questionRepository.findByQuestionId(id);
+    }
+
+    @Override
+    public Question getQuestionByUuid(UUID uuid) throws QuestionNotMatchingException {
+        return Optional.ofNullable(questionRepository.findByUuid(uuid))
+            .orElseThrow(() -> new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING));
     }
 
     @Override
@@ -145,7 +152,7 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean showCorrectAnswer) {
         QuestionDto questionDto = new QuestionDto();
-        questionDto.setQuestionId(question.getQuestionId());
+        questionDto.setQuestionId(question.getUuid());
         questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml(), question.getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         questionDto.setQuestionOrder(question.getQuestionOrder());
         questionDto.setPoints(question.getPoints());
@@ -188,7 +195,9 @@ public class QuestionServiceImpl implements QuestionService {
             question = new Question();
         }
 
-        question.setQuestionId(questionDto.getQuestionId());
+        // questionDto.getQuestionId() (now a uuid) is intentionally not set on a new Question here -
+        // postQuestion already rejects a create request that carries one (IdInPostException), and
+        // the real numeric id/uuid are both IDENTITY/@PrePersist generated at insert time regardless.
         question.setHtml(questionDto.getHtml());
 
         if (questionDto.getPoints() < 0) {
@@ -304,7 +313,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID questionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId).toUri());

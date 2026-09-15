@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -20,7 +21,7 @@ import java.util.List;
 public class QuestionSubmissionDto {
 
     private Long questionSubmissionId;
-    private Long questionId;
+    private UUID questionId;
     private Float calculatedPoints;
     private Float alteredGrade;
     private Long submissionId;

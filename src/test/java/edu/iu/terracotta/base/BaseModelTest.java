@@ -441,6 +441,7 @@ public class BaseModelTest {
             when(question.getPoints()).thenReturn(1F);
             when(question.getQuestionId()).thenReturn(1L);
             when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
+            when(question.getUuid()).thenReturn(UUID.randomUUID());
             when(question.isIntegration()).thenReturn(false);
             when(questionDto.getAnswers()).thenReturn(Collections.singletonList(answerDto));
             // Mockito's default answer returns null for an unstubbed UUID getter (unlike the 0L it

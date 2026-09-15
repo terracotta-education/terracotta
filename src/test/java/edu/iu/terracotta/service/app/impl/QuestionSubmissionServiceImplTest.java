@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -364,21 +365,21 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateDtoPostDuplicateQuestion() {
         when(questionSubmissionRepository.existsBySubmission_Assessment_AssessmentIdAndSubmission_SubmissionIdAndQuestion_QuestionId(anyLong(), anyLong(), anyLong())).thenReturn(true);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
 
         assertThrows(DuplicateQuestionException.class, () -> questionSubmissionService.validateDtoPost(dto, 1L, 1L, false));
     }
 
     @Test
     public void testValidateDtoPostStudentCannotAlterGrade() {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).alteredGrade(5F).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).alteredGrade(5F).build();
 
         assertThrows(InvalidUserException.class, () -> questionSubmissionService.validateDtoPost(dto, 1L, 1L, true));
     }
 
     @Test
     public void testValidateDtoPostSuccess() {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
 
         assertDoesNotThrow(() -> questionSubmissionService.validateDtoPost(dto, 1L, 1L, false));
     }
@@ -453,7 +454,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
             return saved;
         });
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).answerSubmissionDtoList(new ArrayList<>(List.of(answerSubmissionDto))).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).answerSubmissionDtoList(new ArrayList<>(List.of(answerSubmissionDto))).build();
 
         List<QuestionSubmissionDto> result = questionSubmissionService.postQuestionSubmissions(List.of(dto), 1L, 1L, false);
 
@@ -465,7 +466,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testPostQuestionSubmissionsError() {
         when(submissionRepository.findById(anyLong())).thenReturn(Optional.empty());
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).answerSubmissionDtoList(new ArrayList<>()).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).answerSubmissionDtoList(new ArrayList<>()).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.postQuestionSubmissions(List.of(dto), 1L, 1L, false));
     }
@@ -481,7 +482,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateAndPrepareQuestionSubmissionListMcAddsDefaultAnswerWhenNull() throws Exception {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
 
         questionSubmissionService.validateAndPrepareQuestionSubmissionList(List.of(dto), 1L, 1L, false);
 
@@ -491,7 +492,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateAndPrepareQuestionSubmissionListEssayAddsDefaultAnswerWhenEmpty() throws Exception {
         // default question mock type is ESSAY
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).answerSubmissionDtoList(new ArrayList<>()).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).answerSubmissionDtoList(new ArrayList<>()).build();
 
         questionSubmissionService.validateAndPrepareQuestionSubmissionList(List.of(dto), 1L, 1L, false);
 
@@ -503,7 +504,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         AnswerSubmissionDto a1 = AnswerSubmissionDto.builder().build();
         AnswerSubmissionDto a2 = AnswerSubmissionDto.builder().build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).answerSubmissionDtoList(new ArrayList<>(List.of(a1, a2))).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).answerSubmissionDtoList(new ArrayList<>(List.of(a1, a2))).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateAndPrepareQuestionSubmissionList(List.of(dto), 1L, 1L, false));
     }
@@ -512,7 +513,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     public void testValidateAndPrepareQuestionSubmissionListAnswerNotMatching() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.PAGE_BREAK);
         AnswerSubmissionDto a1 = AnswerSubmissionDto.builder().answerId(99L).build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).answerSubmissionDtoList(new ArrayList<>(List.of(a1))).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).answerSubmissionDtoList(new ArrayList<>(List.of(a1))).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateAndPrepareQuestionSubmissionList(List.of(dto), 1L, 1L, false));
     }
@@ -520,7 +521,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateAndPrepareQuestionSubmissionListSuccessOtherType() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.PAGE_BREAK);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(1L).answerSubmissionDtoList(new ArrayList<>()).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).answerSubmissionDtoList(new ArrayList<>()).build();
 
         assertDoesNotThrow(() -> questionSubmissionService.validateAndPrepareQuestionSubmissionList(List.of(dto), 1L, 1L, false));
     }
@@ -613,7 +614,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
             SecuredInfo info = new SecuredInfo();
             info.setAllowedAttempts(-1);
 
-            List<QuestionSubmissionDto> result = questionSubmissionService.handleFileQuestionSubmission(file, "{\"questionId\":1}", 1L, 1L, 1L, false, info);
+            List<QuestionSubmissionDto> result = questionSubmissionService.handleFileQuestionSubmission(file, "{\"questionId\":\"" + UUID.randomUUID() + "\"}", 1L, 1L, 1L, false, info);
 
             assertNotNull(result);
             assertEquals(1, result.size());
@@ -629,7 +630,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
 
         assertThrows(
             QuestionSubmissionNotMatchingException.class,
-            () -> questionSubmissionService.handleFileQuestionSubmissionUpdate(multipartFile, "{\"questionId\":1}", 1L, 1L, 1L, 1L, false, securedInfo)
+            () -> questionSubmissionService.handleFileQuestionSubmissionUpdate(multipartFile, "{\"questionId\":\"" + UUID.randomUUID() + "\"}", 1L, 1L, 1L, 1L, false, securedInfo)
         );
     }
 
@@ -649,7 +650,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
             SecuredInfo info = new SecuredInfo();
             info.setAllowedAttempts(-1);
 
-            List<QuestionSubmissionDto> result = questionSubmissionService.handleFileQuestionSubmissionUpdate(file, "{\"questionId\":1}", 1L, 1L, 1L, 1L, false, info);
+            List<QuestionSubmissionDto> result = questionSubmissionService.handleFileQuestionSubmissionUpdate(file, "{\"questionId\":\"" + UUID.randomUUID() + "\"}", 1L, 1L, 1L, 1L, false, info);
 
             assertNotNull(result);
             assertEquals(1, result.size());
@@ -677,7 +678,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
             SecuredInfo info = new SecuredInfo();
             info.setAllowedAttempts(-1);
 
-            List<QuestionSubmissionDto> result = questionSubmissionService.handleFileQuestionSubmissionUpdate(file, "{\"questionId\":1}", 1L, 1L, 1L, 1L, false, info);
+            List<QuestionSubmissionDto> result = questionSubmissionService.handleFileQuestionSubmissionUpdate(file, "{\"questionId\":\"" + UUID.randomUUID() + "\"}", 1L, 1L, 1L, 1L, false, info);
 
             assertNotNull(result);
             verify(answerFileSubmissionRepository).delete(oldAnswerFileSubmission);

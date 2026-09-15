@@ -463,8 +463,8 @@ public class AssessmentServiceImpl implements AssessmentService {
                     continue;
                 }
 
-                // update question
-                Question question = questionRepository.findByQuestionId(questionDto.getQuestionId());
+                // update question - questionDto.getQuestionId() is now a uuid
+                Question question = questionRepository.findByUuid(questionDto.getQuestionId());
 
                 if (question == null) {
                     throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);

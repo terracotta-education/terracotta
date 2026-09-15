@@ -20,6 +20,7 @@ import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.MediaService;
+import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.TreatmentService;
 
 import org.springframework.http.HttpStatus;
@@ -50,6 +51,7 @@ public class MediaProfileController {
     private final ConditionService conditionService;
     private final TreatmentService treatmentService;
     private final AssessmentService assessmentService;
+    private final QuestionService questionService;
 
     @PostMapping
     public ResponseEntity postMediaEvent(@PathVariable("experimentId") UUID experimentUuid,
@@ -57,7 +59,7 @@ public class MediaProfileController {
                                          @PathVariable("treatmentId") UUID treatmentUuid,
                                          @PathVariable("assessmentId") UUID assessmentUuid,
                                          @PathVariable long submissionId,
-                                         @PathVariable long questionId,
+                                         @PathVariable("questionId") UUID questionUuid,
                                          @RequestBody MediaEventDto mediaEventDto,
                                          UriComponentsBuilder ucBuilder,
                                          HttpServletRequest req)
@@ -67,6 +69,7 @@ public class MediaProfileController {
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long questionId = questionService.getQuestionByUuid(questionUuid).getQuestionId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);

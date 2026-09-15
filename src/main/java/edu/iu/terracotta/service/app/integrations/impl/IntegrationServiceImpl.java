@@ -136,7 +136,7 @@ public class IntegrationServiceImpl implements IntegrationService {
             .configuration(integrationConfigurationService.toDto(integration.getConfiguration()))
             .id(integration.getUuid())
             .previewUrl(integrationLaunchParameterService.buildPreviewQueryString(integration))
-            .questionId(integration.getQuestion().getQuestionId())
+            .questionId(integration.getQuestion().getUuid())
             .build();
     }
 

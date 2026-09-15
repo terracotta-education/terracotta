@@ -197,8 +197,8 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void postQuestionSubmissionSuccessTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
-        QuestionSubmissionDto returnedDto = QuestionSubmissionDto.builder().questionSubmissionId(1L).questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
+        QuestionSubmissionDto returnedDto = QuestionSubmissionDto.builder().questionSubmissionId(1L).questionId(UUID.randomUUID()).build();
         when(questionSubmissionService.postQuestionSubmissions(anyList(), eq(1L), eq(1L), eq(false))).thenReturn(List.of(returnedDto));
 
         ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
@@ -210,7 +210,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     @Test
     void postQuestionSubmissionUnauthorizedNotFoundTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
 
         ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
 
@@ -220,7 +220,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     @Test
     void postQuestionSubmissionStudentPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         when(questionSubmissionService.postQuestionSubmissions(anyList(), eq(1L), eq(1L), eq(true))).thenReturn(List.of(requestDto));
 
         ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
@@ -232,7 +232,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void postQuestionSubmissionAssignmentAttemptCaughtTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         doThrow(new AssignmentAttemptException("no more attempts")).when(questionSubmissionService).canSubmit(any(SecuredInfo.class), anyLong());
 
         ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
@@ -243,7 +243,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void postQuestionSubmissionAssignmentLockedCaughtTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         doThrow(new AssignmentLockedException("locked")).when(questionSubmissionService).canSubmit(any(SecuredInfo.class), anyLong());
 
         ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
@@ -254,7 +254,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void postQuestionSubmissionDataServiceExceptionPropagatesTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         doThrow(new DataServiceException("failed")).when(questionSubmissionService).validateAndPrepareQuestionSubmissionList(anyList(), anyLong(), anyLong(), anyBoolean());
 
         assertThrows(
@@ -265,7 +265,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void postQuestionSubmissionExperimentNotMatchingTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
         assertThrows(

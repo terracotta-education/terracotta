@@ -28,6 +28,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidQuestionTypeException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.utils.TextConstants;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -187,7 +188,7 @@ public class QuestionServiceImplTest extends BaseTest {
 
     @Test
     public void testPostQuestionIdInPost() {
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        when(questionDto.getQuestionId()).thenReturn(UUID.randomUUID());
 
         assertThrows(IdInPostException.class, () -> questionService.postQuestion(questionDto, 1l, false, true));
     }
@@ -451,11 +452,37 @@ public class QuestionServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders headers = questionService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L, 3L, 4L, 5L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+        UUID treatmentUuid = UUID.randomUUID();
+        UUID assessmentUuid = UUID.randomUUID();
+        UUID questionUuid = UUID.randomUUID();
+
+        HttpHeaders headers = questionService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, questionUuid);
 
         assertNotNull(headers);
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/conditions/2/treatments/3/assessments/4/questions/5"));
+        assertTrue(headers.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/conditions/" + conditionUuid + "/treatments/" + treatmentUuid + "/assessments/" + assessmentUuid + "/questions/" + questionUuid));
+    }
+
+    @Test
+    public void testGetQuestionByUuidFound() throws Exception {
+        UUID uuid = question.getUuid();
+        when(questionRepository.findByUuid(uuid)).thenReturn(question);
+
+        Question retVal = questionService.getQuestionByUuid(uuid);
+
+        assertEquals(question, retVal);
+    }
+
+    @Test
+    public void testGetQuestionByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(questionRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(QuestionNotMatchingException.class, () -> questionService.getQuestionByUuid(uuid));
+
+        assertEquals(TextConstants.QUESTION_NOT_MATCHING, exception.getMessage());
     }
 
     @Test

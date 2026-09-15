@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import jakarta.persistence.EntityManager;
@@ -102,7 +102,10 @@ public class AnswerServiceImpl implements AnswerService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        answerDto.setQuestionId(questionId);
+        // questionId here is a bare numeric path parameter with no entity in scope; resolve the
+        // question's uuid for the dto's own (now uuid) FK field - fromDtoMC below re-resolves the
+        // entity from that uuid via questionRepository.findByUuid(...)
+        answerDto.setQuestionId(questionRepository.findById(questionId).map(Question::getUuid).orElse(null));
         answerDto.setAnswerType(getQuestionType(questionId));
 
         if (!QuestionTypes.MC.toString().equals(answerDto.getAnswerType())) {
@@ -130,7 +133,7 @@ public class AnswerServiceImpl implements AnswerService {
             answer.getQuestion().getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl())
         );
         answerDto.setAnswerOrder(answerOrder);
-        answerDto.setQuestionId(answer.getQuestion().getQuestionId());
+        answerDto.setQuestionId(answer.getQuestion().getUuid());
         answerDto.setAnswerType(QuestionTypes.MC.toString());
 
         if (showCorrectAnswer) {
@@ -149,13 +152,13 @@ public class AnswerServiceImpl implements AnswerService {
         answer.setHtml(answerDto.getHtml());
         answer.setCorrect(answerDto.getCorrect());
         answer.setAnswerOrder(answerDto.getAnswerOrder());
-        Optional<Question> question = questionRepository.findById(answerDto.getQuestionId());
+        Question question = questionRepository.findByUuid(answerDto.getQuestionId());
 
-        if (question.isEmpty()) {
+        if (question == null) {
             throw new DataServiceException("The question for the answer does not exist");
         }
 
-        answer.setQuestion(question.get());
+        answer.setQuestion(question);
 
         return answer;
     }
@@ -217,7 +220,7 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, UUID questionId, Long answerId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path(
                 "/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers/{answerId}")

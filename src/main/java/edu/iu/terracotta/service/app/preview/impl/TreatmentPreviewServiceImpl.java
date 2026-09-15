@@ -84,7 +84,7 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
                     .map(question -> QuestionSubmissionDto.builder()
                         .answerDtoList(answerService.findAllByQuestionIdMC(question.getQuestionId(), true))
                         .questionSubmissionId(questionSubmissionId.getAndIncrement())
-                        .questionId(question.getQuestionId())
+                        .questionId(question.getUuid())
                         .build()
                     )
                     .toList()

@@ -21,11 +21,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public interface QuestionService {
 
     List<QuestionDto> getQuestions(Long assessmentId);
     Question getQuestion(Long id);
+    Question getQuestionByUuid(UUID uuid) throws QuestionNotMatchingException;
     QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew)
         throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException,
         IntegrationNotFoundException, IntegrationClientNotFoundException;
@@ -40,7 +42,7 @@ public interface QuestionService {
     Question save(Question question);
     Question findByQuestionId(Long id);
     void deleteById(Long id) throws EmptyResultDataAccessException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID questionId);
     void validateQuestionType(QuestionDto questionDto) throws InvalidQuestionTypeException;
 
 }
