@@ -13,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -56,7 +58,17 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
 
     @PersistenceContext private EntityManager entityManager;
 
+    // TreatmentController.duplicateTreatment (unlike AssignmentController.duplicateAssignment,
+    // which wraps its whole request in @Transactional) has no transactional boundary of its own
+    // and relies solely on open-in-view to hold one Hibernate Session across this entire
+    // multi-step Treatment -> Assessment -> Question write chain. Declaring the transaction here,
+    // at the service layer, protects every caller (both controllers, and the loop in
+    // AssignmentServiceImpl.duplicateAssignment) consistently and atomically, regardless of
+    // which one started/joins it - a REQUIRED transaction here just joins the caller's existing
+    // one when there is one (e.g. AssignmentController's), so this is a no-op for that path and
+    // only adds a boundary where one was otherwise missing.
     @Override
+    @Transactional
     public TreatmentDto duplicateTreatment(long treatmentId, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
             ApiException, TreatmentNotMatchingException, QuestionNotMatchingException, TerracottaConnectorException {
@@ -64,6 +76,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     }
 
     @Override
+    @Transactional
     public TreatmentDto duplicateTreatment(long treatmentId, Assignment assignment, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, NumberFormatException,
             ApiException, TreatmentNotMatchingException, QuestionNotMatchingException, TerracottaConnectorException {
@@ -73,6 +86,19 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
             throw new DataServiceException("The treatment with the given ID does not exist");
         }
 
+        // findByTreatmentId queries by the @Id property, which Spring Data JPA/Hibernate can
+        // resolve as an uninitialized reference/proxy rather than a fully-loaded entity when
+        // this Treatment has not otherwise been touched in the current persistence context
+        // (e.g. a fresh transaction against already-committed data - the normal case in
+        // production, as opposed to a test that creates and duplicates data in one transaction).
+        // Detaching and mutating (including resetting the identifier) a still-proxied entity
+        // corrupts its identifier bookkeeping: the proxy keeps reporting its ORIGINAL id
+        // internally even after being re-persisted under a new one, which later throws
+        // Hibernate's "AssertionFailure: null identifier" when this object is used as a FK on a
+        // dependent entity's insert (e.g. the new Assessment/Question rows below) - see the
+        // identical fix/rationale in AssessmentServiceImpl.duplicateAssessment. Unproxying first
+        // guarantees we detach and mutate the real, fully-initialized entity.
+        from = (Treatment) Hibernate.unproxy(from);
         entityManager.detach(from);
 
         // reset ID and version - a non-zero, copied-over version makes Spring Data JPA's
