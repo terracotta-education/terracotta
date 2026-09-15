@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.ConditionDto;
 import edu.iu.terracotta.dao.model.dto.ExperimentDto;
 import edu.iu.terracotta.dao.model.dto.ExposureDto;
@@ -115,9 +117,29 @@ public class ExperimentServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetExperimentByUuidFound() throws Exception {
+        UUID uuid = experiment.getUuid();
+        when(experimentRepository.findByUuid(uuid)).thenReturn(experiment);
+
+        Experiment retVal = experimentService.getExperimentByUuid(uuid);
+
+        assertEquals(experiment, retVal);
+    }
+
+    @Test
+    public void testGetExperimentByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(experimentRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(ExperimentNotMatchingException.class, () -> experimentService.getExperimentByUuid(uuid));
+
+        assertTrue(exception.getMessage().startsWith("Error 108"));
+    }
+
+    @Test
     public void testPostExperimentSuccess() throws Exception {
         ExperimentDto experimentDto = ExperimentDto.builder()
-            .experimentId(1L)
+            .experimentId(UUID.randomUUID())
             .title("New Experiment")
             .exposureType("BETWEEN")
             .participationType("AUTO")
@@ -156,7 +178,7 @@ public class ExperimentServiceImplTest extends BaseTest {
 
     @Test
     public void testPostExperimentSyncExceptionSwallowed() throws Exception {
-        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(1L).title("New Experiment").build();
+        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(UUID.randomUUID()).title("New Experiment").build();
         when(ltiUserRepository.findFirstByUserIdAndPlatformDeployment_KeyId(anyLong(), anyLong())).thenReturn(ltiUserEntity);
         when(experimentRepository.save(any(Experiment.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new ApiException("fail")).when(participantAsyncService).updateParticipantData(any());
@@ -329,7 +351,7 @@ public class ExperimentServiceImplTest extends BaseTest {
     public void testToDtoBasicNoFlags() {
         ExperimentDto retVal = experimentService.toDto(experiment, false, false, false, securedInfo);
 
-        assertEquals(1L, retVal.getExperimentId());
+        assertEquals(experiment.getUuid(), retVal.getExperimentId());
         assertEquals("BETWEEN", retVal.getExposureType());
         assertEquals("AUTO", retVal.getParticipationType());
         assertEquals("EVEN", retVal.getDistributionType());
@@ -554,7 +576,7 @@ public class ExperimentServiceImplTest extends BaseTest {
         ExperimentDto retVal = experimentService.getEmptyExperiment(securedInfo, experimentDto);
 
         assertNotNull(retVal);
-        assertEquals(1L, retVal.getExperimentId());
+        assertEquals(experiment.getUuid(), retVal.getExperimentId());
     }
 
     @Test
@@ -593,10 +615,11 @@ public class ExperimentServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders retVal = experimentService.buildHeaders(UriComponentsBuilder.newInstance(), 5L);
+        UUID experimentUuid = UUID.randomUUID();
+        HttpHeaders retVal = experimentService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid);
 
         assertNotNull(retVal.getLocation());
-        assertTrue(retVal.getLocation().toString().contains("/api/experiment/5"));
+        assertTrue(retVal.getLocation().toString().contains("/api/experiment/" + experimentUuid));
     }
 
     @Test

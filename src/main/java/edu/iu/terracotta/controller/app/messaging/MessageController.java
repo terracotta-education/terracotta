@@ -24,6 +24,7 @@ import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
 import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.messaging.content.MessageContentDto;
 import edu.iu.terracotta.dao.model.dto.messaging.message.MessageDto;
@@ -57,13 +58,14 @@ public class MessageController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/messaging/container/{containerUuid}/message";
 
     private final ApiJwtService apiJwtService;
+    private final ExperimentService experimentService;
     private final MessageContentService contentService;
     private final MessageEmailService messageEmailService;
     private final MessagePreviewService previewService;
     private final MessageService messageService;
 
     @PutMapping("/{uuid}")
-    public ResponseEntity<MessageDto> put(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessageDto messageDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessageDto> put(@PathVariable("experimentId") UUID experimentUuid, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessageDto messageDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -72,8 +74,10 @@ public class MessageController {
 
         MessageContainer messageContainer;
         Message message;
+        long experimentId;
 
         try {
+            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
@@ -91,7 +95,7 @@ public class MessageController {
     }
 
     @GetMapping("/assignments")
-    public ResponseEntity<List<MessageRuleAssignmentDto>> getAssignments(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<List<MessageRuleAssignmentDto>> getAssignments(@PathVariable("experimentId") UUID experimentUuid, @PathVariable long exposureId, @PathVariable UUID containerUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -99,7 +103,11 @@ public class MessageController {
         }
 
         try {
+            experimentService.getExperimentByUuid(experimentUuid);
+
             return new ResponseEntity<>(messageService.getAssignments(securedInfo), HttpStatus.OK);
+        } catch (ExperimentNotMatchingException e) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (ApiException | TerracottaConnectorException | DataServiceException e) {
             log.error(e.getMessage(), e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -107,17 +115,18 @@ public class MessageController {
     }
 
     @PostMapping("/{uuid}/preview")
-    public ResponseEntity<MessagePreviewDto> preview(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessagePreviewDto messagePreviewDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessagePreviewDto> preview(@PathVariable("experimentId") UUID experimentUuid, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessagePreviewDto messagePreviewDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-
         Message message = null;
+        long experimentId;
 
         try {
+            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
@@ -135,7 +144,7 @@ public class MessageController {
     }
 
     @PostMapping("/{uuid}/sendtest")
-    public ResponseEntity<Void> sendTest(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessageSendTestDto messageSendTestDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<Void> sendTest(@PathVariable("experimentId") UUID experimentUuid, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessageSendTestDto messageSendTestDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -143,8 +152,10 @@ public class MessageController {
         }
 
         Message message = null;
+        long experimentId;
 
         try {
+            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
@@ -164,7 +175,7 @@ public class MessageController {
     }
 
     @PostMapping("/{messageUuid}/content/{uuid}/piped/file")
-    public ResponseEntity<MessageDto> pipedTextCsv(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID uuid, @RequestParam MultipartFile file, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessageDto> pipedTextCsv(@PathVariable("experimentId") UUID experimentUuid, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID uuid, @RequestParam MultipartFile file, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -172,8 +183,10 @@ public class MessageController {
         }
 
         Message message = null;
+        long experimentId;
 
         try {
+            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
@@ -192,7 +205,7 @@ public class MessageController {
     }
 
     @PostMapping("/{messageUuid}/content/{uuid}/piped/updatePlaceholders")
-    public ResponseEntity<MessageContentDto> updatePlaceholders(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID uuid, @RequestBody MessageContentDto contentDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessageContentDto> updatePlaceholders(@PathVariable("experimentId") UUID experimentUuid, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID uuid, @RequestBody MessageContentDto contentDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -200,8 +213,10 @@ public class MessageController {
         }
 
         MessageContent content;
+        long experimentId;
 
         try {
+            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);

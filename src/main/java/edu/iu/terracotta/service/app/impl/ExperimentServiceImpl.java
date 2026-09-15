@@ -42,6 +42,7 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
+import edu.iu.terracotta.utils.TextConstants;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -121,6 +123,12 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Override
     public Experiment getExperiment(long experimentId) {
         return experimentRepository.findByExperimentId(experimentId);
+    }
+
+    @Override
+    public Experiment getExperimentByUuid(UUID uuid) throws ExperimentNotMatchingException {
+        return Optional.ofNullable(experimentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING));
     }
 
     @Override
@@ -257,9 +265,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Override
     public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants, SecuredInfo securedInfo) {
         ExperimentDto experimentDto = new ExperimentDto();
-        experimentDto.setExperimentId(experiment.getExperimentId());
-        experimentDto.setContextId(experiment.getLtiContextEntity().getContextId());
-        experimentDto.setPlatformDeploymentId(experiment.getPlatformDeployment().getKeyId());
+        experimentDto.setExperimentId(experiment.getUuid());
         experimentDto.setTitle(experiment.getTitle());
         experimentDto.setDescription(experiment.getDescription());
         experimentDto.setExposureType(experiment.getExposureType().name());
@@ -367,8 +373,11 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException {
+        // experimentDto.getExperimentId() (now a uuid) is intentionally not set on a new
+        // Experiment here - the controller already rejects a create request that carries one
+        // (IdInPostException), and the real numeric id/uuid are both IDENTITY/@PrePersist
+        // generated at insert time regardless.
         Experiment experiment = new Experiment();
-        experiment.setExperimentId(experimentDto.getExperimentId());
         Optional<LtiContextEntity> ltiContextEntity = ltiContextRepository.findById(experimentDto.getContextId());
 
         if (ltiContextEntity.isEmpty()) {
@@ -470,7 +479,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiment/{id}").buildAndExpand(experimentId).toUri());
 

@@ -14,6 +14,7 @@ import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParameterMissingException;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.MediaService;
 
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 @Controller
@@ -39,9 +41,10 @@ public class MediaProfileController {
 
     private final MediaService mediaService;
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
 
     @PostMapping
-    public ResponseEntity postMediaEvent(@PathVariable long experimentId,
+    public ResponseEntity postMediaEvent(@PathVariable("experimentId") UUID experimentUuid,
                                          @PathVariable long conditionId,
                                          @PathVariable long treatmentId,
                                          @PathVariable long assessmentId,
@@ -52,6 +55,7 @@ public class MediaProfileController {
                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException,
             TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException, QuestionNotMatchingException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);

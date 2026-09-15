@@ -40,6 +40,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.Optional;
 
 @Slf4j
@@ -59,10 +60,11 @@ public class ConsentFileController {
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {AssignmentNotCreatedException.class, ApiException.class})
     public ResponseEntity<FileInfoDto> postConsent(@RequestParam("consent") MultipartFile file,
-                                                          @PathVariable long experimentId,
+                                                          @PathVariable("experimentId") UUID experimentUuid,
                                                           @RequestParam(defaultValue = "Invitation to Participate in a Research Study") String title,
                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException, AssignmentNotCreatedException, ApiException, AssignmentNotEditedException, AssignmentNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -78,7 +80,8 @@ public class ConsentFileController {
     }
 
     @GetMapping
-    public ResponseEntity<Resource> getConsent(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<Resource> getConsent(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -106,7 +109,8 @@ public class ConsentFileController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteConsent(@PathVariable long experimentId, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<Void> deleteConsent(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

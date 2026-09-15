@@ -29,7 +29,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public class MessageContentAttachmentControllerTest extends BaseTest {
 
-    private static final long EXPERIMENT_ID = 1L;
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
     private static final long EXPOSURE_ID = 2L;
 
     @Mock private MessageContentAttachmentService messageContentAttachmentService;
@@ -48,7 +48,7 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
         // ApiJwtService has multiple type-matching mocks in BaseServiceTest (e.g. canvasApiJwtService
         // also implements it), so @InjectMocks constructor resolution by type alone is unreliable;
         // construct the controller explicitly instead.
-        messageContentAttachmentController = new MessageContentAttachmentController(apiJwtService, messageContentAttachmentService);
+        messageContentAttachmentController = new MessageContentAttachmentController(apiJwtService, experimentService, messageContentAttachmentService);
         containerUuid = UUID.randomUUID();
         messageUuid = UUID.randomUUID();
         contentUuid = UUID.randomUUID();
@@ -56,13 +56,14 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(any(HttpServletRequest.class), eq(false))).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(apiJwtService.messagingContentAllowed(securedInfo, messageUuid, contentUuid)).thenReturn(messageContent);
+        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
     }
 
     @Test
     void testGetUnauthorizedWhenNotInstructor() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_ID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
+        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_UUID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(apiJwtService, never()).messagingContainerAllowed(any(), org.mockito.ArgumentMatchers.anyLong(), any());
@@ -72,7 +73,7 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
     void testGetUnauthorizedWhenContainerNotFound() throws Exception {
         doThrow(new MessageContainerNotFoundException("container not found")).when(apiJwtService).messagingContainerAllowed(securedInfo, EXPOSURE_ID, containerUuid);
 
-        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_ID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
+        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_UUID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -81,7 +82,7 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
     void testGetUnauthorizedWhenMessageNotFound() throws Exception {
         doThrow(new MessageNotFoundException("message not found")).when(apiJwtService).messagingAllowed(securedInfo, containerUuid, messageUuid);
 
-        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_ID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
+        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_UUID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -90,7 +91,7 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
     void testGetUnauthorizedWhenContentNotMatching() throws Exception {
         when(apiJwtService.messagingContentAllowed(securedInfo, messageUuid, contentUuid)).thenThrow(new MessageContentNotMatchingException("content not matching"));
 
-        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_ID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
+        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_UUID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -100,7 +101,7 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
         List<MessageContentAttachmentDto> attachments = List.of(new MessageContentAttachmentDto());
         when(messageContentAttachmentService.get(messageContent)).thenReturn(attachments);
 
-        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_ID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
+        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_UUID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(attachments, response.getBody());
@@ -110,7 +111,7 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
     void testGetReturnsBadRequestOnServiceException() throws Exception {
         when(messageContentAttachmentService.get(messageContent)).thenThrow(new RuntimeException("boom"));
 
-        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_ID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
+        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_UUID, EXPOSURE_ID, containerUuid, messageUuid, contentUuid, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }

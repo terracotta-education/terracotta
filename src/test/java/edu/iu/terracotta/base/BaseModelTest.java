@@ -320,6 +320,7 @@ public class BaseModelTest {
             when(experiment.getParticipants()).thenReturn(Collections.singletonList(participant));
             when(experiment.getParticipationType()).thenReturn(ParticipationTypes.AUTO);
             when(experiment.getPlatformDeployment()).thenReturn(platformDeployment);
+            when(experiment.getUuid()).thenReturn(UUID.randomUUID());
             when(experimentImport.getId()).thenReturn(1L);
             when(exposure.getExperiment()).thenReturn(experiment);
             when(exposure.getExposureId()).thenReturn(1L);

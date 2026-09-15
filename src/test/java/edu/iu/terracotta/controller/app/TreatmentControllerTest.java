@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public class TreatmentControllerTest extends BaseTest {
 
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
     private TreatmentController treatmentController;
 
     @BeforeEach
@@ -40,20 +43,21 @@ public class TreatmentControllerTest extends BaseTest {
         MockitoAnnotations.openMocks(this);
         setup();
 
-        treatmentController = new TreatmentController(apiJwtService, assignmentTreatmentService, treatmentService);
+        treatmentController = new TreatmentController(apiJwtService, experimentService, assignmentTreatmentService, treatmentService);
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(treatmentDto.getTreatmentId()).thenReturn(1L);
         when(treatmentService.getTreatment(anyLong())).thenReturn(treatment);
+        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
     }
 
     @Test
     void allTreatmentsByConditionTest() throws Exception {
         when(treatmentService.getTreatments(anyLong(), anyBoolean(), any(SecuredInfo.class))).thenReturn(List.of(treatmentDto));
 
-        ResponseEntity<List<TreatmentDto>> ret = treatmentController.allTreatmentsByCondition(1L, 1L, false, httpServletRequest);
+        ResponseEntity<List<TreatmentDto>> ret = treatmentController.allTreatmentsByCondition(EXPERIMENT_UUID, 1L, false, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(1, ret.getBody().size());
@@ -63,7 +67,7 @@ public class TreatmentControllerTest extends BaseTest {
     void allTreatmentsByConditionNoContentTest() throws Exception {
         when(treatmentService.getTreatments(anyLong(), anyBoolean(), any(SecuredInfo.class))).thenReturn(Collections.emptyList());
 
-        ResponseEntity<List<TreatmentDto>> ret = treatmentController.allTreatmentsByCondition(1L, 1L, false, httpServletRequest);
+        ResponseEntity<List<TreatmentDto>> ret = treatmentController.allTreatmentsByCondition(EXPERIMENT_UUID, 1L, false, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, ret.getStatusCode());
     }
@@ -72,7 +76,7 @@ public class TreatmentControllerTest extends BaseTest {
     void allTreatmentsByConditionUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<TreatmentDto>> ret = treatmentController.allTreatmentsByCondition(1L, 1L, false, httpServletRequest);
+        ResponseEntity<List<TreatmentDto>> ret = treatmentController.allTreatmentsByCondition(EXPERIMENT_UUID, 1L, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -81,12 +85,12 @@ public class TreatmentControllerTest extends BaseTest {
     void allTreatmentsByConditionExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("experiment not matching")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
-        assertThrows(ExperimentNotMatchingException.class, () -> treatmentController.allTreatmentsByCondition(1L, 1L, false, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> treatmentController.allTreatmentsByCondition(EXPERIMENT_UUID, 1L, false, httpServletRequest));
     }
 
     @Test
     void getTreatmentTest() throws Exception {
-        ResponseEntity<TreatmentDto> ret = treatmentController.getTreatment(1L, 1L, 1L, false, httpServletRequest);
+        ResponseEntity<TreatmentDto> ret = treatmentController.getTreatment(EXPERIMENT_UUID, 1L, 1L, false, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(treatmentDto, ret.getBody());
@@ -96,7 +100,7 @@ public class TreatmentControllerTest extends BaseTest {
     void getTreatmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<TreatmentDto> ret = treatmentController.getTreatment(1L, 1L, 1L, false, httpServletRequest);
+        ResponseEntity<TreatmentDto> ret = treatmentController.getTreatment(EXPERIMENT_UUID, 1L, 1L, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -105,7 +109,7 @@ public class TreatmentControllerTest extends BaseTest {
     void getTreatmentNotMatchingTest() throws Exception {
         doThrow(new TreatmentNotMatchingException("treatment not matching")).when(apiJwtService).treatmentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        assertThrows(TreatmentNotMatchingException.class, () -> treatmentController.getTreatment(1L, 1L, 1L, false, httpServletRequest));
+        assertThrows(TreatmentNotMatchingException.class, () -> treatmentController.getTreatment(EXPERIMENT_UUID, 1L, 1L, false, httpServletRequest));
     }
 
     @Test
@@ -113,7 +117,7 @@ public class TreatmentControllerTest extends BaseTest {
         when(treatmentService.postTreatment(any(TreatmentDto.class), anyLong(), any(SecuredInfo.class))).thenReturn(treatmentDto);
         when(treatmentService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), anyLong())).thenReturn(new HttpHeaders());
 
-        ResponseEntity<TreatmentDto> ret = treatmentController.postTreatment(1L, 1L, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<TreatmentDto> ret = treatmentController.postTreatment(EXPERIMENT_UUID, 1L, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(treatmentDto, ret.getBody());
@@ -123,7 +127,7 @@ public class TreatmentControllerTest extends BaseTest {
     void postTreatmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<TreatmentDto> ret = treatmentController.postTreatment(1L, 1L, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<TreatmentDto> ret = treatmentController.postTreatment(EXPERIMENT_UUID, 1L, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -133,21 +137,21 @@ public class TreatmentControllerTest extends BaseTest {
     void postTreatmentConditionNotMatchingTest() throws Exception {
         doThrow(new ConditionNotMatchingException("condition not matching")).when(apiJwtService).conditionAllowed(any(SecuredInfo.class), anyLong(), anyLong());
 
-        assertThrows(ConditionNotMatchingException.class, () -> treatmentController.postTreatment(1L, 1L, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest));
+        assertThrows(ConditionNotMatchingException.class, () -> treatmentController.postTreatment(EXPERIMENT_UUID, 1L, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest));
     }
 
     @Test
     void postTreatmentIdInPostTest() throws Exception {
         doThrow(new IdInPostException("id in post")).when(treatmentService).postTreatment(any(TreatmentDto.class), anyLong(), any(SecuredInfo.class));
 
-        assertThrows(IdInPostException.class, () -> treatmentController.postTreatment(1L, 1L, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest));
+        assertThrows(IdInPostException.class, () -> treatmentController.postTreatment(EXPERIMENT_UUID, 1L, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest));
     }
 
     @Test
     void updateTreatmentTest() throws Exception {
         when(treatmentService.putTreatment(any(TreatmentDto.class), anyLong(), any(SecuredInfo.class), anyBoolean())).thenReturn(treatmentDto);
 
-        ResponseEntity<Void> ret = treatmentController.updateTreatment(1L, 1L, 1L, treatmentDto, true, httpServletRequest);
+        ResponseEntity<Void> ret = treatmentController.updateTreatment(EXPERIMENT_UUID, 1L, 1L, treatmentDto, true, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(treatmentDto, ret.getBody());
@@ -157,7 +161,7 @@ public class TreatmentControllerTest extends BaseTest {
     void updateTreatmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<Void> ret = treatmentController.updateTreatment(1L, 1L, 1L, treatmentDto, true, httpServletRequest);
+        ResponseEntity<Void> ret = treatmentController.updateTreatment(EXPERIMENT_UUID, 1L, 1L, treatmentDto, true, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -167,12 +171,12 @@ public class TreatmentControllerTest extends BaseTest {
     void updateTreatmentNotMatchingTest() throws Exception {
         doThrow(new TreatmentNotMatchingException("treatment not matching")).when(apiJwtService).treatmentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        assertThrows(TreatmentNotMatchingException.class, () -> treatmentController.updateTreatment(1L, 1L, 1L, treatmentDto, true, httpServletRequest));
+        assertThrows(TreatmentNotMatchingException.class, () -> treatmentController.updateTreatment(EXPERIMENT_UUID, 1L, 1L, treatmentDto, true, httpServletRequest));
     }
 
     @Test
     void deleteTreatmentTest() throws Exception {
-        ResponseEntity<Void> ret = treatmentController.deleteTreatment(1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = treatmentController.deleteTreatment(EXPERIMENT_UUID, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -181,7 +185,7 @@ public class TreatmentControllerTest extends BaseTest {
     void deleteTreatmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<Void> ret = treatmentController.deleteTreatment(1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = treatmentController.deleteTreatment(EXPERIMENT_UUID, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -191,7 +195,7 @@ public class TreatmentControllerTest extends BaseTest {
     void deleteTreatmentNotFoundTest() throws Exception {
         doThrow(new EmptyResultDataAccessException(1)).when(treatmentService).deleteById(anyLong());
 
-        ResponseEntity<Void> ret = treatmentController.deleteTreatment(1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = treatmentController.deleteTreatment(EXPERIMENT_UUID, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }
@@ -200,7 +204,7 @@ public class TreatmentControllerTest extends BaseTest {
     void deleteTreatmentExperimentLockedTest() throws Exception {
         doThrow(new ExperimentLockedException("experiment locked")).when(apiJwtService).experimentLocked(anyLong(), anyBoolean());
 
-        assertThrows(ExperimentLockedException.class, () -> treatmentController.deleteTreatment(1L, 1L, 1L, httpServletRequest));
+        assertThrows(ExperimentLockedException.class, () -> treatmentController.deleteTreatment(EXPERIMENT_UUID, 1L, 1L, httpServletRequest));
     }
 
     @Test
@@ -208,7 +212,7 @@ public class TreatmentControllerTest extends BaseTest {
         when(assignmentTreatmentService.duplicateTreatment(anyLong(), any(SecuredInfo.class))).thenReturn(treatmentDto);
         when(treatmentService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), anyLong())).thenReturn(new HttpHeaders());
 
-        ResponseEntity<TreatmentDto> ret = treatmentController.duplicateTreatment(1L, 1L, 1L, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<TreatmentDto> ret = treatmentController.duplicateTreatment(EXPERIMENT_UUID, 1L, 1L, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(treatmentDto, ret.getBody());
@@ -218,7 +222,7 @@ public class TreatmentControllerTest extends BaseTest {
     void duplicateTreatmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<TreatmentDto> ret = treatmentController.duplicateTreatment(1L, 1L, 1L, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<TreatmentDto> ret = treatmentController.duplicateTreatment(EXPERIMENT_UUID, 1L, 1L, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -228,7 +232,7 @@ public class TreatmentControllerTest extends BaseTest {
     void duplicateTreatmentExperimentLockedTest() throws Exception {
         doThrow(new ExperimentLockedException("experiment locked")).when(apiJwtService).experimentLocked(anyLong(), anyBoolean());
 
-        assertThrows(ExperimentLockedException.class, () -> treatmentController.duplicateTreatment(1L, 1L, 1L, UriComponentsBuilder.newInstance(), httpServletRequest));
+        assertThrows(ExperimentLockedException.class, () -> treatmentController.duplicateTreatment(EXPERIMENT_UUID, 1L, 1L, UriComponentsBuilder.newInstance(), httpServletRequest));
     }
 
 }

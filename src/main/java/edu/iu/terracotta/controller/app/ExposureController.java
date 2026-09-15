@@ -12,6 +12,7 @@ import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.http.HttpHeaders;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
 import java.util.List;
 
 @Slf4j
@@ -46,10 +48,12 @@ public class ExposureController {
 
     private final ExposureService exposureService;
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
 
     @GetMapping
-    public ResponseEntity<List<ExposureDto>> allExposuresByExperiment(@PathVariable long experimentId, HttpServletRequest req)
+    public ResponseEntity<List<ExposureDto>> allExposuresByExperiment(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -67,10 +71,11 @@ public class ExposureController {
     }
 
     @GetMapping("/{exposureId}")
-    public ResponseEntity<ExposureDto> getExposure(@PathVariable long experimentId,
+    public ResponseEntity<ExposureDto> getExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                    @PathVariable long exposureId,
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -85,11 +90,12 @@ public class ExposureController {
     }
 
     @PostMapping
-    public ResponseEntity<ExposureDto> postExposure(@PathVariable long experimentId,
+    public ResponseEntity<ExposureDto> postExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                     @RequestBody ExposureDto exposureDto,
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         log.debug("Creating Exposure for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -106,9 +112,10 @@ public class ExposureController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Void> createExposures(@PathVariable long experimentId, HttpServletRequest req)
+    public ResponseEntity<Void> createExposures(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, DataServiceException, ExperimentStartedException, NumberFormatException, TerracottaConnectorException {
 
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);
@@ -123,12 +130,13 @@ public class ExposureController {
     }
 
     @PutMapping("/{exposureId}")
-    public ResponseEntity<Void> updateExposure(@PathVariable long experimentId,
+    public ResponseEntity<Void> updateExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable long exposureId,
                                                @RequestBody ExposureDto exposureDto,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
         log.debug("Updating exposure with id {}", exposureId);
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -143,10 +151,11 @@ public class ExposureController {
     }
 
     @DeleteMapping("/{exposureId}")
-    public ResponseEntity<Void> deleteExposure(@PathVariable long experimentId,
+    public ResponseEntity<Void> deleteExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable long exposureId,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, ExperimentLockedException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);

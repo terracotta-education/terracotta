@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,8 @@ public class SubmissionCommentControllerTest extends BaseTest {
     @Mock private SubmissionCommentService submissionCommentService;
     @Mock private SubmissionCommentDto submissionCommentDto;
 
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
     private SubmissionCommentController submissionCommentController;
 
     @BeforeEach
@@ -51,19 +54,20 @@ public class SubmissionCommentControllerTest extends BaseTest {
         MockitoAnnotations.openMocks(this);
         setup();
 
-        submissionCommentController = new SubmissionCommentController(ltiUserRepository, apiJwtService, submissionService, submissionCommentService);
+        submissionCommentController = new SubmissionCommentController(ltiUserRepository, apiJwtService, experimentService, submissionService, submissionCommentService);
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(submissionCommentDto.getSubmissionCommentId()).thenReturn(1L);
+        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
     }
 
     @Test
     void getSubmissionCommentsBySubmissionTest() throws Exception {
         when(submissionCommentService.getSubmissionComments(anyLong())).thenReturn(List.of(submissionCommentDto));
 
-        ResponseEntity<List<SubmissionCommentDto>> ret = submissionCommentController.getSubmissionCommentsBySubmission(1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<List<SubmissionCommentDto>> ret = submissionCommentController.getSubmissionCommentsBySubmission(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(1, ret.getBody().size());
@@ -73,7 +77,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void getSubmissionCommentsBySubmissionNoContentTest() throws Exception {
         when(submissionCommentService.getSubmissionComments(anyLong())).thenReturn(Collections.emptyList());
 
-        ResponseEntity<List<SubmissionCommentDto>> ret = submissionCommentController.getSubmissionCommentsBySubmission(1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<List<SubmissionCommentDto>> ret = submissionCommentController.getSubmissionCommentsBySubmission(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, ret.getStatusCode());
     }
@@ -82,7 +86,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void getSubmissionCommentsBySubmissionUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<SubmissionCommentDto>> ret = submissionCommentController.getSubmissionCommentsBySubmission(1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<List<SubmissionCommentDto>> ret = submissionCommentController.getSubmissionCommentsBySubmission(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -93,7 +97,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         when(submissionCommentService.getSubmissionComments(anyLong())).thenReturn(List.of(submissionCommentDto));
 
-        ResponseEntity<List<SubmissionCommentDto>> ret = submissionCommentController.getSubmissionCommentsBySubmission(1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<List<SubmissionCommentDto>> ret = submissionCommentController.getSubmissionCommentsBySubmission(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
@@ -104,14 +108,14 @@ public class SubmissionCommentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         doThrow(new InvalidUserException("invalid user")).when(submissionService).validateUser(anyLong(), anyString(), anyLong());
 
-        assertThrows(InvalidUserException.class, () -> submissionCommentController.getSubmissionCommentsBySubmission(1L, 1L, 1L, 1L, 1L, httpServletRequest));
+        assertThrows(InvalidUserException.class, () -> submissionCommentController.getSubmissionCommentsBySubmission(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, httpServletRequest));
     }
 
     @Test
     void getSubmissionCommentsBySubmissionExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("experiment not matching")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
-        assertThrows(ExperimentNotMatchingException.class, () -> submissionCommentController.getSubmissionCommentsBySubmission(1L, 1L, 1L, 1L, 1L, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> submissionCommentController.getSubmissionCommentsBySubmission(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, httpServletRequest));
     }
 
     @Test
@@ -120,7 +124,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
         when(submissionCommentService.getSubmissionComment(anyLong())).thenReturn(entity);
         when(submissionCommentService.toDto(entity)).thenReturn(submissionCommentDto);
 
-        ResponseEntity<SubmissionCommentDto> ret = submissionCommentController.getSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<SubmissionCommentDto> ret = submissionCommentController.getSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(submissionCommentDto, ret.getBody());
@@ -130,7 +134,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void getSubmissionCommentUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<SubmissionCommentDto> ret = submissionCommentController.getSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<SubmissionCommentDto> ret = submissionCommentController.getSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -139,7 +143,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void getSubmissionCommentNotMatchingTest() throws Exception {
         doThrow(new SubmissionCommentNotMatchingException("comment not matching")).when(apiJwtService).submissionCommentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        assertThrows(SubmissionCommentNotMatchingException.class, () -> submissionCommentController.getSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest));
+        assertThrows(SubmissionCommentNotMatchingException.class, () -> submissionCommentController.getSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, httpServletRequest));
     }
 
     @Test
@@ -147,7 +151,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
         when(submissionCommentService.postSubmissionComment(any(SubmissionCommentDto.class), anyLong(), any(SecuredInfo.class))).thenReturn(submissionCommentDto);
         when(submissionCommentService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(new HttpHeaders());
 
-        ResponseEntity<SubmissionCommentDto> ret = submissionCommentController.postSubmissionComment(1L, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<SubmissionCommentDto> ret = submissionCommentController.postSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(submissionCommentDto, ret.getBody());
@@ -157,7 +161,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void postSubmissionCommentUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<SubmissionCommentDto> ret = submissionCommentController.postSubmissionComment(1L, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<SubmissionCommentDto> ret = submissionCommentController.postSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -169,7 +173,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
         when(submissionCommentService.postSubmissionComment(any(SubmissionCommentDto.class), anyLong(), any(SecuredInfo.class))).thenReturn(submissionCommentDto);
         when(submissionCommentService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(new HttpHeaders());
 
-        submissionCommentController.postSubmissionComment(1L, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        submissionCommentController.postSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
     }
@@ -178,14 +182,14 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void postSubmissionCommentIdInPostTest() throws Exception {
         doThrow(new IdInPostException("id in post")).when(submissionCommentService).postSubmissionComment(any(SubmissionCommentDto.class), anyLong(), any(SecuredInfo.class));
 
-        assertThrows(IdInPostException.class, () -> submissionCommentController.postSubmissionComment(1L, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest));
+        assertThrows(IdInPostException.class, () -> submissionCommentController.postSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest));
     }
 
     @Test
     void postSubmissionCommentAssessmentNotMatchingTest() throws Exception {
         doThrow(new AssessmentNotMatchingException("assessment not matching")).when(apiJwtService).assessmentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong(), anyLong());
 
-        assertThrows(AssessmentNotMatchingException.class, () -> submissionCommentController.postSubmissionComment(1L, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest));
+        assertThrows(AssessmentNotMatchingException.class, () -> submissionCommentController.postSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, submissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest));
     }
 
     @Test
@@ -194,7 +198,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
         when(submissionCommentService.getSubmissionComment(anyLong())).thenReturn(entity);
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
 
-        ResponseEntity<Void> ret = submissionCommentController.updateSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, submissionCommentDto, httpServletRequest);
+        ResponseEntity<Void> ret = submissionCommentController.updateSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, submissionCommentDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         verify(submissionCommentService, times(1)).updateSubmissionComment(entity, submissionCommentDto);
@@ -206,7 +210,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
         when(submissionCommentService.getSubmissionComment(anyLong())).thenReturn(entity);
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(anyString(), anyLong())).thenReturn(ltiUserEntity);
 
-        ResponseEntity<Void> ret = submissionCommentController.updateSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, submissionCommentDto, httpServletRequest);
+        ResponseEntity<Void> ret = submissionCommentController.updateSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, submissionCommentDto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         verify(submissionCommentService, never()).updateSubmissionComment(any(), any());
@@ -216,7 +220,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void updateSubmissionCommentUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<Void> ret = submissionCommentController.updateSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, submissionCommentDto, httpServletRequest);
+        ResponseEntity<Void> ret = submissionCommentController.updateSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, submissionCommentDto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         verify(submissionCommentService, never()).updateSubmissionComment(any(), any());
@@ -226,12 +230,12 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void updateSubmissionCommentNotMatchingTest() throws Exception {
         doThrow(new SubmissionCommentNotMatchingException("comment not matching")).when(apiJwtService).submissionCommentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        assertThrows(SubmissionCommentNotMatchingException.class, () -> submissionCommentController.updateSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, submissionCommentDto, httpServletRequest));
+        assertThrows(SubmissionCommentNotMatchingException.class, () -> submissionCommentController.updateSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, submissionCommentDto, httpServletRequest));
     }
 
     @Test
     void deleteSubmissionCommentTest() throws Exception {
-        ResponseEntity<Void> ret = submissionCommentController.deleteSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = submissionCommentController.deleteSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -240,7 +244,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void deleteSubmissionCommentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<Void> ret = submissionCommentController.deleteSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = submissionCommentController.deleteSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -250,7 +254,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void deleteSubmissionCommentNotFoundTest() throws Exception {
         doThrow(new EmptyResultDataAccessException(1)).when(submissionCommentService).deleteById(anyLong());
 
-        ResponseEntity<Void> ret = submissionCommentController.deleteSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = submissionCommentController.deleteSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }
@@ -259,7 +263,7 @@ public class SubmissionCommentControllerTest extends BaseTest {
     void deleteSubmissionCommentAssessmentNotMatchingTest() throws Exception {
         doThrow(new AssessmentNotMatchingException("assessment not matching")).when(apiJwtService).assessmentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong(), anyLong());
 
-        assertThrows(AssessmentNotMatchingException.class, () -> submissionCommentController.deleteSubmissionComment(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest));
+        assertThrows(AssessmentNotMatchingException.class, () -> submissionCommentController.deleteSubmissionComment(EXPERIMENT_UUID, 1L, 1L, 1L, 1L, 1L, httpServletRequest));
     }
 
 }

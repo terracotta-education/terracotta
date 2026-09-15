@@ -18,6 +18,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.exceptions.NegativePointsException;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,14 +57,16 @@ public class QuestionController {
 
     private final QuestionService questionService;
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
 
     @GetMapping
-    public ResponseEntity<List<QuestionDto>> getQuestionsByAssessment(@PathVariable long experimentId,
+    public ResponseEntity<List<QuestionDto>> getQuestionsByAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                                       @PathVariable long conditionId,
                                                                       @PathVariable long treatmentId,
                                                                       @PathVariable long assessmentId,
                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -81,7 +85,7 @@ public class QuestionController {
     }
 
     @GetMapping("/{questionId}")
-    public ResponseEntity<QuestionDto> getQuestion(@PathVariable long experimentId,
+    public ResponseEntity<QuestionDto> getQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                    @PathVariable long conditionId,
                                                    @PathVariable long treatmentId,
                                                    @PathVariable long assessmentId,
@@ -89,6 +93,7 @@ public class QuestionController {
                                                    @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -104,7 +109,7 @@ public class QuestionController {
     }
 
     @PostMapping
-    public ResponseEntity<QuestionDto> postQuestion(@PathVariable long experimentId,
+    public ResponseEntity<QuestionDto> postQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                     @PathVariable long conditionId,
                                                     @PathVariable long treatmentId,
                                                     @PathVariable long assessmentId,
@@ -114,6 +119,7 @@ public class QuestionController {
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, MultipleChoiceLimitReachedException,
             IntegrationNotFoundException, IntegrationClientNotFoundException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         log.debug("Creating Question for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -130,13 +136,14 @@ public class QuestionController {
     }
 
     @PutMapping
-    public ResponseEntity<Void> updateQuestions(@PathVariable long experimentId,
+    public ResponseEntity<Void> updateQuestions(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable long conditionId,
                                                 @PathVariable long treatmentId,
                                                 @PathVariable long assessmentId,
                                                 @RequestBody List<QuestionDto> questionDtoList,
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, DataServiceException, NumberFormatException, TerracottaConnectorException  {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -163,7 +170,7 @@ public class QuestionController {
     }
 
     @PutMapping("/{questionId}")
-    public ResponseEntity<Void> updateQuestion(@PathVariable long experimentId,
+    public ResponseEntity<Void> updateQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable long conditionId,
                                                @PathVariable long treatmentId,
                                                @PathVariable long assessmentId,
@@ -172,6 +179,7 @@ public class QuestionController {
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NegativePointsException, IntegrationNotFoundException,
                 IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         log.debug("Updating question with id: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -191,13 +199,14 @@ public class QuestionController {
     }
 
     @DeleteMapping("/{questionId}")
-    public ResponseEntity<Void> deleteQuestion(@PathVariable long experimentId,
+    public ResponseEntity<Void> deleteQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable long conditionId,
                                                @PathVariable long treatmentId,
                                                @PathVariable long assessmentId,
                                                @PathVariable long questionId,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -218,13 +227,14 @@ public class QuestionController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteQuestions(@PathVariable long experimentId,
+    public ResponseEntity<Void> deleteQuestions(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable long conditionId,
                                                @PathVariable long treatmentId,
                                                @PathVariable long assessmentId,
                                                @RequestBody List<QuestionDto> questionDtoList,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);

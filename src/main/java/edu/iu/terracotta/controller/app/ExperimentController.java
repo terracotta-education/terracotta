@@ -39,6 +39,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Controller
@@ -85,20 +86,21 @@ public class ExperimentController {
      * @throws NumberFormatException
     */
     @GetMapping("/{id}")
-    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable long id,
+    public ResponseEntity<ExperimentDto> getExperiment(@PathVariable UUID id,
                                                     @RequestParam(name = "conditions", defaultValue = "false") boolean conditions,
                                                     @RequestParam(name = "exposures", defaultValue = "false") boolean exposures,
                                                     @RequestParam(name = "participants", defaultValue = "false") boolean participants,
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securedInfo, id);
+        long experimentId = experimentService.getExperimentByUuid(id).getExperimentId();
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        ExperimentDto experimentDto = experimentService.toDto(experimentService.getExperiment(id), conditions, exposures, participants, securedInfo);
+        ExperimentDto experimentDto = experimentService.toDto(experimentService.getExperiment(experimentId), conditions, exposures, participants, securedInfo);
 
         return new ResponseEntity<>(experimentDto, HttpStatus.OK);
     }
@@ -144,38 +146,40 @@ public class ExperimentController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateExperiment(@PathVariable long id,
+    public ResponseEntity<Void> updateExperiment(@PathVariable UUID id,
                                                  @RequestBody ExperimentDto experimentDto,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException, ParticipantNotUpdatedException,
                     DataServiceException, ExperimentStartedException, IOException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating Experiment with id {}", id);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securedInfo, id);
+        long experimentId = experimentService.getExperimentByUuid(id).getExperimentId();
+        log.debug("Updating Experiment with id {}", experimentId);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        experimentService.updateExperiment(id, securedInfo.getContextId(), experimentDto, securedInfo);
+        experimentService.updateExperiment(experimentId, securedInfo.getContextId(), experimentDto, securedInfo);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteExperiment(@PathVariable long id,
+    public ResponseEntity<Void> deleteExperiment(@PathVariable UUID id,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IOException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securedInfo, id);
-        apijwtService.experimentLocked(id,true);
+        long experimentId = experimentService.getExperimentByUuid(id).getExperimentId();
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.experimentLocked(experimentId,true);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
         try {
-            experimentService.deleteById(id, securedInfo);
+            experimentService.deleteById(experimentId, securedInfo);
         } catch (EmptyResultDataAccessException ex) {
             log.warn(ex.getMessage());
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

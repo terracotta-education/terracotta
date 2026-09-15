@@ -10,6 +10,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -27,6 +29,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public class ResultsDashboardControllerTest extends BaseTest {
 
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
     @Mock private ResultsDashboardService resultsDashboardService;
 
     private ResultsDashboardController resultsDashboardController;
@@ -40,9 +44,10 @@ public class ResultsDashboardControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        resultsDashboardController = new ResultsDashboardController(apiJwtService, resultsDashboardService);
+        resultsDashboardController = new ResultsDashboardController(apiJwtService, experimentService, resultsDashboardService);
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), anyBoolean())).thenReturn(securedInfo);
+        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
     }
 
     @Test
@@ -51,7 +56,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
         ResultsDashboardDto dto = ResultsDashboardDto.builder().experimentId(1L).build();
         when(resultsDashboardService.overview(1L, securedInfo)).thenReturn(dto);
 
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(1L, httpServletRequest);
+        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1L, response.getBody().getExperimentId());
@@ -61,7 +66,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
     void getOverviewUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(1L, httpServletRequest);
+        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(resultsDashboardService, never()).overview(anyLong(), any(SecuredInfo.class));
@@ -72,7 +77,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(resultsDashboardService.overview(1L, securedInfo)).thenThrow(new RuntimeException("boom"));
 
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(1L, httpServletRequest);
+        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -81,7 +86,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
     void getOverviewExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("no match")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> resultsDashboardController.getOverview(1L, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> resultsDashboardController.getOverview(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
@@ -90,7 +95,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
         ResultsDashboardDto dto = ResultsDashboardDto.builder().experimentId(1L).build();
         when(resultsDashboardService.outcomes(1L, resultsOutcomesRequestDto)).thenReturn(dto);
 
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(1L, resultsOutcomesRequestDto, httpServletRequest);
+        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(EXPERIMENT_UUID, resultsOutcomesRequestDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1L, response.getBody().getExperimentId());
@@ -100,7 +105,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
     void postComparisonUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(1L, resultsOutcomesRequestDto, httpServletRequest);
+        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(EXPERIMENT_UUID, resultsOutcomesRequestDto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -110,7 +115,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(resultsDashboardService.outcomes(1L, resultsOutcomesRequestDto)).thenThrow(new RuntimeException("boom"));
 
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(1L, resultsOutcomesRequestDto, httpServletRequest);
+        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(EXPERIMENT_UUID, resultsOutcomesRequestDto, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -119,7 +124,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
     void postComparisonBadTokenTest() throws Exception {
         doThrow(new BadTokenException("bad token")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(BadTokenException.class, () -> resultsDashboardController.postComparison(1L, resultsOutcomesRequestDto, httpServletRequest));
+        assertThrows(BadTokenException.class, () -> resultsDashboardController.postComparison(EXPERIMENT_UUID, resultsOutcomesRequestDto, httpServletRequest));
     }
 
 }

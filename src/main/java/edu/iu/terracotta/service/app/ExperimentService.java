@@ -18,11 +18,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 public interface ExperimentService {
 
     List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms) throws ConnectionException, TerracottaConnectorException;
     Experiment getExperiment(long experimentId);
+    Experiment getExperimentByUuid(UUID uuid) throws ExperimentNotMatchingException;
     ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException;
     void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException;
     ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants, SecuredInfo securedInfo);
@@ -32,7 +34,7 @@ public interface ExperimentService {
     void deleteConsentDocument(ConsentDocument consentDocument);
     ExperimentDto getEmptyExperiment(SecuredInfo securedInfo, ExperimentDto experimentDto);
     void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto);
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId);
     void validateTitle(String title, long contextId) throws TitleValidationException;
 
 }

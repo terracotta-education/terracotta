@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,10 @@ import edu.iu.terracotta.exceptions.WrongValueException;
 
 public class ExperimentControllerTest extends BaseTest {
 
+    // the uuid path variable for the one experiment under test; experiment.getExperimentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
     private ExperimentController experimentController;
 
     @BeforeEach
@@ -48,6 +53,7 @@ public class ExperimentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
         when(apiJwtService.experimentLocked(anyLong(), anyBoolean())).thenReturn(false);
+        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
     }
 
     @Test
@@ -79,7 +85,7 @@ public class ExperimentControllerTest extends BaseTest {
     @Test
     void allExperimentsByCourseSuccessTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
-        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(1L).title("experiment").build();
+        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(UUID.randomUUID()).title("experiment").build();
         when(experimentService.getExperiments(securedInfo, true)).thenReturn(List.of(experimentDto));
 
         ResponseEntity<List<ExperimentDto>> ret = experimentController.allExperimentsByCourse(httpServletRequest);
@@ -92,14 +98,14 @@ public class ExperimentControllerTest extends BaseTest {
     void getExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> experimentController.getExperiment(1L, false, false, false, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> experimentController.getExperiment(EXPERIMENT_UUID, false, false, false, httpServletRequest));
     }
 
     @Test
     void getExperimentUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ExperimentDto> ret = experimentController.getExperiment(1L, false, false, false, httpServletRequest);
+        ResponseEntity<ExperimentDto> ret = experimentController.getExperiment(EXPERIMENT_UUID, false, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -107,11 +113,11 @@ public class ExperimentControllerTest extends BaseTest {
     @Test
     void getExperimentSuccessTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
-        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(1L).title("experiment").build();
+        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(UUID.randomUUID()).title("experiment").build();
         when(experimentService.getExperiment(1L)).thenReturn(experiment);
         when(experimentService.toDto(experiment, true, true, true, securedInfo)).thenReturn(experimentDto);
 
-        ResponseEntity<ExperimentDto> ret = experimentController.getExperiment(1L, true, true, true, httpServletRequest);
+        ResponseEntity<ExperimentDto> ret = experimentController.getExperiment(EXPERIMENT_UUID, true, true, true, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(experimentDto, ret.getBody());
@@ -151,7 +157,7 @@ public class ExperimentControllerTest extends BaseTest {
     @Test
     void postExperimentIdInPostTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(1L).title("new experiment").build();
+        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(UUID.randomUUID()).title("new experiment").build();
 
         assertThrows(
             IdInPostException.class,
@@ -163,7 +169,7 @@ public class ExperimentControllerTest extends BaseTest {
     void postExperimentExistingEmptyTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         ExperimentDto experimentDto = ExperimentDto.builder().title("new experiment").build();
-        ExperimentDto existingEmpty = ExperimentDto.builder().experimentId(2L).title(null).build();
+        ExperimentDto existingEmpty = ExperimentDto.builder().experimentId(UUID.randomUUID()).title(null).build();
         when(experimentService.getEmptyExperiment(securedInfo, experimentDto)).thenReturn(existingEmpty);
 
         ResponseEntity<ExperimentDto> ret = experimentController.postExperiment(experimentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
@@ -176,7 +182,7 @@ public class ExperimentControllerTest extends BaseTest {
     void postExperimentSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         ExperimentDto experimentDto = ExperimentDto.builder().title("new experiment").build();
-        ExperimentDto returnedDto = ExperimentDto.builder().experimentId(3L).title("new experiment").build();
+        ExperimentDto returnedDto = ExperimentDto.builder().experimentId(UUID.randomUUID()).title("new experiment").build();
         when(experimentService.getEmptyExperiment(securedInfo, experimentDto)).thenReturn(null);
         when(experimentService.postExperiment(experimentDto, securedInfo)).thenReturn(returnedDto);
 
@@ -189,7 +195,7 @@ public class ExperimentControllerTest extends BaseTest {
     @Test
     void postExperimentNullBodySuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        ExperimentDto returnedDto = ExperimentDto.builder().experimentId(4L).build();
+        ExperimentDto returnedDto = ExperimentDto.builder().experimentId(UUID.randomUUID()).build();
         when(experimentService.getEmptyExperiment(any(SecuredInfo.class), any(ExperimentDto.class))).thenReturn(null);
         when(experimentService.postExperiment(any(ExperimentDto.class), any())).thenReturn(returnedDto);
 
@@ -230,7 +236,7 @@ public class ExperimentControllerTest extends BaseTest {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
         ExperimentDto experimentDto = ExperimentDto.builder().title("updated").build();
 
-        assertThrows(ExperimentNotMatchingException.class, () -> experimentController.updateExperiment(1L, experimentDto, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> experimentController.updateExperiment(EXPERIMENT_UUID, experimentDto, httpServletRequest));
     }
 
     @Test
@@ -238,7 +244,7 @@ public class ExperimentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         ExperimentDto experimentDto = ExperimentDto.builder().title("updated").build();
 
-        ResponseEntity<Void> ret = experimentController.updateExperiment(1L, experimentDto, httpServletRequest);
+        ResponseEntity<Void> ret = experimentController.updateExperiment(EXPERIMENT_UUID, experimentDto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -248,7 +254,7 @@ public class ExperimentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         ExperimentDto experimentDto = ExperimentDto.builder().title("updated").build();
 
-        ResponseEntity<Void> ret = experimentController.updateExperiment(1L, experimentDto, httpServletRequest);
+        ResponseEntity<Void> ret = experimentController.updateExperiment(EXPERIMENT_UUID, experimentDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -259,7 +265,7 @@ public class ExperimentControllerTest extends BaseTest {
         ExperimentDto experimentDto = ExperimentDto.builder().title("updated").build();
         doThrow(new WrongValueException("wrong value")).when(experimentService).updateExperiment(1L, 1L, experimentDto, securedInfo);
 
-        assertThrows(WrongValueException.class, () -> experimentController.updateExperiment(1L, experimentDto, httpServletRequest));
+        assertThrows(WrongValueException.class, () -> experimentController.updateExperiment(EXPERIMENT_UUID, experimentDto, httpServletRequest));
     }
 
     @Test
@@ -268,28 +274,28 @@ public class ExperimentControllerTest extends BaseTest {
         ExperimentDto experimentDto = ExperimentDto.builder().title("updated").build();
         doThrow(new ParticipantNotUpdatedException("not updated")).when(experimentService).updateExperiment(1L, 1L, experimentDto, securedInfo);
 
-        assertThrows(ParticipantNotUpdatedException.class, () -> experimentController.updateExperiment(1L, experimentDto, httpServletRequest));
+        assertThrows(ParticipantNotUpdatedException.class, () -> experimentController.updateExperiment(EXPERIMENT_UUID, experimentDto, httpServletRequest));
     }
 
     @Test
     void deleteExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> experimentController.deleteExperiment(1L, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> experimentController.deleteExperiment(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
     void deleteExperimentLockedTest() throws Exception {
         doThrow(new ExperimentLockedException("locked")).when(apiJwtService).experimentLocked(1L, true);
 
-        assertThrows(ExperimentLockedException.class, () -> experimentController.deleteExperiment(1L, httpServletRequest));
+        assertThrows(ExperimentLockedException.class, () -> experimentController.deleteExperiment(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
     void deleteExperimentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> ret = experimentController.deleteExperiment(1L, httpServletRequest);
+        ResponseEntity<Void> ret = experimentController.deleteExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -298,7 +304,7 @@ public class ExperimentControllerTest extends BaseTest {
     void deleteExperimentSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
-        ResponseEntity<Void> ret = experimentController.deleteExperiment(1L, httpServletRequest);
+        ResponseEntity<Void> ret = experimentController.deleteExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -308,7 +314,7 @@ public class ExperimentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new EmptyResultDataAccessException(1)).when(experimentService).deleteById(1L, securedInfo);
 
-        ResponseEntity<Void> ret = experimentController.deleteExperiment(1L, httpServletRequest);
+        ResponseEntity<Void> ret = experimentController.deleteExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }

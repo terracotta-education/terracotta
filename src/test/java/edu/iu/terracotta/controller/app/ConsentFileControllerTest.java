@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,10 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import jakarta.servlet.ServletContext;
 
 public class ConsentFileControllerTest extends BaseTest {
+
+    // the uuid path variable for the one experiment under test; experiment.getExperimentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
 
     private ConsentFileController consentFileController;
 
@@ -56,6 +61,7 @@ public class ConsentFileControllerTest extends BaseTest {
 
         when(apiJwtService.extractValues(any(), eq(false))).thenReturn(securedInfo);
         when(httpServletRequest.getServletContext()).thenReturn(servletContext);
+        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
     }
 
     @Test
@@ -66,7 +72,7 @@ public class ConsentFileControllerTest extends BaseTest {
         FileInfoDto fileInfoDto = FileInfoDto.builder().fileId("file-1").experimentId(1L).build();
         when(fileStorageService.uploadConsentFile(1L, "title", multipartFile, securedInfo)).thenReturn(fileInfoDto);
 
-        ResponseEntity<FileInfoDto> response = consentFileController.postConsent(multipartFile, 1L, "title", httpServletRequest);
+        ResponseEntity<FileInfoDto> response = consentFileController.postConsent(multipartFile, EXPERIMENT_UUID, "title", httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(fileInfoDto, response.getBody());
@@ -76,7 +82,7 @@ public class ConsentFileControllerTest extends BaseTest {
     void testPostConsentUnauthorized() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<FileInfoDto> response = consentFileController.postConsent(multipartFile, 1L, "title", httpServletRequest);
+        ResponseEntity<FileInfoDto> response = consentFileController.postConsent(multipartFile, EXPERIMENT_UUID, "title", httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertNull(response.getBody());
@@ -87,14 +93,14 @@ public class ConsentFileControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(multipartFile.getContentType()).thenReturn(MediaType.TEXT_PLAIN_VALUE);
 
-        assertThrows(BadConsentFileTypeException.class, () -> consentFileController.postConsent(multipartFile, 1L, "title", httpServletRequest));
+        assertThrows(BadConsentFileTypeException.class, () -> consentFileController.postConsent(multipartFile, EXPERIMENT_UUID, "title", httpServletRequest));
     }
 
     @Test
     void testPostConsentPropagatesExperimentNotMatching() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> consentFileController.postConsent(multipartFile, 1L, "title", httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> consentFileController.postConsent(multipartFile, EXPERIMENT_UUID, "title", httpServletRequest));
     }
 
     @Test
@@ -108,7 +114,7 @@ public class ConsentFileControllerTest extends BaseTest {
         when(resource.getFilename()).thenReturn("consent.pdf");
         when(servletContext.getMimeType(anyString())).thenReturn(MediaType.APPLICATION_PDF_VALUE);
 
-        ResponseEntity<Resource> response = consentFileController.getConsent(1L, httpServletRequest);
+        ResponseEntity<Resource> response = consentFileController.getConsent(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(MediaType.APPLICATION_PDF, response.getHeaders().getContentType());
@@ -123,7 +129,7 @@ public class ConsentFileControllerTest extends BaseTest {
         when(resource.getFile()).thenThrow(new IOException("boom"));
         when(resource.getFilename()).thenReturn("consent.pdf");
 
-        ResponseEntity<Resource> response = consentFileController.getConsent(1L, httpServletRequest);
+        ResponseEntity<Resource> response = consentFileController.getConsent(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(MediaType.APPLICATION_OCTET_STREAM, response.getHeaders().getContentType());
@@ -133,7 +139,7 @@ public class ConsentFileControllerTest extends BaseTest {
     void testGetConsentUnauthorized() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Resource> response = consentFileController.getConsent(1L, httpServletRequest);
+        ResponseEntity<Resource> response = consentFileController.getConsent(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertNull(response.getBody());
@@ -143,7 +149,7 @@ public class ConsentFileControllerTest extends BaseTest {
     void testGetConsentPropagatesBadToken() throws Exception {
         doThrow(new BadTokenException("bad token")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(BadTokenException.class, () -> consentFileController.getConsent(1L, httpServletRequest));
+        assertThrows(BadTokenException.class, () -> consentFileController.getConsent(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
@@ -151,7 +157,7 @@ public class ConsentFileControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(experimentRepository.findById(1L)).thenReturn(Optional.of(experiment));
 
-        ResponseEntity<Void> response = consentFileController.deleteConsent(1L, httpServletRequest);
+        ResponseEntity<Void> response = consentFileController.deleteConsent(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -161,7 +167,7 @@ public class ConsentFileControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(experimentRepository.findById(1L)).thenReturn(Optional.empty());
 
-        ResponseEntity<Void> response = consentFileController.deleteConsent(1L, httpServletRequest);
+        ResponseEntity<Void> response = consentFileController.deleteConsent(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -170,7 +176,7 @@ public class ConsentFileControllerTest extends BaseTest {
     void testDeleteConsentUnauthorized() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = consentFileController.deleteConsent(1L, httpServletRequest);
+        ResponseEntity<Void> response = consentFileController.deleteConsent(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -179,7 +185,7 @@ public class ConsentFileControllerTest extends BaseTest {
     void testDeleteConsentPropagatesTerracottaConnectorException() throws Exception {
         when(apiJwtService.extractValues(any(), eq(false))).thenThrow(new TerracottaConnectorException("connector down"));
 
-        assertThrows(TerracottaConnectorException.class, () -> consentFileController.deleteConsent(1L, httpServletRequest));
+        assertThrows(TerracottaConnectorException.class, () -> consentFileController.deleteConsent(EXPERIMENT_UUID, httpServletRequest));
     }
 
 }

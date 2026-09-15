@@ -26,6 +26,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentStartedException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ExposureService;
@@ -81,9 +82,10 @@ public class StepsController {
     private final AssignmentService assignmentService;
     private final QuestionSubmissionService questionSubmissionService;
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
 
     @PostMapping
-    public ResponseEntity<Object> postStep(@PathVariable long experimentId,
+    public ResponseEntity<Object> postStep(@PathVariable("experimentId") UUID experimentUuid,
                                             @RequestParam(name = "preferLmsChecks", defaultValue = "false") boolean preferLmsChecks,
                                            @RequestBody StepDto stepDto,
                                            HttpServletRequest req)
@@ -91,6 +93,7 @@ public class StepsController {
             ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, ApiException,
             IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException,
             ParticipantNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException, NumberFormatException, TerracottaConnectorException, IntegrationTokenNotFoundException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -255,7 +258,8 @@ public class StepsController {
     }
 
     @GetMapping("/status/{batchId}")
-    public ResponseEntity<Object> getStepStatus(@PathVariable long experimentId, @PathVariable UUID batchId, HttpServletRequest req) throws BadTokenException, ExperimentNotMatchingException, TerracottaConnectorException {
+    public ResponseEntity<Object> getStepStatus(@PathVariable("experimentId") UUID experimentUuid, @PathVariable UUID batchId, HttpServletRequest req) throws BadTokenException, ExperimentNotMatchingException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

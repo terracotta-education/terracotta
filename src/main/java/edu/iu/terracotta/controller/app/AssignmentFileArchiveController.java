@@ -30,6 +30,7 @@ import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.AssignmentFileArchiveDto;
 import edu.iu.terracotta.exceptions.AssignmentFileArchiveNotFoundException;
 import edu.iu.terracotta.exceptions.BadTokenException;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.AssignmentFileArchiveService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -45,15 +46,17 @@ public class AssignmentFileArchiveController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}/files";
 
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
     private final AssignmentFileArchiveService assignmentFileArchiveService;
 
     @GetMapping
-    public ResponseEntity<AssignmentFileArchiveDto> files(@PathVariable long experimentId,
+    public ResponseEntity<AssignmentFileArchiveDto> files(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable long exposureId,
                                                        @PathVariable long assignmentId,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -67,13 +70,14 @@ public class AssignmentFileArchiveController {
     }
 
     @GetMapping("/poll")
-    public ResponseEntity<AssignmentFileArchiveDto> poll(@PathVariable long experimentId,
+    public ResponseEntity<AssignmentFileArchiveDto> poll(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable long exposureId,
                                                        @PathVariable long assignmentId,
                                                        @RequestParam(defaultValue = "false") boolean createNewOnOutdated,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -91,13 +95,14 @@ public class AssignmentFileArchiveController {
     }
 
     @GetMapping("/{fileId}/retrieve")
-    public ResponseEntity<Resource> retrieve(@PathVariable long experimentId,
+    public ResponseEntity<Resource> retrieve(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable long exposureId,
                                                        @PathVariable long assignmentId,
                                                        @PathVariable UUID fileId,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -123,13 +128,14 @@ public class AssignmentFileArchiveController {
     }
 
     @PutMapping("/{fileId}/error/acknowledge")
-    public ResponseEntity<Void> errorAcknowledge(@PathVariable long experimentId,
+    public ResponseEntity<Void> errorAcknowledge(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable long exposureId,
                                                        @PathVariable long assignmentId,
                                                        @PathVariable UUID fileId,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException {
+        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
