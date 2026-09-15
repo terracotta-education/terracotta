@@ -79,6 +79,29 @@ describe("FileList", () => {
     );
   });
 
+  // attachments/content write directly into the message once it's found in the
+  // store's own array - before the store has loaded this message, a selection would
+  // otherwise land on a disposable {} and silently vanish once the real message
+  // arrives. The activator button must stay disabled until then.
+  it("disables the attach-files button until the message has loaded into the store, then enables it", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+
+    const containerStore = messagingMessageContainerModule();
+    containerStore.messageContainers = []; // not loaded yet
+
+    const wrapper = mountComponent(FileList, { pinia, props: baseProps });
+    await flushPromises();
+
+    const button = wrapper.findComponent({ name: "VBtn" });
+    expect(button.props("disabled")).toBe(true);
+
+    containerStore.messageContainers = [buildContainer()];
+    await wrapper.vm.$nextTick();
+
+    expect(button.props("disabled")).toBe(false);
+  });
+
   it("shows the count of already-selected files on the activator button", async () => {
     const wrapper = mountWithContainer();
     await flushPromises();

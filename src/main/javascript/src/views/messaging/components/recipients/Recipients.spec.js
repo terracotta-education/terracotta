@@ -82,6 +82,31 @@ describe("Recipients", () => {
     wrapper?.unmount();
   });
 
+  // matchType/ruleSets write directly into message.value once it resolves from the
+  // store's own array - before that array has loaded this message, any such write
+  // would otherwise land on a disposable {} instead. The panel must stay off-screen
+  // until the real message is there, not just until this component's own (effectively
+  // synchronous) init finishes.
+  it("does not render the panel before the message has loaded into the store, and appears once it does", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    useContainerStore().messageContainers = []; // not loaded yet
+
+    const wrapper = mountComponent(Recipients, { props: baseProps, pinia });
+    await flushPromises();
+
+    expect(wrapper.find(".v-expansion-panel-title").exists()).toBe(false);
+
+    useContainerStore().messageContainers = [
+      { id: "container-1", messages: [{ id: "message-1", ruleSets: [], configuration: { matchType: "INCLUDE" } }] }
+    ];
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find(".v-expansion-panel-title").exists()).toBe(true);
+
+    wrapper.unmount();
+  });
+
   it("renders zero rules applied and hides the IF section when there are no rule sets", async () => {
     ({ wrapper } = await mountRecipients());
 

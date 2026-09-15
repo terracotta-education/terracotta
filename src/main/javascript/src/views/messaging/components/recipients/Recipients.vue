@@ -1,6 +1,6 @@
 <template>
   <v-expansion-panels
-    v-if="loaded"
+    v-if="loaded && message"
     :disabled="!hasMessageRuleAssignments"
     :class="{ 'validation-error': validationErrors.hasErrors }"
     class="my-6"
@@ -344,6 +344,14 @@ const message = computed(() => {
   );
 });
 
+// configuration/ruleSets below mutate message.value directly once it resolves (a
+// reference into messagingMessageContainerStore's own reactive array, once found),
+// but until allMessageContainers finishes loading, message.value is undefined and
+// this falls back to a disposable {} that any write (matchType, ruleSets) would
+// silently vanish into - the template's v-if="loaded && message" (not just "loaded",
+// which the old, effectively synchronous initialize() flipped almost immediately
+// regardless of whether the store's own async fetch had actually finished) keeps the
+// interactive form off-screen until message is confirmed real.
 const configuration = computed(() => {
   return message.value?.configuration || {};
 });

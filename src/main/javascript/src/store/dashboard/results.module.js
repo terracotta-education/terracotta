@@ -2,6 +2,12 @@ import { defineStore } from "pinia";
 
 import { resultsDashboardService } from "@/services";
 
+// getOutcomes re-fires on every outcome-selection change (see Input.vue's
+// @hasSelections handler), so toggling selections quickly can leave an earlier,
+// now-abandoned request's response landing after a more recent one's - guard it the
+// same way as assessment.module.js's fetchAssessment.
+let outcomesRequestId = 0;
+
 export const resultsDashboard = defineStore("resultsDashboard", {
   state: () => ({
     resultsDashboard: {
@@ -47,6 +53,8 @@ export const resultsDashboard = defineStore("resultsDashboard", {
     },
 
     async getOutcomes(payload) {
+      const requestId = ++outcomesRequestId;
+
       try {
         const [experimentId, body] = payload;
         const response = await resultsDashboardService.outcomes(
@@ -55,6 +63,10 @@ export const resultsDashboard = defineStore("resultsDashboard", {
         );
 
         const outcomes = response?.data?.outcomes ?? null;
+
+        if (requestId !== outcomesRequestId) {
+          return this.resultsDashboard.outcomes;
+        }
 
         this.resultsDashboard = {
           ...this.resultsDashboard,
@@ -69,16 +81,22 @@ export const resultsDashboard = defineStore("resultsDashboard", {
           error
         );
 
-        this.resultsDashboard = {
-          ...this.resultsDashboard,
-          outcomes: null
-        };
+        if (requestId === outcomesRequestId) {
+          this.resultsDashboard = {
+            ...this.resultsDashboard,
+            outcomes: null
+          };
+        }
 
         return null;
       }
     },
 
     clearOutcomes() {
+      // invalidate any still-in-flight getOutcomes so its eventual response can't
+      // repopulate outcomes after this deliberate clear
+      outcomesRequestId += 1;
+
       this.resultsDashboard = {
         ...this.resultsDashboard,
         outcomes: null
@@ -86,6 +104,8 @@ export const resultsDashboard = defineStore("resultsDashboard", {
     },
 
     resetResultsDashboard() {
+      outcomesRequestId += 1;
+
       this.resultsDashboard = {
         experimentId: null,
         overview: null,
