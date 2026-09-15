@@ -92,7 +92,10 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         // unset the assessment
         from.setAssessment(null);
 
-        Treatment newTreatment = treatmentRepository.save(from);
+        // saveAndFlush (not save): duplicateAssessment below immediately uses newTreatment as
+        // the FK for the new Assessment's own insert - see the identical fix/rationale for
+        // Assessment in AssessmentServiceImpl.duplicateAssessment.
+        Treatment newTreatment = treatmentRepository.saveAndFlush(from);
         LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         setAssignmentDtoAttrs(newTreatment.getAssignment(), securedInfo.getLmsCourseId(), instructorUser);
         TreatmentDto treatmentDto = toTreatmentDto(newTreatment, false, true, securedInfo);
