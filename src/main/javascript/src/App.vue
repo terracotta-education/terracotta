@@ -143,7 +143,8 @@ import {
   defineAsyncComponent,
   nextTick,
   onMounted,
-  onBeforeUnmount
+  onBeforeUnmount,
+  watch
 } from "vue";
 
 import { useRoute } from "vue-router";
@@ -200,7 +201,6 @@ const childLoaded = ref(false);
 const integrationsTokenAlert = ref(null);
 
 let refreshInterval = null;
-let sessionExpired = false;
 let refreshInFlight = false; // avoid overlapping calls if the interval tick and a
                               // visibilitychange fire close together
 
@@ -365,21 +365,34 @@ const stopTokenMonitoring = () => {
   document.removeEventListener("visibilitychange", handleVisibilityChange);
 };
 
+// Reacts to sessionExpired becoming true from ANY source - this interval/visibility check
+// below, or authHeader()/fileAuthHeader() (src/helpers/auth-header.js) catching a live request
+// about to go out with an already-expired token. Driving the notice off the store flag itself,
+// rather than only from this component's own check, means the user still gets told even when
+// some other component's API call is what first notices the expiry (e.g. this tab was
+// backgrounded/throttled long enough that this interval never got to run before something else
+// tried a request). apiStore.sessionExpired only ever flips false -> true once per session, so
+// this fires exactly once.
+watch(() => apiStore.sessionExpired, async expired => {
+  if (!expired) {
+    return;
+  }
+
+  stopTokenMonitoring();
+  await nextTick(); // let StudentQuiz.vue's draft-save watcher react first
+
+  await Swal.fire(
+    "Your session has expired. Please return to your course and re-open this assignment to continue."
+  );
+});
+
 const checkAndRefreshToken = async () => {
-  if (sessionExpired || refreshInFlight || !apiToken.value) {
+  if (apiStore.sessionExpired || refreshInFlight || !apiToken.value) {
     return;
   }
 
   if (apiStore.isApiTokenExpired()) {
-    sessionExpired = true;
-    stopTokenMonitoring();
     apiStore.markSessionExpired();
-    await nextTick(); // let StudentQuiz.vue's draft-save watcher react first
-
-    await Swal.fire(
-      "Your session has expired. Please return to your course and re-open this assignment to continue."
-    );
-
     return;
   }
 
