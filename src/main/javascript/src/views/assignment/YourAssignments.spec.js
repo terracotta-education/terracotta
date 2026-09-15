@@ -39,8 +39,8 @@ import { exposures as exposuresModule } from "@/store/exposures.module";
 let pinia;
 let experimentStore;
 
-const exposureA = { exposureId: 1, title: "Exposure A" };
-const exposureB = { exposureId: 2, title: "Exposure B" };
+const exposureA = { exposureId: "1", title: "Exposure A" };
+const exposureB = { exposureId: "2", title: "Exposure B" };
 
 const assignmentFor = (exposureId, id, treatmentCount) => ({
   assignmentId: id,
@@ -93,11 +93,11 @@ describe("YourAssignments", () => {
     exposuresService.getAll.mockResolvedValue([exposureA, exposureB]);
     assignmentService.fetchAssignmentsByExposure.mockImplementation((experimentId, exposureId) => {
       if (exposureId === exposureA.exposureId) {
-        return Promise.resolve([assignmentFor(1, 100, 2)]);
+        return Promise.resolve([assignmentFor("1", 100, 2)]);
       }
 
       if (exposureId === exposureB.exposureId) {
-        return Promise.resolve([assignmentFor(2, 200, 2)]);
+        return Promise.resolve([assignmentFor("2", 200, 2)]);
       }
 
       return Promise.resolve([]);
@@ -110,8 +110,8 @@ describe("YourAssignments", () => {
     const { exposuresService, assignmentService } = await import("@/services");
 
     expect(exposuresService.getAll).toHaveBeenCalledWith(5);
-    expect(assignmentService.fetchAssignmentsByExposure).toHaveBeenCalledWith(5, 1);
-    expect(assignmentService.fetchAssignmentsByExposure).toHaveBeenCalledWith(5, 2);
+    expect(assignmentService.fetchAssignmentsByExposure).toHaveBeenCalledWith(5, "1");
+    expect(assignmentService.fetchAssignmentsByExposure).toHaveBeenCalledWith(5, "2");
   });
 
   it("renders nothing when the experiment has no exposures", async () => {
@@ -140,13 +140,13 @@ describe("YourAssignments", () => {
     assignmentService.fetchAssignmentsByExposure.mockImplementation((experimentId, exposureId) => {
       if (exposureId === exposureA.exposureId) {
         return Promise.resolve([
-          assignmentFor(1, 100, 2),
-          assignmentFor(1, 101, 2)
+          assignmentFor("1", 100, 2),
+          assignmentFor("1", 101, 2)
         ]);
       }
 
       if (exposureId === exposureB.exposureId) {
-        return Promise.resolve([assignmentFor(2, 200, 2)]);
+        return Promise.resolve([assignmentFor("2", 200, 2)]);
       }
 
       return Promise.resolve([]);
@@ -162,11 +162,11 @@ describe("YourAssignments", () => {
     const { assignmentService } = await import("@/services");
     assignmentService.fetchAssignmentsByExposure.mockImplementation((experimentId, exposureId) => {
       if (exposureId === exposureA.exposureId) {
-        return Promise.resolve([assignmentFor(1, 100, 1)]);
+        return Promise.resolve([assignmentFor("1", 100, 1)]);
       }
 
       if (exposureId === exposureB.exposureId) {
-        return Promise.resolve([assignmentFor(2, 200, 1)]);
+        return Promise.resolve([assignmentFor("2", 200, 1)]);
       }
 
       return Promise.resolve([]);
@@ -182,10 +182,10 @@ describe("YourAssignments", () => {
     const { assignmentService } = await import("@/services");
     assignmentService.fetchAssignmentsByExposure.mockImplementation((experimentId, exposureId) => {
       if (exposureId === exposureA.exposureId) {
-        return Promise.resolve([assignmentFor(1, 100, 1)]);
+        return Promise.resolve([assignmentFor("1", 100, 1)]);
       }
 
-      return Promise.resolve([assignmentFor(2, 200, 2)]);
+      return Promise.resolve([assignmentFor("2", 200, 2)]);
     });
 
     const wrapper = await mountView();
@@ -211,7 +211,7 @@ describe("YourAssignments", () => {
     const { assignmentService } = await import("@/services");
     assignmentService.fetchAssignmentsByExposure.mockImplementation((experimentId, exposureId) => {
       if (exposureId === exposureA.exposureId) {
-        return Promise.resolve([assignmentFor(1, 100, 2)]);
+        return Promise.resolve([assignmentFor("1", 100, 2)]);
       }
 
       // exposure B (the routed one) has no assignments yet
@@ -222,7 +222,7 @@ describe("YourAssignments", () => {
 
     expect(routerPush).toHaveBeenCalledWith({
       name: "AssignmentCreateAssignment",
-      params: { exposureId: 2 }
+      params: { exposureId: "2" }
     });
     expect(wrapper.find("h1").exists()).toBe(false);
   });
@@ -248,7 +248,7 @@ describe("YourAssignments", () => {
 
     const { assignmentService } = await import("@/services");
     expect(swalFire).toHaveBeenCalled();
-    expect(assignmentService.deleteAssignment).toHaveBeenCalledWith(5, 1, 100);
+    expect(assignmentService.deleteAssignment).toHaveBeenCalledWith(5, "1", 100);
   });
 
   it("does not delete an assignment when the user cancels the Swal dialog", async () => {

@@ -145,7 +145,7 @@ const assessmentId = computed(() => {
 });
 
 const conditionId = computed(() => {
-  return Number.parseInt(route.params.conditionId, 10);
+  return route.params.conditionId;
 });
 
 const randomizeAnswers = computed({

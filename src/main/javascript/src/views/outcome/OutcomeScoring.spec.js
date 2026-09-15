@@ -93,7 +93,7 @@ describe("OutcomeScoring", () => {
 
     experimentModule().experiment = { experimentId: 10 };
     exposuresModule().exposures = [
-      { exposureId: 20, title: "Exposure One" }
+      { exposureId: "20", title: "Exposure One" }
     ];
 
     return mountComponent(OutcomeScoring, { pinia });
@@ -122,7 +122,7 @@ describe("OutcomeScoring", () => {
     outcomeService.getOutcomeScoresById.mockResolvedValue({
       status: 200,
       data: [
-        { outcomeId: 30, participantId: 1, participantScoreId: 1, scoreNumeric: 80 }
+        { outcomeId: "30", participantId: 1, participantScoreId: 1, scoreNumeric: 80 }
       ]
     });
 
@@ -184,7 +184,7 @@ describe("OutcomeScoring", () => {
     outcomeService.getOutcomeScoresById.mockResolvedValue({
       status: 200,
       data: [
-        { outcomeId: 30, participantId: 1, outcomeScoreId: 1, scoreNumeric: 150 }
+        { outcomeId: "30", participantId: 1, outcomeScoreId: 1, scoreNumeric: 150 }
       ]
     });
 
@@ -208,13 +208,13 @@ describe("OutcomeScoring", () => {
 
     expect(outcomeService.updateOutcome).toHaveBeenCalledWith(
       "10",
-      20,
+      "20",
       expect.objectContaining({ outcomeId: 30 })
     );
     expect(outcomeService.updateOutcomeScores).toHaveBeenCalledWith(
       "10",
-      20,
-      30,
+      "20",
+      "30",
       expect.any(Array)
     );
     expect(push).toHaveBeenCalledWith({

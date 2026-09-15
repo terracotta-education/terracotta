@@ -164,11 +164,11 @@ const assignmentId = computed(() => currentAssignment.value.assignmentId);
 const assignmentTitle = computed(() => currentAssignment.value.title || "");
 const treatmentId = computed(() => Number.parseInt(route.params.treatmentId, 10));
 const assessmentId = computed(() => Number.parseInt(route.params.assessmentId, 10));
-const conditionId = computed(() => Number.parseInt(route.params.conditionId, 10));
+const conditionId = computed(() => route.params.conditionId);
 
 const condition = computed(() => {
   return props.experiment.conditions.find(
-    item => Number(item.conditionId) === Number(conditionId.value)
+    item => item.conditionId === conditionId.value
   );
 });
 

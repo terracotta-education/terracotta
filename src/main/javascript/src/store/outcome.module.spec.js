@@ -158,7 +158,7 @@ describe("outcome store", () => {
     });
 
     it("does not wipe the current outcome on a failed refetch for the same id", async () => {
-      const data = { outcomeId: 2 };
+      const data = { outcomeId: "2" };
       store.outcome = data;
       outcomeService.getById.mockResolvedValue({ status: 500 });
 

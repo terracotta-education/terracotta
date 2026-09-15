@@ -173,7 +173,7 @@ const router = useRouter();
 
 // ---------------- ROUTE PARAMS ----------------
 const experimentId = computed(() => route.params.experimentId);
-const exposureId = computed(() => parseInt(route.params.exposureId));
+const exposureId = computed(() => route.params.exposureId);
 const assignmentId = computed(() => parseInt(route.params.assignmentId));
 
 // ---------------- STORE ----------------

@@ -105,7 +105,7 @@ describe("CreateAssignment", () => {
 
     expect(assignmentService.create).toHaveBeenCalledWith(
       "10",
-      30,
+      "30",
       expect.objectContaining({ title: "My new assignment" }),
       1
     );

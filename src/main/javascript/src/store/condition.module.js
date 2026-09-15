@@ -151,12 +151,12 @@ export const condition = defineStore("condition", {
           useExperimentStore().deleteCondition(cond);
           this.conditions = this.conditions.filter(
             item =>
-              parseInt(item.conditionId) !== parseInt(cond.conditionId)
+              item.conditionId !== cond.conditionId
           );
 
           if (
-            parseInt(this.condition?.conditionId) ===
-            parseInt(cond.conditionId)
+            this.condition?.conditionId ===
+            cond.conditionId
           ) {
             this.condition = null;
           }
@@ -182,7 +182,7 @@ export const condition = defineStore("condition", {
 
       const index = this.conditions.findIndex(
         item =>
-          parseInt(item.conditionId) === parseInt(cond.conditionId)
+          item.conditionId === cond.conditionId
       );
 
       if (index >= 0) {

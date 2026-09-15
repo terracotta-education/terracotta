@@ -113,7 +113,7 @@ const assignmentId = computed(() => {
 });
 
 const exposureId = computed(() => {
-  return Number.parseInt(route.params.exposureId, 10);
+  return route.params.exposureId;
 });
 
 const handleCreateTreatment = async conditionId => {

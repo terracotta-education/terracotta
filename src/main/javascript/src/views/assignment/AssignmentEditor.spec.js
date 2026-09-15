@@ -121,7 +121,7 @@ describe("AssignmentEditor", () => {
     await wrapper.vm.$nextTick();
     await new Promise(resolve => setTimeout(resolve));
 
-    expect(assignmentService.fetchAssignment).toHaveBeenCalledWith(10, 30, 20);
+    expect(assignmentService.fetchAssignment).toHaveBeenCalledWith(10, "30", 20);
   });
 
   it("disables the Continue button while the title is blank", async () => {
@@ -194,14 +194,14 @@ describe("AssignmentEditor", () => {
 
     expect(assignmentService.updateAssignment).toHaveBeenCalledWith(
       "10",
-      30,
+      "30",
       20,
       expect.objectContaining({ title: "My assignment" })
     );
 
     expect(push).toHaveBeenCalledWith({
       name: "AssignmentYourAssignments",
-      params: { experiment: 10, exposureId: 30 }
+      params: { experiment: 10, exposureId: "30" }
     });
   });
 

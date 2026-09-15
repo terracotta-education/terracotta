@@ -88,7 +88,7 @@ describe("AssignmentTreatmentSelect", () => {
     await wrapper.vm.$nextTick();
     await new Promise(resolve => setTimeout(resolve));
 
-    expect(assignmentService.fetchAssignment).toHaveBeenCalledWith(10, 30, 20);
+    expect(assignmentService.fetchAssignment).toHaveBeenCalledWith(10, "30", 20);
     expect(treatmentService.fetchTreatment).toHaveBeenCalledWith(10, 1);
     expect(treatmentService.fetchTreatment).toHaveBeenCalledWith(10, 2);
   });
@@ -175,7 +175,7 @@ describe("AssignmentTreatmentSelect", () => {
       name: "TerracottaBuilder",
       params: {
         experimentId: 10,
-        exposureId: 30,
+        exposureId: "30",
         assignmentId: 20,
         conditionId: 1,
         treatmentId: 501,

@@ -83,7 +83,7 @@ const baseAssessment = overrides => ({
 
 const experimentProp = () => ({
   experimentId: 1,
-  conditions: [{ conditionId: 5, name: "Condition A" }]
+  conditions: [{ conditionId: "5", name: "Condition A" }]
 });
 
 const setCurrentAssignment = assignment => {
@@ -149,8 +149,8 @@ describe("TerracottaBuilder", () => {
 
     const { assessmentService, submissionService, exposuresService } = await import("@/services");
 
-    expect(assessmentService.fetchAssessment).toHaveBeenCalledWith(1, 5, 10, 100);
-    expect(submissionService.getAll).toHaveBeenCalledWith(1, 5, 10, 100);
+    expect(assessmentService.fetchAssessment).toHaveBeenCalledWith(1, "5", 10, 100);
+    expect(submissionService.getAll).toHaveBeenCalledWith(1, "5", 10, 100);
     expect(exposuresService.getAll).toHaveBeenCalledWith(1);
   });
 
@@ -237,7 +237,7 @@ describe("TerracottaBuilder", () => {
     await flushPromises();
 
     expect(assessmentService.createQuestion).toHaveBeenCalledWith(
-      1, 5, 10, 100, 0, "MC", 1, "", null
+      1, "5", 10, 100, 0, "MC", 1, "", null
     );
     expect(assessmentService.createAnswer).toHaveBeenCalledTimes(2);
   });
@@ -279,7 +279,7 @@ describe("TerracottaBuilder", () => {
 
     expect(result).toBe(true);
     expect(assessmentService.deleteQuestions).toHaveBeenCalledWith(
-      1, 5, 10, 100, [{ questionId: 1, questionOrder: 0, questionType: "ESSAY", html: "Q1" }]
+      1, "5", 10, 100, [{ questionId: 1, questionOrder: 0, questionType: "ESSAY", html: "Q1" }]
     );
   });
 
