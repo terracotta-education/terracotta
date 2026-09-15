@@ -116,6 +116,34 @@ describe("assignment store", () => {
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalled();
     });
+
+    // e.g. an instructor navigating from one assignment's screen to another's before
+    // the first assignment's own fetch has resolved - the first (now-abandoned) fetch
+    // can resolve after the second, more recent one
+    it("does not let a slower, out-of-order response overwrite a newer one", async () => {
+      let resolveFirst;
+      const firstResponse = new Promise(resolve => {
+        resolveFirst = resolve;
+      });
+
+      assignmentService.fetchAssignment
+        .mockReturnValueOnce(firstResponse)
+        .mockResolvedValueOnce({ assignmentId: 2 });
+
+      const firstCall = store.fetchAssignment([1, 2, 1]);
+      const secondResult = await store.fetchAssignment([1, 2, 2]);
+
+      expect(secondResult).toEqual({ assignmentId: 2 });
+      expect(store.assignment).toEqual({ assignmentId: 2 });
+
+      resolveFirst({ assignmentId: 1 });
+      const firstResult = await firstCall;
+
+      // the stale call reports back whatever is currently in the store (the newer,
+      // correct data), not its own now-discarded response
+      expect(firstResult).toEqual({ assignmentId: 2 });
+      expect(store.assignment).toEqual({ assignmentId: 2 });
+    });
   });
 
   describe("fetchAssignmentsByExposure", () => {

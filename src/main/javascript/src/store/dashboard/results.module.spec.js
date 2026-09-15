@@ -103,6 +103,29 @@ describe("resultsDashboard store", () => {
       expect(store.overview).toEqual({ totalStudents: 10 });
       expect(consoleSpy).toHaveBeenCalled();
     });
+
+    // getOutcomes re-fires on every outcome-selection toggle - toggling quickly can
+    // leave an earlier, now-abandoned request's response landing after a newer one's
+    it("does not let a slower, out-of-order response overwrite a newer one", async () => {
+      let resolveFirst;
+      const firstResponse = new Promise(resolve => {
+        resolveFirst = resolve;
+      });
+
+      resultsDashboardService.outcomes
+        .mockReturnValueOnce(firstResponse)
+        .mockResolvedValueOnce({ data: { outcomes: { total: 2 } } });
+
+      const firstCall = store.getOutcomes([1, { filter: "a" }]);
+      await store.getOutcomes([1, { filter: "b" }]);
+
+      expect(store.outcomes).toEqual({ total: 2 });
+
+      resolveFirst({ data: { outcomes: { total: 1 } } });
+      await firstCall;
+
+      expect(store.outcomes).toEqual({ total: 2 });
+    });
   });
 
   describe("clearOutcomes", () => {

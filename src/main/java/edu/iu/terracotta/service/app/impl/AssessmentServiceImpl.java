@@ -75,6 +75,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -611,6 +612,21 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new DataServiceException("The assessment with the given ID does not exist");
         }
 
+        // getAssessment queries by the @Id property, which Spring Data JPA/Hibernate can
+        // resolve as an uninitialized reference/proxy rather than a fully-loaded entity when
+        // this Assessment has not otherwise been touched in the current persistence context
+        // (e.g. a fresh transaction against already-committed data - the normal production
+        // case). Detaching and mutating (including resetting the identifier) a still-proxied
+        // entity corrupts its identifier bookkeeping: the proxy keeps reporting its ORIGINAL id
+        // internally even after being re-persisted under a new one, which later throws
+        // Hibernate's "AssertionFailure: null identifier (Assessment)" once this object is used
+        // as the FK on a dependent Question's insert below - the actual root cause of that
+        // AssertionFailure (an unconditional saveAndFlush() cannot fix a corrupted proxy
+        // reference; it only masked the bug in tests/scenarios where the Assessment happened to
+        // already be a plain, fully-loaded instance). Unproxying first guarantees we detach and
+        // mutate the real, fully-initialized entity - see the identical fix/rationale in
+        // AssignmentTreatmentServiceImpl.duplicateTreatment.
+        from = (Assessment) Hibernate.unproxy(from);
         entityManager.detach(from);
 
         from.setQuestions(Collections.emptyList());
@@ -624,7 +640,13 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         from.setTreatment(treatment);
 
-        Assessment newAssessment = save(from);
+        // saveAndFlush (not save): duplicateQuestionsForAssessment below immediately uses
+        // newAssessment as the FK for each duplicated Question's own insert. Without an
+        // explicit flush here, that Question insert can run before this Assessment's
+        // IDENTITY-generated ID is materialized, and Hibernate throws AssertionFailure:
+        // null identifier (Assessment) - see the identical fix/rationale for Treatment in
+        // AssignmentTreatmentServiceImpl.duplicateTreatment.
+        Assessment newAssessment = assessmentRepository.saveAndFlush(from);
 
         // duplicate questions
         questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment);

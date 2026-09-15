@@ -2,6 +2,15 @@ import { defineStore } from "pinia";
 
 import { messageService } from "@/services";
 
+// Shared by fetchPreview and setPreview (both write the singular this.preview field)
+// so a stale response can't clobber a newer one - see the identical guard in
+// assessment.module.js's fetchAssessment for the full reasoning. Concretely:
+// Preview.vue's participant list stays clickable while a preview is loading, so
+// clicking student A then quickly clicking student B fires a second fetch before
+// the first resolves; without this, whichever response lands last wins, even if
+// it's A's now-abandoned one.
+let previewRequestId = 0;
+
 function normalizePipedText(pipedText) {
   if (!pipedText) {
     return null;
@@ -35,6 +44,9 @@ export const message = defineStore("messagingMessage", {
 
   actions: {
     setPreview(preview) {
+      // invalidate any still-in-flight fetchPreview so its eventual response can't
+      // overwrite this deliberate, synchronous set once it resolves
+      previewRequestId += 1;
       this.preview = preview;
     },
 
@@ -53,9 +65,15 @@ export const message = defineStore("messagingMessage", {
     },
 
     async fetchPreview(payload) {
+      const requestId = ++previewRequestId;
+
       try {
         const response =
           await messageService.fetchPreview(...payload);
+
+        if (requestId !== previewRequestId) {
+          return this.preview;
+        }
 
         this.preview = response;
 
@@ -63,7 +81,9 @@ export const message = defineStore("messagingMessage", {
       } catch (error) {
         console.error("message/fetchPreview | catch", error);
 
-        this.preview = null;
+        if (requestId === previewRequestId) {
+          this.preview = null;
+        }
 
         return null;
       }
