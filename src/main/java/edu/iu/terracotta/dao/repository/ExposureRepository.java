@@ -7,11 +7,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Exposure;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ExposureRepository extends JpaRepository<Exposure, Long> {
+
+    Exposure findByUuid(UUID uuid);
 
     List<Exposure> findByExperiment_ExperimentId(Long experimentId);
     Exposure findByExposureId(Long exposureId);

@@ -656,6 +656,10 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long oldAssessmentId = from.getAssessmentId();
         from.setAssessmentId(null);
         from.setVersion(0);
+        // the detached copy still carries the ORIGINAL row's uuid; clearing it lets
+        // UuidAwareEntity's @PrePersist generate a fresh one for this new row instead of
+        // colliding with the source row's unique uuid constraint
+        from.setUuid(null);
 
         from.setTreatment(treatment);
 

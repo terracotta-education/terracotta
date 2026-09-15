@@ -18,7 +18,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 
 @Entity
 @Getter
@@ -28,7 +28,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_question_submission")
-public class QuestionSubmission extends BaseEntity {
+public class QuestionSubmission extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

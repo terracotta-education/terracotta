@@ -7,11 +7,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Experiment;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
+
+    Experiment findByUuid(UUID uuid);
 
     List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(long keyId, long contextId, String userKey);
     List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(long keyId, long contextId);

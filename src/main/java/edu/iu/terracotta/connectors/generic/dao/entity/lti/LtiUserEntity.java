@@ -5,7 +5,7 @@ import org.apache.commons.lang3.Strings;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -43,7 +43,7 @@ import java.util.Set;
         @UniqueConstraint(columnNames = {"user_key", "key_id"}),
     }
 )
-public class LtiUserEntity extends BaseEntity {
+public class LtiUserEntity extends UuidAwareEntity {
 
     public static final String TEST_STUDENT_DISPLAY_NAME = "Test Student";
 

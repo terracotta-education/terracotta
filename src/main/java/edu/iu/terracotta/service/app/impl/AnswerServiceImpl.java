@@ -246,6 +246,10 @@ public class AnswerServiceImpl implements AnswerService {
                     // AssignmentTreatmentServiceImpl.duplicateTreatment
                     answerMc.setAnswerMcId(null);
                     answerMc.setVersion(0);
+                    // the detached copy still carries the ORIGINAL row's uuid; clearing it lets
+                    // UuidAwareEntity's @PrePersist generate a fresh one for this new row instead
+                    // of colliding with the source row's unique uuid constraint
+                    answerMc.setUuid(null);
                     answerMc.setQuestion(newQuestion);
 
                     return saveMC(answerMc);

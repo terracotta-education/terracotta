@@ -10,11 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubmission, Long> {
+
+    QuestionSubmission findByUuid(UUID uuid);
 
     List<QuestionSubmission> findBySubmission_SubmissionId(Long submissionId);
     @Query("SELECT qs FROM QuestionSubmission qs WHERE qs.submission.participant.experiment.experimentId = :experimentId")

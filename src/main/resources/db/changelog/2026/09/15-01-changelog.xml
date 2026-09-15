@@ -1,0 +1,708 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <property
+        name="u_id"
+        value="(UUID_TO_BIN(UUID()))"
+        dbms="mysql"
+    />
+    <changeSet author="rlong" id="1757937600000-01">
+        <addColumn tableName="terr_submission">
+            <column name="uuid" type="BINARY(16)" afterColumn="submission_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-02">
+        <sql>
+            UPDATE
+                terr_submission
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-03">
+        <addNotNullConstraint tableName="terr_submission" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-04">
+        <addUniqueConstraint tableName="terr_submission" columnNames="uuid" constraintName="UK_TERR_SUBMISSION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-05">
+        <addColumn tableName="terr_experiment">
+            <column name="uuid" type="BINARY(16)" afterColumn="experiment_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-06">
+        <sql>
+            UPDATE
+                terr_experiment
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-07">
+        <addNotNullConstraint tableName="terr_experiment" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-08">
+        <addUniqueConstraint tableName="terr_experiment" columnNames="uuid" constraintName="UK_TERR_EXPERIMENT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-09">
+        <addColumn tableName="terr_assessment">
+            <column name="uuid" type="BINARY(16)" afterColumn="assessment_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-10">
+        <sql>
+            UPDATE
+                terr_assessment
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-11">
+        <addNotNullConstraint tableName="terr_assessment" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-12">
+        <addUniqueConstraint tableName="terr_assessment" columnNames="uuid" constraintName="UK_TERR_ASSESSMENT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-13">
+        <addColumn tableName="terr_treatment">
+            <column name="uuid" type="BINARY(16)" afterColumn="treatment_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-14">
+        <sql>
+            UPDATE
+                terr_treatment
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-15">
+        <addNotNullConstraint tableName="terr_treatment" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-16">
+        <addUniqueConstraint tableName="terr_treatment" columnNames="uuid" constraintName="UK_TERR_TREATMENT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-17">
+        <addColumn tableName="terr_condition">
+            <column name="uuid" type="BINARY(16)" afterColumn="condition_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-18">
+        <sql>
+            UPDATE
+                terr_condition
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-19">
+        <addNotNullConstraint tableName="terr_condition" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-20">
+        <addUniqueConstraint tableName="terr_condition" columnNames="uuid" constraintName="UK_TERR_CONDITION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-21">
+        <addColumn tableName="terr_exposure">
+            <column name="uuid" type="BINARY(16)" afterColumn="exposure_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-22">
+        <sql>
+            UPDATE
+                terr_exposure
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-23">
+        <addNotNullConstraint tableName="terr_exposure" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-24">
+        <addUniqueConstraint tableName="terr_exposure" columnNames="uuid" constraintName="UK_TERR_EXPOSURE_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-25">
+        <addColumn tableName="terr_question">
+            <column name="uuid" type="BINARY(16)" afterColumn="question_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-26">
+        <sql>
+            UPDATE
+                terr_question
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-27">
+        <addNotNullConstraint tableName="terr_question" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-28">
+        <addUniqueConstraint tableName="terr_question" columnNames="uuid" constraintName="UK_TERR_QUESTION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-29">
+        <addColumn tableName="terr_assignment">
+            <column name="uuid" type="BINARY(16)" afterColumn="assignment_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-30">
+        <sql>
+            UPDATE
+                terr_assignment
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-31">
+        <addNotNullConstraint tableName="terr_assignment" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-32">
+        <addUniqueConstraint tableName="terr_assignment" columnNames="uuid" constraintName="UK_TERR_ASSIGNMENT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-33">
+        <addColumn tableName="terr_group">
+            <column name="uuid" type="BINARY(16)" afterColumn="group_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-34">
+        <sql>
+            UPDATE
+                terr_group
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-35">
+        <addNotNullConstraint tableName="terr_group" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-36">
+        <addUniqueConstraint tableName="terr_group" columnNames="uuid" constraintName="UK_TERR_GROUP_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-37">
+        <addColumn tableName="terr_outcome">
+            <column name="uuid" type="BINARY(16)" afterColumn="outcome_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-38">
+        <sql>
+            UPDATE
+                terr_outcome
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-39">
+        <addNotNullConstraint tableName="terr_outcome" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-40">
+        <addUniqueConstraint tableName="terr_outcome" columnNames="uuid" constraintName="UK_TERR_OUTCOME_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-41">
+        <addColumn tableName="terr_outcome_score">
+            <column name="uuid" type="BINARY(16)" afterColumn="outcome_score_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-42">
+        <sql>
+            UPDATE
+                terr_outcome_score
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-43">
+        <addNotNullConstraint tableName="terr_outcome_score" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-44">
+        <addUniqueConstraint tableName="terr_outcome_score" columnNames="uuid" constraintName="UK_TERR_OUTCOME_SCORE_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-45">
+        <addColumn tableName="terr_admin_user">
+            <column name="uuid" type="BINARY(16)" afterColumn="admin_user_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-46">
+        <sql>
+            UPDATE
+                terr_admin_user
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-47">
+        <addNotNullConstraint tableName="terr_admin_user" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-48">
+        <addUniqueConstraint tableName="terr_admin_user" columnNames="uuid" constraintName="UK_TERR_ADMIN_USER_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-49">
+        <addColumn tableName="terr_consent_document">
+            <column name="uuid" type="BINARY(16)" afterColumn="consent_document_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-50">
+        <sql>
+            UPDATE
+                terr_consent_document
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-51">
+        <addNotNullConstraint tableName="terr_consent_document" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-52">
+        <addUniqueConstraint tableName="terr_consent_document" columnNames="uuid" constraintName="UK_TERR_CONSENT_DOCUMENT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-53">
+        <addColumn tableName="terr_exposure_group_condition">
+            <column name="uuid" type="BINARY(16)" afterColumn="exposure_group_condition_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-54">
+        <sql>
+            UPDATE
+                terr_exposure_group_condition
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-55">
+        <addNotNullConstraint tableName="terr_exposure_group_condition" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-56">
+        <addUniqueConstraint tableName="terr_exposure_group_condition" columnNames="uuid" constraintName="UK_TERR_EXPOSURE_GROUP_CONDITION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-57">
+        <addColumn tableName="terr_question_submission">
+            <column name="uuid" type="BINARY(16)" afterColumn="question_submission_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-58">
+        <sql>
+            UPDATE
+                terr_question_submission
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-59">
+        <addNotNullConstraint tableName="terr_question_submission" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-60">
+        <addUniqueConstraint tableName="terr_question_submission" columnNames="uuid" constraintName="UK_TERR_QUESTION_SUBMISSION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-61">
+        <addColumn tableName="terr_question_submission_comment">
+            <column name="uuid" type="BINARY(16)" afterColumn="question_submission_comment_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-62">
+        <sql>
+            UPDATE
+                terr_question_submission_comment
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-63">
+        <addNotNullConstraint tableName="terr_question_submission_comment" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-64">
+        <addUniqueConstraint tableName="terr_question_submission_comment" columnNames="uuid" constraintName="UK_TERR_QUESTION_SUBMISSION_COMMENT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-65">
+        <addColumn tableName="terr_submission_comment">
+            <column name="uuid" type="BINARY(16)" afterColumn="submission_comment_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-66">
+        <sql>
+            UPDATE
+                terr_submission_comment
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-67">
+        <addNotNullConstraint tableName="terr_submission_comment" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-68">
+        <addUniqueConstraint tableName="terr_submission_comment" columnNames="uuid" constraintName="UK_TERR_SUBMISSION_COMMENT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-69">
+        <addColumn tableName="terr_answer_mc">
+            <column name="uuid" type="BINARY(16)" afterColumn="answer_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-70">
+        <sql>
+            UPDATE
+                terr_answer_mc
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-71">
+        <addNotNullConstraint tableName="terr_answer_mc" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-72">
+        <addUniqueConstraint tableName="terr_answer_mc" columnNames="uuid" constraintName="UK_TERR_ANSWER_MC_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-73">
+        <addColumn tableName="terr_answer_essay_submission">
+            <column name="uuid" type="BINARY(16)" afterColumn="answer_essay_submission_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-74">
+        <sql>
+            UPDATE
+                terr_answer_essay_submission
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-75">
+        <addNotNullConstraint tableName="terr_answer_essay_submission" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-76">
+        <addUniqueConstraint tableName="terr_answer_essay_submission" columnNames="uuid" constraintName="UK_TERR_ANSWER_ESSAY_SUBMISSION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-77">
+        <addColumn tableName="terr_answer_file_submission">
+            <column name="uuid" type="BINARY(16)" afterColumn="answer_file_submission_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-78">
+        <sql>
+            UPDATE
+                terr_answer_file_submission
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-79">
+        <addNotNullConstraint tableName="terr_answer_file_submission" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-80">
+        <addUniqueConstraint tableName="terr_answer_file_submission" columnNames="uuid" constraintName="UK_TERR_ANSWER_FILE_SUBMISSION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-81">
+        <addColumn tableName="terr_answer_mc_submission">
+            <column name="uuid" type="BINARY(16)" afterColumn="answer_mc_sub_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-82">
+        <sql>
+            UPDATE
+                terr_answer_mc_submission
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-83">
+        <addNotNullConstraint tableName="terr_answer_mc_submission" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-84">
+        <addUniqueConstraint tableName="terr_answer_mc_submission" columnNames="uuid" constraintName="UK_TERR_ANSWER_MC_SUBMISSION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-85">
+        <addColumn tableName="terr_answer_mc_submission_option">
+            <column name="uuid" type="BINARY(16)" afterColumn="answer_mc_sub_option_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-86">
+        <sql>
+            UPDATE
+                terr_answer_mc_submission_option
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-87">
+        <addNotNullConstraint tableName="terr_answer_mc_submission_option" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-88">
+        <addUniqueConstraint tableName="terr_answer_mc_submission_option" columnNames="uuid" constraintName="UK_TERR_ANSWER_MC_SUBMISSION_OPTION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-89">
+        <addColumn tableName="lti_context">
+            <column name="uuid" type="BINARY(16)" afterColumn="context_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-90">
+        <sql>
+            UPDATE
+                lti_context
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-91">
+        <addNotNullConstraint tableName="lti_context" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-92">
+        <addUniqueConstraint tableName="lti_context" columnNames="uuid" constraintName="UK_LTI_CONTEXT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-93">
+        <addColumn tableName="lti_user">
+            <column name="uuid" type="BINARY(16)" afterColumn="user_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-94">
+        <sql>
+            UPDATE
+                lti_user
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-95">
+        <addNotNullConstraint tableName="lti_user" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-96">
+        <addUniqueConstraint tableName="lti_user" columnNames="uuid" constraintName="UK_LTI_USER_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-97">
+        <addColumn tableName="lti_tool_deployment">
+            <column name="uuid" type="BINARY(16)" afterColumn="deployment_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-98">
+        <sql>
+            UPDATE
+                lti_tool_deployment
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-99">
+        <addNotNullConstraint tableName="lti_tool_deployment" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-100">
+        <addUniqueConstraint tableName="lti_tool_deployment" columnNames="uuid" constraintName="UK_LTI_TOOL_DEPLOYMENT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-101">
+        <addColumn tableName="lti_result">
+            <column name="uuid" type="BINARY(16)" afterColumn="result_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-102">
+        <sql>
+            UPDATE
+                lti_result
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-103">
+        <addNotNullConstraint tableName="lti_result" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-104">
+        <addUniqueConstraint tableName="lti_result" columnNames="uuid" constraintName="UK_LTI_RESULT_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-105">
+        <addColumn tableName="lti_membership">
+            <column name="uuid" type="BINARY(16)" afterColumn="membership_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-106">
+        <sql>
+            UPDATE
+                lti_membership
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-107">
+        <addNotNullConstraint tableName="lti_membership" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-108">
+        <addUniqueConstraint tableName="lti_membership" columnNames="uuid" constraintName="UK_LTI_MEMBERSHIP_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-109">
+        <addColumn tableName="iss_configuration">
+            <column name="uuid" type="BINARY(16)" afterColumn="key_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-110">
+        <sql>
+            UPDATE
+                iss_configuration
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-111">
+        <addNotNullConstraint tableName="iss_configuration" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-112">
+        <addUniqueConstraint tableName="iss_configuration" columnNames="uuid" constraintName="UK_ISS_CONFIGURATION_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-113">
+        <addColumn tableName="lti_link">
+            <column name="uuid" type="BINARY(16)" afterColumn="link_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-114">
+        <sql>
+            UPDATE
+                lti_link
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-115">
+        <addNotNullConstraint tableName="lti_link" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-116">
+        <addUniqueConstraint tableName="lti_link" columnNames="uuid" constraintName="UK_LTI_LINK_UUID"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-117">
+        <addColumn tableName="api_one_use_token">
+            <column name="uuid" type="BINARY(16)" afterColumn="token_id">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-118">
+        <sql>
+            UPDATE
+                api_one_use_token
+            SET
+                uuid = ${u_id}
+            WHERE
+                uuid IS NULL;
+        </sql>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-119">
+        <addNotNullConstraint tableName="api_one_use_token" columnName="uuid" columnDataType="BINARY(16)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1757937600000-120">
+        <addUniqueConstraint tableName="api_one_use_token" columnNames="uuid" constraintName="UK_API_ONE_USE_TOKEN_UUID"/>
+    </changeSet>
+</databaseChangeLog>

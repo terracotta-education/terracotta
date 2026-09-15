@@ -8,7 +8,7 @@ import lombok.Setter;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -27,7 +27,7 @@ import jakarta.persistence.Table;
 @AllArgsConstructor
 @Table(name = "terr_answer_mc")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AnswerMc extends BaseEntity {
+public class AnswerMc extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

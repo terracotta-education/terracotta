@@ -109,6 +109,10 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         // AssertionFailure: null identifier while checking that association)
         from.setTreatmentId(null);
         from.setVersion(0);
+        // the detached copy still carries the ORIGINAL row's uuid; clearing it lets
+        // UuidAwareEntity's @PrePersist generate a fresh one for this new row instead of
+        // colliding with the source row's unique uuid constraint
+        from.setUuid(null);
 
         // set new assignment; if exists
         if (assignment != null) {

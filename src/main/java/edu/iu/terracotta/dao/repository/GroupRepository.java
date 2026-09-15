@@ -7,10 +7,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Group;
 
+import java.util.UUID;
 import java.util.List;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface GroupRepository extends JpaRepository<Group, Long> {
+
+    Group findByUuid(UUID uuid);
 
     List<Group> findByExperiment_ExperimentId(Long experimentId);
     Group findByGroupId(Long groupId);

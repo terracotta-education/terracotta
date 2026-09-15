@@ -8,11 +8,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Assignment;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
+
+    Assignment findByUuid(UUID uuid);
 
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(long experimentId, String lmsAssignmentId);
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndAssignmentId(long experimentId, long assignmentId);

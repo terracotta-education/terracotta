@@ -1,6 +1,6 @@
 package edu.iu.terracotta.dao.entity;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationToken;
 import lombok.AllArgsConstructor;
@@ -37,7 +37,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @AllArgsConstructor
 @Table(name = "terr_submission")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Submission extends BaseEntity {
+public class Submission extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

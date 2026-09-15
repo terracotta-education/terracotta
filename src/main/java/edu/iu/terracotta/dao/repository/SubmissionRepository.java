@@ -10,12 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Submission;
 
+import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
+
+    Submission findByUuid(UUID uuid);
 
     List<Submission> findByAssessment_AssessmentId(long assessmentId);
     long countByAssessment_AssessmentId(long assessmentId);

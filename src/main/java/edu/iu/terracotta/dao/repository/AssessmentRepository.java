@@ -5,11 +5,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Assessment;
 
+import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
+
+    Assessment findByUuid(UUID uuid);
 
     List<Assessment> findByTreatment_TreatmentId(Long treatmentId);
     Assessment findByAssessmentId(Long assessmentId);

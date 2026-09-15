@@ -16,7 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.dao.entity.Feature;
 import lombok.AllArgsConstructor;
@@ -36,7 +36,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Table(name = "iss_configuration")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PlatformDeployment extends BaseEntity {
+public class PlatformDeployment extends UuidAwareEntity {
 
     public static final String LOCAL_URL = "https://app.terracotta.education";
 

@@ -12,7 +12,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -31,7 +31,7 @@ import jakarta.persistence.Transient;
 @AllArgsConstructor
 @Table(name = "terr_consent_document")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConsentDocument extends BaseEntity {
+public class ConsentDocument extends UuidAwareEntity {
 
     public static final String COMPRESSED_FILE_EXTENSION = ".zip";
 

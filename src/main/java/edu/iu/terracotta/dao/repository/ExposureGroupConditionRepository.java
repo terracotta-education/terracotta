@@ -6,11 +6,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ExposureGroupConditionRepository extends JpaRepository<ExposureGroupCondition, Long> {
+
+    ExposureGroupCondition findByUuid(UUID uuid);
 
     Optional<ExposureGroupCondition> getByGroup_GroupIdAndExposure_ExposureId(Long groupId, Long exposureId);
     List<ExposureGroupCondition> findByGroup_GroupId(Long groupId);

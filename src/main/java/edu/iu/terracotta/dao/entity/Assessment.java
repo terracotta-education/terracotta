@@ -22,7 +22,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.model.enums.MultipleSubmissionScoringScheme;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
@@ -40,7 +40,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Table(name = "terr_assessment")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Assessment extends BaseEntity {
+public class Assessment extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

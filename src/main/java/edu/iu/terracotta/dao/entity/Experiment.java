@@ -1,6 +1,6 @@
 package edu.iu.terracotta.dao.entity;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -43,7 +43,7 @@ import java.util.List;
 @AllArgsConstructor
 @Table(name = "terr_experiment")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Experiment extends BaseEntity {
+public class Experiment extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

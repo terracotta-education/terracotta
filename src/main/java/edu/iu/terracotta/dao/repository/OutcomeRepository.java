@@ -10,11 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Outcome;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface OutcomeRepository extends JpaRepository<Outcome, Long> {
+
+    Outcome findByUuid(UUID uuid);
 
     List<Outcome> findByExposure_ExposureId(Long exposureId);
     @Query("SELECT o FROM Outcome o WHERE o.exposure.experiment.experimentId = :experimentId")
