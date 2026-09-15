@@ -210,7 +210,7 @@ const props = defineProps({
     required: true
   },
   questionId: {
-    type: Number,
+    type: String,
     required: true
   }
 });

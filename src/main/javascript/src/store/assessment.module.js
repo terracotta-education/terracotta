@@ -340,7 +340,7 @@ export const assessment = defineStore("assessment", {
             ...this.assessment,
             questions:
               this.assessment.questions?.filter(
-                q => parseInt(q.questionId) !== parseInt(questionId)
+                q => q.questionId !== questionId
               ) || []
           };
 
@@ -526,7 +526,7 @@ export const assessment = defineStore("assessment", {
     upsertQuestion(question) {
       const index = this.assessment?.questions?.findIndex(
         item =>
-          parseInt(item.questionId) === parseInt(question.questionId)
+          item.questionId === question.questionId
       );
 
       if (index >= 0) {
@@ -537,9 +537,9 @@ export const assessment = defineStore("assessment", {
     },
 
     upsertAnswer(answer) {
-      const answerQuestionId = parseInt(answer.questionId);
+      const answerQuestionId = answer.questionId;
       const question = this.assessment.questions.find(
-        q => parseInt(q.questionId) === answerQuestionId
+        q => q.questionId === answerQuestionId
       );
 
       if (!question) return;

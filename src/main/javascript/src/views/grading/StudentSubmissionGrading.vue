@@ -861,7 +861,7 @@ const findSubmissionById = id => {
 const isSameAssessmentQuestion = questionId => {
   return assessment.value?.questions
     ?.map(question => question.questionId)
-    ?.includes(Number(questionId));
+    ?.includes(questionId);
 };
 
 const downloadFileResponse = async fileResponse => {
