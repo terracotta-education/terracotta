@@ -2,6 +2,17 @@ import { defineStore } from "pinia";
 
 import { assignmentService } from "@/services";
 
+// Shared by every action below that writes this.assignment (a singular "currently
+// loaded assignment" field, not the assignments list) so a stale response from one
+// can't clobber a newer one from another - see the identical guard in
+// assessment.module.js's fetchAssessment for the full reasoning. Concretely: an
+// instructor navigating from one assignment's grading/edit screen to another's fires
+// a new fetchAssignment before the previous one necessarily resolves (both
+// AssignmentScores.vue and AssignmentEditor.vue remount per :assignmentId route
+// param), and whichever response lands last previously won even if it was the
+// older, now-abandoned one.
+let assignmentRequestId = 0;
+
 export const assignment = defineStore("assignment", {
   state: () => ({
     assignments: [],
@@ -15,11 +26,16 @@ export const assignment = defineStore("assignment", {
 
   actions: {
     async updateAssignment(payload) {
+      const requestId = ++assignmentRequestId;
+
       try {
         const response =
           await assignmentService.updateAssignment(...payload);
 
-        this.assignment = response;
+        if (requestId === assignmentRequestId) {
+          this.assignment = response;
+        }
+
         this.upsertAssignments([response]);
 
         return {
@@ -57,12 +73,19 @@ export const assignment = defineStore("assignment", {
     },
 
     async fetchAssignment(payload) {
+      const requestId = ++assignmentRequestId;
+
       try {
         const response =
           await assignmentService.fetchAssignment(...payload);
 
-        this.assignment = response;
         this.upsertAssignments([response]);
+
+        if (requestId !== assignmentRequestId) {
+          return this.assignment;
+        }
+
+        this.assignment = response;
 
         return response;
       } catch (error) {
@@ -127,12 +150,17 @@ export const assignment = defineStore("assignment", {
     },
 
     async duplicateAssignment(payload) {
+      const requestId = ++assignmentRequestId;
+
       try {
         const response =
           await assignmentService.duplicateAssignment(...payload);
 
         if (response?.assignmentId) {
-          this.assignment = response;
+          if (requestId === assignmentRequestId) {
+            this.assignment = response;
+          }
+
           this.upsertAssignments([response]);
 
           return {
@@ -153,11 +181,16 @@ export const assignment = defineStore("assignment", {
     },
 
     async createAssignment(payload) {
+      const requestId = ++assignmentRequestId;
+
       try {
         const response = await assignmentService.create(...payload);
 
         if (response?.assignmentId) {
-          this.assignment = response;
+          if (requestId === assignmentRequestId) {
+            this.assignment = response;
+          }
+
           this.upsertAssignments([response]);
 
           return {
@@ -179,6 +212,7 @@ export const assignment = defineStore("assignment", {
 
     async moveAssignment(payload) {
       const assignmentId = payload[2];
+      const requestId = ++assignmentRequestId;
 
       try {
         const response =
@@ -190,7 +224,10 @@ export const assignment = defineStore("assignment", {
           );
 
           if (response?.assignmentId) {
-            this.assignment = response;
+            if (requestId === assignmentRequestId) {
+              this.assignment = response;
+            }
+
             this.upsertAssignments([response]);
           }
 
@@ -212,10 +249,14 @@ export const assignment = defineStore("assignment", {
     },
 
     setCurrentAssignment(assignment) {
+      // invalidate any still-in-flight fetch/save above so its eventual response can't
+      // overwrite this deliberate, synchronous set once it resolves
+      assignmentRequestId += 1;
       this.assignment = assignment;
     },
 
     setAssignment(assignment) {
+      assignmentRequestId += 1;
       this.assignment = assignment;
     },
 

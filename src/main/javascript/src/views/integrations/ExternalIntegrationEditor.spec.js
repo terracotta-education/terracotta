@@ -233,6 +233,30 @@ describe("ExternalIntegrationEditor", () => {
     expect(wrapper.text()).toContain("assignment in Canvas");
   });
 
+  // configuration.value falls back to a disposable {} when integration or its
+  // configuration is missing on the incoming question - typing a launch URL would
+  // otherwise write into that throwaway object and vanish. onMounted backfills real,
+  // retained objects onto the question itself before anything can be typed.
+  it("retains a launch URL typed in when the question arrives with no integration/configuration at all", async () => {
+    const wrapper = mountComponent(ExternalIntegrationEditor, {
+      props: {
+        assessment: buildAssessment(),
+        question: buildQuestion({ integration: undefined })
+      }
+    });
+
+    await wrapper.vm.$nextTick();
+
+    await wrapper.findComponent({ name: "VTextarea" }).setValue(
+      "https://example.com/new-activity"
+    );
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.integrationQuestion.integration.configuration.launchUrl).toBe(
+      "https://example.com/new-activity"
+    );
+  });
+
   it("resets iframe validity via the store when there is no launch URL on mount", async () => {
     const wrapper = mountComponent(ExternalIntegrationEditor, {
       props: {

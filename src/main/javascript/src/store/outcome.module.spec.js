@@ -176,6 +176,30 @@ describe("outcome store", () => {
 
       expect(store.outcome).toBeNull();
     });
+
+    // e.g. navigating from one outcome's scoring page to another's before the first
+    // outcome's own fetch has resolved - the first (now-abandoned) fetch can resolve
+    // after the second, more recent one
+    it("does not let a slower, out-of-order response overwrite a newer one", async () => {
+      let resolveFirst;
+      const firstResponse = new Promise(resolve => {
+        resolveFirst = resolve;
+      });
+
+      outcomeService.getById
+        .mockReturnValueOnce(firstResponse)
+        .mockResolvedValueOnce({ status: 200, data: { outcomeId: 2 } });
+
+      const firstCall = store.fetchOutcomeById(["a", "b", "1"]);
+      await store.fetchOutcomeById(["a", "b", "2"]);
+
+      expect(store.outcome).toEqual({ outcomeId: 2 });
+
+      resolveFirst({ status: 200, data: { outcomeId: 1 } });
+      await firstCall;
+
+      expect(store.outcome).toEqual({ outcomeId: 2 });
+    });
   });
 
   describe("fetchOutcomes", () => {
@@ -286,6 +310,27 @@ describe("outcome store", () => {
       const result = await store.fetchOutcomeScores(["a"]);
 
       expect(result).toBeNull();
+    });
+
+    it("does not let a slower, out-of-order response overwrite a newer one", async () => {
+      let resolveFirst;
+      const firstResponse = new Promise(resolve => {
+        resolveFirst = resolve;
+      });
+
+      outcomeService.getOutcomeScoresById
+        .mockReturnValueOnce(firstResponse)
+        .mockResolvedValueOnce({ status: 200, data: [{ score: 2 }] });
+
+      const firstCall = store.fetchOutcomeScores(["a"]);
+      await store.fetchOutcomeScores(["b"]);
+
+      expect(store.outcomeScores).toEqual([{ score: 2 }]);
+
+      resolveFirst({ status: 200, data: [{ score: 1 }] });
+      await firstCall;
+
+      expect(store.outcomeScores).toEqual([{ score: 2 }]);
     });
   });
 

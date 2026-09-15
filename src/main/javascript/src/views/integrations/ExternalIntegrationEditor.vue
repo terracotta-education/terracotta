@@ -525,6 +525,19 @@ const emitIntegrationUpdate = () => {
 onMounted(async () => {
   integrationQuestion.value = props.question;
 
+  // launchUrl below writes into configuration.value (integration.value?.configuration
+  // || {}) - if either integration or its configuration were missing on the incoming
+  // question, that fallback would be a disposable {} that a write vanishes into on
+  // the next re-evaluation. Back-fill real, retained objects onto the actual question
+  // (the same reference this ref now holds) so that never happens.
+  if (!integrationQuestion.value.integration) {
+    integrationQuestion.value.integration = {};
+  }
+
+  if (!integrationQuestion.value.integration.configuration) {
+    integrationQuestion.value.integration.configuration = {};
+  }
+
   if (showFeedbackEnabled.value) {
     feedbackEnabled.value = props.assessment
       ? props.assessment.allowStudentViewResponses
