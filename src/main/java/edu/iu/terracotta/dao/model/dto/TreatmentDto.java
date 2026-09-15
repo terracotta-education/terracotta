@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
@@ -19,7 +21,7 @@ public class TreatmentDto {
     private Long treatmentId;
     private AssessmentDto assessmentDto;
     private AssignmentDto assignmentDto;
-    private Long conditionId;
+    private UUID conditionId;
     private Long assignmentId;
 
 }

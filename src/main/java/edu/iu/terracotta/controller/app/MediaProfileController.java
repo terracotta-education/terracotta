@@ -3,6 +3,7 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
@@ -14,6 +15,7 @@ import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParameterMissingException;
+import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.MediaService;
 
@@ -42,10 +44,11 @@ public class MediaProfileController {
     private final MediaService mediaService;
     private final ApiJwtService apijwtService;
     private final ExperimentService experimentService;
+    private final ConditionService conditionService;
 
     @PostMapping
     public ResponseEntity postMediaEvent(@PathVariable("experimentId") UUID experimentUuid,
-                                         @PathVariable long conditionId,
+                                         @PathVariable("conditionId") UUID conditionUuid,
                                          @PathVariable long treatmentId,
                                          @PathVariable long assessmentId,
                                          @PathVariable long submissionId,
@@ -53,9 +56,10 @@ public class MediaProfileController {
                                          @RequestBody MediaEventDto mediaEventDto,
                                          UriComponentsBuilder ucBuilder,
                                          HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException,
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, IdInPostException, DataServiceException,
             TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException, QuestionNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);

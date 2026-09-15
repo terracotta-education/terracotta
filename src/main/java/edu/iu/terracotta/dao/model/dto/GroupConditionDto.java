@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
@@ -16,9 +18,9 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GroupConditionDto {
 
-    private Long groupId;
+    private UUID groupId;
     private String groupName;
-    private Long conditionId;
+    private UUID conditionId;
     private String conditionName;
 
 }

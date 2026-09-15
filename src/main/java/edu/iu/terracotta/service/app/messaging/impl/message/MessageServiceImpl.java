@@ -190,7 +190,7 @@ public class MessageServiceImpl implements MessageService {
         }
 
         return MessageDto.builder()
-            .conditionId(message.getConditionId())
+            .conditionId(message.getCondition().getUuid())
             .configuration(
                 configurationService.toDto(message.getConfiguration(), message.getUuid())
             )

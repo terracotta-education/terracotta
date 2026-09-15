@@ -4,6 +4,7 @@ import edu.iu.terracotta.dao.entity.Condition;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.ExposureDto;
 import edu.iu.terracotta.dao.model.dto.GroupConditionDto;
 import edu.iu.terracotta.dao.model.enums.ExposureTypes;
@@ -28,6 +29,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +55,8 @@ public class ExposureServiceImpl implements ExposureService {
         }
 
         validateTitle(exposureDto.getTitle());
-        exposureDto.setExperimentId(experimentId);
+        Experiment experiment = experimentRepository.findById(experimentId).orElse(null);
+        exposureDto.setExperimentId(experiment != null ? experiment.getUuid() : null);
         Exposure exposure;
 
         try {
@@ -68,8 +71,8 @@ public class ExposureServiceImpl implements ExposureService {
     @Override
     public ExposureDto toDto(Exposure exposure) {
         ExposureDto exposureDto = new ExposureDto();
-        exposureDto.setExposureId(exposure.getExposureId());
-        exposureDto.setExperimentId(exposure.getExperiment().getExperimentId());
+        exposureDto.setExposureId(exposure.getUuid());
+        exposureDto.setExperimentId(exposure.getExperiment().getUuid());
         exposureDto.setTitle(exposure.getTitle());
 
         exposureDto.setGroupConditionList(
@@ -78,9 +81,9 @@ public class ExposureServiceImpl implements ExposureService {
                     Group group = exposureGroupCondition.getGroup();
                     Condition condition = exposureGroupCondition.getCondition();
                     GroupConditionDto groupConditionDto = new GroupConditionDto();
-                    groupConditionDto.setConditionId(condition.getConditionId());
+                    groupConditionDto.setConditionId(condition.getUuid());
                     groupConditionDto.setConditionName(condition.getName());
-                    groupConditionDto.setGroupId(group.getGroupId());
+                    groupConditionDto.setGroupId(group.getUuid());
                     groupConditionDto.setGroupName(group.getName());
 
                     return groupConditionDto;
@@ -94,14 +97,13 @@ public class ExposureServiceImpl implements ExposureService {
     @Override
     public Exposure fromDto(ExposureDto exposureDto) throws DataServiceException {
         Exposure exposure = new Exposure();
-        exposure.setExposureId(exposureDto.getExposureId());
-        Optional<Experiment> experiment = experimentRepository.findById(exposureDto.getExperimentId());
+        Experiment experiment = exposureDto.getExperimentId() != null ? experimentRepository.findByUuid(exposureDto.getExperimentId()) : null;
 
-        if (experiment.isEmpty()) {
+        if (experiment == null) {
             throw new DataServiceException("The experiment for the exposure does not exist");
         }
 
-        exposure.setExperiment(experiment.get());
+        exposure.setExperiment(experiment);
         exposure.setTitle(exposureDto.getTitle());
 
         return exposure;
@@ -156,6 +158,12 @@ public class ExposureServiceImpl implements ExposureService {
     }
 
     @Override
+    public Exposure getExposureByUuid(UUID uuid) throws ExposureNotMatchingException {
+        return Optional.ofNullable(exposureRepository.findByUuid(uuid))
+            .orElseThrow(() -> new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING));
+    }
+
+    @Override
     public void updateExposure(Long exposureId, ExposureDto exposureDto) throws TitleValidationException {
         Exposure exposure = exposureRepository.findByExposureId(exposureId);
 
@@ -184,7 +192,7 @@ public class ExposureServiceImpl implements ExposureService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID exposureId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{id}").buildAndExpand(experimentId, exposureId).toUri());
 

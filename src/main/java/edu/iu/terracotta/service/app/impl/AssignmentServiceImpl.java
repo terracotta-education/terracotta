@@ -192,7 +192,8 @@ public class AssignmentServiceImpl implements AssignmentService {
         validateTitle(assignmentDto.getTitle());
         validateMultipleAttemptsSettings(assignmentDto);
         validateRevealAssignmentResponsesSettings(assignmentDto);
-        assignmentDto.setExposureId(exposureId);
+        Exposure exposureForDto = exposureRepository.findById(exposureId).orElse(null);
+        assignmentDto.setExposureId(exposureForDto != null ? exposureForDto.getUuid() : null);
         Assignment assignment;
 
         try {
@@ -226,7 +227,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setAllowStudentViewCorrectAnswers(assignmentDto.isAllowStudentViewCorrectAnswers());
         assignment.setStudentViewCorrectAnswersAfter(assignmentDto.getStudentViewCorrectAnswersAfter());
         assignment.setStudentViewCorrectAnswersBefore(assignmentDto.getStudentViewCorrectAnswersBefore());
-        Optional<Exposure> exposure = exposureRepository.findById(assignmentDto.getExposureId());
+        Optional<Exposure> exposure = Optional.ofNullable(exposureRepository.findByUuid(assignmentDto.getExposureId()));
 
         if (exposure.isEmpty()) {
             throw new DataServiceException("The exposure for the assignment does not exist");
@@ -743,7 +744,13 @@ public class AssignmentServiceImpl implements AssignmentService {
                 AssignmentNotCreatedException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, AssignmentNotMatchingException,
                 ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
-        if (originalExposureId == targetAssignmentDto.getExposureId().longValue()) {
+        Exposure exposure = exposureRepository.findByUuid(targetAssignmentDto.getExposureId());
+
+        if (exposure == null) {
+            throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
+        }
+
+        if (originalExposureId == exposure.getExposureId()) {
             // cannot move assignment; original and target exposures are the same
             throw new AssignmentMoveException(TextConstants.UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME);
         }
@@ -754,14 +761,8 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
 
-        Exposure exposure = exposureRepository.findByExposureId(targetAssignmentDto.getExposureId());
-
-        if (exposure == null) {
-            throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
-        }
-
         assignment.setExposure(exposure);
-        assignment.setAssignmentOrder(componentUtils.calculateNextOrder(targetAssignmentDto.getExposureId(), exposure.getExperiment().getCreatedBy()));
+        assignment.setAssignmentOrder(componentUtils.calculateNextOrder(exposure.getExposureId(), exposure.getExperiment().getCreatedBy()));
         assignmentRepository.save(assignment);
 
         return assignmentTreatmentService.toAssignmentDto(assignment, false, true, securedInfo);

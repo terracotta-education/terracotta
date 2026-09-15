@@ -57,7 +57,8 @@ public class MessageControllerTest extends BaseTest {
     private MessageController messageController;
 
     private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
-    private final long exposureId = 1L;
+    // exposure.getExposureId() is globally stubbed to 1L in BaseModelTest, matching the old exposureId value here.
+    private final UUID exposureUuid = UUID.randomUUID();
     private final UUID containerUuid = UUID.randomUUID();
     private final UUID messageUuid = UUID.randomUUID();
     private final UUID uuid = UUID.randomUUID();
@@ -71,9 +72,10 @@ public class MessageControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        messageController = new MessageController(apiJwtService, experimentService, contentService, messageEmailService, previewService, messageService);
+        messageController = new MessageController(apiJwtService, experimentService, exposureService, contentService, messageEmailService, previewService, messageService);
 
         when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+        when(exposureService.getExposureByUuid(exposureUuid)).thenReturn(exposure);
     }
 
     private void stubAllowedForMessage() throws Exception {
@@ -101,7 +103,7 @@ public class MessageControllerTest extends BaseTest {
         MessageDto returned = new MessageDto();
         when(messageService.put(any(MessageDto.class), anyLong(), eq(messageContainer), eq(message))).thenReturn(returned);
 
-        ResponseEntity<MessageDto> response = messageController.put(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageDto(), httpServletRequest);
+        ResponseEntity<MessageDto> response = messageController.put(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageDto(), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(returned, response.getBody());
@@ -112,7 +114,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<MessageDto> response = messageController.put(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageDto(), httpServletRequest);
+        ResponseEntity<MessageDto> response = messageController.put(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageDto(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -123,7 +125,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(apiJwtService.experimentAllowed(eq(securedInfo), anyLong())).thenThrow(new ExperimentNotMatchingException("no match"));
 
-        ResponseEntity<MessageDto> response = messageController.put(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageDto(), httpServletRequest);
+        ResponseEntity<MessageDto> response = messageController.put(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageDto(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -133,7 +135,7 @@ public class MessageControllerTest extends BaseTest {
         stubAllowedForMessage();
         when(messageService.put(any(MessageDto.class), anyLong(), eq(messageContainer), eq(message))).thenThrow(new RuntimeException("boom"));
 
-        ResponseEntity<MessageDto> response = messageController.put(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageDto(), httpServletRequest);
+        ResponseEntity<MessageDto> response = messageController.put(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageDto(), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -142,7 +144,7 @@ public class MessageControllerTest extends BaseTest {
     void putPropagatesUncaughtExtractValuesExceptionTest() throws Exception {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenThrow(new TerracottaConnectorException("bad token"));
 
-        assertThrows(TerracottaConnectorException.class, () -> messageController.put(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageDto(), httpServletRequest));
+        assertThrows(TerracottaConnectorException.class, () -> messageController.put(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageDto(), httpServletRequest));
     }
 
     @Test
@@ -152,7 +154,7 @@ public class MessageControllerTest extends BaseTest {
         List<MessageRuleAssignmentDto> returned = List.of(new MessageRuleAssignmentDto());
         when(messageService.getAssignments(securedInfo)).thenReturn(returned);
 
-        ResponseEntity<List<MessageRuleAssignmentDto>> response = messageController.getAssignments(EXPERIMENT_UUID, exposureId, containerUuid, httpServletRequest);
+        ResponseEntity<List<MessageRuleAssignmentDto>> response = messageController.getAssignments(EXPERIMENT_UUID, exposureUuid, containerUuid, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(returned, response.getBody());
@@ -163,7 +165,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<List<MessageRuleAssignmentDto>> response = messageController.getAssignments(EXPERIMENT_UUID, exposureId, containerUuid, httpServletRequest);
+        ResponseEntity<List<MessageRuleAssignmentDto>> response = messageController.getAssignments(EXPERIMENT_UUID, exposureUuid, containerUuid, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -174,7 +176,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(messageService.getAssignments(securedInfo)).thenThrow(new DataServiceException("boom"));
 
-        ResponseEntity<List<MessageRuleAssignmentDto>> response = messageController.getAssignments(EXPERIMENT_UUID, exposureId, containerUuid, httpServletRequest);
+        ResponseEntity<List<MessageRuleAssignmentDto>> response = messageController.getAssignments(EXPERIMENT_UUID, exposureUuid, containerUuid, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -185,7 +187,7 @@ public class MessageControllerTest extends BaseTest {
         MessagePreviewDto returned = new MessagePreviewDto();
         when(previewService.preview(any(MessagePreviewDto.class), eq(message))).thenReturn(returned);
 
-        ResponseEntity<MessagePreviewDto> response = messageController.preview(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessagePreviewDto(), httpServletRequest);
+        ResponseEntity<MessagePreviewDto> response = messageController.preview(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessagePreviewDto(), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(returned, response.getBody());
@@ -196,7 +198,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<MessagePreviewDto> response = messageController.preview(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessagePreviewDto(), httpServletRequest);
+        ResponseEntity<MessagePreviewDto> response = messageController.preview(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessagePreviewDto(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -209,7 +211,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.exposureAllowed(eq(securedInfo), anyLong(), anyLong())).thenReturn(exposure);
         when(apiJwtService.messagingContainerAllowed(eq(securedInfo), anyLong(), eq(containerUuid))).thenThrow(new MessageContainerNotFoundException("not found"));
 
-        ResponseEntity<MessagePreviewDto> response = messageController.preview(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessagePreviewDto(), httpServletRequest);
+        ResponseEntity<MessagePreviewDto> response = messageController.preview(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessagePreviewDto(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -219,7 +221,7 @@ public class MessageControllerTest extends BaseTest {
         stubAllowedForMessage();
         when(previewService.preview(any(MessagePreviewDto.class), eq(message))).thenThrow(new MessageBodyParseException("boom"));
 
-        ResponseEntity<MessagePreviewDto> response = messageController.preview(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessagePreviewDto(), httpServletRequest);
+        ResponseEntity<MessagePreviewDto> response = messageController.preview(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessagePreviewDto(), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -229,7 +231,7 @@ public class MessageControllerTest extends BaseTest {
         stubAllowedForMessage();
         doNothing().when(messageEmailService).sendTest(eq(message), any(MessageSendTestDto.class));
 
-        ResponseEntity<Void> response = messageController.sendTest(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageSendTestDto(), httpServletRequest);
+        ResponseEntity<Void> response = messageController.sendTest(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageSendTestDto(), httpServletRequest);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
     }
@@ -239,7 +241,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = messageController.sendTest(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageSendTestDto(), httpServletRequest);
+        ResponseEntity<Void> response = messageController.sendTest(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageSendTestDto(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -253,7 +255,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.messagingContainerAllowed(eq(securedInfo), anyLong(), eq(containerUuid))).thenReturn(messageContainer);
         when(apiJwtService.messagingAllowed(eq(securedInfo), eq(containerUuid), eq(uuid))).thenThrow(new MessageNotFoundException("not found"));
 
-        ResponseEntity<Void> response = messageController.sendTest(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageSendTestDto(), httpServletRequest);
+        ResponseEntity<Void> response = messageController.sendTest(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageSendTestDto(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -263,7 +265,7 @@ public class MessageControllerTest extends BaseTest {
         stubAllowedForMessage();
         doThrow(new MessageSendEmailException("boom", new RuntimeException())).when(messageEmailService).sendTest(eq(message), any(MessageSendTestDto.class));
 
-        ResponseEntity<Void> response = messageController.sendTest(EXPERIMENT_UUID, exposureId, containerUuid, uuid, new MessageSendTestDto(), httpServletRequest);
+        ResponseEntity<Void> response = messageController.sendTest(EXPERIMENT_UUID, exposureUuid, containerUuid, uuid, new MessageSendTestDto(), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -274,7 +276,7 @@ public class MessageControllerTest extends BaseTest {
         MessageDto returned = new MessageDto();
         when(messageService.processPipedTextCsvFile(eq(message), any(MultipartFile.class))).thenReturn(returned);
 
-        ResponseEntity<MessageDto> response = messageController.pipedTextCsv(EXPERIMENT_UUID, exposureId, containerUuid, messageUuid, uuid, multipartFile, httpServletRequest);
+        ResponseEntity<MessageDto> response = messageController.pipedTextCsv(EXPERIMENT_UUID, exposureUuid, containerUuid, messageUuid, uuid, multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(returned, response.getBody());
@@ -285,7 +287,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<MessageDto> response = messageController.pipedTextCsv(EXPERIMENT_UUID, exposureId, containerUuid, messageUuid, uuid, multipartFile, httpServletRequest);
+        ResponseEntity<MessageDto> response = messageController.pipedTextCsv(EXPERIMENT_UUID, exposureUuid, containerUuid, messageUuid, uuid, multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -300,7 +302,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.messagingAllowed(eq(securedInfo), eq(containerUuid), eq(messageUuid))).thenReturn(message);
         when(apiJwtService.messagingContentAllowed(eq(securedInfo), eq(messageUuid), eq(uuid))).thenThrow(new MessageContentNotMatchingException("no match"));
 
-        ResponseEntity<MessageDto> response = messageController.pipedTextCsv(EXPERIMENT_UUID, exposureId, containerUuid, messageUuid, uuid, multipartFile, httpServletRequest);
+        ResponseEntity<MessageDto> response = messageController.pipedTextCsv(EXPERIMENT_UUID, exposureUuid, containerUuid, messageUuid, uuid, multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -310,7 +312,7 @@ public class MessageControllerTest extends BaseTest {
         stubAllowedForContent();
         when(messageService.processPipedTextCsvFile(eq(message), any(MultipartFile.class))).thenThrow(new MessagePipedTextFileUploadException("boom"));
 
-        ResponseEntity<MessageDto> response = messageController.pipedTextCsv(EXPERIMENT_UUID, exposureId, containerUuid, messageUuid, uuid, multipartFile, httpServletRequest);
+        ResponseEntity<MessageDto> response = messageController.pipedTextCsv(EXPERIMENT_UUID, exposureUuid, containerUuid, messageUuid, uuid, multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -321,7 +323,7 @@ public class MessageControllerTest extends BaseTest {
         MessageContentDto returned = new MessageContentDto();
         when(contentService.updatePlaceholders(eq(messageContent), any(MessageContentDto.class))).thenReturn(returned);
 
-        ResponseEntity<MessageContentDto> response = messageController.updatePlaceholders(EXPERIMENT_UUID, exposureId, containerUuid, messageUuid, uuid, new MessageContentDto(), httpServletRequest);
+        ResponseEntity<MessageContentDto> response = messageController.updatePlaceholders(EXPERIMENT_UUID, exposureUuid, containerUuid, messageUuid, uuid, new MessageContentDto(), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(returned, response.getBody());
@@ -332,7 +334,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<MessageContentDto> response = messageController.updatePlaceholders(EXPERIMENT_UUID, exposureId, containerUuid, messageUuid, uuid, new MessageContentDto(), httpServletRequest);
+        ResponseEntity<MessageContentDto> response = messageController.updatePlaceholders(EXPERIMENT_UUID, exposureUuid, containerUuid, messageUuid, uuid, new MessageContentDto(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -347,7 +349,7 @@ public class MessageControllerTest extends BaseTest {
         when(apiJwtService.messagingAllowed(eq(securedInfo), eq(containerUuid), eq(messageUuid))).thenReturn(message);
         when(apiJwtService.messagingContentAllowed(eq(securedInfo), eq(messageUuid), eq(uuid))).thenThrow(new MessageContentNotMatchingException("no match"));
 
-        ResponseEntity<MessageContentDto> response = messageController.updatePlaceholders(EXPERIMENT_UUID, exposureId, containerUuid, messageUuid, uuid, new MessageContentDto(), httpServletRequest);
+        ResponseEntity<MessageContentDto> response = messageController.updatePlaceholders(EXPERIMENT_UUID, exposureUuid, containerUuid, messageUuid, uuid, new MessageContentDto(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -357,7 +359,7 @@ public class MessageControllerTest extends BaseTest {
         stubAllowedForContent();
         when(contentService.updatePlaceholders(eq(messageContent), any(MessageContentDto.class))).thenThrow(new MessageBodyParseException("boom"));
 
-        ResponseEntity<MessageContentDto> response = messageController.updatePlaceholders(EXPERIMENT_UUID, exposureId, containerUuid, messageUuid, uuid, new MessageContentDto(), httpServletRequest);
+        ResponseEntity<MessageContentDto> response = messageController.updatePlaceholders(EXPERIMENT_UUID, exposureUuid, containerUuid, messageUuid, uuid, new MessageContentDto(), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }

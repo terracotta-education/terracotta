@@ -28,6 +28,7 @@ import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageMembe
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Group;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
@@ -237,6 +238,12 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    public Participant getParticipantByUuid(UUID uuid) throws ParticipantNotMatchingException {
+        return participantRepository.findByUuid(uuid)
+            .orElseThrow(() -> new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING));
+    }
+
+    @Override
     public ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
@@ -267,7 +274,6 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public ParticipantDto toDto(Participant participant, List<Long> publishedExperimentAssignmentIds, SecuredInfo securedInfo) {
         ParticipantDto participantDto = ParticipantDto.builder()
-            .id(participant.getUuid())
             .consent(participant.getConsent())
             .createdAt(participant.getCreatedAt())
             .dateGiven(participant.getDateGiven())
@@ -280,10 +286,10 @@ public class ParticipantServiceImpl implements ParticipantService {
             .user(userToDTO(participant.getLtiUserEntity()))
             .build();
 
-        participantDto.setParticipantId(participant.getParticipantId());
+        participantDto.setParticipantId(participant.getUuid());
 
         if (participant.getGroup() != null) {
-            participantDto.setGroupId(participant.getGroup().getGroupId());
+            participantDto.setGroupId(participant.getGroup().getUuid());
         }
 
         return participantDto;
@@ -324,8 +330,12 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new DataServiceException("The user for the participant is not valid", e);
         }
 
-        if (participantDto.getGroupId() != null && groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.get().getExperimentId(), participantDto.getGroupId())) {
-            participant.setGroup(groupRepository.getReferenceById(participantDto.getGroupId()));
+        if (participantDto.getGroupId() != null) {
+            Group group = groupRepository.findByUuid(participantDto.getGroupId());
+
+            if (group != null && experiment.get().getExperimentId().equals(group.getExperiment().getExperimentId())) {
+                participant.setGroup(group);
+            }
         }
 
         return participant;
@@ -798,9 +808,10 @@ public class ParticipantServiceImpl implements ParticipantService {
             // including to a single-version assignment, unlike hasParticipantSubmitted's
             // "started" semantics (see hasAnyParticipantSubmission's own comment)
             if (!hasAnyParticipantSubmission(participantToChange, publishedExperimentAssignmentIds)) {
-                if (participantDto.getGroupId() != null
-                        && groupRepository.existsByExperiment_ExperimentIdAndGroupId(experiment.getExperimentId(), participantDto.getGroupId())) {
-                    participantToChange.setGroup(groupRepository.findByGroupId(participantDto.getGroupId()));
+                Group group = participantDto.getGroupId() != null ? groupRepository.findByUuid(participantDto.getGroupId()) : null;
+
+                if (group != null && experiment.getExperimentId().equals(group.getExperiment().getExperimentId())) {
+                    participantToChange.setGroup(group);
                 } else {
                     participantToChange.setGroup(null);
                 }
@@ -819,7 +830,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     @Transactional
     public Participant changeConsent(ParticipantDto participantDto, SecuredInfo securedInfo, Long experimentId) throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
-        Participant participant = participantRepository.findById(participantDto.getParticipantId())
+        Participant participant = participantRepository.findByUuid(participantDto.getParticipantId())
             .orElseThrow(() -> new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING));
 
         if (!Strings.CS.equals(participant.getLtiUserEntity().getUserKey(), securedInfo.getUserId())
@@ -846,7 +857,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (participant.getGroup() == null) {
             participantDto.setGroupId(null);
         } else {
-            participantDto.setGroupId(participant.getGroup().getGroupId());
+            participantDto.setGroupId(participant.getGroup().getUuid());
         }
 
         List<Participant> changedParticipants = changeParticipant(Collections.singletonMap(participant, participantDto), experimentId, securedInfo);
@@ -948,7 +959,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID participantId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/participant/{participantId}")
                 .buildAndExpand(experimentId, participantId).toUri());

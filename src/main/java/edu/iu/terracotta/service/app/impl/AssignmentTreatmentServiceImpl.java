@@ -157,7 +157,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
             treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), true, false, submissions, false, securedInfo));
         }
 
-        treatmentDto.setConditionId(treatment.getCondition().getConditionId());
+        treatmentDto.setConditionId(treatment.getCondition().getUuid());
         // keeping assignmentId at the root, as removal will break the UI in many places...
         treatmentDto.setAssignmentId(treatment.getAssignment().getAssignmentId());
 
@@ -171,7 +171,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         assignmentDto.setLmsAssignmentId(assignment.getLmsAssignmentId());
         assignmentDto.setTitle(assignment.getTitle());
         assignmentDto.setAssignmentOrder(assignment.getAssignmentOrder());
-        assignmentDto.setExposureId(assignment.getExposure().getExposureId());
+        assignmentDto.setExposureId(assignment.getExposure().getUuid());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
         assignmentDto.setSoftDeleted(assignment.getSoftDeleted());
         assignmentDto.setNumOfSubmissions(assignment.getNumOfSubmissions());

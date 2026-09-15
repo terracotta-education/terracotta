@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.ExposureDto;
 import edu.iu.terracotta.dao.model.enums.ExposureTypes;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -67,18 +70,23 @@ public class ExposureServiceImplTest extends BaseTest {
 
     @Test
     public void testPostExposureSuccess() throws Exception {
+        // exposure.getUuid() isn't globally stubbed in BaseModelTest (unlike experiment.getUuid()), so stub it locally.
+        UUID exposureUuid = UUID.randomUUID();
+        when(exposure.getUuid()).thenReturn(exposureUuid);
         ExposureDto exposureDto = ExposureDto.builder().title("New Exposure").build();
         when(exposureRepository.save(any(Exposure.class))).thenReturn(exposure);
+        when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
+        when(experimentRepository.findByUuid(experiment.getUuid())).thenReturn(experiment);
 
         ExposureDto retVal = exposureService.postExposure(exposureDto, 1L);
 
         assertNotNull(retVal);
-        assertEquals(1L, retVal.getExposureId());
+        assertEquals(exposureUuid, retVal.getExposureId());
     }
 
     @Test
     public void testPostExposureIdInPostExceptionThrows() {
-        ExposureDto exposureDto = ExposureDto.builder().exposureId(5L).build();
+        ExposureDto exposureDto = ExposureDto.builder().exposureId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(IdInPostException.class, () -> exposureService.postExposure(exposureDto, 1L));
 
@@ -104,23 +112,34 @@ public class ExposureServiceImplTest extends BaseTest {
 
     @Test
     public void testToDto() {
+        // exposure.getUuid() and group.getUuid() aren't globally stubbed in BaseModelTest (unlike
+        // experiment.getUuid()/condition.getUuid()), so stub them locally.
+        UUID exposureUuid = UUID.randomUUID();
+        UUID groupUuid = UUID.randomUUID();
+        when(exposure.getUuid()).thenReturn(exposureUuid);
+        when(group.getUuid()).thenReturn(groupUuid);
+
         ExposureDto retVal = exposureService.toDto(exposure);
 
-        assertEquals(1L, retVal.getExposureId());
-        assertEquals(1L, retVal.getExperimentId());
+        assertEquals(exposureUuid, retVal.getExposureId());
+        assertEquals(experiment.getUuid(), retVal.getExperimentId());
         assertEquals(EXPOSURE_TITLE, retVal.getTitle());
         assertEquals(1, retVal.getGroupConditionList().size());
-        assertEquals(1L, retVal.getGroupConditionList().get(0).getConditionId());
-        assertEquals(1L, retVal.getGroupConditionList().get(0).getGroupId());
+        assertEquals(condition.getUuid(), retVal.getGroupConditionList().get(0).getConditionId());
+        assertEquals(groupUuid, retVal.getGroupConditionList().get(0).getGroupId());
     }
 
     @Test
     public void testFromDtoSuccess() throws DataServiceException {
-        ExposureDto exposureDto = ExposureDto.builder().exposureId(1L).experimentId(1L).title("Exposure A").build();
+        // exposureId is never populated on the incoming DTO in practice (postExposure rejects a
+        // non-null one via IdInPostException before fromDto is ever reached), so fromDto no longer
+        // copies it onto the entity - the DB assigns it on save.
+        ExposureDto exposureDto = ExposureDto.builder().experimentId(experiment.getUuid()).title("Exposure A").build();
+        when(experimentRepository.findByUuid(experiment.getUuid())).thenReturn(experiment);
 
         Exposure retVal = exposureService.fromDto(exposureDto);
 
-        assertEquals(1L, retVal.getExposureId());
+        assertNull(retVal.getExposureId());
         assertEquals("Exposure A", retVal.getTitle());
         assertEquals(experiment, retVal.getExperiment());
     }
@@ -198,6 +217,28 @@ public class ExposureServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetExposureByUuidFound() throws Exception {
+        // exposure.getUuid() isn't globally stubbed in BaseModelTest (unlike experiment.getUuid()), so stub it locally.
+        UUID uuid = UUID.randomUUID();
+        when(exposure.getUuid()).thenReturn(uuid);
+        when(exposureRepository.findByUuid(uuid)).thenReturn(exposure);
+
+        Exposure retVal = exposureService.getExposureByUuid(uuid);
+
+        assertEquals(exposure, retVal);
+    }
+
+    @Test
+    public void testGetExposureByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(exposureRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(ExposureNotMatchingException.class, () -> exposureService.getExposureByUuid(uuid));
+
+        assertTrue(exception.getMessage().startsWith("Error 108"));
+    }
+
+    @Test
     public void testUpdateExposureSuccess() throws TitleValidationException {
         ExposureDto exposureDto = ExposureDto.builder().title("New Title").build();
 
@@ -247,10 +288,13 @@ public class ExposureServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders retVal = exposureService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID exposureUuid = UUID.randomUUID();
+
+        HttpHeaders retVal = exposureService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, exposureUuid);
 
         assertNotNull(retVal);
-        assertTrue(retVal.getLocation().toString().contains("/api/experiments/1/exposures/2"));
+        assertTrue(retVal.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/exposures/" + exposureUuid));
     }
 
 }

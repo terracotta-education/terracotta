@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Optional;
+import java.util.UUID;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -146,7 +147,11 @@ public class AssignmentServiceImplTest extends BaseTest {
         when(assignment.getDueDate()).thenReturn(dueDate);
         when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(assignment.isPublished()).thenReturn(true);
-        when(assignmentDto.getExposureId()).thenReturn(1L);
+
+        UUID exposureUuid = UUID.randomUUID();
+        when(exposure.getUuid()).thenReturn(exposureUuid);
+        when(assignmentDto.getExposureId()).thenReturn(exposureUuid);
+        when(exposureRepository.findByUuid(exposureUuid)).thenReturn(exposure);
         when(assignmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
         when(canvasAssignmentExtended.isPublished()).thenReturn(true);
         when(canvasAssignmentExtended.getDueAt()).thenReturn(dueDate);
@@ -271,7 +276,7 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testMoveAssignmentNoTargetExposureMatch() throws IdInPostException, AssessmentNotMatchingException {
-        when(exposureRepository.findByExposureId(anyLong())).thenReturn(null);
+        when(exposureRepository.findByUuid(any(UUID.class))).thenReturn(null);
         Exception exception = assertThrows(ExposureNotMatchingException.class, () -> { assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, securedInfo); });
 
         assertEquals(TextConstants.EXPOSURE_NOT_MATCHING, exception.getMessage());
@@ -409,7 +414,7 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoExposureNotFound() {
-        when(exposureRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(exposureRepository.findByUuid(any(UUID.class))).thenReturn(null);
 
         Exception exception = assertThrows(DataServiceException.class, () -> assignmentService.fromDto(assignmentDto));
 

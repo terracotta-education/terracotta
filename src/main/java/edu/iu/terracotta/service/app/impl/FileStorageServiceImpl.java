@@ -190,13 +190,12 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    private FileInfoDto uploadFile(MultipartFile file, long experimentId) {
+    private FileInfoDto uploadFile(MultipartFile file) {
         FileSubmissionLocal fileSubmissionLocal = saveConsentFile(file);
 
         FileInfoDto fileInfoDto = new FileInfoDto();
         fileInfoDto.setFileId(null);
         fileInfoDto.setDateCreated(Timestamp.valueOf(LocalDateTime.now()));
-        fileInfoDto.setExperimentId(experimentId);
         fileInfoDto.setFileType(file.getContentType());
         fileInfoDto.setSize(file.getSize());
         fileInfoDto.setDateUpdated(fileInfoDto.getDateCreated());
@@ -278,8 +277,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, ApiException, AssignmentNotEditedException, AssignmentNotMatchingException, IOException, TerracottaConnectorException {
-        FileInfoDto fileInfoDto = uploadFile(multipartFile, experimentId);
+        FileInfoDto fileInfoDto = uploadFile(multipartFile);
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        fileInfoDto.setExperimentId(experiment.getUuid());
         ConsentDocument consentDocument = experiment.getConsentDocument();
         LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         String lmsCourseId = lmsUtils.parseCourseId(

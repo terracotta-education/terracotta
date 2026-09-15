@@ -31,6 +31,7 @@ public interface ParticipantService {
     List<Participant> findAllByExperimentId(long experimentId);
     List<ParticipantDto> getParticipants(long experimentId, String userId, boolean student, SecuredInfo securedInfo, boolean refresh) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException;
     Participant getParticipant(long id, long experimentId, String userId, boolean student) throws InvalidUserException, ParticipantNotMatchingException;
+    Participant getParticipantByUuid(UUID uuid) throws ParticipantNotMatchingException;
     ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
     ParticipantDto toDto(Participant participant, SecuredInfo securedInfo);
     ParticipantDto toDto(Participant participant, List<Long> publishedExperimentAssignmentIds, SecuredInfo securedInfo);
@@ -44,7 +45,7 @@ public interface ParticipantService {
     Optional<LmsUserBatchStatusDto> getPrepareParticipationStatus(UUID batchId);
     List<Participant> changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo);
     Participant findParticipant(long experimentId, String userId);
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long participantId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID participantId);
     void setAllToNull(Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException;
     void setAllToTrue(Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException;
     void setAllToFalse(Long experimentId) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException;

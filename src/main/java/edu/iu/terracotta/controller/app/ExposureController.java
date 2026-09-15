@@ -72,10 +72,11 @@ public class ExposureController {
 
     @GetMapping("/{exposureId}")
     public ResponseEntity<ExposureDto> getExposure(@PathVariable("experimentId") UUID experimentUuid,
-                                                   @PathVariable long exposureId,
+                                                   @PathVariable("exposureId") UUID exposureUuid,
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -106,7 +107,7 @@ public class ExposureController {
         }
 
         ExposureDto returnedDto = exposureService.postExposure(exposureDto, experimentId);
-        HttpHeaders headers = exposureService.buildHeaders(ucBuilder, experimentId, returnedDto.getExposureId());
+        HttpHeaders headers = exposureService.buildHeaders(ucBuilder, experimentUuid, returnedDto.getExposureId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
@@ -131,10 +132,11 @@ public class ExposureController {
 
     @PutMapping("/{exposureId}")
     public ResponseEntity<Void> updateExposure(@PathVariable("experimentId") UUID experimentUuid,
-                                               @PathVariable long exposureId,
+                                               @PathVariable("exposureId") UUID exposureUuid,
                                                @RequestBody ExposureDto exposureDto,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
+        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
         log.debug("Updating exposure with id {}", exposureId);
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
@@ -152,10 +154,11 @@ public class ExposureController {
 
     @DeleteMapping("/{exposureId}")
     public ResponseEntity<Void> deleteExposure(@PathVariable("experimentId") UUID experimentUuid,
-                                               @PathVariable long exposureId,
+                                               @PathVariable("exposureId") UUID exposureUuid,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, ExperimentLockedException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);

@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.ConditionDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.ExperimentConditionLimitReachedException;
@@ -72,12 +74,12 @@ public class ConditionServiceImplTest extends BaseTest {
         ConditionDto retVal = conditionService.postCondition(conditionDto, 1L);
 
         assertNotNull(retVal);
-        assertEquals(1L, retVal.getConditionId());
+        assertEquals(condition.getUuid(), retVal.getConditionId());
     }
 
     @Test
     public void testPostConditionIdInPostExceptionThrows() {
-        ConditionDto conditionDto = ConditionDto.builder().conditionId(5L).build();
+        ConditionDto conditionDto = ConditionDto.builder().conditionId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(IdInPostException.class, () -> conditionService.postCondition(conditionDto, 1L));
 
@@ -128,7 +130,7 @@ public class ConditionServiceImplTest extends BaseTest {
 
         ConditionDto retVal = conditionService.toDto(condition);
 
-        assertEquals(1L, retVal.getConditionId());
+        assertEquals(condition.getUuid(), retVal.getConditionId());
         assertEquals(1L, retVal.getExperimentId());
         assertEquals(CONDITION_TITLE, retVal.getName());
         assertTrue(retVal.getDefaultCondition());
@@ -137,11 +139,13 @@ public class ConditionServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoSuccess() throws DataServiceException {
-        ConditionDto conditionDto = ConditionDto.builder().conditionId(1L).experimentId(1L).name("Condition A").defaultCondition(true).distributionPct(50F).build();
+        // conditionDto.getConditionId() (now a uuid) is intentionally not set on a new Condition
+        // by fromDto - see the comment on ConditionServiceImpl.fromDto - so it isn't asserted here,
+        // mirroring ExperimentServiceImplTest#testFromDtoSuccess.
+        ConditionDto conditionDto = ConditionDto.builder().conditionId(UUID.randomUUID()).experimentId(1L).name("Condition A").defaultCondition(true).distributionPct(50F).build();
 
         Condition retVal = conditionService.fromDto(conditionDto);
 
-        assertEquals(1L, retVal.getConditionId());
         assertEquals("Condition A", retVal.getName());
         assertEquals(experiment, retVal.getExperiment());
         assertTrue(retVal.getDefaultCondition());
@@ -168,12 +172,32 @@ public class ConditionServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetConditionByUuidFound() throws Exception {
+        UUID uuid = condition.getUuid();
+        when(conditionRepository.findByUuid(uuid)).thenReturn(condition);
+
+        Condition retVal = conditionService.getConditionByUuid(uuid);
+
+        assertEquals(condition, retVal);
+    }
+
+    @Test
+    public void testGetConditionByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(conditionRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(ConditionNotMatchingException.class, () -> conditionService.getConditionByUuid(uuid));
+
+        assertTrue(exception.getMessage().startsWith("Error 108"));
+    }
+
+    @Test
     public void testGetCondition() {
         when(conditionRepository.findByConditionId(anyLong())).thenReturn(condition);
 
         ConditionDto retVal = conditionService.getCondition(1L);
 
-        assertEquals(1L, retVal.getConditionId());
+        assertEquals(condition.getUuid(), retVal.getConditionId());
     }
 
     @Test
@@ -235,10 +259,13 @@ public class ConditionServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeader() {
-        HttpHeaders retVal = conditionService.buildHeader(UriComponentsBuilder.newInstance(), 1L, 2L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+
+        HttpHeaders retVal = conditionService.buildHeader(UriComponentsBuilder.newInstance(), experimentUuid, conditionUuid);
 
         assertNotNull(retVal);
-        assertTrue(retVal.getLocation().toString().contains("/api/experiments/1/conditions/2"));
+        assertTrue(retVal.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/conditions/" + conditionUuid));
     }
 
     @Test
@@ -271,7 +298,9 @@ public class ConditionServiceImplTest extends BaseTest {
 
     @Test
     public void testValidateConditionNamesRequiredBlankThrows() {
-        List<ConditionDto> conditionDtoList = List.of(ConditionDto.builder().conditionId(1L).name("").build());
+        // required=true throws for the blank name before the per-item uuid resolution loop runs,
+        // so the conditionId here doesn't need a matching findByUuid stub.
+        List<ConditionDto> conditionDtoList = List.of(ConditionDto.builder().conditionId(UUID.randomUUID()).name("").build());
 
         Exception exception = assertThrows(TitleValidationException.class, () -> conditionService.validateConditionNames(conditionDtoList, 1L, true));
 
@@ -280,7 +309,7 @@ public class ConditionServiceImplTest extends BaseTest {
 
     @Test
     public void testValidateConditionNamesTooLongThrows() {
-        List<ConditionDto> conditionDtoList = List.of(ConditionDto.builder().conditionId(1L).name("a".repeat(256)).build());
+        List<ConditionDto> conditionDtoList = List.of(ConditionDto.builder().conditionId(UUID.randomUUID()).name("a".repeat(256)).build());
 
         Exception exception = assertThrows(TitleValidationException.class, () -> conditionService.validateConditionNames(conditionDtoList, 1L, true));
 
@@ -289,7 +318,9 @@ public class ConditionServiceImplTest extends BaseTest {
 
     @Test
     public void testValidateConditionNamesNoDuplicatesDoesNotThrow() {
-        List<ConditionDto> conditionDtoList = List.of(ConditionDto.builder().conditionId(1L).name("Name A").build());
+        UUID conditionUuid = UUID.randomUUID();
+        when(conditionRepository.findByUuid(conditionUuid)).thenReturn(condition);
+        List<ConditionDto> conditionDtoList = List.of(ConditionDto.builder().conditionId(conditionUuid).name("Name A").build());
         when(conditionRepository.findByNameAndExperiment_ExperimentIdAndConditionIdIsNotOrderByConditionIdAsc(anyString(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 
         assertDoesNotThrow(() -> conditionService.validateConditionNames(conditionDtoList, 1L, false));
@@ -297,8 +328,17 @@ public class ConditionServiceImplTest extends BaseTest {
 
     @Test
     public void testValidateConditionNamesDuplicateAcrossEntriesThrows() {
-        ConditionDto dto1 = ConditionDto.builder().conditionId(1L).name("Same").build();
-        ConditionDto dto2 = ConditionDto.builder().conditionId(2L).name("Same").build();
+        UUID conditionUuid1 = UUID.randomUUID();
+        UUID conditionUuid2 = UUID.randomUUID();
+        Condition condition1 = mock(Condition.class);
+        when(condition1.getConditionId()).thenReturn(1L);
+        Condition condition2 = mock(Condition.class);
+        when(condition2.getConditionId()).thenReturn(2L);
+        when(conditionRepository.findByUuid(conditionUuid1)).thenReturn(condition1);
+        when(conditionRepository.findByUuid(conditionUuid2)).thenReturn(condition2);
+
+        ConditionDto dto1 = ConditionDto.builder().conditionId(conditionUuid1).name("Same").build();
+        ConditionDto dto2 = ConditionDto.builder().conditionId(conditionUuid2).name("Same").build();
         List<ConditionDto> conditionDtoList = List.of(dto1, dto2);
 
         Condition conflicting = mock(Condition.class);

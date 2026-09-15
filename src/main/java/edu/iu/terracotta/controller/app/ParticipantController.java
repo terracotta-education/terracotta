@@ -88,10 +88,11 @@ public class ParticipantController {
 
     @GetMapping("/{participantId}")
     public ResponseEntity<ParticipantDto> getParticipant(@PathVariable("experimentId") UUID experimentUuid,
-                                                        @PathVariable long participantId,
+                                                        @PathVariable("participantId") UUID participantUuid,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long participantId = participantService.getParticipantByUuid(participantUuid).getParticipantId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
@@ -125,18 +126,19 @@ public class ParticipantController {
         }
 
         ParticipantDto returnedDto = participantService.postParticipant(participantDto, experimentId, securedInfo);
-        HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentId, returnedDto.getParticipantId());
+        HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentUuid, returnedDto.getParticipantId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
     @PutMapping("/{participantId}")
     public ResponseEntity<ParticipantDto> updateParticipant(@PathVariable("experimentId") UUID experimentUuid,
-                                                  @PathVariable long participantId,
+                                                  @PathVariable("participantId") UUID participantUuid,
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long participantId = participantService.getParticipantByUuid(participantUuid).getParticipantId();
         log.debug("Updating Participant with id {}", participantId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -201,8 +203,9 @@ public class ParticipantController {
         Map<Participant, ParticipantDto> participantMap = new HashMap<>();
 
         for (ParticipantDto participantDto : participantDtoList) {
-            apijwtService.participantAllowed(securedInfo, experimentId, participantDto.getParticipantId());
-            Participant participant = participantService.getParticipant(participantDto.getParticipantId(), experimentId, securedInfo.getUserId(), false);
+            long participantId = participantService.getParticipantByUuid(participantDto.getParticipantId()).getParticipantId();
+            apijwtService.participantAllowed(securedInfo, experimentId, participantId);
+            Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false);
             log.debug("Updating participant with id: {}", participant.getParticipantId());
             participantMap.put(participant, participantDto);
         }
@@ -218,10 +221,11 @@ public class ParticipantController {
 
     @DeleteMapping("/{participantId}")
     public ResponseEntity<Void> deleteParticipant(@PathVariable("experimentId") UUID experimentUuid,
-                                                  @PathVariable Long participantId,
+                                                  @PathVariable("participantId") UUID participantUuid,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long participantId = participantService.getParticipantByUuid(participantUuid).getParticipantId();
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);

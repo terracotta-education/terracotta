@@ -13,6 +13,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
@@ -26,7 +28,7 @@ public class AssignmentDto {
     @Builder.Default private boolean allowStudentViewCorrectAnswers = false;
 
     private Long assignmentId;
-    private Long exposureId;
+    private UUID exposureId;
     private String title;
     private String lmsAssignmentId;
     private Integer assignmentOrder;

@@ -76,6 +76,10 @@ public class MessageServiceImplTest extends BaseTest {
 
     private ExposureGroupCondition egcWithDefault(long id, boolean isDefault) {
         Condition condition = Condition.builder().conditionId(id).defaultCondition(isDefault).build();
+        // Condition.builder() only covers fields declared directly on Condition - uuid lives on the
+        // UuidAwareEntity superclass and is otherwise only ever populated by JPA's @PrePersist hook,
+        // which never fires for a plain POJO built like this - so it must be set explicitly here.
+        condition.setUuid(UUID.randomUUID());
 
         return ExposureGroupCondition.builder().exposureGroupConditionId(id).condition(condition).build();
     }
@@ -336,7 +340,7 @@ public class MessageServiceImplTest extends BaseTest {
         assertEquals(contentDto, dto.getContent());
         assertEquals(ruleSetDtos, dto.getRuleSets());
         assertEquals("owner@example.com", dto.getOwnerEmail());
-        assertEquals(message.getConditionId(), dto.getConditionId());
+        assertEquals(message.getCondition().getUuid(), dto.getConditionId());
         assertEquals(message.getExposureGroupConditionId(), dto.getExposureGroupConditionId());
     }
 

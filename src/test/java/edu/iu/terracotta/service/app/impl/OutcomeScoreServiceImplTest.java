@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.OutcomeScore;
+import edu.iu.terracotta.dao.exceptions.OutcomeScoreNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.OutcomeScoreDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -34,6 +36,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 @SuppressWarnings("unchecked")
 public class OutcomeScoreServiceImplTest extends BaseTest {
+
+    // outcome.getUuid() / outcomeScore.getUuid() aren't globally stubbed in BaseModelTest (unlike
+    // experiment.getUuid()), so they - and the matching repository findByUuid lookups - are stubbed
+    // here so fromDto's uuid-based resolution keeps working for the existing numeric-id test data.
+    private static final UUID OUTCOME_UUID = UUID.randomUUID();
+    private static final UUID OUTCOME_SCORE_UUID = UUID.randomUUID();
 
     @InjectMocks private OutcomeScoreServiceImpl outcomeScoreService;
 
@@ -46,20 +54,23 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
         when(outcomeScoreRepository.findByOutcomeScoreId(anyLong())).thenReturn(outcomeScore);
         when(participantRepository.findByIdAndExperiment_ExperimentId(anyLong(), anyLong())).thenReturn(Optional.of(participant));
         when(outcomeScoreRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(outcome.getUuid()).thenReturn(OUTCOME_UUID);
+        when(outcomeRepository.findByUuid(OUTCOME_UUID)).thenReturn(outcome);
+        when(outcomeScoreRepository.findByUuid(OUTCOME_SCORE_UUID)).thenReturn(outcomeScore);
     }
 
     @Test
     public void testUpdateOutcomeScoresBatchesExistingAndNewScoresIntoOneSaveAll() throws DataServiceException, InvalidParticipantException {
         OutcomeScoreDto existingScoreDto = OutcomeScoreDto.builder()
-            .outcomeScoreId(1L)
+            .outcomeScoreId(OUTCOME_SCORE_UUID)
             .participantId(1L)
-            .outcomeId(1L)
+            .outcomeId(OUTCOME_UUID)
             .scoreNumeric(5F)
             .build();
 
         OutcomeScoreDto newScoreDto = OutcomeScoreDto.builder()
             .participantId(2L)
-            .outcomeId(1L)
+            .outcomeId(OUTCOME_UUID)
             .scoreNumeric(3F)
             .build();
 
@@ -83,7 +94,7 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
     public void testUpdateOutcomeScoresValidatesParticipantForNewScores() {
         OutcomeScoreDto newScoreDto = OutcomeScoreDto.builder()
             .participantId(99L)
-            .outcomeId(1L)
+            .outcomeId(OUTCOME_UUID)
             .scoreNumeric(3F)
             .build();
 
@@ -135,13 +146,13 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
         OutcomeScoreDto dto = outcomeScoreService.toDto(outcomeScore);
 
         assertNotNull(dto);
-        assertEquals(outcome.getOutcomeId(), dto.getOutcomeId());
+        assertEquals(OUTCOME_UUID, dto.getOutcomeId());
         assertEquals(participant.getParticipantId(), dto.getParticipantId());
     }
 
     @Test
     public void testPostOutcomeScoreIdInPost() {
-        OutcomeScoreDto dto = OutcomeScoreDto.builder().outcomeScoreId(1L).build();
+        OutcomeScoreDto dto = OutcomeScoreDto.builder().outcomeScoreId(UUID.randomUUID()).build();
 
         assertThrows(IdInPostException.class, () -> outcomeScoreService.postOutcomeScore(dto, 1L, 1L));
     }
@@ -155,19 +166,21 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
 
     @Test
     public void testPostOutcomeScoreHappyPath() throws Exception {
-        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(1L).scoreNumeric(5F).build();
+        // outcomeId is overwritten by postOutcomeScore itself (resolved from the numeric outcomeId
+        // argument via the OUTCOME_UUID stub in beforeEach), so the builder value here is a placeholder.
+        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(OUTCOME_UUID).scoreNumeric(5F).build();
         when(outcomeScoreRepository.save(any(OutcomeScore.class))).thenReturn(outcomeScore);
 
         OutcomeScoreDto result = outcomeScoreService.postOutcomeScore(dto, 1L, 1L);
 
         assertNotNull(result);
-        assertEquals(1L, dto.getOutcomeId());
+        assertEquals(OUTCOME_UUID, dto.getOutcomeId());
         verify(outcomeScoreRepository).save(any(OutcomeScore.class));
     }
 
     @Test
     public void testPostOutcomeScoreFromDtoOutcomeNotFound() {
-        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(99L).build();
+        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(OUTCOME_UUID).build();
         when(outcomeRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         Exception exception = assertThrows(DataServiceException.class, () -> outcomeScoreService.postOutcomeScore(dto, 1L, 1L));
@@ -177,7 +190,7 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
 
     @Test
     public void testPostOutcomeScoreFromDtoParticipantNotFound() {
-        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(1L).build();
+        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(OUTCOME_UUID).build();
         when(participantRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         Exception exception = assertThrows(DataServiceException.class, () -> outcomeScoreService.postOutcomeScore(dto, 1L, 1L));
@@ -225,11 +238,38 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders headers = outcomeScoreService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L, 3L, 4L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID exposureUuid = UUID.randomUUID();
+        UUID outcomeUuid = UUID.randomUUID();
+        UUID outcomeScoreUuid = UUID.randomUUID();
+
+        HttpHeaders headers = outcomeScoreService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, exposureUuid, outcomeUuid, outcomeScoreUuid);
 
         assertNotNull(headers);
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/exposures/2/outcomes/3/outcome_scores/4"));
+        assertTrue(headers.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/exposures/" + exposureUuid + "/outcomes/" + outcomeUuid + "/outcome_scores/" + outcomeScoreUuid));
+    }
+
+    @Test
+    public void testGetOutcomeScoreByUuidFound() throws Exception {
+        // outcomeScore.getUuid() isn't globally stubbed in BaseModelTest, so stub it locally.
+        UUID uuid = UUID.randomUUID();
+        when(outcomeScore.getUuid()).thenReturn(uuid);
+        when(outcomeScoreRepository.findByUuid(uuid)).thenReturn(outcomeScore);
+
+        OutcomeScore retVal = outcomeScoreService.getOutcomeScoreByUuid(uuid);
+
+        assertEquals(outcomeScore, retVal);
+    }
+
+    @Test
+    public void testGetOutcomeScoreByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(outcomeScoreRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(OutcomeScoreNotMatchingException.class, () -> outcomeScoreService.getOutcomeScoreByUuid(uuid));
+
+        assertTrue(exception.getMessage().startsWith("Error 108"));
     }
 
 }

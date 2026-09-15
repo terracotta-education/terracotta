@@ -92,6 +92,11 @@ public class TreatmentServiceImplTest extends BaseTest {
         when(treatmentDtoToUpdate.getAssessmentDto()).thenReturn(assessmentDto);
         when(treatmentDtoToUpdate.getAssignmentDto()).thenReturn(assignmentDto);
         when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(1L);
+
+        java.util.UUID conditionUuid = condition.getUuid();
+        when(treatmentDtoToUpdate.getConditionId()).thenReturn(conditionUuid);
+        when(treatmentDto.getConditionId()).thenReturn(conditionUuid);
+        when(conditionRepository.findByUuid(conditionUuid)).thenReturn(condition);
     }
 
     @Test
@@ -192,7 +197,7 @@ public class TreatmentServiceImplTest extends BaseTest {
         TreatmentDto result = treatmentService.postTreatment(treatmentDto, 5L, securedInfo);
 
         assertNotNull(result);
-        verify(treatmentDto).setConditionId(5L);
+        verify(treatmentDto).setConditionId(condition.getUuid());
         verify(treatmentRepository).save(any(Treatment.class));
     }
 
@@ -225,6 +230,7 @@ public class TreatmentServiceImplTest extends BaseTest {
     @Test
     public void testPostTreatmentFromDtoConditionNotFound() {
         when(treatmentDto.getTreatmentId()).thenReturn(null);
+        when(treatmentDto.getConditionId()).thenReturn(null);
         when(conditionRepository.findById(anyLong())).thenReturn(java.util.Optional.empty());
 
         Exception exception = assertThrows(DataServiceException.class, () -> treatmentService.postTreatment(treatmentDto, 1L, securedInfo));

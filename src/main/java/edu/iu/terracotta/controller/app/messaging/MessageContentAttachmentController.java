@@ -26,6 +26,7 @@ import edu.iu.terracotta.exceptions.messaging.MessageContentNotMatchingException
 import edu.iu.terracotta.exceptions.messaging.MessageNotFoundException;
 import edu.iu.terracotta.exceptions.messaging.MessageNotMatchingException;
 import edu.iu.terracotta.exceptions.messaging.MessageOwnerNotMatchingException;
+import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.messaging.MessageContentAttachmentService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -42,10 +43,11 @@ public class MessageContentAttachmentController {
 
     private final ApiJwtService apiJwtService;
     private final ExperimentService experimentService;
+    private final ExposureService exposureService;
     private final MessageContentAttachmentService messageContentAttachmentService;
 
     @GetMapping
-    public ResponseEntity<List<MessageContentAttachmentDto>> get(@PathVariable("experimentId") UUID experimentUuid, @PathVariable long exposureId, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID contentUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<List<MessageContentAttachmentDto>> get(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID contentUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -54,9 +56,11 @@ public class MessageContentAttachmentController {
 
         MessageContent messageContent;
         long experimentId;
+        long exposureId;
 
         try {
             experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+            exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
             apiJwtService.messagingAllowed(securedInfo, containerUuid, messageUuid);
             messageContent = apiJwtService.messagingContentAllowed(securedInfo, messageUuid, contentUuid);

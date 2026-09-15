@@ -49,7 +49,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -80,7 +80,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -131,7 +131,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -162,7 +162,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -193,7 +193,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -225,7 +225,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
         assertEquals(OutcomeType.AVERAGE_ASSIGNMENT_SCORE, ret.getOutcomeType());
 
         assertNotNull(ret.getConditions());
@@ -256,7 +256,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
         assertEquals(OutcomeType.TIME_ON_TASK, ret.getOutcomeType());
 
         assertNotNull(ret.getConditions());

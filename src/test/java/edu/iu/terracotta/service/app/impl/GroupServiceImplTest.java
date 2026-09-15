@@ -3,7 +3,9 @@ package edu.iu.terracotta.service.app.impl;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -17,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +32,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.Group;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.GroupDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -77,21 +81,45 @@ public class GroupServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetGroupByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(groupRepository.findByUuid(uuid)).thenReturn(group);
+
+        Group retVal = groupService.getGroupByUuid(uuid);
+
+        assertEquals(group, retVal);
+    }
+
+    @Test
+    public void testGetGroupByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(groupRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(GroupNotMatchingException.class, () -> groupService.getGroupByUuid(uuid));
+
+        assertEquals(TextConstants.GROUP_NOT_MATCHING, exception.getMessage());
+    }
+
+    @Test
     public void testPostGroupSuccess() throws IdInPostException, DataServiceException {
         GroupDto groupDto = GroupDto.builder().name("Group A").build();
+        UUID uuid = UUID.randomUUID();
 
+        when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
+        when(experimentRepository.findByUuid(experiment.getUuid())).thenReturn(experiment);
         when(groupRepository.save(any(Group.class))).thenReturn(group);
+        when(group.getUuid()).thenReturn(uuid);
         when(participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
 
         GroupDto retVal = groupService.postGroup(groupDto, 1L, securedInfo);
 
         assertNotNull(retVal);
-        assertEquals(1L, retVal.getGroupId());
+        assertEquals(uuid, retVal.getGroupId());
     }
 
     @Test
     public void testPostGroupIdInPostExceptionThrows() {
-        GroupDto groupDto = GroupDto.builder().groupId(5L).build();
+        GroupDto groupDto = GroupDto.builder().groupId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(IdInPostException.class, () -> groupService.postGroup(groupDto, 1L, securedInfo));
 
@@ -124,18 +152,20 @@ public class GroupServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoSuccess() throws DataServiceException {
-        GroupDto groupDto = GroupDto.builder().groupId(1L).experimentId(1L).name("Group A").build();
+        // groupDto's groupId (a uuid) is intentionally not carried onto the built entity - see the
+        // comment in GroupServiceImpl.fromDto - so it is left off here to make that explicit.
+        GroupDto groupDto = GroupDto.builder().experimentId(experiment.getUuid()).name("Group A").build();
+        when(experimentRepository.findByUuid(experiment.getUuid())).thenReturn(experiment);
 
         Group retVal = groupService.fromDto(groupDto);
 
-        assertEquals(1L, retVal.getGroupId());
+        assertNull(retVal.getGroupId());
         assertEquals("Group A", retVal.getName());
         assertEquals(experiment, retVal.getExperiment());
     }
 
     @Test
     public void testFromDtoExperimentNotFoundThrows() {
-        when(experimentRepository.findById(anyLong())).thenReturn(Optional.empty());
         GroupDto groupDto = GroupDto.builder().build();
 
         Exception exception = assertThrows(DataServiceException.class, () -> groupService.fromDto(groupDto));
@@ -198,9 +228,14 @@ public class GroupServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders retVal = groupService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID groupUuid = UUID.randomUUID();
 
-        assertNotNull(retVal);
+        HttpHeaders retVal = groupService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, groupUuid);
+
+        assertNotNull(retVal.getLocation());
+        assertTrue(retVal.getLocation().toString().contains(experimentUuid.toString()));
+        assertTrue(retVal.getLocation().toString().contains(groupUuid.toString()));
     }
 
     @Test

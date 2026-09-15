@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -18,8 +19,8 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GroupDto {
 
-    private Long groupId;
-    private Long experimentId;
+    private UUID groupId;
+    private UUID experimentId;
     private String name;
     private List<ParticipantDto> participants;
 

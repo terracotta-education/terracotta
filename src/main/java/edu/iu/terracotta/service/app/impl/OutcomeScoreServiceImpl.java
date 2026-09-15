@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.OutcomeScore;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.exceptions.OutcomeScoreNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.OutcomeScoreDto;
 import edu.iu.terracotta.dao.repository.OutcomeRepository;
 import edu.iu.terracotta.dao.repository.OutcomeScoreRepository;
@@ -23,6 +24,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -46,13 +48,19 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     }
 
     @Override
+    public OutcomeScore getOutcomeScoreByUuid(UUID uuid) throws OutcomeScoreNotMatchingException {
+        return Optional.ofNullable(outcomeScoreRepository.findByUuid(uuid))
+            .orElseThrow(() -> new OutcomeScoreNotMatchingException(TextConstants.OUTCOME_SCORE_NOT_MATCHING));
+    }
+
+    @Override
     public OutcomeScoreDto postOutcomeScore(OutcomeScoreDto outcomeScoreDto, long experimentId, long outcomeId) throws IdInPostException, InvalidParticipantException, DataServiceException {
         if (outcomeScoreDto.getOutcomeScoreId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
         validateParticipant(outcomeScoreDto.getParticipantId(), experimentId);
-        outcomeScoreDto.setOutcomeId(outcomeId);
+        outcomeScoreDto.setOutcomeId(outcomeRepository.findById(outcomeId).map(Outcome::getUuid).orElse(null));
         OutcomeScore outcomeScore;
 
         try {
@@ -67,8 +75,8 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     @Override
     public OutcomeScoreDto toDto(OutcomeScore outcomeScore) {
         OutcomeScoreDto outcomeScoreDto = new OutcomeScoreDto();
-        outcomeScoreDto.setOutcomeScoreId(outcomeScore.getOutcomeScoreId());
-        outcomeScoreDto.setOutcomeId(outcomeScore.getOutcome().getOutcomeId());
+        outcomeScoreDto.setOutcomeScoreId(outcomeScore.getUuid());
+        outcomeScoreDto.setOutcomeId(outcomeScore.getOutcome().getUuid());
         outcomeScoreDto.setParticipantId(outcomeScore.getParticipant().getParticipantId());
         outcomeScoreDto.setScoreNumeric(outcomeScore.getScoreNumeric());
 
@@ -78,15 +86,14 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     @Override
     public OutcomeScore fromDto(OutcomeScoreDto outcomeScoreDto) throws DataServiceException {
         OutcomeScore outcomeScore = new OutcomeScore();
-        outcomeScore.setOutcomeScoreId(outcomeScoreDto.getOutcomeScoreId());
         outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
-        Optional<Outcome> outcome =  outcomeRepository.findById(outcomeScoreDto.getOutcomeId());
+        Outcome outcome = outcomeRepository.findByUuid(outcomeScoreDto.getOutcomeId());
 
-        if (outcome.isEmpty()) {
+        if (outcome == null) {
             throw new DataServiceException("The outcome for the outcome score does not exist.");
         }
 
-        outcomeScore.setOutcome(outcome.get());
+        outcomeScore.setOutcome(outcome);
 
         Optional<Participant> participant = participantRepository.findById(outcomeScoreDto.getParticipantId());
 
@@ -118,7 +125,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
         for (OutcomeScoreDto outcomeScoreDto : outcomeScoreDtoList) {
             if (outcomeScoreDto.getOutcomeScoreId() != null) {
-                OutcomeScore outcomeScore = getOutcomeScore(outcomeScoreDto.getOutcomeScoreId());
+                OutcomeScore outcomeScore = outcomeScoreRepository.findByUuid(outcomeScoreDto.getOutcomeScoreId());
                 outcomeScore.setScoreNumeric(outcomeScoreDto.getScoreNumeric());
                 outcomeScoresToSave.add(outcomeScore);
                 continue;
@@ -150,7 +157,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId, Long outcomeScoreId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID exposureId, UUID outcomeId, UUID outcomeScoreId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{exposureId}/outcomes/{outcomeId}/outcome_scores/{outcomeScoreId}")
                 .buildAndExpand(experimentId, exposureId, outcomeId, outcomeScoreId).toUri());

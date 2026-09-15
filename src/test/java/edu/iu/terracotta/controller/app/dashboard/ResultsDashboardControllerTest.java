@@ -53,13 +53,14 @@ public class ResultsDashboardControllerTest extends BaseTest {
     @Test
     void getOverviewTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        ResultsDashboardDto dto = ResultsDashboardDto.builder().experimentId(1L).build();
+        UUID experimentUuid = UUID.randomUUID();
+        ResultsDashboardDto dto = ResultsDashboardDto.builder().experimentId(experimentUuid).build();
         when(resultsDashboardService.overview(1L, securedInfo)).thenReturn(dto);
 
         ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(1L, response.getBody().getExperimentId());
+        assertEquals(experimentUuid, response.getBody().getExperimentId());
     }
 
     @Test
@@ -92,13 +93,14 @@ public class ResultsDashboardControllerTest extends BaseTest {
     @Test
     void postComparisonTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        ResultsDashboardDto dto = ResultsDashboardDto.builder().experimentId(1L).build();
+        UUID experimentUuid = UUID.randomUUID();
+        ResultsDashboardDto dto = ResultsDashboardDto.builder().experimentId(experimentUuid).build();
         when(resultsDashboardService.outcomes(1L, resultsOutcomesRequestDto)).thenReturn(dto);
 
         ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(EXPERIMENT_UUID, resultsOutcomesRequestDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(1L, response.getBody().getExperimentId());
+        assertEquals(experimentUuid, response.getBody().getExperimentId());
     }
 
     @Test

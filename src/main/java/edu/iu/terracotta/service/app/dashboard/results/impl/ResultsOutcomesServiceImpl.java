@@ -112,7 +112,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
             }
 
             return ResultsOutcomesDto.builder()
-                .experimentId(experiment.getExperimentId())
+                .experimentId(experiment.getUuid())
                 .conditions(conditions(experiment, outcomes))
                 .exposures(exposures(outcomes))
                 .outcomeType(OutcomeType.STANDARD)
@@ -123,7 +123,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
         switch (EnumUtils.getEnumIgnoreCase(AlternateIdType.class, resultsOutcomesRequestDto.getAlternateId().getId())) {
             case AVERAGE_ASSIGNMENT_SCORE:
                 return ResultsOutcomesDto.builder()
-                    .experimentId(experiment.getExperimentId())
+                    .experimentId(experiment.getUuid())
                     .conditions(
                         resultsOutcomesAverageGradeService.conditions(
                             experiment,
@@ -148,7 +148,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                     .build();
             case TIME_ON_TASK:
                 return ResultsOutcomesDto.builder()
-                    .experimentId(experiment.getExperimentId())
+                    .experimentId(experiment.getUuid())
                     .conditions(
                         resultsOutcomesTimeOnTaskService.conditions(
                             experiment,
@@ -174,7 +174,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                     .build();
             default:
                 return ResultsOutcomesDto.builder()
-                    .experimentId(experiment.getExperimentId())
+                    .experimentId(experiment.getUuid())
                     .outcomeType(OutcomeType.OTHER)
                     .build();
         }

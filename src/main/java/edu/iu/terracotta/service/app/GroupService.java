@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.GroupDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface GroupService {
 
@@ -19,12 +21,13 @@ public interface GroupService {
     List<GroupDto> getGroups(Long experimentId, SecuredInfo securedInfo);
     GroupDto postGroup(GroupDto groupDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
     Group getGroup(Long id);
+    Group getGroupByUuid(UUID uuid) throws GroupNotMatchingException;
     GroupDto toDto(Group group, SecuredInfo securedInfo);
     Group fromDto(GroupDto groupDto) throws DataServiceException;
     void updateGroup(Long groupId, GroupDto groupDto) throws TitleValidationException;
     void deleteById(Long id) throws EmptyResultDataAccessException;
     void createAndAssignGroupsToConditionsAndExposures(Long experimentId, SecuredInfo securedInfo, boolean isCustom) throws DataServiceException;
     void validateTitle(String title) throws TitleValidationException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long groupId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID groupId);
 
 }

@@ -301,6 +301,7 @@ public class BaseModelTest {
             when(condition.getConditionId()).thenReturn(1L);
             when(condition.getExperiment()).thenReturn(experiment);
             when(condition.getName()).thenReturn(CONDITION_TITLE);
+            when(condition.getUuid()).thenReturn(UUID.randomUUID());
             when(consentDocument.getLmsAssignmentId()).thenReturn("1");
             when(consentDocument.getResourceLinkId()).thenReturn(RESOURCE_LINK_ID);
             when(courseUser.getRoles()).thenReturn(Collections.singletonList(Roles.LEARNER));
@@ -332,6 +333,7 @@ public class BaseModelTest {
             when(feature.getPlatformDeployments()).thenReturn(Collections.singletonList(platformDeployment));
             when(feature.getType()).thenReturn(FeatureType.DEFAULT);
             when(group.getGroupId()).thenReturn(1L);
+            when(group.getUuid()).thenReturn(UUID.randomUUID());
             when(groupParticipantCount.getGroupId()).thenReturn(1L);
             when(groupParticipantCount.getParticipantCount()).thenReturn(1L);
             when(httpServletRequest.getRequestURL()).thenReturn(new StringBuffer());
@@ -421,9 +423,11 @@ public class BaseModelTest {
             when(participant.getLtiUserEntity()).thenReturn(ltiUserEntity);
             when(participant.getParticipantId()).thenReturn(1L);
             when(participant.getSource()).thenReturn(ParticipationTypes.AUTO);
+            when(participant.getUuid()).thenReturn(UUID.randomUUID());
             when(participant.isTestStudent()).thenReturn(false);
-            when(participantDto.getGroupId()).thenReturn(1L);
-            when(participantDto.getParticipantId()).thenReturn(1L);
+            UUID participantDtoGroupUuid = group.getUuid();
+            when(participantDto.getGroupId()).thenReturn(participantDtoGroupUuid);
+            when(participantDto.getParticipantId()).thenReturn(UUID.randomUUID());
             when(participantDto.getSource()).thenReturn(ParticipationTypes.AUTO.toString());
             when(participantDto.getUser()).thenReturn(userDto);
             when(platformDeployment.getKeyId()).thenReturn(1L);
@@ -482,7 +486,8 @@ public class BaseModelTest {
             when(submissionCanvas.getUser()).thenReturn(user);
             when(submissionDto.getDateCreated()).thenReturn(Timestamp.from(Instant.now()));
             when(submissionDto.getDateSubmitted()).thenReturn(Timestamp.from(Instant.now()));
-            when(submissionDto.getParticipantId()).thenReturn(1L);
+            UUID submissionDtoParticipantUuid = participant.getUuid();
+            when(submissionDto.getParticipantId()).thenReturn(submissionDtoParticipantUuid);
             when(toolDeployment.getPlatformDeployment()).thenReturn(platformDeployment);
             when(treatment.getAssessment()).thenReturn(assessment);
             when(treatment.getAssignment()).thenReturn(assignment);

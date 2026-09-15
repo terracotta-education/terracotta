@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -83,6 +84,12 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
+    public Outcome getOutcomeByUuid(UUID uuid) throws OutcomeNotMatchingException {
+        return Optional.ofNullable(outcomeRepository.findByUuid(uuid))
+            .orElseThrow(() -> new OutcomeNotMatchingException(TextConstants.OUTCOME_NOT_MATCHING));
+    }
+
+    @Override
     public List<OutcomeDto> getAllByExperiment(long experimentId) {
         return CollectionUtils.emptyIfNull(outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId)).stream()
             .map(
@@ -97,7 +104,7 @@ public class OutcomeServiceImpl implements OutcomeService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        outcomeDto.setExposureId(exposureId);
+        outcomeDto.setExposureId(exposureRepository.findById(exposureId).map(Exposure::getUuid).orElse(null));
         defaultOutcome(outcomeDto);
         Outcome outcome;
 
@@ -113,8 +120,8 @@ public class OutcomeServiceImpl implements OutcomeService {
     @Override
     public OutcomeDto toDto(Outcome outcome, boolean outcomeScores) {
         OutcomeDto outcomeDto = new OutcomeDto();
-        outcomeDto.setOutcomeId(outcome.getOutcomeId());
-        outcomeDto.setExposureId(outcome.getExposure().getExposureId());
+        outcomeDto.setOutcomeId(outcome.getUuid());
+        outcomeDto.setExposureId(outcome.getExposure().getUuid());
         outcomeDto.setTitle(outcome.getTitle());
         outcomeDto.setLmsType(outcome.getLmsType().name());
         outcomeDto.setLmsOutcomeId(outcome.getLmsOutcomeId());
@@ -137,20 +144,19 @@ public class OutcomeServiceImpl implements OutcomeService {
 
     @Override
     public Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException {
-        Optional<Exposure> exposure = exposureRepository.findById(outcomeDto.getExposureId());
+        Exposure exposure = exposureRepository.findByUuid(outcomeDto.getExposureId());
 
-        if (exposure.isEmpty()) {
+        if (exposure == null) {
             throw new DataServiceException("Exposure for outcome does not exist.");
         }
 
         Outcome outcome = new Outcome();
-        outcome.setOutcomeId(outcomeDto.getOutcomeId());
         outcome.setTitle(outcomeDto.getTitle());
         outcome.setLmsType(EnumUtils.getEnum(LmsType.class, outcomeDto.getLmsType(), LmsType.none));
         outcome.setMaxPoints(outcomeDto.getMaxPoints());
         outcome.setLmsOutcomeId(outcomeDto.getLmsOutcomeId());
         outcome.setExternal(outcomeDto.getExternal());
-        outcome.setExposure(exposure.get());
+        outcome.setExposure(exposure);
 
         return outcome;
     }
@@ -386,7 +392,7 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long outcomeId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID exposureId, UUID outcomeId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{exposureId}/outcomes/{outcomeId}")
                 .buildAndExpand(experimentId, exposureId, outcomeId).toUri());

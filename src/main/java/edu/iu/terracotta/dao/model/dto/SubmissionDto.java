@@ -11,6 +11,7 @@ import lombok.Setter;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -21,11 +22,11 @@ import java.util.List;
 public class SubmissionDto {
 
     private Long submissionId;
-    private Long participantId;
+    private UUID participantId;
     private Long assessmentId;
-    private Long conditionId;
+    private UUID conditionId;
     private Long treatmentId;
-    private Long experimentId;
+    private UUID experimentId;
     private Float calculatedGrade;
     private Float alteredCalculatedGrade;
     private Float totalAlteredGrade;

@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
@@ -16,8 +18,8 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OutcomeScoreDto {
 
-    private Long outcomeScoreId;
-    private Long outcomeId;
+    private UUID outcomeScoreId;
+    private UUID outcomeId;
     private Long participantId;
     private Float scoreNumeric;
 

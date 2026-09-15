@@ -6,6 +6,7 @@ import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
 import edu.iu.terracotta.dao.entity.Group;
+import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.GroupDto;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ExposureGroupConditionRepository;
@@ -30,6 +31,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -60,12 +62,19 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
+    public Group getGroupByUuid(UUID uuid) throws GroupNotMatchingException {
+        return Optional.ofNullable(groupRepository.findByUuid(uuid))
+            .orElseThrow(() -> new GroupNotMatchingException(TextConstants.GROUP_NOT_MATCHING));
+    }
+
+    @Override
     public GroupDto postGroup(GroupDto groupDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException{
         if (groupDto.getGroupId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        groupDto.setExperimentId(experimentId);
+        Experiment experiment = experimentRepository.findById(experimentId).orElse(null);
+        groupDto.setExperimentId(experiment != null ? experiment.getUuid() : null);
 
         try {
             return toDto(groupRepository.save(fromDto(groupDto)), securedInfo);
@@ -77,14 +86,14 @@ public class GroupServiceImpl implements GroupService {
     @Override
     public GroupDto toDto(Group group, SecuredInfo securedInfo) {
         GroupDto groupDto = new GroupDto();
-        groupDto.setGroupId(group.getGroupId());
-        groupDto.setExperimentId(group.getExperiment().getExperimentId());
+        groupDto.setGroupId(group.getUuid());
+        groupDto.setExperimentId(group.getExperiment().getUuid());
         groupDto.setName(group.getName());
 
         List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(group.getExperiment().getExperimentId(), securedInfo.getLmsCourseId(), group.getExperiment().getCreatedBy());
 
         groupDto.setParticipants(
-            CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId()))
+            CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(group.getExperiment().getExperimentId(), group.getGroupId()))
                 .stream()
                 .filter(participant -> !participant.isTestStudent())
                 .map(participant -> participantService.toDto(participant, publishedExperimentAssignmentIds, securedInfo))
@@ -96,15 +105,17 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     public Group fromDto(GroupDto groupDto) throws DataServiceException {
+        // groupDto.getGroupId() (now a uuid) is intentionally not set on a new Group here - the
+        // caller (postGroup) already rejects a create request that carries one (IdInPostException),
+        // and the real numeric id/uuid are both IDENTITY/@PrePersist generated at insert time regardless.
         Group group = new Group();
-        group.setGroupId(groupDto.getGroupId());
-        Optional<Experiment> experiment = experimentRepository.findById(groupDto.getExperimentId());
+        Experiment experiment = groupDto.getExperimentId() != null ? experimentRepository.findByUuid(groupDto.getExperimentId()) : null;
 
-        if (experiment.isEmpty()) {
+        if (experiment == null) {
             throw new DataServiceException("The experiment for the group does not exist");
         }
 
-        group.setExperiment(experiment.get());
+        group.setExperiment(experiment);
         group.setName(groupDto.getName());
 
         return group;
@@ -251,7 +262,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long groupId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID groupId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiment/{experimentId}/groups/{id}").buildAndExpand(experimentId, groupId).toUri());
 

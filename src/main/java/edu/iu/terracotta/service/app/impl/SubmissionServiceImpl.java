@@ -239,11 +239,11 @@ public class SubmissionServiceImpl implements SubmissionService {
     public SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments) {
         SubmissionDto submissionDto = SubmissionDto.builder().build();
         submissionDto.setSubmissionId(submission.getSubmissionId());
-        submissionDto.setParticipantId(submission.getParticipant().getParticipantId());
+        submissionDto.setParticipantId(submission.getParticipant().getUuid());
         submissionDto.setAssessmentId(submission.getAssessment().getAssessmentId());
-        submissionDto.setConditionId(submission.getAssessment().getTreatment().getCondition().getConditionId());
+        submissionDto.setConditionId(submission.getAssessment().getTreatment().getCondition().getUuid());
         submissionDto.setTreatmentId(submission.getAssessment().getTreatment().getTreatmentId());
-        submissionDto.setExperimentId(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId());
+        submissionDto.setExperimentId(submission.getAssessment().getTreatment().getCondition().getExperiment().getUuid());
         submissionDto.setCalculatedGrade(submission.getCalculatedGrade());
         submissionDto.setAlteredCalculatedGrade(submission.getAlteredCalculatedGrade());
         submissionDto.setTotalAlteredGrade(submission.getTotalAlteredGrade());
@@ -346,7 +346,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         submission.setDateSubmitted(submissionDto.getDateSubmitted());
         submission.setLateSubmission(submissionDto.isLateSubmission());
-        Optional<Participant> participant = participantRepository.findById(submissionDto.getParticipantId());
+        Optional<Participant> participant = participantRepository.findByUuid(submissionDto.getParticipantId());
 
         if (participant.isEmpty()) {
             throw new DataServiceException("The participant for the submission does not exist.");
@@ -766,7 +766,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
         }
 
-        submissionDto.setParticipantId(participant.getParticipantId());
+        submissionDto.setParticipantId(participant.getUuid());
 
         if (submissionDto.getAlteredCalculatedGrade() != null || submissionDto.getTotalAlteredGrade() != null) {
             throw new InvalidUserException(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.");

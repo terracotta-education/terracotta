@@ -27,7 +27,7 @@ public class MessageDto {
     private MessageConfigurationDto configuration;
     private MessageContentDto content;
     private Timestamp created;
-    private long conditionId;
+    private UUID conditionId;
     private String ownerEmail;
     private long exposureGroupConditionId;
     private List<MessageRecipientRuleSetDto> ruleSets;

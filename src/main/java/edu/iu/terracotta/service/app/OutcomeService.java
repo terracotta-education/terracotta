@@ -21,12 +21,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public interface OutcomeService {
 
     List<OutcomeDto> getOutcomesForExposure(long exposureId);
     List<OutcomeDto> getAllByExperiment(long experimentId);
     Outcome getOutcome(long id);
+    Outcome getOutcomeByUuid(UUID uuid) throws OutcomeNotMatchingException;
     OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException;
     OutcomeDto toDto(Outcome outcome, boolean outcomeScores);
     Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException;
@@ -39,6 +41,6 @@ public interface OutcomeService {
     // one LMS call for all external outcomes' assignments instead of one call per outcome
     Map<String, List<LmsSubmission>> fetchSubmissionsForOutcomes(List<Outcome> outcomes, SecuredInfo securedInfo) throws ApiException, IOException, TerracottaConnectorException;
     void defaultOutcome(OutcomeDto outcomeDto) throws TitleValidationException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long outcomeId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID exposureId, UUID outcomeId);
 
 }

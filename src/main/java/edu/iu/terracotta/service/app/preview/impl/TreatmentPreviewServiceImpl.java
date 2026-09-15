@@ -77,8 +77,8 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
 
         SubmissionDto submissionDto = SubmissionDto.builder()
             .assessmentId(treatmentPreview.getTreatment().getAssessment().getAssessmentId())
-            .conditionId(treatmentPreview.getTreatment().getCondition().getConditionId())
-            .experimentId(treatmentPreview.getTreatment().getCondition().getExperiment().getExperimentId())
+            .conditionId(treatmentPreview.getTreatment().getCondition().getUuid())
+            .experimentId(treatmentPreview.getTreatment().getCondition().getExperiment().getUuid())
             .questionSubmissionDtoList(
                 treatmentPreview.getTreatment().getAssessment().getQuestions().stream()
                     .map(question -> QuestionSubmissionDto.builder()

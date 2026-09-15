@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -425,7 +426,7 @@ public class SubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testPostSubmissionWrapsDataServiceExceptionFromFromDto() {
-        when(participantRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(participantRepository.findByUuid(any(UUID.class))).thenReturn(Optional.empty());
         SubmissionDto dto = SubmissionDto.builder().build();
 
         DataServiceException ex = assertThrows(DataServiceException.class, () -> submissionService.postSubmission(dto, 0L, securedInfo, 0L, false));
@@ -515,7 +516,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoInstructorSetsGradeFields() throws DataServiceException {
         SubmissionDto dto = SubmissionDto.builder()
-            .participantId(1L)
+            .participantId(UUID.randomUUID())
             .assessmentId(1L)
             .calculatedGrade(5F)
             .alteredCalculatedGrade(6F)
@@ -539,7 +540,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoStudentDoesNotSetGradeFields() throws DataServiceException {
         SubmissionDto dto = SubmissionDto.builder()
-            .participantId(1L)
+            .participantId(UUID.randomUUID())
             .assessmentId(1L)
             .calculatedGrade(5F)
             .gradeOverridden(true)
@@ -553,8 +554,8 @@ public class SubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoThrowsWhenParticipantNotFound() {
-        when(participantRepository.findById(anyLong())).thenReturn(Optional.empty());
-        SubmissionDto dto = SubmissionDto.builder().participantId(99L).assessmentId(1L).build();
+        when(participantRepository.findByUuid(any(UUID.class))).thenReturn(Optional.empty());
+        SubmissionDto dto = SubmissionDto.builder().participantId(UUID.randomUUID()).assessmentId(1L).build();
 
         assertThrows(DataServiceException.class, () -> submissionService.fromDto(dto, false));
     }
@@ -562,7 +563,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoThrowsWhenAssessmentNotFound() {
         when(assessmentRepository.findById(anyLong())).thenReturn(Optional.empty());
-        SubmissionDto dto = SubmissionDto.builder().participantId(1L).assessmentId(99L).build();
+        SubmissionDto dto = SubmissionDto.builder().participantId(UUID.randomUUID()).assessmentId(99L).build();
 
         assertThrows(DataServiceException.class, () -> submissionService.fromDto(dto, false));
     }

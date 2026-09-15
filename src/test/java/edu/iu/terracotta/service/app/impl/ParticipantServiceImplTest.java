@@ -327,6 +327,26 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetParticipantByUuidFound() throws Exception {
+        UUID uuid = participant.getUuid();
+        when(participantRepository.findByUuid(uuid)).thenReturn(Optional.of(participant));
+
+        Participant retVal = participantService.getParticipantByUuid(uuid);
+
+        assertEquals(participant, retVal);
+    }
+
+    @Test
+    public void testGetParticipantByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(participantRepository.findByUuid(uuid)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(ParticipantNotMatchingException.class, () -> participantService.getParticipantByUuid(uuid));
+
+        assertTrue(exception.getMessage().startsWith("Error 108"));
+    }
+
+    @Test
     public void testFindAllByExperimentId() {
         List<Participant> retVal = participantService.findAllByExperimentId(1l);
 
@@ -601,7 +621,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testPostParticipantIdInPostExceptionThrows() {
-        when(participantDto.getParticipantId()).thenReturn(5L);
+        when(participantDto.getParticipantId()).thenReturn(UUID.randomUUID());
 
         assertThrows(
             IdInPostException.class,
@@ -626,7 +646,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         ParticipantDto retVal = participantService.toDto(participant, securedInfo);
 
         assertNotNull(retVal);
-        assertEquals(1L, retVal.getGroupId());
+        assertEquals(group.getUuid(), retVal.getGroupId());
     }
 
     @Test
@@ -650,8 +670,11 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoGroupAssignedWhenExists() throws DataServiceException {
+        UUID groupUuid = UUID.randomUUID();
         when(participantDto.getExperimentId()).thenReturn(1L);
-        when(groupRepository.existsByExperiment_ExperimentIdAndGroupId(anyLong(), anyLong())).thenReturn(true);
+        when(participantDto.getGroupId()).thenReturn(groupUuid);
+        when(group.getExperiment()).thenReturn(experiment);
+        when(groupRepository.findByUuid(groupUuid)).thenReturn(group);
 
         Participant retVal = participantService.fromDto(participantDto);
 
@@ -1155,11 +1178,13 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Test
     public void testBuildHeaders() {
         org.springframework.web.util.UriComponentsBuilder ucBuilder = org.springframework.web.util.UriComponentsBuilder.fromUriString("http://localhost:8080");
+        UUID experimentUuid = UUID.randomUUID();
+        UUID participantUuid = UUID.randomUUID();
 
-        org.springframework.http.HttpHeaders headers = participantService.buildHeaders(ucBuilder, 1L, 2L);
+        org.springframework.http.HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentUuid, participantUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/participant/2"));
+        assertTrue(headers.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/participant/" + participantUuid));
     }
 
     @Test

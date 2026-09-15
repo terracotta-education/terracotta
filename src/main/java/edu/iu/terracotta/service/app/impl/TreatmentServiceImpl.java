@@ -105,7 +105,8 @@ public class TreatmentServiceImpl implements TreatmentService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        treatmentDto.setConditionId(conditionId);
+        Condition conditionForDto = conditionRepository.findById(conditionId).orElse(null);
+        treatmentDto.setConditionId(conditionForDto != null ? conditionForDto.getUuid() : null);
 
         if (treatmentDto.getAssignmentId() == null) {
             throw new DataServiceException("Error 129: Unable to create Treatment: The assignmentId is mandatory");
@@ -149,7 +150,7 @@ public class TreatmentServiceImpl implements TreatmentService {
             throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
         }
 
-        Optional<Condition> condition = conditionRepository.findById(treatmentDto.getConditionId());
+        Optional<Condition> condition = Optional.ofNullable(conditionRepository.findByUuid(treatmentDto.getConditionId()));
 
         if (condition.isEmpty()) {
             throw new DataServiceException(TextConstants.NO_CONDITION_FOR_TREATMENT);
@@ -178,7 +179,7 @@ public class TreatmentServiceImpl implements TreatmentService {
         }
 
         treatment.setAssignment(assignment.get());
-        Optional<Condition> condition = conditionRepository.findById(treatmentDto.getConditionId());
+        Optional<Condition> condition = Optional.ofNullable(conditionRepository.findByUuid(treatmentDto.getConditionId()));
 
         if (condition.isEmpty()) {
             throw new DataServiceException(TextConstants.NO_CONDITION_FOR_TREATMENT);

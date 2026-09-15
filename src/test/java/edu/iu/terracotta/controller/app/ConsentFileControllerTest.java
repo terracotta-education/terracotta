@@ -69,7 +69,7 @@ public class ConsentFileControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(multipartFile.getContentType()).thenReturn(MediaType.APPLICATION_PDF_VALUE);
 
-        FileInfoDto fileInfoDto = FileInfoDto.builder().fileId("file-1").experimentId(1L).build();
+        FileInfoDto fileInfoDto = FileInfoDto.builder().fileId("file-1").experimentId(UUID.randomUUID()).build();
         when(fileStorageService.uploadConsentFile(1L, "title", multipartFile, securedInfo)).thenReturn(fileInfoDto);
 
         ResponseEntity<FileInfoDto> response = consentFileController.postConsent(multipartFile, EXPERIMENT_UUID, "title", httpServletRequest);

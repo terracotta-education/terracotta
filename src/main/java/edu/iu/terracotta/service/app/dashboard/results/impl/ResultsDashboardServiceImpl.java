@@ -38,7 +38,7 @@ public class ResultsDashboardServiceImpl implements ResultsDashboardService {
         }
 
         ResultsDashboardDtoBuilder resultsDashboardDto = ResultsDashboardDto.builder()
-            .experimentId(experimentId)
+            .experimentId(experiment.get().getUuid())
             .overview(resultsOverviewService.overview(experiment.get(), securedInfo));
 
         log.info("Finished results overview dashboard calculations for experiment ID: [{}]", experimentId);
@@ -60,7 +60,7 @@ public class ResultsDashboardServiceImpl implements ResultsDashboardService {
         }
 
         ResultsDashboardDtoBuilder resultsDashboardDto = ResultsDashboardDto.builder()
-            .experimentId(experimentId)
+            .experimentId(experiment.get().getUuid())
             .outcomes(resultsOutcomesService.outcomes(experiment.get(), resultsOutcomesRequestDto));
 
         log.info("Finished results outcomes dashboard calculations for experiment ID: [{}], outcomes IDs: [{}], alternate ID: [{}]",
