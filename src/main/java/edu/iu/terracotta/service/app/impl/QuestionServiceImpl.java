@@ -245,7 +245,19 @@ public class QuestionServiceImpl implements QuestionService {
         }
     }
 
+    // This method has no @Transactional boundary of its own by default, and neither does
+    // QuestionController's delete endpoint. Every write below (integrationService.delete,
+    // each submissionRepository.delete(...) in the loop, submissionRepository.flush(), and
+    // questionRepository.deleteByQuestionId(...)) is a SEPARATE Spring Data repository call,
+    // each independently @Transactional (see SimpleJpaRepository) - so, absent an enclosing
+    // transaction, each one auto-commits on its own. If any later step throws (e.g. the Nth
+    // submission's delete), everything committed before that point stays committed while the
+    // Question itself - deleted last - never gets removed: a genuine partial-commit/atomicity
+    // bug, confirmed via QuestionDeletionAtomicityRealHibernateTest. Declaring the transaction
+    // here, at the service layer (matching the fix pattern for
+    // AssignmentTreatmentServiceImpl.duplicateTreatment), protects every caller consistently.
     @Override
+    @Transactional
     public void deleteById(Long id) throws EmptyResultDataAccessException {
         Question question = questionRepository.findByQuestionId(id);
 
