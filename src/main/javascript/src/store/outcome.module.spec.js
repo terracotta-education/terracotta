@@ -368,7 +368,7 @@ describe("outcome store", () => {
   });
 
   describe("fetchOutcomePotentials", () => {
-    it("parses experimentId to int and sets outcomePotentials on 200", async () => {
+    it("passes experimentId through unchanged and sets outcomePotentials on 200", async () => {
       const data = [{ potential: 1 }];
       outcomeService.getOutcomePotentials.mockResolvedValue({
         status: 200,
@@ -377,7 +377,7 @@ describe("outcome store", () => {
 
       const result = await store.fetchOutcomePotentials("42");
 
-      expect(outcomeService.getOutcomePotentials).toHaveBeenCalledWith(42);
+      expect(outcomeService.getOutcomePotentials).toHaveBeenCalledWith("42");
       expect(result).toEqual({ status: 200, data });
       expect(store.outcomePotentials).toEqual(data);
     });

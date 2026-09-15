@@ -133,7 +133,7 @@ const alertStatuses = computed(() => {
 });
 
 const experimentId = computed(() => {
-  return Number.parseInt(route.params.experimentId, 10);
+  return route.params.experimentId;
 });
 
 const assignmentId = computed(() => {

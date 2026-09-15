@@ -192,7 +192,7 @@ const allMessageContainers = computed(() => messagingContainerStore.messageConta
 const configurations = computed(() => configurationStore.configurations || configurationStore.get || {});
 const alertStatuses = computed(() => alertStore.statuses || {});
 
-const experimentId = computed(() => Number(props.experiment.experimentId));
+const experimentId = computed(() => props.experiment.experimentId);
 const canDeleteAssignment = computed(() => !props.experiment.started);
 const singleConditionExperiment = computed(() => conditions.value.length === 1);
 const defaultCondition = computed(() => conditions.value.find(condition => condition.defaultCondition));

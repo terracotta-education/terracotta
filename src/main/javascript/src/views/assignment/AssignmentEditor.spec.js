@@ -193,7 +193,7 @@ describe("AssignmentEditor", () => {
     await new Promise(resolve => setTimeout(resolve));
 
     expect(assignmentService.updateAssignment).toHaveBeenCalledWith(
-      10,
+      "10",
       30,
       20,
       expect.objectContaining({ title: "My assignment" })

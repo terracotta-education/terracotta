@@ -641,7 +641,7 @@ const displayConsentFile = computed(() => {
 
 const dataExportRequest = computed(() => {
   return dataExportRequests.value?.find(
-    request => request.experimentId === parseInt(experimentId.value)
+    request => request.experimentId === experimentId.value
   );
 });
 

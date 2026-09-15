@@ -463,7 +463,7 @@ const formatDate = date => {
 
 const dataExportRequest = experimentId => {
   return dataExportRequests.value?.find(
-    request => request.experimentId === parseInt(experimentId)
+    request => request.experimentId === experimentId
   );
 };
 

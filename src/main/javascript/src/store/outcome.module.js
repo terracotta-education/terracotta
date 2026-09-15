@@ -217,7 +217,7 @@ export const outcome = defineStore("outcome", {
       try {
         const response =
           await outcomeService.getOutcomePotentials(
-            parseInt(experimentId)
+            experimentId
           );
 
         if (response?.status === 200) {

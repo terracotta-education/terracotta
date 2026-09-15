@@ -104,21 +104,21 @@ describe("CreateAssignment", () => {
     await new Promise(resolve => setTimeout(resolve));
 
     expect(assignmentService.create).toHaveBeenCalledWith(
-      10,
+      "10",
       30,
       expect.objectContaining({ title: "My new assignment" }),
       1
     );
 
     expect(treatmentService.create).toHaveBeenCalledTimes(2);
-    expect(treatmentService.create).toHaveBeenCalledWith(10, 1, 99);
-    expect(treatmentService.create).toHaveBeenCalledWith(10, 2, 99);
+    expect(treatmentService.create).toHaveBeenCalledWith("10", 1, 99);
+    expect(treatmentService.create).toHaveBeenCalledWith("10", 2, 99);
 
     expect(assessmentService.createAssessment).toHaveBeenCalledTimes(2);
 
     expect(push).toHaveBeenCalledWith({
       name: "ExperimentSummary",
-      params: { experimentId: 10 }
+      params: { experimentId: "10" }
     });
   });
 

@@ -160,7 +160,7 @@ const exposureId = computed(() => {
 });
 
 const experimentId = computed(() => {
-  return Number.parseInt(props.experiment.experimentId, 10);
+  return props.experiment.experimentId;
 });
 
 const assignments = computed(() => {

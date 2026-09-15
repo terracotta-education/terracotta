@@ -317,11 +317,11 @@ describe("StudentSubmissionGrading", () => {
       ])
     );
     expect(submissionService.updateQuestionSubmissions).toHaveBeenCalledWith(
-      1, 10, 100, 500, 900,
+      "1", 10, 100, 500, 900,
       expect.any(Array)
     );
     expect(reportStepSpy).toHaveBeenCalledWith({
-      experimentId: 1,
+      experimentId: "1",
       step: "student_submission",
       parameters: { submissionIds: "900" }
     });

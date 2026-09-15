@@ -129,7 +129,7 @@ defineOptions({
 
 defineProps({
   experimentId: {
-    type: Number,
+    type: String,
     required: true
   },
   exposureId: {

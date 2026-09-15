@@ -207,12 +207,12 @@ describe("OutcomeScoring", () => {
     await flush();
 
     expect(outcomeService.updateOutcome).toHaveBeenCalledWith(
-      10,
+      "10",
       20,
       expect.objectContaining({ outcomeId: 30 })
     );
     expect(outcomeService.updateOutcomeScores).toHaveBeenCalledWith(
-      10,
+      "10",
       20,
       30,
       expect.any(Array)

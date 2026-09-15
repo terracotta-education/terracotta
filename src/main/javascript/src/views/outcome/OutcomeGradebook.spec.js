@@ -145,7 +145,7 @@ describe("OutcomeGradebook", () => {
     await flush();
 
     expect(outcomeService.create).toHaveBeenCalledWith(
-      10,
+      "10",
       20,
       "Quiz 1",
       10,

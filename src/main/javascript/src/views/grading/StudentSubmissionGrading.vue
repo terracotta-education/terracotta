@@ -441,7 +441,7 @@ const assessmentId = computed(() => parseInt(route.params.assessmentId));
 const conditionId = computed(() => parseInt(route.params.conditionId));
 const treatmentId = computed(() => parseInt(route.params.treatmentId));
 const participantId = computed(() => parseInt(route.params.participantId));
-const experimentId = computed(() => parseInt(route.params.experimentId));
+const experimentId = computed(() => route.params.experimentId);
 
 const allSubmissions = computed(() => assessment.value?.submissions || []);
 
