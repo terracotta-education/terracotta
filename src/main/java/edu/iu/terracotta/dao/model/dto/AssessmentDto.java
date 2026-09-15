@@ -24,7 +24,7 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssessmentDto {
 
-    private Long assessmentId;
+    private UUID assessmentId;
     private String html;
     private UUID treatmentId;
     private boolean autoSubmit;

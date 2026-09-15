@@ -104,7 +104,7 @@ public class AssessmentController {
     public ResponseEntity<AssessmentDto> getAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("conditionId") UUID conditionUuid,
                                                        @PathVariable("treatmentId") UUID treatmentUuid,
-                                                       @PathVariable long assessmentId,
+                                                       @PathVariable("assessmentId") UUID assessmentUuid,
                                                        @RequestParam(name = "questions", defaultValue = "false") boolean questions,
                                                        @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
@@ -114,6 +114,7 @@ public class AssessmentController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -161,7 +162,7 @@ public class AssessmentController {
         }
 
         AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId, securedInfo);
-        HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, returnedDto.getAssessmentId());
+        HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, returnedDto.getAssessmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
@@ -170,7 +171,7 @@ public class AssessmentController {
     public ResponseEntity<AssessmentDto> putAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("conditionId") UUID conditionUuid,
                                                  @PathVariable("treatmentId") UUID treatmentUuid,
-                                                 @PathVariable long assessmentId,
+                                                 @PathVariable("assessmentId") UUID assessmentUuid,
                                                  @RequestBody AssessmentDto assessmentDto,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, BadTokenException, ConditionNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException,
@@ -179,6 +180,7 @@ public class AssessmentController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -198,12 +200,13 @@ public class AssessmentController {
     public ResponseEntity<Void> deleteAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("conditionId") UUID conditionUuid,
                                                  @PathVariable("treatmentId") UUID treatmentUuid,
-                                                 @PathVariable long assessmentId,
+                                                 @PathVariable("assessmentId") UUID assessmentUuid,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, BadTokenException, ConditionNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         log.debug("Deleting assessment with id: {}", assessmentId);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -228,7 +231,7 @@ public class AssessmentController {
     public ResponseEntity<Void> regrade(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                 @PathVariable("treatmentId") UUID treatmentUuid,
-                                                @PathVariable long assessmentId,
+                                                @PathVariable("assessmentId") UUID assessmentUuid,
                                                 @RequestBody RegradeDetails regradeDetails,
                                                 HttpServletRequest req)
         throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, ConditionNotMatchingException,
@@ -236,6 +239,7 @@ public class AssessmentController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         log.debug("Regrading questions for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

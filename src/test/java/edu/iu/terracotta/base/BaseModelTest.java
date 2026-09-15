@@ -285,7 +285,8 @@ public class BaseModelTest {
             when(assessment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
             when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
             when(assessment.getTreatment()).thenReturn(treatment);
-            when(assessmentDto.getAssessmentId()).thenReturn(1L);
+            when(assessment.getUuid()).thenReturn(UUID.randomUUID());
+            when(assessmentDto.getAssessmentId()).thenReturn(UUID.randomUUID());
             when(assessmentDto.getTreatmentId()).thenReturn(UUID.randomUUID());
             when(assignment.getAssignmentId()).thenReturn(1L);
             when(assignment.getExposure()).thenReturn(exposure);
@@ -442,6 +443,11 @@ public class BaseModelTest {
             when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
             when(question.isIntegration()).thenReturn(false);
             when(questionDto.getAnswers()).thenReturn(Collections.singletonList(answerDto));
+            // Mockito's default answer returns null for an unstubbed UUID getter (unlike the 0L it
+            // returned for the old unstubbed Long getter), so this FK reference must be stubbed
+            // explicitly here to keep resolving via the assessmentRepository.findByUuid(...) global
+            // default (see BaseRepositoryTest) that replaced the old findById(anyLong()) one.
+            when(questionDto.getAssessmentId()).thenReturn(UUID.randomUUID());
             when(questionDto.getQuestionId()).thenReturn(null);
             when(questionMc.getAssessment()).thenReturn(assessment);
             when(questionMc.getPoints()).thenReturn(1F);

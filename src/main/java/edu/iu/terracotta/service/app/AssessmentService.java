@@ -37,9 +37,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 public interface AssessmentService {
 
+    Assessment getAssessmentByUuid(UUID uuid) throws AssessmentNotMatchingException;
     List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
     AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId, SecuredInfo securedInfo) throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException;
     Assessment duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException;
@@ -57,7 +59,7 @@ public interface AssessmentService {
     void deleteById(Long id) throws EmptyResultDataAccessException;
     AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId);
     void updateTreatment(Long treatmentId, Assessment assessment);
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId);
     Assessment getAssessmentForParticipant(Participant participant, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
     Assessment getAssessmentByGroupId(Long experimentId, String lmsAssignmentId, Long groupId) throws AssessmentNotMatchingException;
     Assessment getAssessmentByConditionId(Long experimentId, String lmsAssignmentId, Long conditionId) throws AssessmentNotMatchingException;

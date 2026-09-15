@@ -76,7 +76,7 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
         AtomicLong questionSubmissionId = new AtomicLong(1L);
 
         SubmissionDto submissionDto = SubmissionDto.builder()
-            .assessmentId(treatmentPreview.getTreatment().getAssessment().getAssessmentId())
+            .assessmentId(treatmentPreview.getTreatment().getAssessment().getUuid())
             .conditionId(treatmentPreview.getTreatment().getCondition().getUuid())
             .experimentId(treatmentPreview.getTreatment().getCondition().getExperiment().getUuid())
             .questionSubmissionDtoList(

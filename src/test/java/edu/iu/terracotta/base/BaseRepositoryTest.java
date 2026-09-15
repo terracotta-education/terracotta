@@ -147,6 +147,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(apiTokenRepository.findByUser(any(LtiUserEntity.class))).thenReturn(Optional.of(apiTokenEntity));
             when(assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
             when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
+            when(assessmentRepository.findByUuid(any(UUID.class))).thenReturn(assessment);
             when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(List.of(assessment));
             when(assessmentRepository.findByTreatment_Assignment_AssignmentIdIn(any())).thenReturn(List.of(assessment));
             when(assessmentRepository.save(any(Assessment.class))).thenReturn(assessment);

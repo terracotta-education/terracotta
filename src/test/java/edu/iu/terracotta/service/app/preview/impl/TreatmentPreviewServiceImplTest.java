@@ -103,7 +103,7 @@ class TreatmentPreviewServiceImplTest extends BaseTest {
         verify(assessmentDto).setQuestions(List.of(questionDto));
 
         SubmissionDto submissionDto = result.getSubmission();
-        assertEquals(1L, submissionDto.getAssessmentId());
+        assertEquals(assessment.getUuid(), submissionDto.getAssessmentId());
         assertEquals(condition.getUuid(), submissionDto.getConditionId());
         assertEquals(experiment.getUuid(), submissionDto.getExperimentId());
         assertEquals(1L, submissionDto.getSubmissionId());

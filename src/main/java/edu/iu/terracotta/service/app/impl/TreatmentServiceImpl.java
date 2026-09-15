@@ -168,7 +168,8 @@ public class TreatmentServiceImpl implements TreatmentService {
         treatment.setCondition(condition.get());
 
         try {
-            Assessment assessment = assessmentService.updateAssessment(treatmentDto.getAssessmentDto().getAssessmentId(), treatmentDto.getAssessmentDto(), questions);
+            long assessmentId = assessmentService.getAssessmentByUuid(treatmentDto.getAssessmentDto().getAssessmentId()).getAssessmentId();
+            Assessment assessment = assessmentService.updateAssessment(assessmentId, treatmentDto.getAssessmentDto(), questions);
             treatment.setAssessment(assessment);
         } catch (AssessmentNotMatchingException e) {
             throw new DataServiceException(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, e.getMessage()), e);

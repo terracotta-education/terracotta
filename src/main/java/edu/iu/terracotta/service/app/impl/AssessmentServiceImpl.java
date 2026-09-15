@@ -97,6 +97,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -138,6 +139,12 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     private List<Assessment> findAllByTreatmentId(Long treatmentId) {
         return assessmentRepository.findByTreatment_TreatmentId(treatmentId);
+    }
+
+    @Override
+    public Assessment getAssessmentByUuid(UUID uuid) throws AssessmentNotMatchingException {
+        return Optional.ofNullable(assessmentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING));
     }
 
     @Override
@@ -234,7 +241,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long submissionsCompletedCount = null;
         Long submissionsInProgressCount = null;
         AssessmentDto assessmentDto = new AssessmentDto();
-        assessmentDto.setAssessmentId(assessment.getAssessmentId());
+        assessmentDto.setAssessmentId(assessment.getUuid());
         assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml(), assessment.getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         assessmentDto.setAutoSubmit(assessment.isAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
@@ -349,8 +356,11 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException {
+        // assessmentDto.getAssessmentId() (now a uuid) is intentionally not set on a new
+        // Assessment here - postAssessment already rejects a create request that carries one
+        // (IdInPostException), and the real numeric id/uuid are both IDENTITY/@PrePersist
+        // generated at insert time regardless.
         Assessment assessment = new Assessment();
-        assessment.setAssessmentId(assessmentDto.getAssessmentId());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
@@ -440,7 +450,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
-            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId())).stream()
+            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId())).stream()
                 .map(Question::getQuestionId)
                 .collect(Collectors.toList()); // needs to be a modifiable list
 
@@ -449,7 +459,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             for (QuestionDto questionDto : assessmentDto.getQuestions()) {
                 if (questionDto.getQuestionId() == null) {
                     // create new question
-                    questionService.postQuestion(questionDto, assessmentDto.getAssessmentId(), false, false);
+                    questionService.postQuestion(questionDto, assessment.getAssessmentId(), false, false);
                     continue;
                 }
 
@@ -602,7 +612,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId).toUri());

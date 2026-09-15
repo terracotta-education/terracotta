@@ -188,11 +188,17 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        submissionDto.setAssessmentId(assessmentId);
-        validateDto(experimentId, securedInfo.getUserId(), submissionDto);
         Submission submission;
 
         try {
+            // resolve the assessment's uuid from the numeric id supplied by the controller (already
+            // resolved from the path's own assessment uuid) so fromDto below can look it back up via
+            // findByUuid - mirrors the identical numeric-id-to-uuid round trip in
+            // AssessmentServiceImpl.defaultAssessment/fromDto for the treatment FK.
+            Assessment assessmentForDto = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new DataServiceException("The assessment for the submission does not exist."));
+            submissionDto.setAssessmentId(assessmentForDto.getUuid());
+            validateDto(experimentId, securedInfo.getUserId(), submissionDto);
             submission = fromDto(submissionDto, student);
         } catch (DataServiceException ex) {
             throw new DataServiceException(String.format("Error 105: Unable to create Submission: %s", ex.getMessage()), ex);
@@ -240,7 +246,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         SubmissionDto submissionDto = SubmissionDto.builder().build();
         submissionDto.setSubmissionId(submission.getSubmissionId());
         submissionDto.setParticipantId(submission.getParticipant().getUuid());
-        submissionDto.setAssessmentId(submission.getAssessment().getAssessmentId());
+        submissionDto.setAssessmentId(submission.getAssessment().getUuid());
         submissionDto.setConditionId(submission.getAssessment().getTreatment().getCondition().getUuid());
         submissionDto.setTreatmentId(submission.getAssessment().getTreatment().getUuid());
         submissionDto.setExperimentId(submission.getAssessment().getTreatment().getCondition().getExperiment().getUuid());
@@ -354,7 +360,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         submission.setParticipant(participant.get());
 
-        Optional<Assessment> assessment = assessmentRepository.findById(submissionDto.getAssessmentId());
+        Optional<Assessment> assessment = Optional.ofNullable(assessmentRepository.findByUuid(submissionDto.getAssessmentId()));
 
         if (assessment.isEmpty()) {
             throw new DataServiceException("The assessment for the submission does not exist.");

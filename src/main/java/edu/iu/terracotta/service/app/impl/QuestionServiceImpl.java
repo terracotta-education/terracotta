@@ -86,10 +86,16 @@ public class QuestionServiceImpl implements QuestionService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        questionDto.setAssessmentId(assessmentId);
         Question question;
 
         try {
+            // resolve the assessment's uuid from the numeric id supplied by the controller (already
+            // resolved from the path's own assessment uuid) so fromDto below can look it back up via
+            // findByUuid - mirrors the identical numeric-id-to-uuid round trip in
+            // AssessmentServiceImpl.defaultAssessment/fromDto for the treatment FK.
+            Assessment assessmentForDto = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new DataServiceException("The assessment for the question does not exist"));
+            questionDto.setAssessmentId(assessmentForDto.getUuid());
             validateQuestionType(questionDto);
             question = save(fromDto(questionDto));
 
@@ -143,7 +149,7 @@ public class QuestionServiceImpl implements QuestionService {
         questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml(), question.getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         questionDto.setQuestionOrder(question.getQuestionOrder());
         questionDto.setPoints(question.getPoints());
-        questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
+        questionDto.setAssessmentId(question.getAssessment().getUuid());
         questionDto.setQuestionType(question.getQuestionType().name());
         questionDto.setIntegration(integrationService.toDto(question.getIntegration()));
 
@@ -192,7 +198,7 @@ public class QuestionServiceImpl implements QuestionService {
         question.setPoints(questionDto.getPoints());
         question.setQuestionOrder(questionDto.getQuestionOrder());
         question.setQuestionType(questionType);
-        Optional<Assessment> assessment = assessmentRepository.findById(questionDto.getAssessmentId());
+        Optional<Assessment> assessment = Optional.ofNullable(assessmentRepository.findByUuid(questionDto.getAssessmentId()));
 
         if (assessment.isEmpty()) {
             throw new DataServiceException("The assessment for the question does not exist");

@@ -23,7 +23,7 @@ public class QuestionDto {
     private Long questionId;
     private String html;
     private Float points;
-    private Long assessmentId;
+    private UUID assessmentId;
     private Integer questionOrder;
     private String questionType;
     private List<AnswerDto> answers;

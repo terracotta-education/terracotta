@@ -517,7 +517,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     public void testFromDtoInstructorSetsGradeFields() throws DataServiceException {
         SubmissionDto dto = SubmissionDto.builder()
             .participantId(UUID.randomUUID())
-            .assessmentId(1L)
+            .assessmentId(UUID.randomUUID())
             .calculatedGrade(5F)
             .alteredCalculatedGrade(6F)
             .totalAlteredGrade(7F)
@@ -541,7 +541,7 @@ public class SubmissionServiceImplTest extends BaseTest {
     public void testFromDtoStudentDoesNotSetGradeFields() throws DataServiceException {
         SubmissionDto dto = SubmissionDto.builder()
             .participantId(UUID.randomUUID())
-            .assessmentId(1L)
+            .assessmentId(UUID.randomUUID())
             .calculatedGrade(5F)
             .gradeOverridden(true)
             .build();
@@ -555,15 +555,15 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoThrowsWhenParticipantNotFound() {
         when(participantRepository.findByUuid(any(UUID.class))).thenReturn(Optional.empty());
-        SubmissionDto dto = SubmissionDto.builder().participantId(UUID.randomUUID()).assessmentId(1L).build();
+        SubmissionDto dto = SubmissionDto.builder().participantId(UUID.randomUUID()).assessmentId(UUID.randomUUID()).build();
 
         assertThrows(DataServiceException.class, () -> submissionService.fromDto(dto, false));
     }
 
     @Test
     public void testFromDtoThrowsWhenAssessmentNotFound() {
-        when(assessmentRepository.findById(anyLong())).thenReturn(Optional.empty());
-        SubmissionDto dto = SubmissionDto.builder().participantId(UUID.randomUUID()).assessmentId(99L).build();
+        when(assessmentRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        SubmissionDto dto = SubmissionDto.builder().participantId(UUID.randomUUID()).assessmentId(UUID.randomUUID()).build();
 
         assertThrows(DataServiceException.class, () -> submissionService.fromDto(dto, false));
     }

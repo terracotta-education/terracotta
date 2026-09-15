@@ -23,7 +23,7 @@ public class SubmissionDto {
 
     private Long submissionId;
     private UUID participantId;
-    private Long assessmentId;
+    private UUID assessmentId;
     private UUID conditionId;
     private UUID treatmentId;
     private UUID experimentId;

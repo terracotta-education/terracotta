@@ -355,7 +355,7 @@ public class QuestionServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoAssessmentNotFound() {
         when(questionDto.getQuestionType()).thenReturn(QuestionTypes.ESSAY.toString());
-        when(assessmentRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(assessmentRepository.findByUuid(any(UUID.class))).thenReturn(null);
 
         Exception exception = assertThrows(DataServiceException.class, () -> questionService.fromDto(questionDto));
 

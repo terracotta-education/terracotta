@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -658,9 +659,29 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders header = assessmentService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 1L, 1L, 1L);
+        HttpHeaders header = assessmentService.buildHeaders(UriComponentsBuilder.newInstance(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
         assertNotNull(header);
+    }
+
+    @Test
+    public void testGetAssessmentByUuidFound() throws Exception {
+        UUID uuid = assessment.getUuid();
+        when(assessmentRepository.findByUuid(uuid)).thenReturn(assessment);
+
+        Assessment retVal = assessmentService.getAssessmentByUuid(uuid);
+
+        assertEquals(assessment, retVal);
+    }
+
+    @Test
+    public void testGetAssessmentByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(assessmentRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(AssessmentNotMatchingException.class, () -> assessmentService.getAssessmentByUuid(uuid));
+
+        assertEquals(TextConstants.ASSESSMENT_NOT_MATCHING, exception.getMessage());
     }
 
     @Test

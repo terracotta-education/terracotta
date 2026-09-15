@@ -47,6 +47,10 @@ public class AnswerControllerTest extends BaseTest {
     // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
     private static final UUID TREATMENT_UUID = UUID.randomUUID();
 
+    // the uuid path variable for the one assessment under test; assessment.getAssessmentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID ASSESSMENT_UUID = UUID.randomUUID();
+
     // ConditionService has no mock in the BaseTest hierarchy, so it must be declared locally.
     @Mock private ConditionService conditionService;
 
@@ -60,12 +64,13 @@ public class AnswerControllerTest extends BaseTest {
         // manual construction: ApiJwtService is also implemented by canvasApiJwtService in
         // BaseServiceTest, so @InjectMocks constructor-injection (type-only matching) could wire
         // the wrong candidate.
-        answerController = new AnswerController(apiJwtService, experimentService, conditionService, answerService, questionService, treatmentService);
+        answerController = new AnswerController(apiJwtService, experimentService, conditionService, answerService, questionService, treatmentService, assessmentService);
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), eq(false))).thenReturn(securedInfo);
         when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
         when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
         when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
+        when(assessmentService.getAssessmentByUuid(ASSESSMENT_UUID)).thenReturn(assessment);
     }
 
     @Test
@@ -74,7 +79,7 @@ public class AnswerControllerTest extends BaseTest {
         when(answerService.getQuestionType(1L)).thenReturn(QuestionTypes.MC.toString());
         when(answerService.findAllByQuestionIdMC(1L, false)).thenReturn(List.of(answerDto));
 
-        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, httpServletRequest);
+        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(1, ret.getBody().size());
@@ -86,7 +91,7 @@ public class AnswerControllerTest extends BaseTest {
         when(answerService.getQuestionType(1L)).thenReturn(QuestionTypes.MC.toString());
         when(answerService.findAllByQuestionIdMC(1L, false)).thenReturn(List.of());
 
-        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, httpServletRequest);
+        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, ret.getStatusCode());
     }
@@ -95,7 +100,7 @@ public class AnswerControllerTest extends BaseTest {
     void getAnswersByQuestionUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, httpServletRequest);
+        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -105,7 +110,7 @@ public class AnswerControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(answerService.getQuestionType(1L)).thenReturn(QuestionTypes.ESSAY.toString());
 
-        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, httpServletRequest);
+        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, ret.getStatusCode());
     }
@@ -114,7 +119,7 @@ public class AnswerControllerTest extends BaseTest {
     void getAnswersByQuestionPropagatesExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("no match")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
-        assertThrows(ExperimentNotMatchingException.class, () -> answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, httpServletRequest));
     }
 
     @Test
@@ -123,7 +128,7 @@ public class AnswerControllerTest extends BaseTest {
         when(answerService.getQuestionType(1L)).thenReturn(QuestionTypes.MC.toString());
         when(answerService.getAnswerMC(1L)).thenReturn(answerDto);
 
-        ResponseEntity<AnswerDto> ret = answerController.getAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 1, httpServletRequest);
+        ResponseEntity<AnswerDto> ret = answerController.getAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 1, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(answerDto, ret.getBody());
@@ -133,7 +138,7 @@ public class AnswerControllerTest extends BaseTest {
     void getAnswerUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<AnswerDto> ret = answerController.getAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 1, httpServletRequest);
+        ResponseEntity<AnswerDto> ret = answerController.getAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 1, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -143,7 +148,7 @@ public class AnswerControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(answerService.getQuestionType(1L)).thenReturn(QuestionTypes.ESSAY.toString());
 
-        ResponseEntity<AnswerDto> ret = answerController.getAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 1, httpServletRequest);
+        ResponseEntity<AnswerDto> ret = answerController.getAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 1, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, ret.getStatusCode());
     }
@@ -156,7 +161,7 @@ public class AnswerControllerTest extends BaseTest {
         when(answerService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), eq(10L))).thenReturn(new HttpHeaders());
 
         AnswerDto inputDto = AnswerDto.builder().answerType("MC").questionId(1L).build();
-        ResponseEntity<AnswerDto> ret = answerController.postAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, inputDto, mock(UriComponentsBuilder.class), httpServletRequest);
+        ResponseEntity<AnswerDto> ret = answerController.postAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, inputDto, mock(UriComponentsBuilder.class), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(returnedDto, ret.getBody());
@@ -166,7 +171,7 @@ public class AnswerControllerTest extends BaseTest {
     void postAnswerUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<AnswerDto> ret = answerController.postAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, AnswerDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
+        ResponseEntity<AnswerDto> ret = answerController.postAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, AnswerDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -180,7 +185,7 @@ public class AnswerControllerTest extends BaseTest {
         AnswerDto inputDto = AnswerDto.builder().answerType("MC").questionId(1L).build();
         UriComponentsBuilder ucBuilder = mock(UriComponentsBuilder.class);
 
-        assertThrows(MultipleChoiceLimitReachedException.class, () -> answerController.postAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, inputDto, ucBuilder, httpServletRequest));
+        assertThrows(MultipleChoiceLimitReachedException.class, () -> answerController.postAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, inputDto, ucBuilder, httpServletRequest));
     }
 
     @Test
@@ -191,7 +196,7 @@ public class AnswerControllerTest extends BaseTest {
         List<AnswerDto> updated = List.of(AnswerDto.builder().answerId(1L).build());
         when(answerService.updateAnswerMC(anyMap())).thenReturn(updated);
 
-        ResponseEntity<List<AnswerDto>> ret = answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, List.of(AnswerDto.builder().answerId(1L).build()), httpServletRequest);
+        ResponseEntity<List<AnswerDto>> ret = answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, List.of(AnswerDto.builder().answerId(1L).build()), httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(updated, ret.getBody());
@@ -201,7 +206,7 @@ public class AnswerControllerTest extends BaseTest {
     void updateAnswersUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<AnswerDto>> ret = answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, List.of(), httpServletRequest);
+        ResponseEntity<List<AnswerDto>> ret = answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, List.of(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -212,7 +217,7 @@ public class AnswerControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(answerService.getQuestionType(1L)).thenReturn(QuestionTypes.ESSAY.toString());
 
-        ResponseEntity<List<AnswerDto>> ret = answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, List.of(), httpServletRequest);
+        ResponseEntity<List<AnswerDto>> ret = answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, List.of(), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, ret.getStatusCode());
     }
@@ -226,7 +231,7 @@ public class AnswerControllerTest extends BaseTest {
 
         List<AnswerDto> answerDtoList = List.of(AnswerDto.builder().answerId(1L).build());
 
-        assertThrows(DataServiceException.class, () -> answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, answerDtoList, httpServletRequest));
+        assertThrows(DataServiceException.class, () -> answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, answerDtoList, httpServletRequest));
     }
 
     @Test
@@ -238,7 +243,7 @@ public class AnswerControllerTest extends BaseTest {
         AnswerDto updatedDto = AnswerDto.builder().answerId(5L).build();
         when(answerService.updateAnswerMC(anyMap())).thenReturn(List.of(updatedDto));
 
-        ResponseEntity<AnswerDto> ret = answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 5, AnswerDto.builder().answerId(5L).build(), httpServletRequest);
+        ResponseEntity<AnswerDto> ret = answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 5, AnswerDto.builder().answerId(5L).build(), httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(updatedDto, ret.getBody());
@@ -250,7 +255,7 @@ public class AnswerControllerTest extends BaseTest {
         when(questionService.findByQuestionId(anyLong())).thenReturn(question);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<AnswerDto> ret = answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 5, AnswerDto.builder().build(), httpServletRequest);
+        ResponseEntity<AnswerDto> ret = answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 5, AnswerDto.builder().build(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -262,7 +267,7 @@ public class AnswerControllerTest extends BaseTest {
         when(questionService.findByQuestionId(anyLong())).thenReturn(question);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
 
-        ResponseEntity<AnswerDto> ret = answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 5, AnswerDto.builder().build(), httpServletRequest);
+        ResponseEntity<AnswerDto> ret = answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 5, AnswerDto.builder().build(), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, ret.getStatusCode());
     }
@@ -277,7 +282,7 @@ public class AnswerControllerTest extends BaseTest {
 
         AnswerDto dto = AnswerDto.builder().answerId(5L).build();
 
-        assertThrows(DataServiceException.class, () -> answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 5, dto, httpServletRequest));
+        assertThrows(DataServiceException.class, () -> answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 5, dto, httpServletRequest));
     }
 
     @Test
@@ -286,7 +291,7 @@ public class AnswerControllerTest extends BaseTest {
         when(questionService.findByQuestionId(anyLong())).thenReturn(question);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
 
-        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 1, httpServletRequest);
+        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 1, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -297,7 +302,7 @@ public class AnswerControllerTest extends BaseTest {
         when(questionService.findByQuestionId(anyLong())).thenReturn(question);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 1, httpServletRequest);
+        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 1, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -309,7 +314,7 @@ public class AnswerControllerTest extends BaseTest {
         when(questionService.findByQuestionId(anyLong())).thenReturn(question);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
 
-        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 1, httpServletRequest);
+        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 1, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, ret.getStatusCode());
     }
@@ -321,7 +326,7 @@ public class AnswerControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         doThrow(new EmptyResultDataAccessException(1)).when(answerService).deleteByIdMC(anyLong());
 
-        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 1, httpServletRequest);
+        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 1, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }
@@ -332,7 +337,7 @@ public class AnswerControllerTest extends BaseTest {
         when(questionService.findByQuestionId(anyLong())).thenReturn(question);
         doThrow(new AnswerNotMatchingException("no match")).when(apiJwtService).answerAllowed(any(SecuredInfo.class), anyLong(), anyLong(), any(), anyLong());
 
-        assertThrows(AnswerNotMatchingException.class, () -> answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, 1, 1, 1, httpServletRequest));
+        assertThrows(AnswerNotMatchingException.class, () -> answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, 1, 1, httpServletRequest));
     }
 
 }

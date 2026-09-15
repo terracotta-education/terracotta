@@ -20,6 +20,7 @@ import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.service.app.ConditionService;
+import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
@@ -78,12 +79,13 @@ public class AnswerSubmissionController {
     private final ExperimentService experimentService;
     private final ConditionService conditionService;
     private final TreatmentService treatmentService;
+    private final AssessmentService assessmentService;
 
     @GetMapping("/question_submissions/{questionSubmissionId}/answer_submissions")
     public ResponseEntity<List<AnswerSubmissionDto>> getAnswerSubmissionsByQuestionId(@PathVariable("experimentId") UUID experimentUuid,
                                                                                       @PathVariable("conditionId") UUID conditionUuid,
                                                                                       @PathVariable("treatmentId") UUID treatmentUuid,
-                                                                                      @PathVariable long assessmentId,
+                                                                                      @PathVariable("assessmentId") UUID assessmentUuid,
                                                                                       @PathVariable long submissionId,
                                                                                       @PathVariable long questionSubmissionId,
                                                                                       HttpServletRequest req)
@@ -91,6 +93,7 @@ public class AnswerSubmissionController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -118,7 +121,7 @@ public class AnswerSubmissionController {
     public ResponseEntity<AnswerSubmissionDto> getAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                    @PathVariable("conditionId") UUID conditionUuid,
                                                                    @PathVariable("treatmentId") UUID treatmentUuid,
-                                                                   @PathVariable long assessmentId,
+                                                                   @PathVariable("assessmentId") UUID assessmentUuid,
                                                                    @PathVariable long submissionId,
                                                                    @PathVariable long questionSubmissionId,
                                                                    @PathVariable long answerSubmissionId,
@@ -127,6 +130,7 @@ public class AnswerSubmissionController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -150,7 +154,7 @@ public class AnswerSubmissionController {
     public ResponseEntity<List<AnswerSubmissionDto>> postAnswerSubmissions(@PathVariable("experimentId") UUID experimentUuid,
                                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                                         @PathVariable("treatmentId") UUID treatmentUuid,
-                                                                        @PathVariable long assessmentId,
+                                                                        @PathVariable("assessmentId") UUID assessmentUuid,
                                                                         @PathVariable long submissionId,
                                                                         @RequestBody List<AnswerSubmissionDto> answerSubmissionDtoList,
                                                                         HttpServletRequest req)
@@ -160,6 +164,7 @@ public class AnswerSubmissionController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         log.info("Creating answer submissions for submission ID: {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -191,7 +196,7 @@ public class AnswerSubmissionController {
     public ResponseEntity<Void> updateAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("conditionId") UUID conditionUuid,
                                                        @PathVariable("treatmentId") UUID treatmentUuid,
-                                                       @PathVariable long assessmentId,
+                                                       @PathVariable("assessmentId") UUID assessmentUuid,
                                                        @PathVariable long submissionId,
                                                        @PathVariable long questionSubmissionId,
                                                        @PathVariable long answerSubmissionId,
@@ -201,6 +206,7 @@ public class AnswerSubmissionController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -228,7 +234,7 @@ public class AnswerSubmissionController {
     public ResponseEntity<Void> deleteAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("conditionId") UUID conditionUuid,
                                                        @PathVariable("treatmentId") UUID treatmentUuid,
-                                                       @PathVariable long assessmentId,
+                                                       @PathVariable("assessmentId") UUID assessmentUuid,
                                                        @PathVariable long submissionId,
                                                        @PathVariable long questionSubmissionId,
                                                        @PathVariable long answerSubmissionId,
@@ -237,6 +243,7 @@ public class AnswerSubmissionController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -260,7 +267,7 @@ public class AnswerSubmissionController {
     public ResponseEntity<List<AnswerSubmissionDto>> postFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                             @PathVariable("conditionId") UUID conditionUuid,
                                                                             @PathVariable("treatmentId") UUID treatmentUuid,
-                                                                            @PathVariable long assessmentId,
+                                                                            @PathVariable("assessmentId") UUID assessmentUuid,
                                                                             @PathVariable long submissionId,
                                                                             @RequestParam("answer_dto") String answerSubmissionDtoStr,
                                                                             UriComponentsBuilder ucBuilder,
@@ -270,6 +277,7 @@ public class AnswerSubmissionController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
 
         if (file.isEmpty()) {
             log.error("Invalid file ");
@@ -311,7 +319,7 @@ public class AnswerSubmissionController {
     public ResponseEntity<List<AnswerSubmissionDto>> putFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                             @PathVariable("conditionId") UUID conditionUuid,
                                                                             @PathVariable("treatmentId") UUID treatmentUuid,
-                                                                            @PathVariable long assessmentId,
+                                                                            @PathVariable("assessmentId") UUID assessmentUuid,
                                                                             @PathVariable long submissionId,
                                                                             @PathVariable long answerSubmissionId,
                                                                             @RequestParam("answer_dto") String answerSubmissionDtoStr,
@@ -322,6 +330,7 @@ public class AnswerSubmissionController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         if (file.isEmpty()) {
             log.error("Invalid file ");
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
@@ -362,7 +371,7 @@ public class AnswerSubmissionController {
     public ResponseEntity<Resource> downloadFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                                         @PathVariable("treatmentId") UUID treatmentUuid,
-                                                                        @PathVariable long assessmentId,
+                                                                        @PathVariable("assessmentId") UUID assessmentUuid,
                                                                         @PathVariable long submissionId,
                                                                         @PathVariable long questionSubmissionId,
                                                                         @PathVariable long answerSubmissionId,
@@ -371,6 +380,7 @@ public class AnswerSubmissionController {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
