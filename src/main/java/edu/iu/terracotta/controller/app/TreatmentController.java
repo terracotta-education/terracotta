@@ -96,12 +96,13 @@ public class TreatmentController {
     @GetMapping("/{treatmentId}")
     public ResponseEntity<TreatmentDto> getTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                      @PathVariable("conditionId") UUID conditionUuid,
-                                                     @PathVariable long treatmentId,
+                                                     @PathVariable("treatmentId") UUID treatmentUuid,
                                                      @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                      HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
+        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
@@ -134,7 +135,7 @@ public class TreatmentController {
         }
 
         TreatmentDto returnedDto = treatmentService.postTreatment(treatmentDto, conditionId, securedInfo);
-        HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
+        HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
@@ -142,7 +143,7 @@ public class TreatmentController {
     @PutMapping("/{treatmentId}")
     public ResponseEntity<Void> updateTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
-                                                @PathVariable long treatmentId,
+                                                @PathVariable("treatmentId") UUID treatmentUuid,
                                                 @RequestBody TreatmentDto treatmentDto,
                                                 @RequestParam(name = "questions", defaultValue = "true") boolean questions,
                                                 HttpServletRequest req)
@@ -152,6 +153,7 @@ public class TreatmentController {
                 MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
+        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         log.debug("Updating treatment with id: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -167,11 +169,12 @@ public class TreatmentController {
     @DeleteMapping("/{treatmentId}")
     public ResponseEntity<Void> deleteTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
-                                                @PathVariable long treatmentId,
+                                                @PathVariable("treatmentId") UUID treatmentUuid,
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TreatmentNotMatchingException, ExperimentLockedException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
+        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -193,13 +196,14 @@ public class TreatmentController {
     @PostMapping("/{treatmentId}/duplicate")
     public ResponseEntity<TreatmentDto> duplicateTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                           @PathVariable("conditionId") UUID conditionUuid,
-                                                          @PathVariable long treatmentId,
+                                                          @PathVariable("treatmentId") UUID treatmentUuid,
                                                           UriComponentsBuilder ucBuilder,
                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException,
             ExceedingLimitException, DataServiceException, NumberFormatException, ApiException, TreatmentNotMatchingException, QuestionNotMatchingException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
+        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         log.debug("Duplicating Treatment ID: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentLocked(experimentId,true);
@@ -211,7 +215,7 @@ public class TreatmentController {
         }
 
         TreatmentDto returnedDto = assignmentTreatmentService.duplicateTreatment(treatmentId, securedInfo);
-        HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
+        HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }

@@ -25,7 +25,7 @@ public class SubmissionDto {
     private UUID participantId;
     private Long assessmentId;
     private UUID conditionId;
-    private Long treatmentId;
+    private UUID treatmentId;
     private UUID experimentId;
     private Float calculatedGrade;
     private Float alteredCalculatedGrade;

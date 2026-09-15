@@ -18,10 +18,10 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TreatmentDto {
 
-    private Long treatmentId;
+    private UUID treatmentId;
     private AssessmentDto assessmentDto;
     private AssignmentDto assignmentDto;
     private UUID conditionId;
-    private Long assignmentId;
+    private UUID assignmentId;
 
 }

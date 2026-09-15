@@ -18,6 +18,7 @@ import edu.iu.terracotta.exceptions.ParameterMissingException;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.MediaService;
+import edu.iu.terracotta.service.app.TreatmentService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -45,11 +46,12 @@ public class MediaProfileController {
     private final ApiJwtService apijwtService;
     private final ExperimentService experimentService;
     private final ConditionService conditionService;
+    private final TreatmentService treatmentService;
 
     @PostMapping
     public ResponseEntity postMediaEvent(@PathVariable("experimentId") UUID experimentUuid,
                                          @PathVariable("conditionId") UUID conditionUuid,
-                                         @PathVariable long treatmentId,
+                                         @PathVariable("treatmentId") UUID treatmentUuid,
                                          @PathVariable long assessmentId,
                                          @PathVariable long submissionId,
                                          @PathVariable long questionId,
@@ -60,6 +62,7 @@ public class MediaProfileController {
             TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException, QuestionNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
+        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);

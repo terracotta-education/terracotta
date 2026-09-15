@@ -589,6 +589,12 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testPostAssessment() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
         when(assessmentDto.getAssessmentId()).thenReturn(null);
+        // assessmentDto is a mock, so defaultAssessment()'s assessmentDto.setTreatmentId(treatment.getUuid())
+        // call doesn't stick for the later fromDto() read of assessmentDto.getTreatmentId() - stub it
+        // explicitly so the subsequent treatmentRepository.findByUuid(...) lookup in fromDto() resolves.
+        java.util.UUID treatmentUuid = treatment.getUuid();
+        when(assessmentDto.getTreatmentId()).thenReturn(treatmentUuid);
+        when(treatmentRepository.findByUuid(treatmentUuid)).thenReturn(treatment);
         AssessmentDto retVal = assessmentService.postAssessment(assessmentDto, 1L, securedInfo);
 
         assertNotNull(retVal);

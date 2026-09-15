@@ -27,6 +27,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface TreatmentService {
 
@@ -45,6 +46,7 @@ public interface TreatmentService {
      */
     List<TreatmentDto> getTreatments(Long conditionId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException, NumberFormatException, ApiException, TerracottaConnectorException;
     Treatment getTreatment(Long id);
+    Treatment getTreatmentByUuid(UUID uuid) throws TreatmentNotMatchingException;
     TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId, SecuredInfo securedInfo)
         throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException;
     TreatmentDto putTreatment(TreatmentDto treatmentDto, long treatmentId, SecuredInfo securedInfo, boolean questions)
@@ -54,6 +56,6 @@ public interface TreatmentService {
     Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException, TreatmentNotMatchingException, AssessmentNotMatchingException;
     void deleteById(Long id) throws EmptyResultDataAccessException;
     void limitToOne(long assignmentId, long conditionId) throws ExceedingLimitException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId);
 
 }

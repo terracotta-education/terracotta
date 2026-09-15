@@ -96,12 +96,13 @@ public class AssignmentController {
     @GetMapping("/{assignmentId}")
     public ResponseEntity<AssignmentDto> getAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
-                                                       @PathVariable long assignmentId,
+                                                       @PathVariable("assignmentId") UUID assignmentUuid,
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
@@ -138,7 +139,7 @@ public class AssignmentController {
         }
 
         AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, exposureId, securedInfo);
-        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
+        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
@@ -147,7 +148,7 @@ public class AssignmentController {
     @Transactional(rollbackFor = { AssignmentNotEditedException.class, ApiException.class })
     public ResponseEntity<AssignmentDto> updateAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("exposureId") UUID exposureUuid,
-                                                 @PathVariable long assignmentId,
+                                                 @PathVariable("assignmentId") UUID assignmentUuid,
                                                  @RequestBody AssignmentDto assignmentDto,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException,
@@ -155,6 +156,7 @@ public class AssignmentController {
                     RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, ExposureNotMatchingException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
         log.debug("Updating assignment with id: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -185,8 +187,11 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
+        // bulk endpoint: each item's numeric id is resolved individually rather than once up
+        // front, since each AssignmentDto in the list carries its own uuid
         for (AssignmentDto assignmentDto : assignmentDtos) {
-            apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentDto.getAssignmentId());
+            long assignmentId = assignmentService.getAssignmentByUuid(assignmentDto.getAssignmentId()).getAssignmentId();
+            apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
         }
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -202,11 +207,12 @@ public class AssignmentController {
     @Transactional(rollbackFor = { AssignmentNotEditedException.class, ApiException.class })
     public ResponseEntity<Void> deleteAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("exposureId") UUID exposureUuid,
-                                                 @PathVariable long assignmentId,
+                                                 @PathVariable("assignmentId") UUID assignmentUuid,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, AssignmentNotMatchingException, BadTokenException, ApiException, AssignmentNotEditedException, ExperimentLockedException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentLocked(experimentId, true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -229,15 +235,16 @@ public class AssignmentController {
     @PostMapping("/{assignmentId}/duplicate")
     public ResponseEntity<AssignmentDto> duplicateAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("exposureId") UUID exposureUuid,
-                                                        @PathVariable long assignmentId,
+                                                        @PathVariable("assignmentId") UUID assignmentUuid,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException,
                     AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
-                    DataServiceException, RevealResponsesSettingValidationException,
+                    DataServiceException, RevealResponsesSettingValidationException, AssignmentNotMatchingException,
                     MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, ExceedingLimitException, TreatmentNotMatchingException, QuestionNotMatchingException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
 
         log.debug("Duplicating Assignment: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -249,7 +256,7 @@ public class AssignmentController {
         }
 
         AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId, securedInfo);
-        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
+        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
@@ -258,7 +265,7 @@ public class AssignmentController {
     @Transactional(rollbackFor = { AssignmentNotCreatedException.class, ApiException.class, AssignmentNotEditedException.class })
     public ResponseEntity<AssignmentDto> moveAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("exposureId") UUID exposureUuid,
-                                                        @PathVariable long assignmentId,
+                                                        @PathVariable("assignmentId") UUID assignmentUuid,
                                                         @RequestBody AssignmentDto assignmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
@@ -268,6 +275,7 @@ public class AssignmentController {
                     MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, ExceedingLimitException, TreatmentNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
         log.debug("Duplicating Assignment: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -278,7 +286,7 @@ public class AssignmentController {
         }
 
         AssignmentDto returnedDto = assignmentService.moveAssignment(assignmentId, assignmentDto, experimentId, exposureId, securedInfo);
-        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
+        HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }

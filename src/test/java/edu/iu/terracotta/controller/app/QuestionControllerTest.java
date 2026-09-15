@@ -43,7 +43,10 @@ public class QuestionControllerTest extends BaseTest {
     // the uuid path variable for the one condition under test; condition.getConditionId()
     // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
     private static final UUID CONDITION_UUID = UUID.randomUUID();
-    private static final long TREATMENT_ID = 1L;
+
+    // the uuid path variable for the one treatment under test; treatment.getTreatmentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID TREATMENT_UUID = UUID.randomUUID();
     private static final long ASSESSMENT_ID = 1L;
     private static final long QUESTION_ID = 1L;
 
@@ -61,11 +64,12 @@ public class QuestionControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        questionController = new QuestionController(questionService, apiJwtService, experimentService, conditionService);
+        questionController = new QuestionController(questionService, apiJwtService, experimentService, conditionService, treatmentService);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
         when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
+        when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
     }
 
     @Test
@@ -73,7 +77,7 @@ public class QuestionControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(questionService.getQuestions(anyLong())).thenReturn(List.of(questionDto));
 
-        ResponseEntity<List<QuestionDto>> response = questionController.getQuestionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, httpServletRequest);
+        ResponseEntity<List<QuestionDto>> response = questionController.getQuestionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
@@ -84,7 +88,7 @@ public class QuestionControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(questionService.getQuestions(anyLong())).thenReturn(List.of());
 
-        ResponseEntity<List<QuestionDto>> response = questionController.getQuestionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, httpServletRequest);
+        ResponseEntity<List<QuestionDto>> response = questionController.getQuestionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
@@ -93,7 +97,7 @@ public class QuestionControllerTest extends BaseTest {
     void getQuestionsByAssessmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<List<QuestionDto>> response = questionController.getQuestionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, httpServletRequest);
+        ResponseEntity<List<QuestionDto>> response = questionController.getQuestionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -103,7 +107,7 @@ public class QuestionControllerTest extends BaseTest {
     void getQuestionsByAssessmentThrowsTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("error")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
-        assertThrows(ExperimentNotMatchingException.class, () -> questionController.getQuestionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> questionController.getQuestionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, httpServletRequest));
     }
 
     @Test
@@ -112,7 +116,7 @@ public class QuestionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(questionService.toDto(any(Question.class), anyBoolean(), anyBoolean())).thenReturn(questionDto);
 
-        ResponseEntity<QuestionDto> response = questionController.getQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, false, httpServletRequest);
+        ResponseEntity<QuestionDto> response = questionController.getQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, false, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(questionDto, response.getBody());
@@ -122,7 +126,7 @@ public class QuestionControllerTest extends BaseTest {
     void getQuestionUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<QuestionDto> response = questionController.getQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, false, httpServletRequest);
+        ResponseEntity<QuestionDto> response = questionController.getQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -132,7 +136,7 @@ public class QuestionControllerTest extends BaseTest {
     void getQuestionThrowsTest() throws Exception {
         doThrow(new QuestionNotMatchingException("error")).when(apiJwtService).questionAllowed(any(SecuredInfo.class), anyLong(), anyLong());
 
-        assertThrows(QuestionNotMatchingException.class, () -> questionController.getQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, false, httpServletRequest));
+        assertThrows(QuestionNotMatchingException.class, () -> questionController.getQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, false, httpServletRequest));
     }
 
     @Test
@@ -142,7 +146,7 @@ public class QuestionControllerTest extends BaseTest {
         when(questionService.postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean())).thenReturn(questionDto);
         when(questionService.buildHeaders(any(UriComponentsBuilder.class), any(Long.class), any(Long.class), any(Long.class), any(Long.class), any(Long.class))).thenReturn(new HttpHeaders());
 
-        ResponseEntity<QuestionDto> response = questionController.postQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, false, questionDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<QuestionDto> response = questionController.postQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, false, questionDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(questionDto, response.getBody());
@@ -152,7 +156,7 @@ public class QuestionControllerTest extends BaseTest {
     void postQuestionUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<QuestionDto> response = questionController.postQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, false, questionDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<QuestionDto> response = questionController.postQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, false, questionDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -163,7 +167,7 @@ public class QuestionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(questionService.postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean())).thenThrow(new MultipleChoiceLimitReachedException("error"));
 
-        assertThrows(MultipleChoiceLimitReachedException.class, () -> questionController.postQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, false, questionDto, UriComponentsBuilder.newInstance(), httpServletRequest));
+        assertThrows(MultipleChoiceLimitReachedException.class, () -> questionController.postQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, false, questionDto, UriComponentsBuilder.newInstance(), httpServletRequest));
     }
 
     @Test
@@ -171,7 +175,7 @@ public class QuestionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(questionDto.getQuestionId()).thenReturn(QUESTION_ID);
 
-        ResponseEntity<Void> response = questionController.updateQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest);
+        ResponseEntity<Void> response = questionController.updateQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -180,7 +184,7 @@ public class QuestionControllerTest extends BaseTest {
     void updateQuestionsUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = questionController.updateQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest);
+        ResponseEntity<Void> response = questionController.updateQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -192,14 +196,14 @@ public class QuestionControllerTest extends BaseTest {
         when(questionDto.getQuestionId()).thenReturn(QUESTION_ID);
         doThrow(new RuntimeException("boom")).when(questionService).updateQuestion(anyMap());
 
-        assertThrows(DataServiceException.class, () -> questionController.updateQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest));
+        assertThrows(DataServiceException.class, () -> questionController.updateQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest));
     }
 
     @Test
     void updateQuestionTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
-        ResponseEntity<Void> response = questionController.updateQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, questionDto, httpServletRequest);
+        ResponseEntity<Void> response = questionController.updateQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, questionDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -208,7 +212,7 @@ public class QuestionControllerTest extends BaseTest {
     void updateQuestionUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = questionController.updateQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, questionDto, httpServletRequest);
+        ResponseEntity<Void> response = questionController.updateQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, questionDto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -219,14 +223,14 @@ public class QuestionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new NegativePointsException("error")).when(questionService).updateQuestion(anyMap());
 
-        assertThrows(NegativePointsException.class, () -> questionController.updateQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, questionDto, httpServletRequest));
+        assertThrows(NegativePointsException.class, () -> questionController.updateQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, questionDto, httpServletRequest));
     }
 
     @Test
     void deleteQuestionTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
-        ResponseEntity<Void> response = questionController.deleteQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, httpServletRequest);
+        ResponseEntity<Void> response = questionController.deleteQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -235,7 +239,7 @@ public class QuestionControllerTest extends BaseTest {
     void deleteQuestionUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = questionController.deleteQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, httpServletRequest);
+        ResponseEntity<Void> response = questionController.deleteQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -246,7 +250,7 @@ public class QuestionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new EmptyResultDataAccessException(1)).when(questionService).deleteById(anyLong());
 
-        ResponseEntity<Void> response = questionController.deleteQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, QUESTION_ID, httpServletRequest);
+        ResponseEntity<Void> response = questionController.deleteQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, QUESTION_ID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
@@ -256,7 +260,7 @@ public class QuestionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(questionDto.getQuestionId()).thenReturn(QUESTION_ID);
 
-        ResponseEntity<Void> response = questionController.deleteQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest);
+        ResponseEntity<Void> response = questionController.deleteQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -265,7 +269,7 @@ public class QuestionControllerTest extends BaseTest {
     void deleteQuestionsUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = questionController.deleteQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest);
+        ResponseEntity<Void> response = questionController.deleteQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -277,7 +281,7 @@ public class QuestionControllerTest extends BaseTest {
         when(questionDto.getQuestionId()).thenReturn(QUESTION_ID);
         doThrow(new QuestionNotMatchingException("error")).when(apiJwtService).questionAllowed(any(SecuredInfo.class), anyLong(), anyLong());
 
-        assertThrows(QuestionNotMatchingException.class, () -> questionController.deleteQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest));
+        assertThrows(QuestionNotMatchingException.class, () -> questionController.deleteQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest));
     }
 
     // NOTE: unlike deleteQuestion() (singular) which catches EmptyResultDataAccessException per-item,
@@ -288,7 +292,7 @@ public class QuestionControllerTest extends BaseTest {
         when(questionDto.getQuestionId()).thenReturn(QUESTION_ID);
         doThrow(new EmptyResultDataAccessException(1)).when(questionService).deleteById(anyLong());
 
-        assertThrows(EmptyResultDataAccessException.class, () -> questionController.deleteQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_ID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest));
+        assertThrows(EmptyResultDataAccessException.class, () -> questionController.deleteQuestions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_ID, List.of(questionDto), httpServletRequest));
     }
 
 }

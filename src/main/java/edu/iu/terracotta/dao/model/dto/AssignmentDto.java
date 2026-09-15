@@ -27,7 +27,7 @@ public class AssignmentDto {
     @Builder.Default private boolean allowStudentViewResponses = false;
     @Builder.Default private boolean allowStudentViewCorrectAnswers = false;
 
-    private Long assignmentId;
+    private UUID assignmentId;
     private UUID exposureId;
     private String title;
     private String lmsAssignmentId;

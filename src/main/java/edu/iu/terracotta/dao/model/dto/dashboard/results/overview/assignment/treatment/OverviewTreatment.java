@@ -12,7 +12,7 @@ import java.util.UUID;
 @SuperBuilder
 public class OverviewTreatment extends Overview {
 
-    private Long assignmentId;
+    private UUID assignmentId;
     private UUID conditionId;
 
 }

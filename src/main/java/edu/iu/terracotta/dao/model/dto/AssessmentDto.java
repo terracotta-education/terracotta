@@ -14,6 +14,7 @@ import lombok.Setter;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -25,7 +26,7 @@ public class AssessmentDto {
 
     private Long assessmentId;
     private String html;
-    private Long treatmentId;
+    private UUID treatmentId;
     private boolean autoSubmit;
     private Integer numOfSubmissions;
     private Float hoursBetweenSubmissions;

@@ -88,6 +88,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -214,7 +215,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     public Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException {
         //Note: we don't want to allow the dto to change the LmsAssignmentId or the ResourceLinkId
         Assignment assignment = new Assignment();
-        assignment.setAssignmentId(assignmentDto.getAssignmentId());
+        // assignmentDto.getAssignmentId() (now a uuid) is intentionally not set on a new
+        // Assignment here - the controller already rejects a create request that carries one
+        // (IdInPostException), and the real numeric id/uuid are both IDENTITY/@PrePersist
+        // generated at insert time regardless.
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         assignment.setNumOfSubmissions(assignmentDto.getNumOfSubmissions());
@@ -254,13 +258,22 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public Assignment getAssignmentByUuid(UUID uuid) throws AssignmentNotMatchingException {
+        return Optional.ofNullable(assignmentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
+    }
+
+    @Override
     public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, SecuredInfo securedInfo)
             throws TitleValidationException, ApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {
         List<AssignmentDto> updatedAssignmentDtos = new ArrayList<>();
 
+        // bulk endpoint: each item's numeric id is resolved individually rather than once up
+        // front, since each AssignmentDto in the list carries its own uuid
         for (AssignmentDto assignmentDto : assignmentDtos) {
-            updatedAssignmentDtos.add(putAssignment(assignmentDto.getAssignmentId(), assignmentDto, securedInfo));
+            long assignmentId = getAssignmentByUuid(assignmentDto.getAssignmentId()).getAssignmentId();
+            updatedAssignmentDtos.add(putAssignment(assignmentId, assignmentDto, securedInfo));
         }
 
         return updatedAssignmentDtos;
@@ -631,7 +644,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long assignmentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID exposureId, UUID assignmentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
                 .buildAndExpand(experimentId, exposureId, assignmentId).toUri());

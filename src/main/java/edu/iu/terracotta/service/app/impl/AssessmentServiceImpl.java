@@ -331,7 +331,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         assessmentDto.setStarted(CollectionUtils.isNotEmpty(assessmentSubmissions));
         assessmentDto.setSubmissions(submissionDtoList);
-        assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
+        assessmentDto.setTreatmentId(assessment.getTreatment().getUuid());
         assessmentDto.setMaxPoints(assessmentSubmissionService.calculateMaxScore(assessment));
 
         return assessmentDto;
@@ -364,7 +364,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setStudentViewCorrectAnswersAfter(assessmentDto.getStudentViewCorrectAnswersAfter());
         assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
 
-        Optional<Treatment> treatment = treatmentRepository.findById(assessmentDto.getTreatmentId());
+        Optional<Treatment> treatment = Optional.ofNullable(treatmentRepository.findByUuid(assessmentDto.getTreatmentId()));
 
         if (treatment.isEmpty()) {
             throw new DataServiceException("The treatment for the assessment does not exist");
@@ -571,9 +571,9 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId) {
-        assessmentDto.setTreatmentId(treatmentId);
-
         Treatment treatment = treatmentRepository.findByTreatmentId(treatmentId);
+        assessmentDto.setTreatmentId(treatment.getUuid());
+
         Assignment assignment = treatment.getAssignment();
 
         // Default multiple attempts settings to assignment level settings

@@ -21,7 +21,7 @@ import lombok.Setter;
 public class AssignmentFileArchiveDto {
 
     private UUID id;
-    private long assignmentId;
+    private UUID assignmentId;
     private String assignmentTitle;
     private String experimentTitle;
     private AssignmentFileArchiveStatus status;

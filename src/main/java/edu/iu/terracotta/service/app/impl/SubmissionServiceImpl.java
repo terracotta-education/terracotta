@@ -242,7 +242,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionDto.setParticipantId(submission.getParticipant().getUuid());
         submissionDto.setAssessmentId(submission.getAssessment().getAssessmentId());
         submissionDto.setConditionId(submission.getAssessment().getTreatment().getCondition().getUuid());
-        submissionDto.setTreatmentId(submission.getAssessment().getTreatment().getTreatmentId());
+        submissionDto.setTreatmentId(submission.getAssessment().getTreatment().getUuid());
         submissionDto.setExperimentId(submission.getAssessment().getTreatment().getCondition().getExperiment().getUuid());
         submissionDto.setCalculatedGrade(submission.getCalculatedGrade());
         submissionDto.setAlteredCalculatedGrade(submission.getAlteredCalculatedGrade());

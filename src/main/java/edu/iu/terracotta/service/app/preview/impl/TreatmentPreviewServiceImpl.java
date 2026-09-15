@@ -90,7 +90,7 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
                     .toList()
             )
             .submissionId(1L)
-            .treatmentId(treatmentId)
+            .treatmentId(treatmentPreview.getTreatment().getUuid())
             .build();
 
         return TreatmentPreviewDto.builder()

@@ -13,6 +13,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -91,7 +92,13 @@ public class TreatmentServiceImplTest extends BaseTest {
 
         when(treatmentDtoToUpdate.getAssessmentDto()).thenReturn(assessmentDto);
         when(treatmentDtoToUpdate.getAssignmentDto()).thenReturn(assignmentDto);
-        when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(1L);
+        // Mockito's default answer returns 0 for an unstubbed Long getter but null for an unstubbed
+        // UUID getter, so - unlike before this field's uuid conversion - getAssignmentId() must be
+        // stubbed explicitly here to keep passing the "assignmentId is mandatory" check in
+        // putTreatment/postTreatment for every test that doesn't care about this field's value.
+        when(treatmentDtoToUpdate.getAssignmentId()).thenReturn(UUID.randomUUID());
+        UUID treatmentUuid = treatment.getUuid();
+        when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(treatmentUuid);
 
         java.util.UUID conditionUuid = condition.getUuid();
         when(treatmentDtoToUpdate.getConditionId()).thenReturn(conditionUuid);
@@ -133,7 +140,7 @@ public class TreatmentServiceImplTest extends BaseTest {
 
     @Test
     public void testPutTreatmentIdMismatch() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException {
-        when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(2L);
+        when(treatmentDtoToUpdate.getTreatmentId()).thenReturn(UUID.randomUUID());
 
         Exception exception = assertThrows(IdMismatchException.class, () -> { treatmentService.putTreatment(treatmentDtoToUpdate, 1L, securedInfo, false); });
 
@@ -193,6 +200,9 @@ public class TreatmentServiceImplTest extends BaseTest {
     @Test
     public void testPostTreatmentHappyPath() throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException {
         when(treatmentDto.getTreatmentId()).thenReturn(null);
+        UUID assignmentUuid = assignment.getUuid();
+        when(treatmentDto.getAssignmentId()).thenReturn(assignmentUuid);
+        when(assignmentRepository.findByUuid(assignmentUuid)).thenReturn(assignment);
 
         TreatmentDto result = treatmentService.postTreatment(treatmentDto, 5L, securedInfo);
 
@@ -203,7 +213,11 @@ public class TreatmentServiceImplTest extends BaseTest {
 
     @Test
     public void testPostTreatmentIdInPost() {
-        // default (unstubbed) treatmentDto.getTreatmentId() returns a non-null Long, so the "already has an id" branch triggers.
+        // Mockito's default answer returns null for an unstubbed UUID getter (unlike the 0 it
+        // returned for the old unstubbed Long getter), so getTreatmentId() must be stubbed
+        // explicitly here to trigger the "already has an id" branch.
+        when(treatmentDto.getTreatmentId()).thenReturn(UUID.randomUUID());
+
         assertThrows(IdInPostException.class, () -> treatmentService.postTreatment(treatmentDto, 1L, securedInfo));
     }
 
@@ -220,7 +234,9 @@ public class TreatmentServiceImplTest extends BaseTest {
     @Test
     public void testPostTreatmentFromDtoAssignmentNotFound() {
         when(treatmentDto.getTreatmentId()).thenReturn(null);
-        when(assignmentRepository.findById(anyLong())).thenReturn(java.util.Optional.empty());
+        // a non-null but otherwise arbitrary assignmentId that assignmentRepository.findByUuid
+        // (left unstubbed, so it defaults to null) will fail to resolve
+        when(treatmentDto.getAssignmentId()).thenReturn(UUID.randomUUID());
 
         Exception exception = assertThrows(DataServiceException.class, () -> treatmentService.postTreatment(treatmentDto, 1L, securedInfo));
 
@@ -230,8 +246,10 @@ public class TreatmentServiceImplTest extends BaseTest {
     @Test
     public void testPostTreatmentFromDtoConditionNotFound() {
         when(treatmentDto.getTreatmentId()).thenReturn(null);
+        UUID assignmentUuid = assignment.getUuid();
+        when(treatmentDto.getAssignmentId()).thenReturn(assignmentUuid);
+        when(assignmentRepository.findByUuid(assignmentUuid)).thenReturn(assignment);
         when(treatmentDto.getConditionId()).thenReturn(null);
-        when(conditionRepository.findById(anyLong())).thenReturn(java.util.Optional.empty());
 
         Exception exception = assertThrows(DataServiceException.class, () -> treatmentService.postTreatment(treatmentDto, 1L, securedInfo));
 
@@ -241,6 +259,9 @@ public class TreatmentServiceImplTest extends BaseTest {
     @Test
     public void testPostTreatmentExceedingLimit() {
         when(treatmentDto.getTreatmentId()).thenReturn(null);
+        UUID assignmentUuid = assignment.getUuid();
+        when(treatmentDto.getAssignmentId()).thenReturn(assignmentUuid);
+        when(assignmentRepository.findByUuid(assignmentUuid)).thenReturn(assignment);
         when(treatmentRepository.existsByAssignment_AssignmentIdAndCondition_ConditionId(anyLong(), anyLong())).thenReturn(true);
 
         assertThrows(ExceedingLimitException.class, () -> treatmentService.postTreatment(treatmentDto, 1L, securedInfo));
@@ -271,11 +292,35 @@ public class TreatmentServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders headers = treatmentService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L, 3L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+        UUID treatmentUuid = UUID.randomUUID();
+
+        HttpHeaders headers = treatmentService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, conditionUuid, treatmentUuid);
 
         assertNotNull(headers);
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/conditions/2/treatments/3"));
+        assertTrue(headers.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/conditions/" + conditionUuid + "/treatments/" + treatmentUuid));
+    }
+
+    @Test
+    public void testGetTreatmentByUuidFound() throws Exception {
+        UUID uuid = treatment.getUuid();
+        when(treatmentRepository.findByUuid(uuid)).thenReturn(treatment);
+
+        Treatment result = treatmentService.getTreatmentByUuid(uuid);
+
+        assertEquals(treatment, result);
+    }
+
+    @Test
+    public void testGetTreatmentByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(treatmentRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(TreatmentNotMatchingException.class, () -> treatmentService.getTreatmentByUuid(uuid));
+
+        assertEquals(TextConstants.TREATMENT_NOT_MATCHING, exception.getMessage());
     }
 
 }

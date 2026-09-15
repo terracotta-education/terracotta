@@ -286,14 +286,15 @@ public class BaseModelTest {
             when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
             when(assessment.getTreatment()).thenReturn(treatment);
             when(assessmentDto.getAssessmentId()).thenReturn(1L);
-            when(assessmentDto.getTreatmentId()).thenReturn(1L);
+            when(assessmentDto.getTreatmentId()).thenReturn(UUID.randomUUID());
             when(assignment.getAssignmentId()).thenReturn(1L);
             when(assignment.getExposure()).thenReturn(exposure);
             when(assignment.getLmsAssignmentId()).thenReturn("1");
             when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
             when(assignment.getSoftDeleted()).thenReturn(false);
             when(assignment.getTitle()).thenReturn(ASSIGNMENT_TITLE);
-            when(assignmentDto.getAssignmentId()).thenReturn(1L);
+            when(assignment.getUuid()).thenReturn(UUID.randomUUID());
+            when(assignmentDto.getAssignmentId()).thenReturn(UUID.randomUUID());
             when(assignmentDto.getTreatments()).thenReturn(Collections.singletonList(treatmentDto));
             when(canvasAssignmentExtended.getId()).thenReturn("1");
             when(canvasAssignmentExtended.getSecureParams()).thenReturn(RESOURCE_LINK_ID);
@@ -493,6 +494,7 @@ public class BaseModelTest {
             when(treatment.getAssignment()).thenReturn(assignment);
             when(treatment.getCondition()).thenReturn(condition);
             when(treatment.getTreatmentId()).thenReturn(1L);
+            when(treatment.getUuid()).thenReturn(UUID.randomUUID());
             when(user.getId()).thenReturn(1L);
             when(user.getLoginId()).thenReturn(EMAIL);
             when(user.getName()).thenReturn(DISPLAY_NAME);

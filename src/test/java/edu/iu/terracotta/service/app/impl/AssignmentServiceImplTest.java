@@ -449,6 +449,7 @@ public class AssignmentServiceImplTest extends BaseTest {
             RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {
         String currentAssignmentTitle = assignment.getTitle();
         when(assignmentDto.getTitle()).thenReturn(currentAssignmentTitle);
+        when(assignmentRepository.findByUuid(assignmentDto.getAssignmentId())).thenReturn(assignment);
 
         List<AssignmentDto> retVal = assignmentService.updateAssignments(List.of(assignmentDto, assignmentDto), securedInfo);
 
@@ -791,10 +792,36 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders headers = assignmentService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L, 3L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID exposureUuid = UUID.randomUUID();
+        UUID assignmentUuid = UUID.randomUUID();
+
+        HttpHeaders headers = assignmentService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, exposureUuid, assignmentUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/exposures/2/assignments/3"));
+        assertTrue(headers.getLocation().toString().contains(
+            String.format("/api/experiments/%s/exposures/%s/assignments/%s", experimentUuid, exposureUuid, assignmentUuid)
+        ));
+    }
+
+    @Test
+    public void testGetAssignmentByUuidFound() throws Exception {
+        UUID uuid = assignment.getUuid();
+        when(assignmentRepository.findByUuid(uuid)).thenReturn(assignment);
+
+        Assignment retVal = assignmentService.getAssignmentByUuid(uuid);
+
+        assertEquals(assignment, retVal);
+    }
+
+    @Test
+    public void testGetAssignmentByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(assignmentRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(AssignmentNotMatchingException.class, () -> assignmentService.getAssignmentByUuid(uuid));
+
+        assertEquals(TextConstants.ASSIGNMENT_NOT_MATCHING, exception.getMessage());
     }
 
     @Test
