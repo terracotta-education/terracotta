@@ -310,6 +310,7 @@ public class BaseModelTest {
             when(condition.getUuid()).thenReturn(UUID.randomUUID());
             when(consentDocument.getLmsAssignmentId()).thenReturn("1");
             when(consentDocument.getResourceLinkId()).thenReturn(RESOURCE_LINK_ID);
+            when(consentDocument.getUuid()).thenReturn(UUID.randomUUID());
             when(courseUser.getRoles()).thenReturn(Collections.singletonList(Roles.LEARNER));
             when(courseUser.getUserId()).thenReturn(USER_ID);
             when(courseUsers.getCourseUserList()).thenReturn(Collections.singletonList(courseUser));
@@ -332,6 +333,7 @@ public class BaseModelTest {
             when(exposure.getExperiment()).thenReturn(experiment);
             when(exposure.getExposureId()).thenReturn(1L);
             when(exposure.getTitle()).thenReturn(EXPOSURE_TITLE);
+            when(exposure.getUuid()).thenReturn(UUID.randomUUID());
             when(exposureGroupCondition.getCondition()).thenReturn(condition);
             when(exposureGroupCondition.getExposure()).thenReturn(exposure);
             when(exposureGroupCondition.getGroup()).thenReturn(group);
@@ -347,6 +349,7 @@ public class BaseModelTest {
             when(httpServletRequest.getQueryString()).thenReturn("a=b");
             when(integration.getConfiguration()).thenReturn(integrationConfiguration);
             when(integration.getQuestion()).thenReturn(question);
+            when(integration.getUuid()).thenReturn(UUID.randomUUID());
             when(integrationClient.getConfiguration()).thenReturn(Collections.singletonList(integrationConfiguration));
             when(integrationClient.getId()).thenReturn(1l);
             when(integrationClient.getName()).thenReturn(INTEGRATION_CLIENT_NAME);
@@ -414,6 +417,7 @@ public class BaseModelTest {
             when(outcome.getMaxPoints()).thenReturn(1F);
             when(outcome.getOutcomeId()).thenReturn(1L);
             when(outcome.getOutcomeScores()).thenReturn(Collections.singletonList(outcomeScore));
+            when(outcome.getUuid()).thenReturn(UUID.randomUUID());
             when(outcomeDto.getExternal()).thenReturn(false);
             when(outcomeDto.getTitle()).thenReturn(OUTCOME_TITLE);
             when(outcomesCondition.getTitle()).thenReturn(OUTCOME_TITLE);
@@ -459,6 +463,7 @@ public class BaseModelTest {
             when(questionMc.getPoints()).thenReturn(1F);
             when(questionMc.getQuestionId()).thenReturn(1L);
             when(questionMc.getQuestionType()).thenReturn(QuestionTypes.MC);
+            when(questionMc.getUuid()).thenReturn(UUID.randomUUID());
             when(questionMc.isRandomizeAnswers()).thenReturn(true);
             when(questionSubmission.getAlteredGrade()).thenReturn(1F);
             when(questionSubmission.getCalculatedPoints()).thenReturn(1F);

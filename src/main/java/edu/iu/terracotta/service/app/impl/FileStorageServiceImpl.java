@@ -695,7 +695,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public void createExperimentExportFile(ExportDto transferExportDto, Export export, String filename) throws IOException {
+    public void createExperimentExportFile(ExportDto transferExportDto, Export export, String filename, long experimentId) throws IOException {
         // create a directory for the export files
         String path = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH"));
         Path parentPath = Files.createDirectories(Paths.get(String.format("%s/%s/%s", experimentExportLocalPathRoot, path, filename)));
@@ -707,7 +707,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
             // experiment is a consent type, include the consent document
-            Resource consentResource = getConsentFile(export.getExperiment().getId());
+            Resource consentResource = getConsentFile(experimentId);
 
             if (consentResource != null) {
                 FileUtils.copyFile(consentResource.getFile(), new File(String.format("%s/consent/%s", parentPath.toString(), ExperimentImport.CONSENT_FILE_NAME)));

@@ -191,7 +191,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             }
 
             // ["component": ["imported id"]]
-            Map<Class<? extends BaseEntity>, List<Long>> idMap = prepareIdMap(export.get());
+            Map<Class<? extends BaseEntity>, List<String>> idMap = prepareIdMap(export.get());
 
             consentDocument(export.get(), experimentImport, export.get().getImportDirectory());
             experiment(export.get(), experimentImport);
@@ -218,8 +218,8 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
          }
     }
 
-    private Map<Class<? extends BaseEntity>, List<Long>> prepareIdMap(Export export) {
-        Map<Class<? extends BaseEntity>, List<Long>> idMap = new HashMap<>();
+    private Map<Class<? extends BaseEntity>, List<String>> prepareIdMap(Export export) {
+        Map<Class<? extends BaseEntity>, List<String>> idMap = new HashMap<>();
         idMap.put(
             AnswerMc.class,
             CollectionUtils.emptyIfNull(export.getAnswersMc()).stream().map(answerMc -> answerMc.getId()).toList()
@@ -360,7 +360,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         }
     }
 
-    private void conditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void conditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getConditions()).stream()
             .forEach(
                 condition -> {
@@ -379,7 +379,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void exposures(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void exposures(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getExposures()).stream()
             .forEach(
                 exposure -> {
@@ -398,7 +398,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void groups(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void groups(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getGroups()).stream()
             .forEach(
                 group -> {
@@ -417,7 +417,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void exposureGroupConditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void exposureGroupConditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getExposureGroupConditions()).stream()
             .forEach(
                 exposureGroupCondition -> {
@@ -443,7 +443,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void assignments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void assignments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getAssignments()).stream()
             .forEach(
                 assignment -> {
@@ -462,7 +462,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void treatments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void treatments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getTreatments()).stream()
             .forEach(
                 treatment -> {
@@ -481,7 +481,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void assessments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void assessments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getAssessments()).stream()
             .forEach(
                 assessment -> {
@@ -493,7 +493,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void questions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void questions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getQuestions()).stream()
             .forEach(
                 question -> {
@@ -523,7 +523,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         // integration clients require no validation
     }
 
-    private void integrationConfigurations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void integrationConfigurations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getIntegrationConfigurations()).stream()
             .forEach(
                 integrationConfiguration -> {
@@ -535,7 +535,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void integrations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void integrations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getIntegrations()).stream()
             .forEach(
                 integration -> {
@@ -554,7 +554,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void answerMcs(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void answerMcs(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getAnswersMc()).stream()
             .forEach(
                 answerMc -> {
@@ -573,7 +573,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void outcomes(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void outcomes(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         // process only non-external outcomes
         idMap.put(Outcome.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getOutcomes()).stream()

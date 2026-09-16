@@ -572,11 +572,11 @@ public class FileStorageServiceImplTest extends BaseTest {
         when(consentDocument.isCompressed()).thenReturn(false);
         when(consentDocument.getFileUri()).thenReturn("export-consent/consent-source.pdf");
 
-        ExperimentExport experimentExport = ExperimentExport.builder().id(7L).participationType(ParticipationTypes.CONSENT).build();
+        ExperimentExport experimentExport = ExperimentExport.builder().id("7").participationType(ParticipationTypes.CONSENT).build();
         Export export = Export.builder().experiment(experimentExport).build();
         ExportDto exportDto = ExportDto.builder().build();
 
-        fileStorageService.createExperimentExportFile(exportDto, export, "myexport.zip");
+        fileStorageService.createExperimentExportFile(exportDto, export, "myexport.zip", 7L);
 
         assertNotNull(exportDto.getFile());
         assertTrue(exportDto.getFile().exists());
@@ -584,11 +584,11 @@ public class FileStorageServiceImplTest extends BaseTest {
 
     @Test
     public void testCreateExperimentExportFileNonConsentTypeSkipsConsentDocument() throws IOException {
-        ExperimentExport experimentExport = ExperimentExport.builder().id(9L).participationType(ParticipationTypes.AUTO).build();
+        ExperimentExport experimentExport = ExperimentExport.builder().id("9").participationType(ParticipationTypes.AUTO).build();
         Export export = Export.builder().experiment(experimentExport).build();
         ExportDto exportDto = ExportDto.builder().build();
 
-        fileStorageService.createExperimentExportFile(exportDto, export, "myexport2.zip");
+        fileStorageService.createExperimentExportFile(exportDto, export, "myexport2.zip", 9L);
 
         assertNotNull(exportDto.getFile());
         assertTrue(exportDto.getFile().exists());

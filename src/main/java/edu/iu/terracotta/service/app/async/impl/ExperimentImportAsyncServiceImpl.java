@@ -121,7 +121,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
 
         // ["component": ["imported id": "newly-created object"]]
-        Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap = new HashMap<>();
+        Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap = new HashMap<>();
 
         /*
          * Process each experiment component.
@@ -202,7 +202,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         return Optional.empty();
     }
 
-    private void consentDocument(Export export, ExperimentImport experimentImport, File importDirectory, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void consentDocument(Export export, ExperimentImport experimentImport, File importDirectory, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(ConsentDocument.class, new HashMap<>());
 
         if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
@@ -237,7 +237,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
     }
 
-    private void experiment(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void experiment(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         String title = String.format("%s %s", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle());
         int index = 1;
 
@@ -269,7 +269,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         experimentImport.setImportedTitle(title);
     }
 
-    private void conditions(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void conditions(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Condition.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getConditions()).stream()
             .map(
@@ -290,7 +290,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void exposures(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void exposures(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Exposure.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getExposures()).stream()
             .map(
@@ -310,7 +310,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void groups(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void groups(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Group.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getGroups()).stream()
             .map(
@@ -329,7 +329,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void exposureGroupConditions(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void exposureGroupConditions(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(ExposureGroupCondition.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getExposureGroupConditions()).stream()
             .map(
@@ -350,7 +350,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void assignments(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void assignments(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Assignment.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getAssignments()).stream()
             .map(
@@ -383,7 +383,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void treatments(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void treatments(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Treatment.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getTreatments()).stream()
             .map(
@@ -403,7 +403,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void assessments(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void assessments(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Assessment.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getAssessments()).stream()
             .map(
@@ -441,7 +441,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void questions(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void questions(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Question.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getQuestions()).stream()
             .map(
@@ -470,7 +470,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void integrationClients(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void integrationClients(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         List<IntegrationClient> existingIntegrationClients = integrationClientRepository.findAll();
 
         // process only integration clients that do not have the same name
@@ -506,7 +506,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void integrationConfigurations(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void integrationConfigurations(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(IntegrationConfiguration.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getIntegrationConfigurations()).stream()
             .map(
@@ -526,7 +526,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void integrations(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void integrations(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Integration.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getIntegrations()).stream()
             .map(
@@ -546,7 +546,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void answerMcs(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void answerMcs(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(AnswerMc.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getAnswersMc()).stream()
             .map(
@@ -568,7 +568,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void outcomes(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void outcomes(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         // process only non-external outcomes
         idMap.put(Outcome.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getOutcomes()).stream()
@@ -592,7 +592,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap, SecuredInfo securedInfo) {
+    private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo) {
         if (MapUtils.isEmpty(idMap.get(Assignment.class))) {
             // no assignments to process
             return;

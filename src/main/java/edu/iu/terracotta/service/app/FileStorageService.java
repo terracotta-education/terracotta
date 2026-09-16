@@ -47,7 +47,7 @@ public interface FileStorageService {
     void deleteFileSubmission(AnswerFileSubmission answer);
     void saveExperimentDataExport(ExperimentDataExport exportData, File file);
     File getExperimentDataExport(long id);
-    void createExperimentExportFile(ExportDto transferExportDto, Export export, String filename) throws IOException;
+    void createExperimentExportFile(ExportDto transferExportDto, Export export, String filename, long experimentId) throws IOException;
     void saveExperimentImportFile(MultipartFile file, ExperimentImport experimentImport) throws IOException;
     File getExperimentImportFile(long id);
 

@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +54,7 @@ class ExperimentExportServiceImplTest extends BaseTest {
     private Export captureExport() throws ExperimentExportException, IOException {
         ArgumentCaptor<Export> captor = ArgumentCaptor.forClass(Export.class);
         experimentExportService.export(experiment);
-        verify(fileStorageService).createExperimentExportFile(any(ExportDto.class), captor.capture(), anyString());
+        verify(fileStorageService).createExperimentExportFile(any(ExportDto.class), captor.capture(), anyString(), anyLong());
 
         return captor.getValue();
     }
@@ -65,7 +66,7 @@ class ExperimentExportServiceImplTest extends BaseTest {
         assertNotNull(result);
         assertTrue(result.getFilename().endsWith(".zip"));
         assertEquals("application/zip", result.getMimeType());
-        verify(fileStorageService).createExperimentExportFile(any(ExportDto.class), any(Export.class), anyString());
+        verify(fileStorageService).createExperimentExportFile(any(ExportDto.class), any(Export.class), anyString(), anyLong());
     }
 
     @Test
@@ -82,7 +83,7 @@ class ExperimentExportServiceImplTest extends BaseTest {
         assertEquals(1, export.getOutcomes().size());
         assertEquals(1, export.getQuestions().size());
         assertEquals(1, export.getTreatments().size());
-        assertEquals(1L, export.getExperiment().getId());
+        assertEquals(experiment.getUuid().toString(), export.getExperiment().getId());
         assertEquals(ParticipationTypes.AUTO, export.getExperiment().getParticipationType());
         assertNull(export.getConsentDocument());
         assertEquals("https://institution.example.edu", export.getOrigin().getInstitutionUrl());
@@ -94,22 +95,20 @@ class ExperimentExportServiceImplTest extends BaseTest {
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
         when(consentDocument.getHtml()).thenReturn("<p>consent</p>");
         when(consentDocument.getTitle()).thenReturn("Consent Title");
-        when(consentDocument.getConsentDocumentId()).thenReturn(9L);
 
         Export export = captureExport();
 
         assertNotNull(export.getConsentDocument());
         assertEquals("<p>consent</p>", export.getConsentDocument().getHtml());
         assertEquals("Consent Title", export.getConsentDocument().getTitle());
-        assertEquals(9L, export.getConsentDocument().getId());
-        assertEquals(1L, export.getConsentDocument().getExperimentId());
+        assertEquals(consentDocument.getUuid().toString(), export.getConsentDocument().getId());
+        assertEquals(experiment.getUuid().toString(), export.getConsentDocument().getExperimentId());
     }
 
     @Test
     void testExportWithIntegrationQuestion() throws ExperimentExportException, IOException {
         when(question.isIntegration()).thenReturn(true);
         when(integrationClient.isEnabled()).thenReturn(true);
-        when(integration.getId()).thenReturn(5L);
 
         Export export = captureExport();
 
@@ -117,8 +116,8 @@ class ExperimentExportServiceImplTest extends BaseTest {
         assertEquals(1, export.getIntegrationClients().size());
         assertEquals(1, export.getIntegrationConfigurations().size());
         assertTrue(export.getIntegrationClients().get(0).isEnabled());
-        assertEquals(5L, export.getIntegrations().get(0).getId());
-        assertEquals(1L, export.getIntegrations().get(0).getQuestionId());
+        assertEquals(integration.getUuid().toString(), export.getIntegrations().get(0).getId());
+        assertEquals(question.getUuid().toString(), export.getIntegrations().get(0).getQuestionId());
     }
 
     @Test
@@ -138,7 +137,7 @@ class ExperimentExportServiceImplTest extends BaseTest {
         when(secondTreatment.getAssessment()).thenReturn(assessment);
         when(secondTreatment.getAssignment()).thenReturn(assignment);
         when(secondTreatment.getCondition()).thenReturn(condition);
-        when(secondTreatment.getTreatmentId()).thenReturn(2L);
+        when(secondTreatment.getUuid()).thenReturn(UUID.randomUUID());
         when(treatmentRepository.findByCondition_Experiment_ExperimentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(List.of(treatment, secondTreatment));
 
         Export export = captureExport();
@@ -149,11 +148,11 @@ class ExperimentExportServiceImplTest extends BaseTest {
 
     @Test
     void testExportThrowsExperimentExportExceptionOnIoException() throws IOException {
-        doThrow(new IOException("disk full")).when(fileStorageService).createExperimentExportFile(any(ExportDto.class), any(Export.class), anyString());
+        doThrow(new IOException("disk full")).when(fileStorageService).createExperimentExportFile(any(ExportDto.class), any(Export.class), anyString(), anyLong());
 
         ExperimentExportException exception = assertThrows(ExperimentExportException.class, () -> experimentExportService.export(experiment));
 
-        assertEquals("Error occurred creating experiment ID: [1] export", exception.getMessage());
+        assertEquals(String.format("Error occurred creating experiment ID: [%s] export", experiment.getUuid()), exception.getMessage());
         assertNotNull(exception.getCause());
     }
 

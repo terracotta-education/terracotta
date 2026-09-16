@@ -119,8 +119,8 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
                         .answerOrder(answerMc.getAnswerOrder())
                         .correct(answerMc.getCorrect())
                         .html(answerMc.getHtml())
-                        .id(answerMc.getAnswerMcId())
-                        .questionId(answerMc.getQuestion().getQuestionId())
+                        .id(answerMc.getUuid().toString())
+                        .questionId(answerMc.getQuestion().getUuid().toString())
                         .build()
             )
             .toList();
@@ -137,7 +137,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
                         .cumulativeScoringInitialPercentage(assessment.getCumulativeScoringInitialPercentage())
                         .hoursBetweenSubmissions(assessment.getHoursBetweenSubmissions())
                         .html(assessment.getHtml())
-                        .id(assessment.getAssessmentId())
+                        .id(assessment.getUuid().toString())
                         .multipleSubmissionScoringScheme(assessment.getMultipleSubmissionScoringScheme())
                         .numOfSubmissions(assessment.getNumOfSubmissions())
                         .studentViewCorrectAnswersAfter(assessment.getStudentViewCorrectAnswersAfter())
@@ -145,7 +145,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
                         .studentViewResponsesAfter(assessment.getStudentViewResponsesAfter())
                         .studentViewResponsesBefore(assessment.getStudentViewResponsesBefore())
                         .title(assessment.getTitle())
-                        .treatmentId(assessment.getTreatment().getTreatmentId())
+                        .treatmentId(assessment.getTreatment().getUuid().toString())
                         .build()
             )
             .toList();
@@ -160,9 +160,9 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
                         .allowStudentViewResponses(assignment.isAllowStudentViewResponses())
                         .assignmentOrder(assignment.getAssignmentOrder())
                         .cumulativeScoringInitialPercentage(assignment.getCumulativeScoringInitialPercentage())
-                        .exposureId(assignment.getExposure().getExposureId())
+                        .exposureId(assignment.getExposure().getUuid().toString())
                         .hoursBetweenSubmissions(assignment.getHoursBetweenSubmissions())
-                        .id(assignment.getAssignmentId())
+                        .id(assignment.getUuid().toString())
                         .multipleSubmissionScoringScheme(assignment.getMultipleSubmissionScoringScheme())
                         .numOfSubmissions(assignment.getNumOfSubmissions())
                         .studentViewCorrectAnswersAfter(assignment.getStudentViewCorrectAnswersAfter())
@@ -182,8 +182,8 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
                     ConditionExport.builder()
                         .defaultCondition(condition.getDefaultCondition())
                         .distributionPct(condition.getDistributionPct())
-                        .experimentId(condition.getExperiment().getExperimentId())
-                        .id(condition.getConditionId())
+                        .experimentId(condition.getExperiment().getUuid().toString())
+                        .id(condition.getUuid().toString())
                         .name(condition.getName())
                         .build()
             )
@@ -197,9 +197,9 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
         }
 
         return ConsentDocumentExport.builder()
-            .experimentId(experiment.getExperimentId())
+            .experimentId(experiment.getUuid().toString())
             .html(experiment.getConsentDocument().getHtml())
-            .id(experiment.getConsentDocument().getConsentDocumentId())
+            .id(experiment.getConsentDocument().getUuid().toString())
             .title(experiment.getConsentDocument().getTitle())
             .build();
     }
@@ -209,7 +209,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .description(experiment.getDescription())
             .distributionType(experiment.getDistributionType())
             .exposureType(experiment.getExposureType())
-            .id(experiment.getExperimentId())
+            .id(experiment.getUuid().toString())
             .participationType(experiment.getParticipationType())
             .title(experiment.getTitle())
             .build();
@@ -220,8 +220,8 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .map(
                 exposure ->
                     ExposureExport.builder()
-                        .experimentId(experiment.getExperimentId())
-                        .id(exposure.getExposureId())
+                        .experimentId(experiment.getUuid().toString())
+                        .id(exposure.getUuid().toString())
                         .title(exposure.getTitle())
                         .build()
             )
@@ -233,10 +233,10 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .map(
                 exposureGroupCondition ->
                     ExposureGroupConditionExport.builder()
-                        .conditionId(exposureGroupCondition.getCondition().getConditionId())
-                        .exposureId(exposureGroupCondition.getExposure().getExposureId())
-                        .groupId(exposureGroupCondition.getGroup().getGroupId())
-                        .id(exposureGroupCondition.getExposureGroupConditionId())
+                        .conditionId(exposureGroupCondition.getCondition().getUuid().toString())
+                        .exposureId(exposureGroupCondition.getExposure().getUuid().toString())
+                        .groupId(exposureGroupCondition.getGroup().getUuid().toString())
+                        .id(exposureGroupCondition.getUuid().toString())
                         .build()
             )
             .toList();
@@ -247,8 +247,8 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .map(
                 group ->
                     GroupExport.builder()
-                        .experimentId(group.getExperiment().getExperimentId())
-                        .id(group.getGroupId())
+                        .experimentId(group.getExperiment().getUuid().toString())
+                        .id(group.getUuid().toString())
                         .name(group.getName())
                         .build()
             )
@@ -261,7 +261,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
                 integration ->
                     IntegrationClientExport.builder()
                         .enabled(integration.getConfiguration().getClient().isEnabled())
-                        .id(integration.getConfiguration().getClient().getId())
+                        .id(integration.getConfiguration().getClient().getUuid().toString())
                         .name(integration.getConfiguration().getClient().getName())
                         .previewToken(integration.getConfiguration().getClient().getPreviewToken())
                         .scoreVariable(integration.getConfiguration().getClient().getScoreVariable())
@@ -276,9 +276,9 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .map(
                 integration ->
                     IntegrationConfigurationExport.builder()
-                        .clientId(integration.getConfiguration().getClient().getId())
-                        .id(integration.getConfiguration().getId())
-                        .integrationId(integration.getId())
+                        .clientId(integration.getConfiguration().getClient().getUuid().toString())
+                        .id(integration.getConfiguration().getUuid().toString())
+                        .integrationId(integration.getUuid().toString())
                         .launchUrl(integration.getConfiguration().getLaunchUrl())
                         .build()
             )
@@ -290,9 +290,9 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .map(
                 integration ->
                     IntegrationExport.builder()
-                        .configurationId(integration.getConfiguration().getId())
-                        .id(integration.getId())
-                        .questionId(integration.getQuestion().getQuestionId())
+                        .configurationId(integration.getConfiguration().getUuid().toString())
+                        .id(integration.getUuid().toString())
+                        .questionId(integration.getQuestion().getUuid().toString())
                         .build()
             )
             .toList();
@@ -303,8 +303,8 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .map(
                 outcome ->
                     OutcomeExport.builder()
-                        .exposureId(outcome.getExposure().getExposureId())
-                        .id(outcome.getOutcomeId())
+                        .exposureId(outcome.getExposure().getUuid().toString())
+                        .id(outcome.getUuid().toString())
                         .maxPoints(outcome.getMaxPoints())
                         .title(outcome.getTitle())
                         .build()
@@ -325,10 +325,10 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
                     }
 
                     return QuestionExport.builder()
-                        .assessmentId(question.getAssessment().getAssessmentId())
+                        .assessmentId(question.getAssessment().getUuid().toString())
                         .html(question.getHtml())
-                        .id(question.getQuestionId())
-                        .integrationId(question.getIntegration() != null ? question.getIntegration().getId() : null)
+                        .id(question.getUuid().toString())
+                        .integrationId(question.getIntegration() != null ? question.getIntegration().getUuid().toString() : null)
                         .points(question.getPoints())
                         .questionOrder(question.getQuestionOrder())
                         .questionType(question.getQuestionType())
@@ -345,10 +345,10 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .map(
                 treatment ->
                     TreatmentExport.builder()
-                        .assessmentId(treatment.getAssessment().getAssessmentId())
-                        .assignmentId(treatment.getAssignment().getAssignmentId())
-                        .conditionId(treatment.getCondition().getConditionId())
-                        .id(treatment.getTreatmentId())
+                        .assessmentId(treatment.getAssessment().getUuid().toString())
+                        .assignmentId(treatment.getAssignment().getUuid().toString())
+                        .conditionId(treatment.getCondition().getUuid().toString())
+                        .id(treatment.getUuid().toString())
                         .build()
             )
             .toList();
@@ -383,7 +383,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             ExportDto transferExportDto = ExportDto.builder()
                 .filename(String.format("%s.zip", exportFilename))
                 .build();
-            fileStorageService.createExperimentExportFile(transferExportDto, export, exportFilename);
+            fileStorageService.createExperimentExportFile(transferExportDto, export, exportFilename, experiment.getExperimentId());
 
             return transferExportDto;
         } catch (IOException e) {

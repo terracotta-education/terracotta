@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -104,7 +105,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
     private ExperimentExport experimentExport() {
         return ExperimentExport.builder()
-            .id(100L)
+            .id("100")
             .title("source experiment title")
             .description("description")
             .exposureType(ExposureTypes.BETWEEN)
@@ -116,24 +117,24 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     private Export fullExport() {
         return Export.builder()
             .experiment(experimentExport())
-            .conditions(List.of(ConditionExport.builder().id(300L).name("condition").defaultCondition(true).distributionPct(50F).experimentId(100L).build()))
-            .exposures(List.of(ExposureExport.builder().id(400L).title("exposure").experimentId(100L).build()))
-            .groups(List.of(GroupExport.builder().id(500L).name("group").experimentId(100L).build()))
-            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id(600L).conditionId(300L).exposureId(400L).groupId(500L).build()))
-            .assignments(List.of(AssignmentExport.builder().id(700L).title("assignment").exposureId(400L).numOfSubmissions(1).build()))
-            .treatments(List.of(TreatmentExport.builder().id(800L).assignmentId(700L).conditionId(300L).build()))
-            .assessments(List.of(AssessmentExport.builder().id(900L).title("assessment").treatmentId(800L).build()))
+            .conditions(List.of(ConditionExport.builder().id("300").name("condition").defaultCondition(true).distributionPct(50F).experimentId("100").build()))
+            .exposures(List.of(ExposureExport.builder().id("400").title("exposure").experimentId("100").build()))
+            .groups(List.of(GroupExport.builder().id("500").name("group").experimentId("100").build()))
+            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id("600").conditionId("300").exposureId("400").groupId("500").build()))
+            .assignments(List.of(AssignmentExport.builder().id("700").title("assignment").exposureId("400").numOfSubmissions(1).build()))
+            .treatments(List.of(TreatmentExport.builder().id("800").assignmentId("700").conditionId("300").build()))
+            .assessments(List.of(AssessmentExport.builder().id("900").title("assessment").treatmentId("800").build()))
             .questions(
                 List.of(
-                    QuestionExport.builder().id(1000L).html("mc question").questionType(QuestionTypes.MC).assessmentId(900L).randomizeAnswers(true).build(),
-                    QuestionExport.builder().id(1001L).html("essay question").questionType(QuestionTypes.ESSAY).assessmentId(900L).build()
+                    QuestionExport.builder().id("1000").html("mc question").questionType(QuestionTypes.MC).assessmentId("900").randomizeAnswers(true).build(),
+                    QuestionExport.builder().id("1001").html("essay question").questionType(QuestionTypes.ESSAY).assessmentId("900").build()
                 )
             )
-            .integrationClients(List.of(IntegrationClientExport.builder().id(1100L).name("integration client").enabled(true).build()))
-            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id(1200L).clientId(1100L).launchUrl("http://launch.url").build()))
-            .integrations(List.of(IntegrationExport.builder().id(1300L).configurationId(1200L).questionId(1000L).build()))
-            .answersMc(List.of(AnswerMcExport.builder().id(1400L).answerOrder(1).correct(true).html("answer").questionId(1000L).build()))
-            .outcomes(List.of(OutcomeExport.builder().id(1500L).title("outcome").maxPoints(10F).exposureId(400L).build()))
+            .integrationClients(List.of(IntegrationClientExport.builder().id("1100").name("integration client").enabled(true).build()))
+            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id("1200").clientId("1100").launchUrl("http://launch.url").build()))
+            .integrations(List.of(IntegrationExport.builder().id("1300").configurationId("1200").questionId("1000").build()))
+            .answersMc(List.of(AnswerMcExport.builder().id("1400").answerOrder(1).correct(true).html("answer").questionId("1000").build()))
+            .outcomes(List.of(OutcomeExport.builder().id("1500").title("outcome").maxPoints(10F).exposureId("400").build()))
             .build();
     }
 
@@ -242,6 +243,69 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         verify(experimentImportRepository).save(experimentImport);
     }
 
+    // export id/FK fields are plain strings - fullExport() above uses old-style numeric strings
+    // (as a pre-uuid export file would still contain), this proves a new-style export using real
+    // uuid strings imports and links entities identically, since the cross-referencing is
+    // format-agnostic (a fresh HashMap keyed by whatever string the file happens to use)
+    @Test
+    void testProcessSuccessFullExportWithUuidIds() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        String experimentId = UUID.randomUUID().toString();
+        String conditionId = UUID.randomUUID().toString();
+        String exposureId = UUID.randomUUID().toString();
+        String groupId = UUID.randomUUID().toString();
+        String exposureGroupConditionId = UUID.randomUUID().toString();
+        String assignmentId = UUID.randomUUID().toString();
+        String treatmentId = UUID.randomUUID().toString();
+        String assessmentId = UUID.randomUUID().toString();
+        String mcQuestionId = UUID.randomUUID().toString();
+        String essayQuestionId = UUID.randomUUID().toString();
+        String integrationClientId = UUID.randomUUID().toString();
+        String integrationConfigurationId = UUID.randomUUID().toString();
+        String integrationId = UUID.randomUUID().toString();
+        String answerMcId = UUID.randomUUID().toString();
+        String outcomeId = UUID.randomUUID().toString();
+
+        Export export = Export.builder()
+            .experiment(ExperimentExport.builder().id(experimentId).title("source experiment title").description("description").exposureType(ExposureTypes.BETWEEN).participationType(ParticipationTypes.AUTO).distributionType(DistributionTypes.EVEN).build())
+            .conditions(List.of(ConditionExport.builder().id(conditionId).name("condition").defaultCondition(true).distributionPct(50F).experimentId(experimentId).build()))
+            .exposures(List.of(ExposureExport.builder().id(exposureId).title("exposure").experimentId(experimentId).build()))
+            .groups(List.of(GroupExport.builder().id(groupId).name("group").experimentId(experimentId).build()))
+            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id(exposureGroupConditionId).conditionId(conditionId).exposureId(exposureId).groupId(groupId).build()))
+            .assignments(List.of(AssignmentExport.builder().id(assignmentId).title("assignment").exposureId(exposureId).numOfSubmissions(1).build()))
+            .treatments(List.of(TreatmentExport.builder().id(treatmentId).assignmentId(assignmentId).conditionId(conditionId).build()))
+            .assessments(List.of(AssessmentExport.builder().id(assessmentId).title("assessment").treatmentId(treatmentId).build()))
+            .questions(
+                List.of(
+                    QuestionExport.builder().id(mcQuestionId).html("mc question").questionType(QuestionTypes.MC).assessmentId(assessmentId).randomizeAnswers(true).build(),
+                    QuestionExport.builder().id(essayQuestionId).html("essay question").questionType(QuestionTypes.ESSAY).assessmentId(assessmentId).build()
+                )
+            )
+            .integrationClients(List.of(IntegrationClientExport.builder().id(integrationClientId).name("integration client").enabled(true).build()))
+            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id(integrationConfigurationId).clientId(integrationClientId).launchUrl("http://launch.url").build()))
+            .integrations(List.of(IntegrationExport.builder().id(integrationId).configurationId(integrationConfigurationId).questionId(mcQuestionId).build()))
+            .answersMc(List.of(AnswerMcExport.builder().id(answerMcId).answerOrder(1).correct(true).html("answer").questionId(mcQuestionId).build()))
+            .outcomes(List.of(OutcomeExport.builder().id(outcomeId).title("outcome").maxPoints(10F).exposureId(exposureId).build()))
+            .build();
+
+        writeExportJson(export);
+        when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+
+        verify(conditionRepository).save(any(Condition.class));
+        verify(exposureRepository).save(any(Exposure.class));
+        verify(groupRepository).save(any(Group.class));
+        verify(exposureGroupConditionRepository).save(any(ExposureGroupCondition.class));
+        verify(assignmentRepository).save(any(Assignment.class));
+        verify(treatmentRepository, times(2)).save(any(edu.iu.terracotta.dao.entity.Treatment.class));
+        verify(assessmentRepository).save(any(edu.iu.terracotta.dao.entity.Assessment.class));
+        verify(integrationRepository).save(any(edu.iu.terracotta.dao.entity.integrations.Integration.class));
+        verify(answerMcRepository).save(any(edu.iu.terracotta.dao.entity.AnswerMc.class));
+        verify(outcomeRepository).save(any(edu.iu.terracotta.dao.entity.Outcome.class));
+        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
+        verify(experimentImport, never()).addErrorMessage(anyString());
+    }
+
     @Test
     void testProcessIntegrationClientReusesExistingEnabledClient() throws IOException {
         when(integrationClientRepository.findAll()).thenReturn(List.of(integrationClient));
@@ -266,7 +330,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessConsentParticipationTypeSuccess() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
         Export export = fullExport();
         export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-        export.setConsentDocument(ConsentDocumentExport.builder().id(200L).title("consent title").html("<p>consent</p>").experimentId(100L).build());
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
         writeExportJson(export);
 
         File consentDir = importDirectory.resolve("consent").toFile();
@@ -293,7 +357,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessConsentParticipationTypeMissingFile() throws IOException {
         Export export = fullExport();
         export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-        export.setConsentDocument(ConsentDocumentExport.builder().id(200L).title("consent title").html("<p>consent</p>").experimentId(100L).build());
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
         writeExportJson(export);
 
         // the missing consent file only aborts the consentDocument() step; process() continues
@@ -310,7 +374,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessConsentFileReadError() throws IOException {
         Export export = fullExport();
         export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-        export.setConsentDocument(ConsentDocumentExport.builder().id(200L).title("consent title").html("<p>consent</p>").experimentId(100L).build());
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
         writeExportJson(export);
 
         File consentDir = importDirectory.resolve("consent").toFile();
@@ -346,8 +410,8 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         Export export = fullExport();
         export.setAssignments(
             List.of(
-                AssignmentExport.builder().id(700L).title("assignment one").exposureId(400L).numOfSubmissions(1).build(),
-                AssignmentExport.builder().id(701L).title("assignment two").exposureId(400L).numOfSubmissions(1).build()
+                AssignmentExport.builder().id("700").title("assignment one").exposureId("400").numOfSubmissions(1).build(),
+                AssignmentExport.builder().id("701").title("assignment two").exposureId("400").numOfSubmissions(1).build()
             )
         );
         export.setTreatments(Collections.emptyList());
@@ -374,8 +438,8 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         Export export = fullExport();
         export.setAssignments(
             List.of(
-                AssignmentExport.builder().id(700L).title("assignment one").exposureId(400L).numOfSubmissions(1).build(),
-                AssignmentExport.builder().id(701L).title("assignment two").exposureId(400L).numOfSubmissions(1).build()
+                AssignmentExport.builder().id("700").title("assignment one").exposureId("400").numOfSubmissions(1).build(),
+                AssignmentExport.builder().id("701").title("assignment two").exposureId("400").numOfSubmissions(1).build()
             )
         );
         export.setTreatments(Collections.emptyList());
@@ -399,7 +463,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessConsentAssignmentCreationInLmsFails() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
         Export export = fullExport();
         export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-        export.setConsentDocument(ConsentDocumentExport.builder().id(200L).title("consent title").html("<p>consent</p>").experimentId(100L).build());
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
         writeExportJson(export);
 
         File consentDir = importDirectory.resolve("consent").toFile();
