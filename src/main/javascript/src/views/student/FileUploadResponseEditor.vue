@@ -202,7 +202,7 @@ const props = defineProps({
     default: null
   },
   selectedDownloadId: {
-    type: Number,
+    type: String,
     default: null
   },
   submissionId: {

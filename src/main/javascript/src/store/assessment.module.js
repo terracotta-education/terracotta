@@ -472,15 +472,13 @@ export const assessment = defineStore("assessment", {
           await assessmentService.deleteAnswer(...payload);
 
         if (response?.status === 200) {
-          const parsedAnswerId = parseInt(answerId);
-
           this.assessment.questions =
             this.assessment.questions.map(question => ({
               ...question,
               answers:
                 question.answers?.filter(
                   answer =>
-                    parseInt(answer.answerId) !== parsedAnswerId
+                    answer.answerId !== answerId
                 ) || []
             }));
 
@@ -547,7 +545,7 @@ export const assessment = defineStore("assessment", {
       if (!question.answers) question.answers = [];
 
       const index = question.answers.findIndex(
-        item => parseInt(item.answerId) === parseInt(answer.answerId)
+        item => item.answerId === answer.answerId
       );
 
       if (index >= 0) {
