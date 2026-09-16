@@ -85,6 +85,7 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         );
 
         ReflectionTestUtils.setField(assignmentAsyncService, "assignmentFileArchiveLocalPathRoot", tempDir.toString());
+        ReflectionTestUtils.setField(assignmentAsyncService, "obsoleteAssignmentCheckEnabled", true);
     }
 
     // handleAssignmentTasksInLmsByContext
@@ -211,6 +212,19 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
     }
 
     // handleObsoleteAssignmentsInLmsByContext
+
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextSkippedWhenDisabled() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        ReflectionTestUtils.setField(assignmentAsyncService, "obsoleteAssignmentCheckEnabled", false);
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?experiment=99&assignment=99");
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(assignmentRepository, never()).findAssignmentsToCheckByContext(anyLong());
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+        verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
+    }
 
     @Test
     void testHandleObsoleteAssignmentsInLmsByContextNoLmsAssignments() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {

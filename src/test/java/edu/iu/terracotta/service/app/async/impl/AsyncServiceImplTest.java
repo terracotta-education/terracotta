@@ -34,6 +34,7 @@ public class AsyncServiceImplTest extends BaseTest {
         // CanvasApiClientImpl also implements ApiClient, so Mockito's constructor injection
         // can wire the wrong mock into the ApiClient field; bind it explicitly.
         ReflectionTestUtils.setField(asyncService, "apiClient", apiClient);
+        ReflectionTestUtils.setField(asyncService, "obsoleteAssignmentCheckEnabled", true);
     }
 
     @Test
