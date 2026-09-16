@@ -346,6 +346,48 @@ describe("ExperimentSummary", () => {
     });
   });
 
+  it("never counts message containers toward balance, regardless of version", async () => {
+    const exposureA = { exposureId: 60, groupConditionList: [] };
+    const exposureB = { exposureId: 61, groupConditionList: [] };
+    exposuresService.getAll.mockResolvedValue([exposureA, exposureB]);
+
+    configurationModule().$patch({
+      configurations: { messagingEnabled: true }
+    });
+
+    assignmentService.fetchAssignmentsByExposure.mockResolvedValue([]);
+
+    messageContainerService.getAll.mockImplementation((experimentId, exposureId) => {
+      if (exposureId === exposureA.exposureId) {
+        // a lopsided number of message containers, single- and multi-version -
+        // none of it should ever affect balance, which is assignments-only
+        return Promise.resolve([
+          { id: 200, exposureId: exposureA.exposureId, messages: [{ id: 1 }, { id: 2 }] },
+          { id: 201, exposureId: exposureA.exposureId, messages: [{ id: 3 }] },
+          { id: 202, exposureId: exposureA.exposureId, messages: [{ id: 4 }, { id: 5 }] }
+        ]);
+      }
+
+      if (exposureId === exposureB.exposureId) {
+        return Promise.resolve([]);
+      }
+
+      return Promise.resolve([]);
+    });
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.findComponent({ name: "ExperimentAssignments" }).exists()
+      ).toBe(true);
+    });
+
+    expect(
+      wrapper.findComponent({ name: "ExperimentAssignments" }).props("balanced")
+    ).toBe(true);
+  });
+
   it("downloads and displays the consent PDF when the consent title button is clicked", async () => {
     consentService.getConsentFile.mockResolvedValue({
       status: 200,

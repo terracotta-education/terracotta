@@ -509,7 +509,6 @@ const conditionColorMapping = computed(() => conditionStore.conditionColorMappin
 const editMode = computed(() => navigationStore.editMode);
 const dataExportRequests = computed(() => dataExportRequestStore.dataExportRequests);
 const configurations = computed(() => configurationStore.get);
-const allMessageContainers = computed(() => messagingContainerStore.messageContainers);
 const alertStatuses = computed(() => alertStore.statuses);
 
 const setupTabs = computed(() => [
@@ -560,6 +559,8 @@ const exposureText = {
 
 const isMessagingEnabled = computed(() => configurations.value?.messagingEnabled || false);
 
+// message components never count toward balance, regardless of version - only
+// assignments (excluding single-version ones) factor into the comparison
 const balanced = computed(() => {
   if (!exposures.value?.length) {
     return false;
@@ -567,19 +568,10 @@ const balanced = computed(() => {
 
   return exposures.value
     .map(exposure => {
-      const assignmentCount = assignments.value
+      return assignments.value
         .filter(assignment => assignment.exposureId === exposure.exposureId)
         .filter(assignment => assignment.treatments.length > 1)
         .length;
-
-      const messageCount = isMessagingEnabled.value
-        ? allMessageContainers.value
-            .filter(messageContainer => messageContainer.exposureId === exposure.exposureId)
-            .filter(messageContainer => messageContainer.messages.length > 1)
-            .length
-        : 0;
-
-      return assignmentCount + messageCount;
     })
     .every((value, index, array) => value === array[0]);
 });
@@ -716,10 +708,10 @@ const balanceTooltipHeader = computed(() => {
 
 const balanceTooltipContent = computed(() => {
   if (balanced.value) {
-    return `Your exposure sets contain all the same number components, and components contain the same number of treatments. Great work! Single version ${isMessagingEnabled.value ? "messages and" : ""} assignments do not count toward balance.`;
+    return `Your exposure sets contain all the same number of assignments and integrations, and those components contain the same number of treatments. Great work! Single version assignments do not count toward balance${isMessagingEnabled.value ? ", and message components never count toward balance" : ""}.`;
   }
 
-  return `A balanced experiment needs to have the same number ${isMessagingEnabled.value ? "of assignments, integrations, and/or messages" : "of assignments and integrations"} within each exposure set, and a treatment for each condition. This will expose your students to every condition, but in different orders, so you can compare how the different conditions affected each student. Single version ${isMessagingEnabled.value ? "messages and" : ""} assignments do not count toward balance.`;
+  return `A balanced experiment needs to have the same number of assignments and integrations within each exposure set, and a treatment for each condition. This will expose your students to every condition, but in different orders, so you can compare how the different conditions affected each student. Single version assignments do not count toward balance${isMessagingEnabled.value ? ", and message components never count toward balance" : ""}.`;
 });
 
 const isConsentType = computed(() => experiment.value?.participationType === "CONSENT");
