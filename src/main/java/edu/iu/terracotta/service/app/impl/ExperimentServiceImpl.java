@@ -355,7 +355,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
         if (consentDocument != null) {
             ConsentDto consentDto = new ConsentDto();
-            consentDto.setConsentDocumentId(consentDocument.getConsentDocumentId());
+            consentDto.setConsentDocumentId(consentDocument.getUuid());
             consentDto.setFilePointer(consentDocument.getFilePointer());
             consentDto.setTitle(consentDocument.getTitle());
             consentDto.setHtml(fileStorageService.parseHTMLFiles(consentDocument.getHtml(), experiment.getPlatformDeployment().getLocalUrl()));
