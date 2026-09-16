@@ -201,7 +201,7 @@ const requestConfirmation = (type, text) => {
 
 const requestDefer = () => requestConfirmation(
   "defer",
-  "Experiment selection will be available until you either selected one from this list or have created a new one yourself."
+  "Experiment selection will be available until you have either selected from this list or have created a new one yourself, either manually or via import."
 );
 
 const requestDecline = () => requestConfirmation(
