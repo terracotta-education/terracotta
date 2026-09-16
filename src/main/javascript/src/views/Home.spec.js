@@ -85,7 +85,9 @@ describe("Home", () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
-    swalFire.mockResolvedValue({ isConfirmed: false });
+    swalFire
+      .mockResolvedValueOnce({ isConfirmed: false }) // main dialog: "I'll decide later"
+      .mockResolvedValue({ isConfirmed: true }); // acknowledgement alert: "Got it!"
 
     const wrapper = mountComponent(Home);
 
@@ -139,23 +141,48 @@ describe("Home", () => {
     });
   });
 
-  it("does not resolve anything when the copy-candidates dialog is cancelled", async () => {
+  it("does not resolve anything when the copy-candidates dialog is cancelled, showing an acknowledgement alert instead", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
-    swalFire.mockResolvedValue({ isConfirmed: false });
+    swalFire
+      .mockResolvedValueOnce({ isConfirmed: false }) // main dialog: "I'll decide later"
+      .mockResolvedValue({ isConfirmed: true }); // acknowledgement alert: "Got it!"
 
     mountComponent(Home);
 
     await vi.waitFor(() => {
-      expect(swalFire).toHaveBeenCalled();
+      expect(swalFire).toHaveBeenCalledTimes(2);
     });
     await flushPromises();
 
     expect(experimentCopyCandidateService.resolve).not.toHaveBeenCalled();
   });
 
-  it("resolves with an empty selection when 'No thank you' is chosen", async () => {
+  it("reopens the copy-candidates dialog when 'Go back to selection' is chosen from the acknowledgement alert", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    experimentCopyCandidateService.resolve.mockResolvedValue({
+      data: { imports: [], declinedCandidateIds: ["c1"] }
+    });
+    swalFire
+      .mockResolvedValueOnce({ isConfirmed: false }) // main dialog: "I'll decide later"
+      .mockResolvedValueOnce({ isConfirmed: false }) // acknowledgement alert: "Go back to selection"
+      .mockResolvedValueOnce({ isDenied: true }) // main dialog, reopened: "No thank you"
+      .mockResolvedValue({ isConfirmed: true }); // "No thank you" confirmation: "Got it!"
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledTimes(4);
+    });
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith([]);
+    });
+  });
+
+  it("resolves with an empty selection when 'No thank you' is chosen and confirmed", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [
         { id: "c1", experimentTitle: "Reading Study" },
@@ -165,7 +192,9 @@ describe("Home", () => {
     experimentCopyCandidateService.resolve.mockResolvedValue({
       data: { imports: [], declinedCandidateIds: ["c1", "c2"] }
     });
-    swalFire.mockResolvedValue({ isDenied: true });
+    swalFire
+      .mockResolvedValueOnce({ isDenied: true }) // main dialog: "No thank you"
+      .mockResolvedValue({ isConfirmed: true }); // confirmation alert: "Got it!"
 
     mountComponent(Home);
 
@@ -176,6 +205,31 @@ describe("Home", () => {
     await vi.waitFor(() => {
       expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith([]);
     });
+  });
+
+  it("does not decline anything when 'No thank you' is chosen but then 'Go back to selection' is picked from the confirmation alert", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    experimentCopyCandidateService.resolve.mockResolvedValue({
+      data: { imports: [{ id: "import-1", status: "PROCESSING" }], declinedCandidateIds: [] }
+    });
+    swalFire
+      .mockResolvedValueOnce({ isDenied: true }) // main dialog: "No thank you"
+      .mockResolvedValueOnce({ isConfirmed: false }) // confirmation alert: "Go back to selection"
+      .mockResolvedValueOnce({ isConfirmed: true, value: { selectedIds: ["c1"] } }); // main dialog, reopened: confirmed with a selection
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledTimes(3);
+    });
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith(["c1"]);
+    });
+    // proves the initial "No thank you" was aborted rather than also going through -
+    // resolve was only ever called once, with the reopened dialog's own selection
+    expect(experimentCopyCandidateService.resolve).toHaveBeenCalledTimes(1);
   });
 
   it("does not automatically open the copy-candidates dialog when there are no candidates", async () => {

@@ -573,6 +573,20 @@ const handleImportExperiment = async () => {
   };
 };
 
+// shown before either "leaving without deciding" path (declining for good, or just deferring)
+// actually takes effect - "Go back to selection" re-opens the dialog instead of proceeding
+const confirmLeavingCopyCandidates = async text => {
+  const result = await Swal.fire({
+    text,
+    showCancelButton: true,
+    confirmButtonText: "Got it!",
+    cancelButtonText: "Go back to selection",
+    reverseButtons: true
+  });
+
+  return result.isConfirmed;
+};
+
 const handleShowCopyCandidates = async () => {
   let dialogApp = null;
 
@@ -627,6 +641,19 @@ const handleShowCopyCandidates = async () => {
     }
   });
 
+  if (result.isDenied) {
+    // "No thank you" is permanent (declines every currently-PENDING candidate for this
+    // context) - confirm before actually proceeding, since it can't be undone from here
+    const confirmed = await confirmLeavingCopyCandidates(
+      "You will not be able to return to this screen to select experiments. You will need to export and import manually."
+    );
+
+    if (!confirmed) {
+      await handleShowCopyCandidates();
+      return;
+    }
+  }
+
   // "No Thanks" resolves with nothing selected - the backend declines (and obsolete-processes)
   // every currently-PENDING candidate for this context, same as importing zero of them would.
   const selectedIds = result.isDenied
@@ -636,7 +663,15 @@ const handleShowCopyCandidates = async () => {
       : null;
 
   if (selectedIds === null) {
-    // plain cancel/close - leave everything PENDING, ask again next visit
+    // plain cancel ("I'll decide later") - leave everything PENDING, ask again next visit
+    const confirmed = await confirmLeavingCopyCandidates(
+      "Experiment selection will be available until you either selected one from this list or have created a new one yourself."
+    );
+
+    if (!confirmed) {
+      await handleShowCopyCandidates();
+    }
+
     return;
   }
 
