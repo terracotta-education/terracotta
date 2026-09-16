@@ -206,7 +206,7 @@ const props = defineProps({
     default: null
   },
   submissionId: {
-    type: Number,
+    type: String,
     required: true
   },
   questionId: {
