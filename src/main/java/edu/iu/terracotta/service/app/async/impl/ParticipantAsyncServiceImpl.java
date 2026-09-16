@@ -200,7 +200,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
                             .orElse(null);
 
                         if (matchedLmsUserId == null) {
-                            log.warn("No LMS user ID match found in Canvas response for participant ID: [{}] with email: [{}]", lmsParticipantSummary.getId(), participant.get().getLtiUserEntity().getEmail());
+                            log.warn("No LMS user ID match found in Canvas response for participant ID: [{}]", lmsParticipantSummary.getId());
                         }
 
                         participant.get().getLtiUserEntity().setLmsUserId(matchedLmsUserId);

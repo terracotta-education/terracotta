@@ -371,7 +371,7 @@ public class LtiDataServiceImpl implements LtiDataService {
             updates++;
 
             if (ltiDataVerboseLoggingEnabled) {
-                log.debug("LTIupdate: Updated lti.user (id=" + lti.getUser().getUserKey() + ") name=" + lti.getLtiName() + ", email=" + lti.getLtiEmail());
+                log.debug("LTIupdate: Updated lti.user (id=" + lti.getUser().getUserKey() + ")");
             }
         }
 
