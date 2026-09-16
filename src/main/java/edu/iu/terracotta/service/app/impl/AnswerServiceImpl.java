@@ -5,6 +5,7 @@ import edu.iu.terracotta.dao.entity.AnswerMcSubmissionOption;
 import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.QuestionMc;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.AnswerDto;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
@@ -28,6 +29,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -80,7 +82,7 @@ public class AnswerServiceImpl implements AnswerService {
 
         // check for any missing answers and add them to the list as well
         for (AnswerMc answerMc : answerList) {
-            if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getAnswerMcId()))) {
+            if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getUuid()))) {
                 answerDtoList.add(toDtoMC(answerMc, answerOrder, showCorrectAnswer));
                 answerOrder++;
             }
@@ -127,7 +129,7 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean showCorrectAnswer) {
         AnswerDto answerDto = new AnswerDto();
-        answerDto.setAnswerId(answer.getAnswerMcId());
+        answerDto.setAnswerId(answer.getUuid());
         answerDto.setHtml(fileStorageService.parseHTMLFiles(
             answer.getHtml(),
             answer.getQuestion().getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl())
@@ -148,7 +150,9 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException {
         AnswerMc answer = new AnswerMc();
-        answer.setAnswerMcId(answerDto.getAnswerId());
+        // answerDto.getAnswerId() is intentionally not assigned here: the numeric id is
+        // generated at insert time, and (post-uuid-migration) the incoming dto's answerId
+        // is a client-supplied uuid that would collide with the entity's own generated uuid.
         answer.setHtml(answerDto.getHtml());
         answer.setCorrect(answerDto.getCorrect());
         answer.setAnswerOrder(answerDto.getAnswerOrder());
@@ -170,6 +174,12 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public AnswerMc findByAnswerId(Long answerId) {
         return answerMcRepository.findByAnswerMcId(answerId);
+    }
+
+    @Override
+    public AnswerMc getAnswerMcByUuid(UUID uuid) throws AnswerNotMatchingException {
+        return Optional.ofNullable(answerMcRepository.findByUuid(uuid))
+            .orElseThrow(() -> new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING));
     }
 
     @Override
@@ -220,7 +230,7 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, UUID questionId, Long answerId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID questionId, UUID answerId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path(
                 "/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers/{answerId}")

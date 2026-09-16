@@ -131,10 +131,14 @@ public class BaseRepositoryTest extends BaseModelTest {
 
             when(answerIntegrationSubmissionRepository.existsByQuestionSubmission_QuestionSubmissionIdAndId(anyLong(), anyLong())).thenReturn(true);
             when(answerIntegrationSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(List.of(answerIntegrationSubmission));
+            when(answerIntegrationSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerIntegrationSubmission);
             when(answerMcRepository.save(any(AnswerMc.class))).thenReturn(answerMc);
+            when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(answerMc);
             when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(List.of(answerEssaySubmission));
+            when(answerEssaySubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerEssaySubmission);
             when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(List.of(answerMcSubmission));
             when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(anyList())).thenReturn(List.of(answerMcSubmission));
+            when(answerMcSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerMcSubmission);
             when(apiOAuthSettingsRepository.findByPlatformDeployment(any(PlatformDeployment.class))).thenReturn(Optional.of(apiOAuthSettings));
             when(apiOneUseTokenRepository.findByToken(anyString())).thenReturn(apiOneUseToken);
             when(apiScopeRepository.findAll()).thenReturn(List.of(apiScope));
@@ -177,6 +181,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(List.of(exposureGroupCondition));
             when(exposureGroupConditionRepository.findByExposure_ExposureId(anyLong())).thenReturn(List.of(exposureGroupCondition));
             when(exposureGroupConditionRepository.findByGroup_GroupId(anyLong())).thenReturn(List.of(exposureGroupCondition));
+            when(exposureGroupConditionRepository.findByUuid(any(UUID.class))).thenReturn(exposureGroupCondition);
             when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
             when(exposureRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(List.of(exposure));
             when(exposureRepository.findByExposureId(anyLong())).thenReturn(exposure);

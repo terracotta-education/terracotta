@@ -39,6 +39,10 @@ public class DistributeControllerTest extends BaseTest {
     // ExperimentExportService has no mock declared anywhere in the BaseTest hierarchy, so it is declared here.
     @Mock private ExperimentExportService exportService;
 
+    // the uuid path variable for the one experiment under test; experiment.getExperimentId() (the
+    // mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
     private DistributeController distributeController;
 
     private File tempFile;
@@ -51,11 +55,12 @@ public class DistributeControllerTest extends BaseTest {
 
         // ApiJwtService has two matching mocks in BaseServiceTest (apiJwtService and canvasApiJwtService),
         // so the controller is constructed manually rather than relying on @InjectMocks to avoid ambiguous wiring.
-        distributeController = new DistributeController(apiJwtService, exportService, experimentImportService);
+        distributeController = new DistributeController(apiJwtService, exportService, experimentImportService, experimentService);
 
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
         when(apiJwtService.experimentImportAllowed(any(), any(UUID.class))).thenReturn(experimentImport);
+        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
     }
 
     @AfterEach
@@ -82,7 +87,7 @@ public class DistributeControllerTest extends BaseTest {
             .build();
         when(exportService.export(experiment)).thenReturn(exportDto);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -91,7 +96,7 @@ public class DistributeControllerTest extends BaseTest {
     void exportUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -102,7 +107,7 @@ public class DistributeControllerTest extends BaseTest {
         ExportDto exportDto = ExportDto.builder().file(null).build();
         when(exportService.export(experiment)).thenReturn(exportDto);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ret.getStatusCode());
         assertNull(ret.getBody());
@@ -113,7 +118,7 @@ public class DistributeControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         doThrow(new ExperimentExportException("export failed")).when(exportService).export(experiment);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ret.getStatusCode());
     }
@@ -128,7 +133,7 @@ public class DistributeControllerTest extends BaseTest {
             .build();
         when(exportService.export(experiment)).thenReturn(exportDto);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ret.getStatusCode());
     }
@@ -137,7 +142,7 @@ public class DistributeControllerTest extends BaseTest {
     void exportExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> distributeController.export(1L, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> distributeController.export(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test

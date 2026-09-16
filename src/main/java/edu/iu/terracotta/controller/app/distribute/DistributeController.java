@@ -42,6 +42,7 @@ import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ExperimentExportException;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
 import edu.iu.terracotta.utils.TextConstants;
@@ -61,9 +62,11 @@ public class DistributeController {
     private final ApiJwtService apijwtService;
     private final ExperimentExportService exportService;
     private final ExperimentImportService importService;
+    private final ExperimentService experimentService;
 
     @GetMapping("/{id}/export")
-    public ResponseEntity<Resource> export(@PathVariable long id, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<Resource> export(@PathVariable("id") UUID uuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long id = experimentService.getExperimentByUuid(uuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         Experiment experiment = apijwtService.experimentAllowed(securedInfo, id);
 

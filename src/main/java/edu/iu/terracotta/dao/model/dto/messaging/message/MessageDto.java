@@ -29,7 +29,7 @@ public class MessageDto {
     private Timestamp created;
     private UUID conditionId;
     private String ownerEmail;
-    private long exposureGroupConditionId;
+    private UUID exposureGroupConditionId;
     private List<MessageRecipientRuleSetDto> ruleSets;
     private List<String> validationErrors;
 

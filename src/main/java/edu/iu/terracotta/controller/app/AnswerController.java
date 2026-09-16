@@ -110,7 +110,7 @@ public class AnswerController {
                                                @PathVariable("treatmentId") UUID treatmentUuid,
                                                @PathVariable("assessmentId") UUID assessmentUuid,
                                                @PathVariable("questionId") UUID questionUuid,
-                                               @PathVariable long answerId,
+                                               @PathVariable("answerId") UUID answerUuid,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, ConditionNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
@@ -118,6 +118,7 @@ public class AnswerController {
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         long questionId = questionService.getQuestionByUuid(questionUuid).getQuestionId();
+        long answerId = answerService.getAnswerMcByUuid(answerUuid).getAnswerMcId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -163,7 +164,7 @@ public class AnswerController {
         }
 
         AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
-        HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionUuid, returnedMcdDto.getAnswerId());
+        HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, questionUuid, returnedMcdDto.getAnswerId());
 
         return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
     }
@@ -200,8 +201,8 @@ public class AnswerController {
         Map<AnswerMc, AnswerDto> map = new HashMap<>();
 
         for (AnswerDto answerDto : answerDtoList) {
-            apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerDto.getAnswerId());
-            AnswerMc mcAnswer = answerService.findByAnswerId(answerDto.getAnswerId());
+            AnswerMc mcAnswer = answerService.getAnswerMcByUuid(answerDto.getAnswerId());
+            apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, mcAnswer.getAnswerMcId());
             log.debug("Updating answer with id: {}", mcAnswer.getAnswerMcId());
             map.put(mcAnswer, answerDto);
         }
@@ -219,7 +220,7 @@ public class AnswerController {
                                              @PathVariable("treatmentId") UUID treatmentUuid,
                                              @PathVariable("assessmentId") UUID assessmentUuid,
                                              @PathVariable("questionId") UUID questionUuid,
-                                             @PathVariable long answerId,
+                                             @PathVariable("answerId") UUID answerUuid,
                                              @RequestBody AnswerDto answerDto,
                                              HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, ConditionNotMatchingException, DataServiceException, NumberFormatException, TerracottaConnectorException {
@@ -228,6 +229,7 @@ public class AnswerController {
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         long questionId = questionService.getQuestionByUuid(questionUuid).getQuestionId();
+        long answerId = answerService.getAnswerMcByUuid(answerUuid).getAnswerMcId();
         log.debug("Updating answer with id: {}", answerId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -263,7 +265,7 @@ public class AnswerController {
                                              @PathVariable("treatmentId") UUID treatmentUuid,
                                              @PathVariable("assessmentId") UUID assessmentUuid,
                                              @PathVariable("questionId") UUID questionUuid,
-                                             @PathVariable long answerId,
+                                             @PathVariable("answerId") UUID answerUuid,
                                              HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, ConditionNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
@@ -271,6 +273,7 @@ public class AnswerController {
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         long questionId = questionService.getQuestionByUuid(questionUuid).getQuestionId();
+        long answerId = answerService.getAnswerMcByUuid(answerUuid).getAnswerMcId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);

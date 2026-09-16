@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.messaging.impl.message;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -105,8 +106,8 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public void update(MessageDto messageDto, long exposureId, MessageContainer container, Message message) {
-        if (message.getExposureGroupConditionId() != messageDto.getExposureGroupConditionId()) {
-            ExposureGroupCondition exposureGroupCondition = exposureGroupConditionRepository.findById(messageDto.getExposureGroupConditionId())
+        if (!message.getExposureGroupCondition().getUuid().equals(messageDto.getExposureGroupConditionId())) {
+            ExposureGroupCondition exposureGroupCondition = Optional.ofNullable(exposureGroupConditionRepository.findByUuid(messageDto.getExposureGroupConditionId()))
                 .orElseThrow(() -> new IllegalArgumentException(String.format("No exposure group condition with ID: [%s] found.", messageDto.getExposureGroupConditionId())));
             message.setExposureGroupCondition(exposureGroupCondition);
         }
@@ -199,7 +200,7 @@ public class MessageServiceImpl implements MessageService {
                 contentService.toDto(message.getContent())
             )
             .created(message.getCreatedAt())
-            .exposureGroupConditionId(message.getExposureGroupConditionId())
+            .exposureGroupConditionId(message.getExposureGroupCondition().getUuid())
             .id(message.getUuid())
             .ownerEmail(message.getOwner().getEmail())
             .ruleSets(

@@ -32,6 +32,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.AnswerMc;
+import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.AnswerDto;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
@@ -130,7 +131,9 @@ public class AnswerServiceImplTest extends BaseTest {
     @Test
     public void testFindAllByQuestionIdMCSubmissionMatchedAndMissing() {
         AnswerMc answerMc2 = mock(AnswerMc.class);
+        UUID answerMc2Uuid = UUID.randomUUID();
         when(answerMc2.getAnswerMcId()).thenReturn(2L);
+        when(answerMc2.getUuid()).thenReturn(answerMc2Uuid);
         when(answerMc2.getQuestion()).thenReturn(questionMc);
 
         when(answerMcRepository.findByQuestion_QuestionId(anyLong())).thenReturn(List.of(answerMc, answerMc2));
@@ -142,8 +145,8 @@ public class AnswerServiceImplTest extends BaseTest {
         // one from the submission options (answerMc, matched/skipped in the missing-answer pass)
         // and one appended because it was missing from the submission options (answerMc2)
         assertEquals(2, answerDtoList.size());
-        assertEquals(1L, answerDtoList.get(0).getAnswerId());
-        assertEquals(2L, answerDtoList.get(1).getAnswerId());
+        assertEquals(answerMc.getUuid(), answerDtoList.get(0).getAnswerId());
+        assertEquals(answerMc2Uuid, answerDtoList.get(1).getAnswerId());
     }
 
     @Test
@@ -163,12 +166,12 @@ public class AnswerServiceImplTest extends BaseTest {
         AnswerDto answerDto = answerService.getAnswerMC(1L);
 
         assertNotNull(answerDto);
-        assertEquals(1L, answerDto.getAnswerId());
+        assertEquals(answerMc.getUuid(), answerDto.getAnswerId());
     }
 
     @Test
     public void testPostAnswerMCIdInPost() {
-        AnswerDto answerDto = AnswerDto.builder().answerId(1L).build();
+        AnswerDto answerDto = AnswerDto.builder().answerId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(IdInPostException.class, () -> { answerService.postAnswerMC(answerDto, 1L); });
 
@@ -227,12 +230,14 @@ public class AnswerServiceImplTest extends BaseTest {
     public void testFromDtoMCSuccess() throws DataServiceException {
         UUID questionUuid = UUID.randomUUID();
         when(questionRepository.findByUuid(questionUuid)).thenReturn(question);
-        AnswerDto answerDto = AnswerDto.builder().answerId(1L).html("html").correct(true).answerOrder(2).questionId(questionUuid).build();
+        AnswerDto answerDto = AnswerDto.builder().answerId(UUID.randomUUID()).html("html").correct(true).answerOrder(2).questionId(questionUuid).build();
 
         AnswerMc answerMcResult = answerService.fromDtoMC(answerDto);
 
         assertNotNull(answerMcResult);
-        assertEquals(1L, answerMcResult.getAnswerMcId());
+        // the numeric id is generated at insert time, so fromDtoMC never copies the (now-uuid)
+        // dto's answerId onto the entity's numeric PK
+        assertNull(answerMcResult.getAnswerMcId());
         assertEquals("html", answerMcResult.getHtml());
         assertEquals(question, answerMcResult.getQuestion());
     }
@@ -245,6 +250,24 @@ public class AnswerServiceImplTest extends BaseTest {
         Exception exception = assertThrows(DataServiceException.class, () -> { answerService.fromDtoMC(answerDto); });
 
         assertEquals("The question for the answer does not exist", exception.getMessage());
+    }
+
+    @Test
+    public void testGetAnswerMcByUuidFound() throws AnswerNotMatchingException {
+        UUID answerUuid = UUID.randomUUID();
+        when(answerMcRepository.findByUuid(answerUuid)).thenReturn(answerMc);
+
+        assertEquals(answerMc, answerService.getAnswerMcByUuid(answerUuid));
+    }
+
+    @Test
+    public void testGetAnswerMcByUuidNotFoundThrows() {
+        UUID answerUuid = UUID.randomUUID();
+        when(answerMcRepository.findByUuid(answerUuid)).thenReturn(null);
+
+        Exception exception = assertThrows(AnswerNotMatchingException.class, () -> { answerService.getAnswerMcByUuid(answerUuid); });
+
+        assertEquals(TextConstants.ANSWER_NOT_MATCHING, exception.getMessage());
     }
 
     @Test
@@ -320,12 +343,18 @@ public class AnswerServiceImplTest extends BaseTest {
     @Test
     public void testBuildHeaders() {
         UriComponentsBuilder ucBuilder = UriComponentsBuilder.newInstance().scheme("https").host("localhost");
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+        UUID treatmentUuid = UUID.randomUUID();
+        UUID assessmentUuid = UUID.randomUUID();
         UUID questionUuid = UUID.randomUUID();
+        UUID answerUuid = UUID.randomUUID();
 
-        HttpHeaders headers = answerService.buildHeaders(ucBuilder, 1L, 2L, 3L, 4L, questionUuid, 6L);
+        HttpHeaders headers = answerService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, questionUuid, answerUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/conditions/2/treatments/3/assessments/4/questions/" + questionUuid + "/answers/6"));
+        assertTrue(headers.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/conditions/" + conditionUuid + "/treatments/" + treatmentUuid
+            + "/assessments/" + assessmentUuid + "/questions/" + questionUuid + "/answers/" + answerUuid));
     }
 
 }

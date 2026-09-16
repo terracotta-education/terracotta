@@ -16,7 +16,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +80,11 @@ public class MessageServiceImplTest extends BaseTest {
         // which never fires for a plain POJO built like this - so it must be set explicitly here.
         condition.setUuid(UUID.randomUUID());
 
-        return ExposureGroupCondition.builder().exposureGroupConditionId(id).condition(condition).build();
+        ExposureGroupCondition exposureGroupCondition = ExposureGroupCondition.builder().exposureGroupConditionId(id).condition(condition).build();
+        // same rationale as condition.setUuid(...) above - uuid lives on the UuidAwareEntity superclass
+        exposureGroupCondition.setUuid(UUID.randomUUID());
+
+        return exposureGroupCondition;
     }
 
     private Message realMessage(long egcId) {
@@ -143,21 +146,21 @@ public class MessageServiceImplTest extends BaseTest {
     public void testUpdateSameExposureGroupConditionSkipsLookup() {
         Message message = realMessage(1L);
         MessageContainer container = realContainer(MessageStatus.UNPUBLISHED);
-        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(1L).build();
+        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(message.getExposureGroupCondition().getUuid()).build();
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         messageService.update(messageDto, 1L, container, message);
 
-        verify(exposureGroupConditionRepository, never()).findById(anyLong());
+        verify(exposureGroupConditionRepository, never()).findByUuid(any(UUID.class));
     }
 
     @Test
     public void testUpdateDifferentExposureGroupConditionFoundUpdatesMessage() {
         Message message = realMessage(1L);
         MessageContainer container = realContainer(MessageStatus.UNPUBLISHED);
-        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(2L).build();
         ExposureGroupCondition newEgc = egcWithDefault(2L, false);
-        when(exposureGroupConditionRepository.findById(2L)).thenReturn(Optional.of(newEgc));
+        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(newEgc.getUuid()).build();
+        when(exposureGroupConditionRepository.findByUuid(newEgc.getUuid())).thenReturn(newEgc);
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         messageService.update(messageDto, 1L, container, message);
@@ -169,15 +172,18 @@ public class MessageServiceImplTest extends BaseTest {
     public void testUpdateDifferentExposureGroupConditionNotFoundThrows() {
         Message message = realMessage(1L);
         MessageContainer container = realContainer(MessageStatus.UNPUBLISHED);
-        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(99L).build();
-        when(exposureGroupConditionRepository.findById(99L)).thenReturn(Optional.empty());
+        UUID missingUuid = UUID.randomUUID();
+        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(missingUuid).build();
+        // override the class-wide findByUuid(any()) default (see BaseRepositoryTest) so this
+        // "not found" scenario still resolves to "not found"
+        when(exposureGroupConditionRepository.findByUuid(missingUuid)).thenReturn(null);
 
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> messageService.update(messageDto, 1L, container, message)
         );
 
-        assertTrue(exception.getMessage().contains("99"));
+        assertTrue(exception.getMessage().contains(missingUuid.toString()));
     }
 
     @Test
@@ -185,7 +191,7 @@ public class MessageServiceImplTest extends BaseTest {
         Message message = realMessage(1L);
         message.getConfiguration().setStatus(MessageStatus.INCOMPLETE);
         MessageContainer container = realContainer(MessageStatus.PUBLISHED);
-        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(1L).build();
+        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(message.getExposureGroupCondition().getUuid()).build();
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         messageService.update(messageDto, 1L, container, message);
@@ -199,7 +205,7 @@ public class MessageServiceImplTest extends BaseTest {
         Message message = realMessage(1L);
         message.getConfiguration().setStatus(MessageStatus.READY);
         MessageContainer container = realContainer(MessageStatus.PUBLISHED);
-        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(1L).build();
+        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(message.getExposureGroupCondition().getUuid()).build();
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         messageService.update(messageDto, 1L, container, message);
@@ -212,7 +218,7 @@ public class MessageServiceImplTest extends BaseTest {
     public void testUpdateSavesMessageAndUpdatesPlaceholders() throws MessageBodyParseException {
         Message message = realMessage(1L);
         MessageContainer container = realContainer(MessageStatus.UNPUBLISHED);
-        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(1L).build();
+        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(message.getExposureGroupCondition().getUuid()).build();
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         messageService.update(messageDto, 1L, container, message);
@@ -230,7 +236,7 @@ public class MessageServiceImplTest extends BaseTest {
         MessageContainer container = realContainer(MessageStatus.UNPUBLISHED);
         container.setUuid(UUID.randomUUID());
         message.setContainer(container);
-        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(1L).build();
+        MessageDto messageDto = MessageDto.builder().exposureGroupConditionId(message.getExposureGroupCondition().getUuid()).build();
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         MessageDto result = messageService.put(messageDto, 1L, container, message);
@@ -341,7 +347,7 @@ public class MessageServiceImplTest extends BaseTest {
         assertEquals(ruleSetDtos, dto.getRuleSets());
         assertEquals("owner@example.com", dto.getOwnerEmail());
         assertEquals(message.getCondition().getUuid(), dto.getConditionId());
-        assertEquals(message.getExposureGroupConditionId(), dto.getExposureGroupConditionId());
+        assertEquals(message.getExposureGroupCondition().getUuid(), dto.getExposureGroupConditionId());
     }
 
     @Test

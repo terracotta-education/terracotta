@@ -431,7 +431,9 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testUpdateQuestionSubmissionsMc() throws Exception {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
+        UUID answerSubmissionUuid = UUID.randomUUID();
+        when(answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, QuestionTypes.MC.toString())).thenReturn(1L);
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(answerSubmissionUuid).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
         Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
         map.put(questionSubmission, dto);
@@ -446,7 +448,9 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testUpdateQuestionSubmissionsEssay() throws Exception {
         // default question mock type is ESSAY
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(2L).build();
+        UUID answerSubmissionUuid = UUID.randomUUID();
+        when(answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, QuestionTypes.ESSAY.toString())).thenReturn(2L);
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(answerSubmissionUuid).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
         Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
         map.put(questionSubmission, dto);
@@ -460,7 +464,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testUpdateQuestionSubmissionsOtherType() throws Exception {
         when(question.getQuestionType()).thenReturn(QuestionTypes.PAGE_BREAK);
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(3L).build();
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
         Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
         map.put(questionSubmission, dto);
@@ -539,7 +543,11 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateAndPrepareQuestionSubmissionListAnswerNotMatching() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.PAGE_BREAK);
-        AnswerSubmissionDto a1 = AnswerSubmissionDto.builder().answerId(99L).build();
+        // override the class-wide findByUuid(any()) default (see BaseRepositoryTest), which would
+        // otherwise resolve to the shared answerMc mock (whose question matches questionSubmission's
+        // question) and defeat this "not matching" scenario
+        when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        AnswerSubmissionDto a1 = AnswerSubmissionDto.builder().answerId(UUID.randomUUID()).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).answerSubmissionDtoList(new ArrayList<>(List.of(a1))).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateAndPrepareQuestionSubmissionList(List.of(dto), 1L, 1L, false));
@@ -564,7 +572,10 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateQuestionSubmissionMcSubmissionNotMatching() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
+        // override the class-wide findByUuid(any()) default (see BaseRepositoryTest) so this
+        // "submission not matching" scenario still resolves to "not found"
+        when(answerMcSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateQuestionSubmission(dto));
@@ -573,8 +584,12 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateQuestionSubmissionMcAnswerNotMatching() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        when(answerMcSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answerMcSubmission));
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).answerId(99L).build();
+        when(answerMcSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerMcSubmission);
+        // override the class-wide findByUuid(any()) default (see BaseRepositoryTest), which would
+        // otherwise resolve to the shared answerMc mock (whose question matches questionSubmission's
+        // question) and defeat this "answer not matching" scenario
+        when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).answerId(UUID.randomUUID()).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateQuestionSubmission(dto));
@@ -583,8 +598,8 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateQuestionSubmissionMcSuccess() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        when(answerMcSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answerMcSubmission));
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
+        when(answerMcSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerMcSubmission);
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertDoesNotThrow(() -> questionSubmissionService.validateQuestionSubmission(dto));
@@ -592,8 +607,10 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testValidateQuestionSubmissionEssaySubmissionNotMatching() {
-        // default question mock type is ESSAY
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
+        // default question mock type is ESSAY; override the class-wide findByUuid(any()) default
+        // (see BaseRepositoryTest) so this "submission not matching" scenario still resolves to "not found"
+        when(answerEssaySubmissionRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateQuestionSubmission(dto));
@@ -601,8 +618,8 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testValidateQuestionSubmissionEssaySuccess() {
-        when(answerEssaySubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answerEssaySubmission));
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
+        when(answerEssaySubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerEssaySubmission);
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertDoesNotThrow(() -> questionSubmissionService.validateQuestionSubmission(dto));
@@ -611,7 +628,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateQuestionSubmissionOtherTypeSuccess() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.PAGE_BREAK);
-        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
+        AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).build();
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertDoesNotThrow(() -> questionSubmissionService.validateQuestionSubmission(dto));

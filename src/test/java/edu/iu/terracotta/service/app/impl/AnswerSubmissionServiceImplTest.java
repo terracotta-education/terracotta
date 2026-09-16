@@ -42,6 +42,7 @@ import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
 import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
 import edu.iu.terracotta.dao.entity.integrations.AnswerIntegrationSubmission;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.dao.model.dto.FileResponseDto;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
@@ -68,11 +69,12 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
         when(questionSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(questionSubmission));
         when(questionSubmissionRepository.findByQuestionSubmissionId(anyLong())).thenReturn(questionSubmission);
-        when(answerMcRepository.findById(anyLong())).thenReturn(Optional.of(answerMc));
+        when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(answerMc);
         when(answerMcSubmission.getQuestionSubmission()).thenReturn(questionSubmission);
         when(answerFileSubmissionRepository.findByAnswerFileSubmissionId(anyLong())).thenReturn(answerFileSubmission);
         when(answerFileSubmission.getQuestionSubmission()).thenReturn(questionSubmission);
         when(answerFileSubmission.getAnswerFileSubmissionId()).thenReturn(1L);
+        when(answerFileSubmission.getUuid()).thenReturn(UUID.randomUUID());
     }
 
     @AfterEach
@@ -115,8 +117,8 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
         AnswerSubmissionDto result = answerSubmissionService.getAnswerSubmission(1L, "MC");
 
-        assertEquals(9L, result.getAnswerSubmissionId());
-        assertEquals(1L, result.getAnswerId());
+        assertEquals(answerMcSubmission.getUuid(), result.getAnswerSubmissionId());
+        assertEquals(answerMc.getUuid(), result.getAnswerId());
     }
 
     @Test
@@ -127,7 +129,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
         AnswerSubmissionDto result = answerSubmissionService.getAnswerSubmission(1L, "ESSAY");
 
-        assertEquals(9L, result.getAnswerSubmissionId());
+        assertEquals(answerEssaySubmission.getUuid(), result.getAnswerSubmissionId());
         assertEquals("resp", result.getResponse());
     }
 
@@ -137,7 +139,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
         AnswerSubmissionDto result = answerSubmissionService.getAnswerSubmission(1L, "FILE");
 
-        assertEquals(9L, result.getAnswerSubmissionId());
+        assertEquals(answerFileSubmission.getUuid(), result.getAnswerSubmissionId());
     }
 
     @Test
@@ -147,7 +149,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testPostAnswerSubmissionIdInPostExceptionThrows() {
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(IdInPostException.class, () -> answerSubmissionService.postAnswerSubmission(dto, 1L));
 
@@ -158,21 +160,23 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     public void testPostAnswerSubmissionMCSuccess() throws Exception {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
         AnswerMcSubmission saved = AnswerMcSubmission.builder().answerMcSubId(2L).questionSubmission(questionSubmission).answerMc(answerMc).build();
+        UUID savedUuid = UUID.randomUUID();
+        saved.setUuid(savedUuid);
         when(answerMcSubmissionRepository.save(any(AnswerMcSubmission.class))).thenReturn(saved);
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(1L).build();
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(UUID.randomUUID()).build();
 
         AnswerSubmissionDto result = answerSubmissionService.postAnswerSubmission(dto, 1L);
 
-        assertEquals(2L, result.getAnswerSubmissionId());
-        assertEquals(1L, result.getAnswerId());
+        assertEquals(savedUuid, result.getAnswerSubmissionId());
+        assertEquals(answerMc.getUuid(), result.getAnswerId());
         verify(answerMcSubmissionRepository).save(any(AnswerMcSubmission.class));
     }
 
     @Test
     public void testPostAnswerSubmissionMCFromDtoThrowsWrapsException() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        when(answerMcRepository.findById(anyLong())).thenReturn(Optional.empty());
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(1L).build();
+        when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(DataServiceException.class, () -> answerSubmissionService.postAnswerSubmission(dto, 1L));
 
@@ -182,12 +186,14 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testPostAnswerSubmissionEssaySuccess() throws Exception {
         AnswerEssaySubmission saved = AnswerEssaySubmission.builder().answerEssaySubmissionId(2L).questionSubmission(questionSubmission).response("resp").build();
+        UUID savedUuid = UUID.randomUUID();
+        saved.setUuid(savedUuid);
         when(answerEssaySubmissionRepository.save(any(AnswerEssaySubmission.class))).thenReturn(saved);
         AnswerSubmissionDto dto = AnswerSubmissionDto.builder().response("resp").build();
 
         AnswerSubmissionDto result = answerSubmissionService.postAnswerSubmission(dto, 1L);
 
-        assertEquals(2L, result.getAnswerSubmissionId());
+        assertEquals(savedUuid, result.getAnswerSubmissionId());
         assertEquals("resp", result.getResponse());
     }
 
@@ -206,12 +212,14 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     public void testPostAnswerSubmissionFileSuccess() throws Exception {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         AnswerFileSubmission saved = AnswerFileSubmission.builder().answerFileSubmissionId(3L).questionSubmission(questionSubmission).fileName("f.txt").mimeType("text/plain").build();
+        UUID savedUuid = UUID.randomUUID();
+        saved.setUuid(savedUuid);
         when(answerFileSubmissionRepository.save(any(AnswerFileSubmission.class))).thenReturn(saved);
         AnswerSubmissionDto dto = AnswerSubmissionDto.builder().fileContent("aGVsbG8=").fileName("f.txt").mimeType("text/plain").build();
 
         AnswerSubmissionDto result = answerSubmissionService.postAnswerSubmission(dto, 1L);
 
-        assertEquals(3L, result.getAnswerSubmissionId());
+        assertEquals(savedUuid, result.getAnswerSubmissionId());
         assertEquals("f.txt", result.getFileName());
     }
 
@@ -305,7 +313,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAnswerSubmissionMC() throws AnswerNotMatchingException, DataServiceException {
         when(answerMcSubmissionRepository.findByAnswerMcSubId(anyLong())).thenReturn(answerMcSubmission);
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(1L).build();
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(UUID.randomUUID()).build();
 
         answerSubmissionService.updateAnswerSubmission(dto, 1L, "MC");
 
@@ -373,6 +381,59 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testResolveAnswerSubmissionIdMCFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(answerMcSubmissionRepository.findByUuid(uuid)).thenReturn(answerMcSubmission);
+        when(answerMcSubmission.getAnswerMcSubId()).thenReturn(11L);
+
+        assertEquals(11L, answerSubmissionService.resolveAnswerSubmissionId(uuid, "MC"));
+    }
+
+    @Test
+    public void testResolveAnswerSubmissionIdEssayFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(answerEssaySubmissionRepository.findByUuid(uuid)).thenReturn(answerEssaySubmission);
+        when(answerEssaySubmission.getAnswerEssaySubmissionId()).thenReturn(12L);
+
+        assertEquals(12L, answerSubmissionService.resolveAnswerSubmissionId(uuid, "ESSAY"));
+    }
+
+    @Test
+    public void testResolveAnswerSubmissionIdFileFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(answerFileSubmissionRepository.findByUuid(uuid)).thenReturn(answerFileSubmission);
+        when(answerFileSubmission.getAnswerFileSubmissionId()).thenReturn(13L);
+
+        assertEquals(13L, answerSubmissionService.resolveAnswerSubmissionId(uuid, "FILE"));
+    }
+
+    @Test
+    public void testResolveAnswerSubmissionIdIntegrationFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(answerIntegrationSubmissionRepository.findByUuid(uuid)).thenReturn(answerIntegrationSubmission);
+        when(answerIntegrationSubmission.getId()).thenReturn(14L);
+
+        assertEquals(14L, answerSubmissionService.resolveAnswerSubmissionId(uuid, "INTEGRATION"));
+    }
+
+    @Test
+    public void testResolveAnswerSubmissionIdNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(answerMcSubmissionRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(AnswerSubmissionNotMatchingException.class, () -> answerSubmissionService.resolveAnswerSubmissionId(uuid, "MC"));
+
+        assertEquals(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING, exception.getMessage());
+    }
+
+    @Test
+    public void testResolveAnswerSubmissionIdInvalidTypeThrows() {
+        UUID uuid = UUID.randomUUID();
+
+        assertThrows(AnswerSubmissionNotMatchingException.class, () -> answerSubmissionService.resolveAnswerSubmissionId(uuid, "BOGUS"));
+    }
+
+    @Test
     public void testGetAnswerMcSubmissionsEmpty() {
         when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.emptyList());
 
@@ -384,11 +445,12 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testToDtoMCWithAnswer() {
         AnswerMcSubmission entity = AnswerMcSubmission.builder().answerMcSubId(4L).questionSubmission(questionSubmission).answerMc(answerMc).build();
+        entity.setUuid(UUID.randomUUID());
 
         AnswerSubmissionDto dto = answerSubmissionService.toDtoMC(entity);
 
-        assertEquals(4L, dto.getAnswerSubmissionId());
-        assertEquals(1L, dto.getAnswerId());
+        assertEquals(entity.getUuid(), dto.getAnswerSubmissionId());
+        assertEquals(answerMc.getUuid(), dto.getAnswerId());
         assertEquals(questionSubmission.getUuid(), dto.getQuestionSubmissionId());
     }
 
@@ -403,11 +465,13 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoMCSuccess() throws DataServiceException {
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(5L).answerId(1L).questionSubmissionId(UUID.randomUUID()).build();
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).answerId(UUID.randomUUID()).questionSubmissionId(UUID.randomUUID()).build();
 
         AnswerMcSubmission result = answerSubmissionService.fromDtoMC(dto);
 
-        assertEquals(5L, result.getAnswerMcSubId());
+        // the numeric id is generated at insert time, so fromDtoMC never copies the (now-uuid) dto's
+        // answerSubmissionId onto the entity's numeric PK
+        assertNull(result.getAnswerMcSubId());
         assertEquals(answerMc, result.getAnswerMc());
         assertEquals(questionSubmission, result.getQuestionSubmission());
     }
@@ -419,13 +483,13 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
         AnswerMcSubmission result = answerSubmissionService.fromDtoMC(dto);
 
         assertNull(result.getAnswerMc());
-        verify(answerMcRepository, never()).findById(any());
+        verify(answerMcRepository, never()).findByUuid(any());
     }
 
     @Test
     public void testFromDtoMCAnswerNotFoundThrows() {
-        when(answerMcRepository.findById(anyLong())).thenReturn(Optional.empty());
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(1L).questionSubmissionId(UUID.randomUUID()).build();
+        when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(UUID.randomUUID()).questionSubmissionId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(DataServiceException.class, () -> answerSubmissionService.fromDtoMC(dto));
 
@@ -446,7 +510,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAnswerMcSubmissionSuccess() throws AnswerNotMatchingException {
         when(answerMcSubmissionRepository.findByAnswerMcSubId(anyLong())).thenReturn(answerMcSubmission);
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(1L).build();
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerId(UUID.randomUUID()).build();
 
         answerSubmissionService.updateAnswerMcSubmission(1L, dto);
 
@@ -457,7 +521,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testUpdateAnswerMcSubmissionNotFoundThrows() {
         when(answerMcSubmissionRepository.findByAnswerMcSubId(anyLong())).thenReturn(answerMcSubmission);
-        when(answerMcRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(null);
 
         Exception exception = assertThrows(AnswerNotMatchingException.class, () -> answerSubmissionService.updateAnswerMcSubmission(1L, answerSubmissionDto));
 
@@ -476,20 +540,23 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testToDtoEssay() {
         AnswerEssaySubmission entity = AnswerEssaySubmission.builder().answerEssaySubmissionId(4L).questionSubmission(questionSubmission).response("resp").build();
+        entity.setUuid(UUID.randomUUID());
 
         AnswerSubmissionDto dto = answerSubmissionService.toDtoEssay(entity);
 
-        assertEquals(4L, dto.getAnswerSubmissionId());
+        assertEquals(entity.getUuid(), dto.getAnswerSubmissionId());
         assertEquals("resp", dto.getResponse());
     }
 
     @Test
     public void testFromDtoEssaySuccess() throws DataServiceException {
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(5L).response("resp").questionSubmissionId(UUID.randomUUID()).build();
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).response("resp").questionSubmissionId(UUID.randomUUID()).build();
 
         AnswerEssaySubmission result = answerSubmissionService.fromDtoEssay(dto);
 
-        assertEquals(5L, result.getAnswerEssaySubmissionId());
+        // the numeric id is generated at insert time, so fromDtoEssay never copies the (now-uuid)
+        // dto's answerSubmissionId onto the entity's numeric PK
+        assertNull(result.getAnswerEssaySubmissionId());
         assertEquals("resp", result.getResponse());
         assertEquals(questionSubmission, result.getQuestionSubmission());
     }
@@ -525,10 +592,21 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders headers = answerSubmissionService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L, 3L, 4L, 5L, 6L, 7L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+        UUID treatmentUuid = UUID.randomUUID();
+        UUID assessmentUuid = UUID.randomUUID();
+        UUID submissionUuid = UUID.randomUUID();
+        UUID questionSubmissionUuid = UUID.randomUUID();
+        UUID answerSubmissionUuid = UUID.randomUUID();
+
+        HttpHeaders headers = answerSubmissionService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, conditionUuid, treatmentUuid,
+            assessmentUuid, submissionUuid, questionSubmissionUuid, answerSubmissionUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/1/conditions/2/treatments/3/assessments/4/submissions/5/question_submissions/6/answer_submissions/7"));
+        assertTrue(headers.getLocation().toString().contains("/" + experimentUuid + "/conditions/" + conditionUuid + "/treatments/" + treatmentUuid
+            + "/assessments/" + assessmentUuid + "/submissions/" + submissionUuid + "/question_submissions/" + questionSubmissionUuid
+            + "/answer_submissions/" + answerSubmissionUuid));
     }
 
     @Test
@@ -538,7 +616,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
         AnswerSubmissionDto dto = answerSubmissionService.toDtoFile(answerFileSubmission);
 
-        assertEquals(1L, dto.getAnswerSubmissionId());
+        assertEquals(answerFileSubmission.getUuid(), dto.getAnswerSubmissionId());
         assertEquals("text/plain", dto.getMimeType());
         assertEquals("f.txt", dto.getFileName());
         assertNull(dto.getFileContent());
@@ -547,7 +625,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoFileSuccess() throws DataServiceException {
         AnswerSubmissionDto dto = AnswerSubmissionDto.builder()
-            .answerSubmissionId(5L)
+            .answerSubmissionId(UUID.randomUUID())
             .fileContent("aGVsbG8=")
             .fileName("f.txt")
             .mimeType("text/plain")
@@ -556,7 +634,9 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
 
         AnswerFileSubmission result = answerSubmissionService.fromDtoFile(dto);
 
-        assertEquals(5L, result.getAnswerFileSubmissionId());
+        // the numeric id is generated at insert time, so fromDtoFile never copies the (now-uuid)
+        // dto's answerSubmissionId onto the entity's numeric PK
+        assertNull(result.getAnswerFileSubmissionId());
         assertArrayEquals("aGVsbG8=".getBytes(StandardCharsets.UTF_8), result.getFileContent());
         assertEquals("f.txt", result.getFileName());
         assertEquals(questionSubmission, result.getQuestionSubmission());
@@ -651,7 +731,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         when(answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.emptyList());
         stubFileUpload(FileSubmissionLocal.builder().filePath("/tmp/file/path").compressed(false).build());
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(5L).questionSubmissionId(UUID.randomUUID()).build();
+        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(UUID.randomUUID()).questionSubmissionId(UUID.randomUUID()).build();
 
         AnswerSubmissionDto result = answerSubmissionService.handleFileAnswerSubmissionUpdate(dto, multipartFile);
 

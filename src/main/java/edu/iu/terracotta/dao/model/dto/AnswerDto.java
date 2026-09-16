@@ -18,7 +18,7 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AnswerDto {
 
-    private Long answerId;
+    private UUID answerId;
     private String answerType;
     private UUID questionId;
     private String html;

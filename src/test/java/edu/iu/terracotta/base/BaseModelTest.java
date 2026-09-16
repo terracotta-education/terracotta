@@ -262,11 +262,15 @@ public class BaseModelTest {
             when(alternateIdDto.getId()).thenReturn(AlternateIdType.AVERAGE_ASSIGNMENT_SCORE.name());
             when(alternateIdDto.getExposures()).thenReturn(Collections.singletonList(1L));
             when(answerEssaySubmission.getQuestionSubmission()).thenReturn(questionSubmission);
+            when(answerEssaySubmission.getUuid()).thenReturn(UUID.randomUUID());
+            when(answerIntegrationSubmission.getUuid()).thenReturn(UUID.randomUUID());
             when(answerMc.getAnswerMcId()).thenReturn(1L);
             when(answerMc.getCorrect()).thenReturn(true);
             when(answerMc.getQuestion()).thenReturn(questionMc);
+            when(answerMc.getUuid()).thenReturn(UUID.randomUUID());
             when(answerMcSubmission.getAnswerMc()).thenReturn(answerMc);
             when(answerMcSubmission.getQuestionSubmission()).thenReturn(questionSubmission);
+            when(answerMcSubmission.getUuid()).thenReturn(UUID.randomUUID());
             when(answerMcSubmissionOption.getAnswerMc()).thenReturn(answerMc);
             when(answerMcSubmissionOption.getAnswerOrder()).thenReturn(0);
             when(apiOAuthSettings.getPlatformDeployment()).thenReturn(platformDeployment);
@@ -331,6 +335,7 @@ public class BaseModelTest {
             when(exposureGroupCondition.getCondition()).thenReturn(condition);
             when(exposureGroupCondition.getExposure()).thenReturn(exposure);
             when(exposureGroupCondition.getGroup()).thenReturn(group);
+            when(exposureGroupCondition.getUuid()).thenReturn(UUID.randomUUID());
             when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL);
             when(feature.getPlatformDeployments()).thenReturn(Collections.singletonList(platformDeployment));
             when(feature.getType()).thenReturn(FeatureType.DEFAULT);

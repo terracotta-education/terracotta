@@ -186,9 +186,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
             for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
                 if (QuestionTypes.MC.equals(questionSubmission.getQuestion().getQuestionType())) {
-                    answerSubmissionService.updateAnswerMcSubmission(answerSubmissionDto.getAnswerSubmissionId(), answerSubmissionDto);
+                    long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionDto.getAnswerSubmissionId(), QuestionTypes.MC.toString());
+                    answerSubmissionService.updateAnswerMcSubmission(answerSubmissionId, answerSubmissionDto);
                 } else if (QuestionTypes.ESSAY.equals(questionSubmission.getQuestion().getQuestionType())) {
-                    answerSubmissionService.updateAnswerEssaySubmission(answerSubmissionDto.getAnswerSubmissionId(), answerSubmissionDto);
+                    long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionDto.getAnswerSubmissionId(), QuestionTypes.ESSAY.toString());
+                    answerSubmissionService.updateAnswerEssaySubmission(answerSubmissionId, answerSubmissionDto);
                 }
             }
         }
@@ -409,7 +411,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
                 for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
                     if (answerSubmissionDto.getAnswerId() != null) {
-                        Optional<AnswerMc> answerMc = answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
+                        Optional<AnswerMc> answerMc = Optional.ofNullable(answerMcRepository.findByUuid(answerSubmissionDto.getAnswerId()))
+                            .filter(mc -> questionSubmission.getQuestion().getQuestionId().equals(mc.getQuestion().getQuestionId()));
 
                         if (answerMc.isEmpty()) {
                             throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
@@ -434,14 +437,15 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
                 switch (questionSubmission.getQuestion().getQuestionType().toString()) {
                     case "MC":
-                        Optional<AnswerMcSubmission> answerMcSubmission = answerMcSubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
+                        Optional<AnswerMcSubmission> answerMcSubmission = Optional.ofNullable(answerMcSubmissionRepository.findByUuid(answerSubmissionDto.getAnswerSubmissionId()));
 
                         if (answerMcSubmission.isEmpty()) {
                             throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
                         }
 
                         if (answerSubmissionDto.getAnswerId() != null) {
-                            Optional<AnswerMc> answerMc = answerMcRepository.findByQuestion_QuestionIdAndAnswerMcId(questionSubmission.getQuestion().getQuestionId(), answerSubmissionDto.getAnswerId());
+                            Optional<AnswerMc> answerMc = Optional.ofNullable(answerMcRepository.findByUuid(answerSubmissionDto.getAnswerId()))
+                                .filter(mc -> questionSubmission.getQuestion().getQuestionId().equals(mc.getQuestion().getQuestionId()));
 
                             if (answerMc.isEmpty()) {
                                 throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
@@ -450,7 +454,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
                         break;
                     case "ESSAY":
-                        Optional<AnswerEssaySubmission> answerEssaySubmission = answerEssaySubmissionRepository.findById(answerSubmissionDto.getAnswerSubmissionId());
+                        Optional<AnswerEssaySubmission> answerEssaySubmission = Optional.ofNullable(answerEssaySubmissionRepository.findByUuid(answerSubmissionDto.getAnswerSubmissionId()));
 
                         if (answerEssaySubmission.isEmpty()) {
                             throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);

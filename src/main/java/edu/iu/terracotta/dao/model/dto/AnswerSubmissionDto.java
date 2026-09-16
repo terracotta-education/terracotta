@@ -19,8 +19,8 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AnswerSubmissionDto {
 
-    private Long answerSubmissionId;
-    private Long answerId;
+    private UUID answerSubmissionId;
+    private UUID answerId;
     private UUID questionSubmissionId;
     private String response;
     private String fileContent;
