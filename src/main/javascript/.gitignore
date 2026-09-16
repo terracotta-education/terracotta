@@ -2,6 +2,11 @@
 node_modules
 /dist
 
+# Yarn Berry's local install-resolution cache - disposable, environment-tied, regenerated
+# automatically on the next `yarn install`; not a lockfile (that's yarn.lock, which stays
+# committed). Per Yarn's own guidance, this should never be tracked.
+.yarn/install-state.gz
+
 
 # local env files
 .env.local
