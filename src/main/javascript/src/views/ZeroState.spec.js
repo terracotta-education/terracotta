@@ -106,29 +106,6 @@ describe("ZeroState", () => {
     expect(wrapper.emitted("handleImportRequestAlertDismiss")[0]).toEqual(["5"]);
   });
 
-  it("hides the copy-candidates prompt when there are no candidates", () => {
-    const wrapper = mountComponent(ZeroState, { props: baseProps });
-
-    expect(wrapper.text()).not.toContain("This course was copied");
-  });
-
-  it("shows the copy-candidates prompt when candidates exist, and emits handleShowCopyCandidates on click", async () => {
-    const wrapper = mountComponent(ZeroState, {
-      props: {
-        ...baseProps,
-        copyCandidates: [
-          { id: "c1", experimentTitle: "Reading Study", sourceCourseTitle: "Course A" }
-        ]
-      }
-    });
-
-    expect(wrapper.text()).toContain("This course was copied");
-
-    await wrapper.find(".copy-candidates-alert button").trigger("click");
-
-    expect(wrapper.emitted("handleShowCopyCandidates")).toBeTruthy();
-  });
-
   it("emits handleImportRequestAlertVisibilityChange when the alert's model value changes", async () => {
     const wrapper = mountComponent(ZeroState, {
       props: {

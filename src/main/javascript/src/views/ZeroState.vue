@@ -88,26 +88,6 @@
           OR IMPORT AN EXPERIMENT
         </v-btn>
       </v-row>
-      <v-row v-if="copyCandidates.length > 0">
-        <v-alert
-          type="info"
-          variant="outlined"
-          elevation="0"
-          class="copy-candidates-alert mx-auto mt-5"
-        >
-          This course was copied from a previous course that had a Terracotta experiment.
-
-          <v-btn
-            @click="handleShowCopyCandidates"
-            class="mt-2"
-            color="primary"
-            variant="tonal"
-            block
-          >
-            RECREATE PREVIOUS EXPERIMENT(S) HERE
-          </v-btn>
-        </v-alert>
-      </v-row>
       <p
         class="mt-10"
       >
@@ -147,10 +127,6 @@ defineProps({
   importRequestAlerts: {
     type: Array,
     required: true
-  },
-  copyCandidates: {
-    type: Array,
-    default: () => []
   }
 });
 
@@ -158,8 +134,7 @@ const emit = defineEmits([
   "handleImportRequestAlertDismiss",
   "handleImportRequestAlertVisibilityChange",
   "startExperiment",
-  "handleImportExperiment",
-  "handleShowCopyCandidates"
+  "handleImportExperiment"
 ]);
 
 const handleImportRequestAlertDismiss = (id) => {
@@ -176,10 +151,6 @@ const startExperiment = () => {
 
 const handleImportExperiment = () => {
   emit("handleImportExperiment");
-};
-
-const handleShowCopyCandidates = () => {
-  emit("handleShowCopyCandidates");
 };
 </script>
 

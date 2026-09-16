@@ -38,6 +38,7 @@ vi.mock("sweetalert2", () => ({
 }));
 
 import { createPinia, setActivePinia } from "pinia";
+import { flushPromises } from "@vue/test-utils";
 import { mountComponent } from "@/test-utils/mount";
 import {
   experimentService,
@@ -80,10 +81,11 @@ describe("Home", () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({ data: [] });
   });
 
-  it("fetches copy candidates and passes them to ZeroState when there are no experiments", async () => {
+  it("fetches copy candidates when there are no experiments and automatically opens the dialog", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
+    swalFire.mockResolvedValue({ isConfirmed: false });
 
     const wrapper = mountComponent(Home);
 
@@ -92,9 +94,9 @@ describe("Home", () => {
     });
 
     expect(experimentCopyCandidateService.getAll).toHaveBeenCalled();
-    expect(
-      wrapper.findComponent({ name: "ZeroState" }).props("copyCandidates")
-    ).toEqual([{ id: "c1", experimentTitle: "Reading Study" }]);
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalled();
+    });
   });
 
   it("does not fetch copy candidates when experiments already exist", async () => {
@@ -109,7 +111,7 @@ describe("Home", () => {
     expect(experimentCopyCandidateService.getAll).not.toHaveBeenCalled();
   });
 
-  it("resolves selected copy candidates when confirmed via the dialog, registering the resulting imports as import requests", async () => {
+  it("automatically opens the copy-candidates dialog when candidates exist, resolving selected candidates on confirm and registering the resulting imports as import requests", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
@@ -124,10 +126,8 @@ describe("Home", () => {
     const wrapper = mountComponent(Home);
 
     await vi.waitFor(() => {
-      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+      expect(swalFire).toHaveBeenCalled();
     });
-
-    await wrapper.findComponent({ name: "ZeroState" }).vm.$emit("handleShowCopyCandidates");
     await vi.waitFor(() => {
       expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith(["c1"]);
     });
@@ -145,19 +145,17 @@ describe("Home", () => {
     });
     swalFire.mockResolvedValue({ isConfirmed: false });
 
-    const wrapper = mountComponent(Home);
+    mountComponent(Home);
 
     await vi.waitFor(() => {
-      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+      expect(swalFire).toHaveBeenCalled();
     });
-
-    await wrapper.findComponent({ name: "ZeroState" }).vm.$emit("handleShowCopyCandidates");
-    await wrapper.vm.$nextTick();
+    await flushPromises();
 
     expect(experimentCopyCandidateService.resolve).not.toHaveBeenCalled();
   });
 
-  it("resolves with an empty selection when 'No Thanks' is chosen", async () => {
+  it("resolves with an empty selection when 'No thank you' is chosen", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [
         { id: "c1", experimentTitle: "Reading Study" },
@@ -169,17 +167,25 @@ describe("Home", () => {
     });
     swalFire.mockResolvedValue({ isDenied: true });
 
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalled();
+    });
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith([]);
+    });
+  });
+
+  it("does not automatically open the copy-candidates dialog when there are no candidates", async () => {
     const wrapper = mountComponent(Home);
 
     await vi.waitFor(() => {
       expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
     });
 
-    await wrapper.findComponent({ name: "ZeroState" }).vm.$emit("handleShowCopyCandidates");
-
-    await vi.waitFor(() => {
-      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith([]);
-    });
+    expect(swalFire).not.toHaveBeenCalled();
   });
 
   it("shows the zero state and hides the table when there are no experiments", async () => {

@@ -13,12 +13,10 @@
       :experimentExportEnabled="experimentExportEnabled"
       :experimentImportRequests="experimentImportRequests"
       :importRequestAlerts="importRequestAlerts"
-      :copyCandidates="copyCandidates"
       @handleImportExperiment="handleImportExperiment"
       @handleImportRequestAlertDismiss="handleImportRequestAlertDismiss"
       @handleImportRequestAlertVisibilityChange="handleImportRequestAlertVisibilityChange"
       @startExperiment="startExperiment"
-      @handleShowCopyCandidates="handleShowCopyCandidates"
     />
     <v-container
       v-show="isLoaded && hasExperiments"
@@ -586,9 +584,9 @@ const handleShowCopyCandidates = async () => {
     html: '<div id="dialog-copy-candidates"></div>',
     showCancelButton: true,
     showDenyButton: true,
-    confirmButtonText: "Import Selected",
-    denyButtonText: "No Thanks",
-    cancelButtonText: "Ask Me Later",
+    confirmButtonText: "Create selected experiments",
+    denyButtonText: "No thank you",
+    cancelButtonText: "I'll decide later",
     reverseButtons: true,
     allowOutsideClick: false,
     allowEscapeKey: false,
@@ -1031,6 +1029,10 @@ onMounted(async () => {
 
   if (!experiments.value || experiments.value.length === 0) {
     await experimentCopyCandidateStore.fetchAll();
+
+    if (copyCandidates.value.length > 0) {
+      handleShowCopyCandidates();
+    }
   }
 
   if (experiments.value && experiments.value.length > 0) {
