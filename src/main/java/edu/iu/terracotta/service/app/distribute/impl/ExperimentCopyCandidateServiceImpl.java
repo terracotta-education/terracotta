@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.distribute.impl;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -127,7 +128,24 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
             return List.of();
         }
 
-        return experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(securedInfo.getContextId(), ExperimentCopyCandidateStatus.PENDING).stream()
+        List<ExperimentCopyCandidate> pending = experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(securedInfo.getContextId(), ExperimentCopyCandidateStatus.PENDING);
+
+        if (pending.isEmpty()) {
+            return List.of();
+        }
+
+        // a destination course could theoretically have pending candidates staged from more than
+        // one course-copy notice (e.g. copied again from a different course before ever resolving
+        // the first prompt) - only surface the most recently staged notice's source course, so the
+        // dialog's single "this course was copied from X" heading is never wrong for some of the
+        // candidates it lists
+        long mostRecentSourceContextId = pending.stream()
+            .max(Comparator.comparing(ExperimentCopyCandidate::getCreatedAt))
+            .map(candidate -> candidate.getSourceExperiment().getLtiContextEntity().getContextId())
+            .orElseThrow();
+
+        return pending.stream()
+            .filter(candidate -> candidate.getSourceExperiment().getLtiContextEntity().getContextId() == mostRecentSourceContextId)
             .map(this::toDto)
             .toList();
     }

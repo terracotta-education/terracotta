@@ -148,6 +148,44 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         assertEquals(2, result.get(0).getConditionCount());
     }
 
+    // a destination course re-copied from a different source before ever resolving the first
+    // prompt could accumulate PENDING candidates from two different source courses - only the
+    // most recently staged notice's source course should be surfaced, so the dialog's single
+    // "copied from X" heading is never wrong for some of the candidates it lists
+    @Test
+    void testGetPendingForContextOnlySurfacesMostRecentSourceCourse() {
+        edu.iu.terracotta.dao.entity.Experiment olderExperiment = mock(edu.iu.terracotta.dao.entity.Experiment.class);
+        LtiContextEntity olderSourceContext = mock(LtiContextEntity.class);
+        when(olderSourceContext.getContextId()).thenReturn(10L);
+        when(olderExperiment.getLtiContextEntity()).thenReturn(olderSourceContext);
+        when(olderExperiment.getExperimentId()).thenReturn(2L);
+
+        LtiContextEntity newerSourceContext = mock(LtiContextEntity.class);
+        when(newerSourceContext.getContextId()).thenReturn(20L);
+        when(experiment.getLtiContextEntity()).thenReturn(newerSourceContext);
+
+        ExperimentCopyCandidate olderCandidate = mock(ExperimentCopyCandidate.class);
+        when(olderCandidate.getUuid()).thenReturn(UUID.randomUUID());
+        when(olderCandidate.getSourceExperiment()).thenReturn(olderExperiment);
+        when(olderCandidate.getCreatedAt()).thenReturn(new java.sql.Timestamp(1000L));
+
+        when(copyCandidate.getUuid()).thenReturn(UUID.randomUUID());
+        when(copyCandidate.getSourceExperiment()).thenReturn(experiment);
+        when(copyCandidate.getCreatedAt()).thenReturn(new java.sql.Timestamp(2000L));
+
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(experimentRepository.findAllByLtiContextEntity_ContextId(1L)).thenReturn(List.of());
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
+            .thenReturn(List.of(olderCandidate, copyCandidate));
+        when(conditionRepository.countByExperiment_ExperimentId(anyLong())).thenReturn(0L);
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(List.of());
+
+        List<CopyCandidateDto> result = experimentCopyCandidateService.getPendingForContext(securedInfo);
+
+        assertEquals(1, result.size());
+        assertEquals(copyCandidate.getUuid(), result.get(0).getId());
+    }
+
     @Test
     void testHasPendingForContextTrue() {
         when(experimentCopyCandidateRepository.existsByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING)).thenReturn(true);
