@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
@@ -79,15 +80,26 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         long platformDeploymentKeyId = destination.getToolDeployment().getPlatformDeployment().getKeyId();
 
         if (!featureService.isFeatureEnabled(FeatureType.PLATFORM_NOTIFICATIONS, platformDeploymentKeyId)) {
+            log.info("Platform notifications feature is disabled for platform deployment ID: [{}] - not staging copy candidates for destination context ID: [{}]", platformDeploymentKeyId, destination.getContextId());
             return;
         }
 
         List<LtiContextEntity> origins = ltiNoticeService.resolveOriginContexts(noticeClaims);
-
-        origins.stream()
+        List<Experiment> sourceExperiments = origins.stream()
             .flatMap(origin -> experimentRepository.findAllByLtiContextEntity_ContextId(origin.getContextId()).stream())
+            .toList();
+
+        log.info(
+            "Staging copy candidates for destination context ID: [{}] - resolved [{}] origin context(s) ({}), containing [{}] experiment(s) to consider",
+            destination.getContextId(),
+            origins.size(),
+            origins.stream().map(origin -> String.valueOf(origin.getContextId())).collect(Collectors.joining(", ")),
+            sourceExperiments.size()
+        );
+
+        long staged = sourceExperiments.stream()
             .filter(experiment -> !experimentCopyCandidateRepository.existsBySourceExperiment_ExperimentIdAndDestinationContext_ContextId(experiment.getExperimentId(), destination.getContextId()))
-            .forEach(experiment ->
+            .map(experiment ->
                 experimentCopyCandidateRepository.save(
                     ExperimentCopyCandidate.builder()
                         .sourceExperiment(experiment)
@@ -95,7 +107,10 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
                         .status(ExperimentCopyCandidateStatus.PENDING)
                         .build()
                 )
-            );
+            )
+            .count();
+
+        log.info("Staged [{}] new copy candidate(s) for destination context ID: [{}]", staged, destination.getContextId());
     }
 
     @Override
