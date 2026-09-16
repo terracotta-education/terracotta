@@ -175,6 +175,10 @@ app:
         dates:
           enabled: false
           batchsize: 100
+    # check for and mark LMS assignments as obsolete when they no longer match a Terracotta assignment
+    obsolete:
+      check:
+        enabled: true
   export:
     # export batch processing page size
     batch:
