@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -37,6 +38,8 @@ import org.springframework.http.ResponseEntity;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.canvas.dao.model.enums.jwt.CanvasJwtClaim;
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiOneUseToken;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -75,6 +78,8 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
 
     private static String testPrivateKeyPem;
     private static String testPublicKeyPem;
+    private static final UUID ASSIGNMENT_UUID = UUID.randomUUID();
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
 
     @Mock private MessageContainerRepository messageContainerRepository;
     @Mock private MessageContainerConfigurationRepository messageContainerConfigurationRepository;
@@ -166,8 +171,8 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
             10L,
             1L,
             "user123",
-            5L,
-            7L,
+            ASSIGNMENT_UUID,
+            EXPERIMENT_UUID,
             Boolean.TRUE,
             "canvasUser1",
             "canvasGlobal1",
@@ -325,8 +330,8 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         Claims mockClaims = mock(Claims.class);
         when(mockClaims.get(JwtClaim.ROLES.key(), List.class)).thenReturn(List.of("Learner"));
         when(mockClaims.get(JwtClaim.CONTEXT_ID.key(), Long.class)).thenReturn(200L);
-        when(mockClaims.get(JwtClaim.ASSIGNMENT_ID.key(), Long.class)).thenReturn(9L);
-        when(mockClaims.get(JwtClaim.EXPERIMENT_ID.key(), Long.class)).thenReturn(11L);
+        when(mockClaims.get(JwtClaim.ASSIGNMENT_ID.key(), String.class)).thenReturn(ASSIGNMENT_UUID.toString());
+        when(mockClaims.get(JwtClaim.EXPERIMENT_ID.key(), String.class)).thenReturn(EXPERIMENT_UUID.toString());
         when(mockClaims.get(JwtClaim.CONSENT.key(), Boolean.class)).thenReturn(true);
         when(mockClaims.get(CanvasJwtClaim.CANVAS_USER_ID.key(), String.class)).thenReturn("cUser1");
         when(mockClaims.get(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key(), String.class)).thenReturn("cGlobal1");
@@ -351,6 +356,8 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         assertEquals("cUser1", payload.get(CanvasJwtClaim.CANVAS_USER_ID.key()));
         assertEquals("cCourse1", payload.get(CanvasJwtClaim.CANVAS_COURSE_ID.key()));
         assertEquals("nonceABC", payload.get(JwtClaim.NONCE.key()));
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
         verify(apiOneUseTokenRepository).save(any(ApiOneUseToken.class));
     }
 
@@ -368,8 +375,8 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         assertEquals(10L, asLong(payload.get(JwtClaim.CONTEXT_ID.key())));
         assertEquals(1L, asLong(payload.get(JwtClaim.PLATFORM_DEPLOYMENT_ID.key())));
         assertEquals(List.of("Instructor"), payload.get(JwtClaim.ROLES.key()));
-        assertEquals(5L, asLong(payload.get(JwtClaim.ASSIGNMENT_ID.key())));
-        assertEquals(7L, asLong(payload.get(JwtClaim.EXPERIMENT_ID.key())));
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
         assertEquals(Boolean.TRUE, payload.get(JwtClaim.CONSENT.key()));
         assertEquals("canvasUser1", payload.get(CanvasJwtClaim.CANVAS_USER_ID.key()));
         assertEquals("canvasGlobal1", payload.get(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key()));
@@ -407,7 +414,7 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         when(platformDeploymentRepository.findById(999L)).thenReturn(Optional.empty());
 
         String jwt = canvasApiJWTService.buildJwt(
-            false, List.of("Instructor"), 10L, 999L, "user123", 5L, 7L, true,
+            false, List.of("Instructor"), 10L, 999L, "user123", ASSIGNMENT_UUID, EXPERIMENT_UUID, true,
             "canvasUser1", "canvasGlobal1", "canvasLogin1", "canvasName1", "canvasCourse1",
             "lmsAssign1", "2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z", "2026-03-01T00:00:00Z",
             "nonce1", 3, 1
@@ -419,17 +426,62 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
 
     /* ***************** buildJwt(oneUse, Lti3Request) ***************** */
 
+    // legacy launch URL, already persisted in an existing LMS course before the uuid migration -
+    // carries plain numeric ids, which must resolve to the matching entity's uuid via repository
+    // lookup so the JWT claim always carries a uuid, regardless of which format the LMS-stored
+    // launch URL happens to use
     @Test
-    public void testBuildJwtFromLti3RequestWithAssignmentExperimentAndConsent() throws Exception {
+    public void testBuildJwtFromLti3RequestWithLegacyNumericAssignmentAndExperimentIds() throws Exception {
         when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/launch?assignment=55&experiment=77&consent=true");
+        Assignment assignment = new Assignment();
+        assignment.setUuid(ASSIGNMENT_UUID);
+        Experiment experiment = new Experiment();
+        experiment.setUuid(EXPERIMENT_UUID);
+        when(assignmentRepository.findByAssignmentId(55L)).thenReturn(assignment);
+        when(experimentRepository.findByExperimentId(77L)).thenReturn(experiment);
 
         String jwt = canvasApiJWTService.buildJwt(false, lti3Request);
         Jws<Claims> claims = canvasApiJWTService.validateToken(jwt);
         Claims payload = claims.getPayload();
 
-        assertEquals(55L, asLong(payload.get(JwtClaim.ASSIGNMENT_ID.key())));
-        assertEquals(77L, asLong(payload.get(JwtClaim.EXPERIMENT_ID.key())));
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
         assertEquals(Boolean.TRUE, payload.get(JwtClaim.CONSENT.key()));
+    }
+
+    // legacy numeric id that no longer resolves to any entity (e.g. a since-deleted
+    // assignment/experiment) falls back to null rather than throwing
+    @Test
+    public void testBuildJwtFromLti3RequestWithLegacyNumericIdsNotFoundResolvesToNull() throws Exception {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/launch?assignment=55&experiment=77&consent=true");
+        when(assignmentRepository.findByAssignmentId(55L)).thenReturn(null);
+        when(experimentRepository.findByExperimentId(77L)).thenReturn(null);
+
+        String jwt = canvasApiJWTService.buildJwt(false, lti3Request);
+        Jws<Claims> claims = canvasApiJWTService.validateToken(jwt);
+        Claims payload = claims.getPayload();
+
+        assertNull(payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertNull(payload.get(JwtClaim.EXPERIMENT_ID.key()));
+    }
+
+    // new-format launch URL - the "assignment"/"experiment" query params are already uuids, so
+    // they pass through directly with no repository lookup needed
+    @Test
+    public void testBuildJwtFromLti3RequestWithUuidAssignmentAndExperimentIds() throws Exception {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn(
+            String.format("https://example.com/launch?assignment=%s&experiment=%s&consent=true", ASSIGNMENT_UUID, EXPERIMENT_UUID)
+        );
+
+        String jwt = canvasApiJWTService.buildJwt(false, lti3Request);
+        Jws<Claims> claims = canvasApiJWTService.validateToken(jwt);
+        Claims payload = claims.getPayload();
+
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
+        assertEquals(Boolean.TRUE, payload.get(JwtClaim.CONSENT.key()));
+        verify(assignmentRepository, never()).findByAssignmentId(anyLong());
+        verify(experimentRepository, never()).findByExperimentId(any());
     }
 
     @Test
@@ -646,7 +698,7 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
     @Test
     public void testExtractValuesInvalidTimestampReturnsNullForThatField() throws Exception {
         String jwt = canvasApiJWTService.buildJwt(
-            false, List.of("Instructor"), 10L, 1L, "user123", 5L, 7L, true,
+            false, List.of("Instructor"), 10L, 1L, "user123", ASSIGNMENT_UUID, EXPERIMENT_UUID, true,
             "canvasUser1", "canvasGlobal1", "canvasLogin1", "canvasName1", "canvasCourse1",
             "lmsAssign1", "not-a-timestamp", "not-a-timestamp", "not-a-timestamp",
             "nonce1", 3, 1
@@ -719,6 +771,10 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         Jws<Claims> newClaims = canvasApiJWTService.validateToken(response.getBody());
         assertEquals(Boolean.FALSE, newClaims.getPayload().get(JwtClaim.ONE_USE.key()));
         assertEquals("user123", newClaims.getPayload().getSubject());
+        // the uuid-valued assignmentId/experimentId claims round-trip unchanged through the
+        // timed-token exchange
+        assertEquals(ASSIGNMENT_UUID.toString(), newClaims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), newClaims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()));
     }
 
     @Test

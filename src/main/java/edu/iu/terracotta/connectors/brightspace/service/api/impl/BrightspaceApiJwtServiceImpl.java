@@ -24,6 +24,8 @@ import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
 import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRule;
 import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRuleSet;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -111,6 +113,8 @@ import java.util.UUID;
 public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
 
     private final ApiOneUseTokenRepository apiOneUseTokenRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExperimentRepository experimentRepository;
     private final PlatformDeploymentRepository platformDeploymentRepository;
     private final LtiDataService ltiDataService;
 
@@ -176,14 +180,19 @@ public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public String buildJwt(long platformDeploymentId, String userKey, Claims claims) throws GeneralSecurityException, IOException {
+        String assignmentIdText = claims.get(JwtClaim.ASSIGNMENT_ID.key(), String.class);
+        UUID assignmentId = StringUtils.isNotBlank(assignmentIdText) ? UUID.fromString(assignmentIdText) : null;
+        String experimentIdText = claims.get(JwtClaim.EXPERIMENT_ID.key(), String.class);
+        UUID experimentId = StringUtils.isNotBlank(experimentIdText) ? UUID.fromString(experimentIdText) : null;
+
         return buildJwt(
             true,
             claims.get(JwtClaim.ROLES.key(), List.class),
             claims.get(JwtClaim.CONTEXT_ID.key(), Long.class),
             platformDeploymentId,
             userKey,
-            claims.get(JwtClaim.ASSIGNMENT_ID.key(), Long.class),
-            claims.get(JwtClaim.EXPERIMENT_ID.key(), Long.class),
+            assignmentId,
+            experimentId,
             claims.get(JwtClaim.CONSENT.key(), Boolean.class),
             claims.get(BrightspaceJwtClaim.BRIGHTSPACE_USER_ID.key(), String.class),
             claims.get(BrightspaceJwtClaim.BRIGHTSPACE_USER_GLOBAL_ID.key(), String.class),
@@ -206,8 +215,8 @@ public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
         Long contextId,
         Long platformDeploymentId,
         String userId,
-        Long assignmentId,
-        Long experimentId,
+        UUID assignmentId,
+        UUID experimentId,
         Boolean consent,
         String brightspaceUserId,
         String brightspaceUserGlobalId,
@@ -253,8 +262,8 @@ public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
         Long contextId,
         Long platformDeploymentId,
         String userId,
-        Long assignmentId,
-        Long experimentId,
+        UUID assignmentId,
+        UUID experimentId,
         Boolean consent,
         String brightspaceUserId,
         String brightspaceUserGlobalId,
@@ -340,18 +349,10 @@ public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
         String targetLinkUrl = lti3Request.getLtiTargetLinkUrl();
         MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUriString(targetLinkUrl).build().getQueryParams();
         String assignmentIdText = queryParams.getFirst(JwtClaim.ASSIGNMENT.key());
-        Long assignmentId = null;
-
-        if (StringUtils.isNotBlank(assignmentIdText)) {
-            assignmentId = Long.parseLong(assignmentIdText);
-        }
+        UUID assignmentId = resolveAssignmentUuid(assignmentIdText);
 
         String experimentIdText = queryParams.getFirst(JwtClaim.EXPERIMENT.key());
-        Long experimentId = null;
-
-        if (StringUtils.isNotBlank(experimentIdText)) {
-            experimentId = Long.parseLong(experimentIdText);
-        }
+        UUID experimentId = resolveExperimentUuid(experimentIdText);
 
         return buildJwt(
             oneUse,
@@ -576,17 +577,19 @@ public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
 
         if ((Boolean) claims.getPayload().get(JwtClaim.ONE_USE.key())) {
             try {
-                // experimentId and assignmentId are optionals so check the null.
-                Long assignmentId = null;
+                // experimentId and assignmentId are optionals so check the null. This token was
+                // built by this same server's buildJwt() moments earlier, so these claims (if
+                // present) are always uuids already - never the legacy numeric format.
+                UUID assignmentId = null;
 
                 if (claims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()) != null) {
-                    assignmentId = Long.parseLong(claims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()).toString());
+                    assignmentId = UUID.fromString(claims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()).toString());
                 }
 
-                Long experimentId = null;
+                UUID experimentId = null;
 
                 if (claims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()) != null) {
-                    experimentId = Long.parseLong(claims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()).toString());
+                    experimentId = UUID.fromString(claims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()).toString());
                 }
 
                 return new ResponseEntity<>(
@@ -625,6 +628,49 @@ public class BrightspaceApiJwtServiceImpl implements ApiJwtService {
         String[] parts = StringUtils.split(globalId, '_');
 
         return parts.length > 1 ? parts[1] : null;
+    }
+
+    /**
+     * Resolves the "experiment" launch URL query parameter to a uuid, accepting both formats
+     * permanently: a uuid (the current and only format for newly-written launch URLs) or a
+     * legacy numeric experiment ID (already persisted, forever, in existing LMS courses' launch
+     * URLs from before this migration). Existing LMS-stored launch URLs must keep working
+     * indefinitely, so this dual-format resolution can never be removed.
+     */
+    private UUID resolveExperimentUuid(String experimentIdText) {
+        if (StringUtils.isBlank(experimentIdText)) {
+            return null;
+        }
+
+        try {
+            return UUID.fromString(experimentIdText);
+        } catch (IllegalArgumentException e) {
+            // legacy numeric id, already persisted in an existing LMS course's launch URL -
+            // resolve to the entity's uuid so the JWT claim (and everything downstream that
+            // reads it) always sees a uuid regardless of which URL format the LMS happens to
+            // have stored
+            Experiment experiment = experimentRepository.findByExperimentId(Long.parseLong(experimentIdText));
+
+            return experiment != null ? experiment.getUuid() : null;
+        }
+    }
+
+    /**
+     * Resolves the "assignment" launch URL query parameter to a uuid. See
+     * {@link #resolveExperimentUuid(String)} for why dual-format resolution is permanent.
+     */
+    private UUID resolveAssignmentUuid(String assignmentIdText) {
+        if (StringUtils.isBlank(assignmentIdText)) {
+            return null;
+        }
+
+        try {
+            return UUID.fromString(assignmentIdText);
+        } catch (IllegalArgumentException e) {
+            Assignment assignment = assignmentRepository.findByAssignmentId(Long.parseLong(assignmentIdText));
+
+            return assignment != null ? assignment.getUuid() : null;
+        }
     }
 
     private Integer parseInt(Object value) {

@@ -68,6 +68,8 @@ import edu.iu.terracotta.dao.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationOwnerNotMatchingException;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ConditionsLockedException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
@@ -127,6 +129,8 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
     private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
     private final ApiOneUseTokenRepository apiOneUseTokenRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExperimentRepository experimentRepository;
     private final PlatformDeploymentRepository platformDeploymentRepository;
     private final LtiDataService ltiDataService;
 
@@ -204,14 +208,19 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public String buildJwt(long platformDeploymentId, String userKey, Claims claims) throws GeneralSecurityException, IOException {
+        String assignmentIdText = claims.get("assignmentId", String.class);
+        UUID assignmentId = StringUtils.isNotBlank(assignmentIdText) ? UUID.fromString(assignmentIdText) : null;
+        String experimentIdText = claims.get("experimentId", String.class);
+        UUID experimentId = StringUtils.isNotBlank(experimentIdText) ? UUID.fromString(experimentIdText) : null;
+
         return buildJwt(
             true,
             claims.get("roles", List.class),
             claims.get("contextId", Long.class),
             platformDeploymentId,
             userKey,
-            claims.get("assignmentId", Long.class),
-            claims.get("experimentId", Long.class),
+            assignmentId,
+            experimentId,
             claims.get("consent", Boolean.class),
             claims.get("oneEdTechUserId", String.class),
             claims.get("oneEdTechUserGlobalId", String.class),
@@ -234,8 +243,8 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
         Long contextId,
         Long platformDeploymentId,
         String userId,
-        Long assignmentId,
-        Long experimentId,
+        UUID assignmentId,
+        UUID experimentId,
         Boolean consent,
         String oneEdTechUserId,
         String oneEdTechUserGlobalId,
@@ -261,8 +270,8 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
         Long contextId,
         Long platformDeploymentId,
         String userId,
-        Long assignmentId,
-        Long experimentId,
+        UUID assignmentId,
+        UUID experimentId,
         Boolean consent,
         String oneEdTechUserId,
         String oneEdTechUserGlobalId,
@@ -349,21 +358,13 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
         String targetLinkUrl = lti3Request.getLtiTargetLinkUrl();
         MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUriString(targetLinkUrl).build().getQueryParams();
         String assignmentIdText = queryParams.getFirst("assignment");
-        Long assignmentId = null;
-
-        if (StringUtils.isNotBlank(assignmentIdText)) {
-            assignmentId = Long.parseLong(assignmentIdText);
-        }
+        UUID assignmentId = resolveAssignmentUuid(assignmentIdText);
 
         String consentText = queryParams.getFirst("consent");
         boolean consent = BooleanUtils.toBoolean(consentText);
 
         String experimentIdText = queryParams.getFirst("experiment");
-        Long experimentId = null;
-
-        if (StringUtils.isNotBlank(experimentIdText)) {
-            experimentId = Long.parseLong(experimentIdText);
-        }
+        UUID experimentId = resolveExperimentUuid(experimentIdText);
 
         return buildJwt(oneUse, issuer, lti3Request.getLtiRoles(),
             lti3Request.getContext().getContextId(),
@@ -581,17 +582,19 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
         if ((Boolean) claims.getPayload().get("oneUse")) {
             try {
-                // experimentId and assignmentId are optionals so check the null.
-                Long assignmentId = null;
+                // experimentId and assignmentId are optionals so check the null. This token was
+                // built by this same server's buildJwt() moments earlier, so these claims (if
+                // present) are always uuids already - never the legacy numeric format.
+                UUID assignmentId = null;
 
                 if (claims.getPayload().get("assignmentId") != null) {
-                    assignmentId = Long.parseLong(claims.getPayload().get("assignmentId").toString());
+                    assignmentId = UUID.fromString(claims.getPayload().get("assignmentId").toString());
                 }
 
-                Long experimentId = null;
+                UUID experimentId = null;
 
                 if (claims.getPayload().get("experimentId") != null) {
-                    experimentId = Long.parseLong(claims.getPayload().get("experimentId").toString());
+                    experimentId = UUID.fromString(claims.getPayload().get("experimentId").toString());
                 }
 
                 return new ResponseEntity<>(
@@ -623,6 +626,49 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
         }
 
         return new ResponseEntity<>("Token passed was not a one time valid token", HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * Resolves the "experiment" launch URL query parameter to a uuid, accepting both formats
+     * permanently: a uuid (the current and only format for newly-written launch URLs) or a
+     * legacy numeric experiment ID (already persisted, forever, in existing LMS courses' launch
+     * URLs from before this migration). Existing LMS-stored launch URLs must keep working
+     * indefinitely, so this dual-format resolution can never be removed.
+     */
+    private UUID resolveExperimentUuid(String experimentIdText) {
+        if (StringUtils.isBlank(experimentIdText)) {
+            return null;
+        }
+
+        try {
+            return UUID.fromString(experimentIdText);
+        } catch (IllegalArgumentException e) {
+            // legacy numeric id, already persisted in an existing LMS course's launch URL -
+            // resolve to the entity's uuid so the JWT claim (and everything downstream that
+            // reads it) always sees a uuid regardless of which URL format the LMS happens to
+            // have stored
+            Experiment experiment = experimentRepository.findByExperimentId(Long.parseLong(experimentIdText));
+
+            return experiment != null ? experiment.getUuid() : null;
+        }
+    }
+
+    /**
+     * Resolves the "assignment" launch URL query parameter to a uuid. See
+     * {@link #resolveExperimentUuid(String)} for why dual-format resolution is permanent.
+     */
+    private UUID resolveAssignmentUuid(String assignmentIdText) {
+        if (StringUtils.isBlank(assignmentIdText)) {
+            return null;
+        }
+
+        try {
+            return UUID.fromString(assignmentIdText);
+        } catch (IllegalArgumentException e) {
+            Assignment assignment = assignmentRepository.findByAssignmentId(Long.parseLong(assignmentIdText));
+
+            return assignment != null ? assignment.getUuid() : null;
+        }
     }
 
     private Integer parseInt(Object value) {

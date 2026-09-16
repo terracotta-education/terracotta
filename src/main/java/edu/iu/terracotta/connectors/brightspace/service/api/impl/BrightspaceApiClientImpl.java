@@ -183,13 +183,13 @@ public class BrightspaceApiClientImpl implements ApiClient {
             customParameters.add(
                 CustomParameter.builder()
                     .name(CustomParameter.Keys.ASSIGNMENT_ID.key())
-                    .value(String.valueOf(assignment.getAssignmentId()))
+                    .value(String.valueOf(assignment.getUuid()))
                     .build()
             );
             customParameters.add(
                 CustomParameter.builder()
                     .name(CustomParameter.Keys.EXPERIMENT_ID.key())
-                    .value(String.valueOf(assignment.getExposure().getExperiment().getExperimentId()))
+                    .value(String.valueOf(assignment.getExposure().getExperiment().getUuid()))
                     .build()
             );
 
@@ -202,8 +202,8 @@ public class BrightspaceApiClientImpl implements ApiClient {
                 String.format(
                     BrightspaceUrl.LTI_ASSIGNMENT_LAUNCH.url(),
                     apiUser.getPlatformDeployment().getLocalUrl(),
-                    assignment.getExposure().getExperiment().getExperimentId(),
-                    assignment.getAssignmentId()
+                    assignment.getExposure().getExperiment().getUuid(),
+                    assignment.getUuid()
                 )
             );
 
@@ -321,13 +321,13 @@ public class BrightspaceApiClientImpl implements ApiClient {
                 customParameters.add(
                     CustomParameter.builder()
                         .name(CustomParameter.Keys.ASSIGNMENT_ID.key())
-                        .value(String.valueOf(assignment.getAssignmentId()))
+                        .value(String.valueOf(assignment.getUuid()))
                         .build()
                 );
                 customParameters.add(
                     CustomParameter.builder()
                         .name(CustomParameter.Keys.EXPERIMENT_ID.key())
-                        .value(String.valueOf(assignment.getExposure().getExperiment().getExperimentId()))
+                        .value(String.valueOf(assignment.getExposure().getExperiment().getUuid()))
                         .build()
                 );
 
@@ -340,8 +340,8 @@ public class BrightspaceApiClientImpl implements ApiClient {
                     String.format(
                         BrightspaceUrl.LTI_ASSIGNMENT_LAUNCH.url(),
                         assignment.getExposure().getExperiment().getPlatformDeployment().getLocalUrl(),
-                        assignment.getExposure().getExperiment().getExperimentId(),
-                        assignment.getAssignmentId()
+                        assignment.getExposure().getExperiment().getUuid(),
+                        assignment.getUuid()
                     )
                 );
             }
@@ -626,7 +626,7 @@ public class BrightspaceApiClientImpl implements ApiClient {
             customParameters.add(
                 CustomParameter.builder()
                     .name(CustomParameter.Keys.EXPERIMENT_ID.key())
-                    .value(String.valueOf(experiment.getExperimentId()))
+                    .value(String.valueOf(experiment.getUuid()))
                     .build()
             );
 
@@ -639,7 +639,7 @@ public class BrightspaceApiClientImpl implements ApiClient {
                 String.format(
                     BrightspaceUrl.LTI_CONSENT_ASSIGNMENT_LAUNCH.url(),
                     instructorUser.getPlatformDeployment().getLocalUrl(),
-                    experiment.getExperimentId()
+                    experiment.getUuid()
                 )
             );
 

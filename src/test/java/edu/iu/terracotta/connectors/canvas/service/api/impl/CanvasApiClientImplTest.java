@@ -129,7 +129,7 @@ public class CanvasApiClientImplTest extends BaseTest {
         assertEquals("percent", sent.getGradingType());
         assertEquals(Double.valueOf(100.0), sent.getPointsPossible());
         assertEquals(List.of("external_tool"), sent.getSubmissionTypes());
-        assertTrue(sent.getExternalToolTagAttributes().getUrl().contains("/lti3?experiment=1&assignment=1"));
+        assertTrue(sent.getExternalToolTagAttributes().getUrl().contains(String.format("/lti3?experiment=%s&assignment=%s", experiment.getUuid(), assignment.getUuid())));
     }
 
     @Test
@@ -582,7 +582,7 @@ public class CanvasApiClientImplTest extends BaseTest {
         assertEquals("points", sent.getGradingType());
         assertEquals(Double.valueOf(1.0), sent.getPointsPossible());
         assertEquals(List.of("external_tool"), sent.getSubmissionTypes());
-        assertTrue(sent.getExternalToolTagAttributes().getUrl().contains("consent=true&experiment=1"));
+        assertTrue(sent.getExternalToolTagAttributes().getUrl().contains(String.format("consent=true&experiment=%s", experiment.getUuid())));
     }
 
     @Test

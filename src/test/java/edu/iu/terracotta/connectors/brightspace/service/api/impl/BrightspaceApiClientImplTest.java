@@ -26,6 +26,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.MockitoAnnotations;
@@ -163,11 +164,23 @@ public class BrightspaceApiClientImplTest extends BaseTest {
 
     @Test
     public void testCreateLmsAssignmentSuccess() throws Exception {
+        ArgumentCaptor<Assignment> captor = ArgumentCaptor.forClass(Assignment.class);
+
         try (MockedConstruction<BrightspaceApiFactory> _ = mockApiFactory()) {
+            when(brightspaceAssignmentWriterService.createAssignment(anyString(), captor.capture())).thenReturn(Optional.of(brightspaceAssignmentExtended));
+
             AssignmentExtended result = brightspaceApiClient.createLmsAssignment(ltiUserEntity, assignment, "orgSourcedId");
 
             assertSame(brightspaceAssignmentExtended, result);
         }
+
+        // the launch URL and LTI Advantage custom parameters are built with the entities' uuids,
+        // never the numeric assignmentId/experimentId, going forward
+        Assignment sent = captor.getValue();
+        assertTrue(sent.getLtiAdvantageLinkUpdate().getUrl().contains(assignment.getExposure().getExperiment().getUuid().toString()));
+        assertTrue(sent.getLtiAdvantageLinkUpdate().getUrl().contains(assignment.getUuid().toString()));
+        assertEquals(assignment.getUuid().toString(), sent.getLtiAdvantageLinkUpdate().getCustomParameters().get(0).getValue());
+        assertEquals(assignment.getExposure().getExperiment().getUuid().toString(), sent.getLtiAdvantageLinkUpdate().getCustomParameters().get(1).getValue());
     }
 
     @Test
@@ -226,18 +239,28 @@ public class BrightspaceApiClientImplTest extends BaseTest {
     public void testRestoreAssignmentCreatesNewRelatedEntitiesWhenNoneExist() throws Exception {
         when(assignment.getMetadata()).thenReturn(metadataJson(10L, 20L, 30L, 40L));
         when(assignment.isPublished()).thenReturn(false);
+        ArgumentCaptor<Assignment> captor = ArgumentCaptor.forClass(Assignment.class);
 
         try (MockedConstruction<BrightspaceApiFactory> _ = mockApiFactory()) {
             when(contentObjectTopicReaderService.get(anyString(), eq(20L))).thenReturn(Optional.empty());
             when(contentObjectModuleReaderService.get(anyString(), eq(10L))).thenReturn(Optional.empty());
             when(ltiAdvantageLinkReaderService.get(anyString(), eq(30L))).thenReturn(Optional.empty());
             when(gradeObjectReaderService.get(anyString(), eq(40L))).thenReturn(Optional.empty());
+            when(brightspaceAssignmentWriterService.createAssignment(anyString(), captor.capture())).thenReturn(Optional.of(brightspaceAssignmentExtended));
 
             AssignmentExtended result = brightspaceApiClient.restoreAssignment(assignment);
 
             assertSame(brightspaceAssignmentExtended, result);
             verify(contentObjectModuleReaderService).get(anyString(), eq(10L));
         }
+
+        // no existing LTI Advantage link was found, so the URL and custom parameters were
+        // (re)built here - confirm they use the uuids, not the numeric ids
+        Assignment sent = captor.getValue();
+        assertTrue(sent.getLtiAdvantageLinkUpdate().getUrl().contains(assignment.getExposure().getExperiment().getUuid().toString()));
+        assertTrue(sent.getLtiAdvantageLinkUpdate().getUrl().contains(assignment.getUuid().toString()));
+        assertEquals(assignment.getUuid().toString(), sent.getLtiAdvantageLinkUpdate().getCustomParameters().get(0).getValue());
+        assertEquals(assignment.getExposure().getExperiment().getUuid().toString(), sent.getLtiAdvantageLinkUpdate().getCustomParameters().get(1).getValue());
     }
 
     @Test
@@ -633,11 +656,21 @@ public class BrightspaceApiClientImplTest extends BaseTest {
 
     @Test
     public void testUploadConsentFileSuccess() throws Exception {
+        ArgumentCaptor<Assignment> captor = ArgumentCaptor.forClass(Assignment.class);
+
         try (MockedConstruction<BrightspaceApiFactory> _ = mockApiFactory()) {
+            when(brightspaceAssignmentWriterService.createAssignment(anyString(), captor.capture())).thenReturn(Optional.of(brightspaceAssignmentExtended));
+
             AssignmentExtended result = brightspaceApiClient.uploadConsentFile(experiment, consentDocument, ltiUserEntity);
 
             assertSame(brightspaceAssignmentExtended, result);
         }
+
+        // the consent launch URL and its LTI Advantage custom parameter are built with the
+        // experiment's uuid, never the numeric experimentId, going forward
+        Assignment sent = captor.getValue();
+        assertTrue(sent.getLtiAdvantageLinkUpdate().getUrl().contains(experiment.getUuid().toString()));
+        assertEquals(experiment.getUuid().toString(), sent.getLtiAdvantageLinkUpdate().getCustomParameters().get(0).getValue());
     }
 
     @Test

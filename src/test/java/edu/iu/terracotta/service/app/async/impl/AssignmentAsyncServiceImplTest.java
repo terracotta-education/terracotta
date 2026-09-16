@@ -336,6 +336,63 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(obsoleteAssignmentRepository, times(1)).save(any(ObsoleteAssignment.class));
     }
 
+    // new-format LMS-stored launch URL: the "assignment" query parameter is already a uuid
+    // (matching the still-live default mock "assignment"'s uuid) - must be recognized as still
+    // live without falling back to the legacy numeric-id comparison
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextSkipsWhenAssignmentUuidStillInContext() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        UUID assignmentUuid = assignment.getUuid();
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?experiment=99&assignment=" + assignmentUuid);
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+        verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
+    }
+
+    // new-format LMS-stored launch URL whose "assignment" uuid no longer matches any live
+    // Terracotta assignment (e.g. a since-deleted assignment) - must be marked obsolete just
+    // like the legacy numeric-id case
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextMarksObsoleteWhenAssignmentUuidNotFound() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?experiment=99&assignment=" + UUID.randomUUID());
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient).editAssignment(any(LtiUserEntity.class), eq(lmsAssignment), anyString());
+        verify(obsoleteAssignmentRepository).save(any(ObsoleteAssignment.class));
+    }
+
+    // new-format LMS-stored consent launch URL: the "experiment" query parameter is already a
+    // uuid (matching the still-live default mock "experiment"'s uuid) - must be recognized as
+    // still live without falling back to the legacy numeric-id comparison
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextSkipsConsentAssignmentWhenExperimentUuidStillInContext() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        UUID experimentUuid = experiment.getUuid();
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?consent=true&experiment=" + experimentUuid);
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+        verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
+    }
+
+    // new-format LMS-stored consent launch URL whose "experiment" uuid no longer matches any
+    // live Terracotta experiment - must be marked obsolete just like the legacy numeric-id case
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextMarksObsoleteConsentAssignmentWhenExperimentUuidNotFound() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?consent=true&experiment=" + UUID.randomUUID());
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient).editAssignment(any(LtiUserEntity.class), eq(lmsAssignment), anyString());
+        verify(obsoleteAssignmentRepository).save(any(ObsoleteAssignment.class));
+    }
+
     @Test
     void testHandleObsoleteAssignmentsInLmsByContextLtiContextNotFoundThrows() {
         when(lmsAssignment.getId()).thenReturn("2");

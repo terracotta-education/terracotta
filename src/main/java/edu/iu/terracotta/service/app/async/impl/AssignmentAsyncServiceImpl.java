@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -211,13 +212,25 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             .map(Assignment::getAssignmentId)
             .toList();
 
+        // newly-written launch URLs carry a uuid instead of the numeric assignment ID above, but
+        // existing LMS-stored launch URLs written before this migration still carry the numeric
+        // ID, forever - both lists are needed to check "is this LMS assignment still live"
+        // regardless of which format its stored launch URL happens to use
+        List<UUID> terracottaAssignmentUuids = terracottaAssignments.stream()
+            .map(Assignment::getUuid)
+            .toList();
+
         // consent LMS items have no per-assignment ID of their own (ConsentDocument is a
         // separate entity, one per experiment, not tracked via Assignment/terracottaAssignmentIds
         // above) - their URL only ever carries an "experiment" parameter (e.g.
         // ?consent=true&experiment=278), so those still need to be checked against the
         // experiment's own existence
-        List<Long> terracottaExperimentIds = experimentRepository.findAllByLtiContextEntity_ContextId(securedInfo.getContextId()).stream()
+        List<Experiment> terracottaExperiments = experimentRepository.findAllByLtiContextEntity_ContextId(securedInfo.getContextId());
+        List<Long> terracottaExperimentIds = terracottaExperiments.stream()
             .map(Experiment::getExperimentId)
+            .toList();
+        List<UUID> terracottaExperimentUuids = terracottaExperiments.stream()
+            .map(Experiment::getUuid)
             .toList();
 
         List<String> convertedLmsAssignmentIds = obsoleteAssignmentRepository.findAllByContext_ContextId(securedInfo.getContextId()).stream()
@@ -254,7 +267,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                         .findFirst();
 
                     if (assignmentId.isPresent()) {
-                        if (terracottaAssignmentIds.contains(Long.parseLong(assignmentId.get()))) {
+                        if (isStillLive(assignmentId.get(), terracottaAssignmentIds, terracottaAssignmentUuids)) {
                             // assignment ID still exists in this context; skip
                             return null;
                         }
@@ -269,7 +282,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                             return null;
                         }
 
-                        if (terracottaExperimentIds.contains(Long.parseLong(experimentId.get()))) {
+                        if (isStillLive(experimentId.get(), terracottaExperimentIds, terracottaExperimentUuids)) {
                             // experiment ID still exists in this context; skip
                             return null;
                         }
@@ -308,6 +321,28 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                         .collect(Collectors.joining(", ")) :
                     "N/A"
         );
+    }
+
+    /**
+     * Checks whether a raw id extracted from an LMS-stored launch URL's "assignment" or
+     * "experiment" query parameter still corresponds to a live Terracotta entity, accepting
+     * both formats permanently: a uuid (the current and only format for newly-written launch
+     * URLs) or a legacy numeric ID (already persisted, forever, in existing LMS courses' launch
+     * URLs from before the launch URL uuid migration). Existing LMS-stored launch URLs must keep
+     * working indefinitely, so this dual-format check can never be removed.
+     *
+     * @param idText the raw id text extracted from the LMS-stored launch URL query parameter
+     * @param liveIds the numeric ids of the live Terracotta entities in this context
+     * @param liveUuids the uuids of the live Terracotta entities in this context
+     * @return true if idText still corresponds to a live entity, in either format
+     */
+    private boolean isStillLive(String idText, List<Long> liveIds, List<UUID> liveUuids) {
+        try {
+            return liveUuids.contains(UUID.fromString(idText));
+        } catch (IllegalArgumentException e) {
+            // legacy numeric id, already persisted in an existing LMS course's launch URL
+            return liveIds.contains(Long.parseLong(idText));
+        }
     }
 
     @Async

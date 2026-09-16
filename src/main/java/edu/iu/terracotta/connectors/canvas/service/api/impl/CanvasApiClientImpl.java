@@ -103,8 +103,8 @@ public class CanvasApiClientImpl implements ApiClient {
                 String.format(
                     "%s/lti3?experiment=%s&assignment=%s",
                     assignment.getExposure().getExperiment().getPlatformDeployment().getLocalUrl(),
-                    assignment.getExposure().getExperiment().getExperimentId(),
-                    assignment.getAssignmentId()
+                    assignment.getExposure().getExperiment().getUuid(),
+                    assignment.getUuid()
                 )
             );
 
@@ -276,7 +276,7 @@ public class CanvasApiClientImpl implements ApiClient {
     public AssignmentExtended uploadConsentFile(Experiment experiment, ConsentDocument consentDocument, LtiUserEntity instructorUser) throws ApiException, IOException, TerracottaConnectorException {
         AssignmentExtended assignmentExtended = AssignmentExtended.builder().build();
         ExternalToolTagAttribute canvasExternalToolTagAttributes = assignmentExtended.getAssignment().new ExternalToolTagAttribute();
-        String consentPath = String.format("/lti3?consent=true&experiment=%s", experiment.getExperimentId());
+        String consentPath = String.format("/lti3?consent=true&experiment=%s", experiment.getUuid());
         String url = null;
 
         try {
