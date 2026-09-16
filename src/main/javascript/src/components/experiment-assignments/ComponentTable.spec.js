@@ -56,6 +56,14 @@ const incompleteTreatment = (id, conditionId = 1) => ({
   }
 });
 
+// its assessment hasn't loaded/been created yet - assessmentDto itself is null,
+// not just missing fields
+const treatmentWithoutAssessment = (id, conditionId = 1) => ({
+  treatmentId: id,
+  conditionId,
+  assessmentDto: null
+});
+
 const assignmentRow = overrides => ({
   type: "assignment",
   assignmentId: 1,
@@ -151,6 +159,14 @@ describe("ComponentTable", () => {
     const tooltip = wrapper.findComponent({ name: "ToolTip" });
     expect(tooltip.exists()).toBe(true);
     expect(tooltip.props("icon")).toBe("mdi-circle");
+  });
+
+  it("does not throw and treats a treatment with a null assessmentDto (not yet loaded/created) as incomplete", () => {
+    mountTable([
+      assignmentRow({ treatments: [completeTreatment(10, 1), completeTreatment(11, 2), treatmentWithoutAssessment(12, 3)] })
+    ]);
+
+    expect(wrapper.text()).toContain("2 of 3");
   });
 
   it("counts a treatment record that exists but lacks content as NOT built yet, in both the ratio and the section label", () => {

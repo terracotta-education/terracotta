@@ -713,7 +713,7 @@ const handlePlaceholderEdit = (row, item) => {
 // placeholder needs to ask this about one specific treatment, not a whole row
 const isTreatmentIncomplete = (row, treatment) => {
   if (row.type === rowType.assignment) {
-    if (treatment.assessmentDto.integration && !treatment.assessmentDto.integrationUrlValid) {
+    if (treatment.assessmentDto?.integration && !treatment.assessmentDto.integrationUrlValid) {
       return true;
     }
 
