@@ -2,8 +2,8 @@
   <div>
     <p class="copy-candidates-intro">
       This course was copied from a previous course, <b>{{ sourceCourseTitle }}</b>, that had one
-      or more Terracotta experiments. Choose which one(s) to recreate here - each is rebuilt as a
-      brand new experiment, exactly like importing an exported experiment file.
+      or more Terracotta experiments. Choose which one(s) to recreate here; each is rebuilt as a
+      brand new experiment.
     </p>
 
     <div class="copy-candidates-select-all">
