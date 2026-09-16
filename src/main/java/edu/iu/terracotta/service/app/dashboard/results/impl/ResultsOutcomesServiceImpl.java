@@ -6,6 +6,7 @@ import java.util.DoubleSummaryStatistics;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -99,10 +100,9 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
 
         if (CollectionUtils.isNotEmpty(resultsOutcomesRequestDto.getOutcomeIds())) {
             // this is a standard outcome calculation
-            List<Long> outcomeIds = resultsOutcomesRequestDto.getOutcomeIds().stream()
-                .map(Long::valueOf)
-                .toList();
-            List<Outcome> outcomes = outcomeRepository.findAllById(outcomeIds).stream()
+            List<Outcome> outcomes = resultsOutcomesRequestDto.getOutcomeIds().stream()
+                .map(outcomeRepository::findByUuid)
+                .filter(Objects::nonNull)
                 .filter(outcome -> experiment.getExperimentId().equals(outcome.getExposure().getExperiment().getExperimentId()))
                 .toList();
 
@@ -120,6 +120,12 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
         }
 
         // this is an alternate outcome calculation
+        List<Long> exposureIds = CollectionUtils.emptyIfNull(resultsOutcomesRequestDto.getAlternateId().getExposures()).stream()
+            .map(exposureRepository::findByUuid)
+            .filter(Objects::nonNull)
+            .map(Exposure::getExposureId)
+            .toList();
+
         switch (EnumUtils.getEnumIgnoreCase(AlternateIdType.class, resultsOutcomesRequestDto.getAlternateId().getId())) {
             case AVERAGE_ASSIGNMENT_SCORE:
                 return ResultsOutcomesDto.builder()
@@ -127,7 +133,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                     .conditions(
                         resultsOutcomesAverageGradeService.conditions(
                             experiment,
-                            resultsOutcomesRequestDto.getAlternateId().getExposures(),
+                            exposureIds,
                             experimentAssignments,
                             allAssessmentsByAssignment,
                             experimentConsentedParticipants,
@@ -137,7 +143,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                     )
                     .exposures(
                         resultsOutcomesAverageGradeService.exposures(
-                            resultsOutcomesRequestDto.getAlternateId().getExposures(),
+                            exposureIds,
                             experimentAssignments,
                             allAssessmentsByAssignment,
                             experimentConsentedParticipants,
@@ -152,7 +158,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                     .conditions(
                         resultsOutcomesTimeOnTaskService.conditions(
                             experiment,
-                            resultsOutcomesRequestDto.getAlternateId().getExposures(),
+                            exposureIds,
                             experimentAssignments,
                             allAssessmentsByAssignment,
                             experimentConsentedParticipants,
@@ -163,7 +169,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                     .exposures(
                         resultsOutcomesTimeOnTaskService.exposures(
                             experiment,
-                            resultsOutcomesRequestDto.getAlternateId().getExposures(),
+                            exposureIds,
                             experimentAssignments,
                             allAssessmentsByAssignment,
                             experimentConsentedParticipants,

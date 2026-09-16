@@ -260,7 +260,7 @@ public class BaseModelTest {
     public void setup() {
         try {
             when(alternateIdDto.getId()).thenReturn(AlternateIdType.AVERAGE_ASSIGNMENT_SCORE.name());
-            when(alternateIdDto.getExposures()).thenReturn(Collections.singletonList(1L));
+            when(alternateIdDto.getExposures()).thenReturn(Collections.singletonList(UUID.randomUUID()));
             when(answerEssaySubmission.getQuestionSubmission()).thenReturn(questionSubmission);
             when(answerEssaySubmission.getUuid()).thenReturn(UUID.randomUUID());
             when(answerIntegrationSubmission.getUuid()).thenReturn(UUID.randomUUID());
@@ -477,7 +477,7 @@ public class BaseModelTest {
             when(restTemplate.postForEntity(any(URI.class), any(Object.class), eq(LtiToken.class))).thenReturn(new ResponseEntity<LtiToken>(HttpStatusCode.valueOf(200)));
             when(restTemplate.postForEntity(anyString(), any(Object.class), eq(LtiToken.class))).thenReturn(new ResponseEntity<LtiToken>(HttpStatusCode.valueOf(200)));
             when(resultsOutcomesRequestDto.getAlternateId()).thenReturn(alternateIdDto);
-            when(resultsOutcomesRequestDto.getOutcomeIds()).thenReturn(Collections.singletonList(1L));
+            when(resultsOutcomesRequestDto.getOutcomeIds()).thenReturn(Collections.singletonList(UUID.randomUUID()));
             when(securedInfo.getContextId()).thenReturn(1L);
             when(securedInfo.getLmsAssignmentId()).thenReturn("1");
             when(securedInfo.getLmsCourseId()).thenReturn("1");

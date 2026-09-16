@@ -186,6 +186,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(exposureRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(List.of(exposure));
             when(exposureRepository.findByExposureId(anyLong())).thenReturn(exposure);
             when(exposureRepository.findById(anyLong())).thenReturn(Optional.of(exposure));
+            when(exposureRepository.findByUuid(any(UUID.class))).thenReturn(exposure);
             when(groupRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(List.of(group));
             when(groupRepository.getReferenceById(anyLong())).thenReturn(group);
             when(groupRepository.saveAll(anyList())).thenReturn(List.of(group));
@@ -212,9 +213,9 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(outcome)));
             when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(List.of(outcome));
             when(outcomeRepository.findByExposure_ExposureId(anyLong())).thenReturn(List.of(outcome));
-            when(outcomeRepository.findAllById(anyList())).thenReturn(List.of(outcome));
             when(outcomeRepository.findById(anyLong())).thenReturn(Optional.of(outcome));
             when(outcomeRepository.findByOutcomeId(anyLong())).thenReturn(outcome);
+            when(outcomeRepository.findByUuid(any(UUID.class))).thenReturn(outcome);
             when(outcomeRepository.save(any(Outcome.class))).thenReturn(outcome);
             when(outcomeScoreRepository.findByOutcome_OutcomeId(anyLong())).thenReturn(List.of(outcomeScore));
             when(participantRepository.countByGroup_GroupId(anyLong())).thenReturn(1L);
