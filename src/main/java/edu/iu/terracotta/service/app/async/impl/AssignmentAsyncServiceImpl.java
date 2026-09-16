@@ -64,6 +64,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -91,6 +92,13 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
     @Value("${app.assignments.obsolete.check.enabled:true}")
     private boolean obsoleteAssignmentCheckEnabled;
+
+    @PostConstruct
+    public void init() {
+        if (!obsoleteAssignmentCheckEnabled) {
+            log.info("Obsolete assignment check is disabled.");
+        }
+    }
 
     @Async
     @Override
@@ -190,7 +198,6 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     @Transactional(rollbackFor = { ApiException.class })
     public void handleObsoleteAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         if (!obsoleteAssignmentCheckEnabled) {
-            log.debug("Obsolete assignment check is disabled. Skipping for context ID: [{}]", securedInfo.getContextId());
             return;
         }
 
