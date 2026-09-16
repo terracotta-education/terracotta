@@ -31,15 +31,28 @@
         v-for="candidate in candidates"
         :key="candidate.id"
         class="copy-candidate-option"
+        :class="{ 'copy-candidate-option--selected': isSelected(candidate.id) }"
+        role="checkbox"
+        :aria-checked="isSelected(candidate.id)"
+        :aria-label="candidate.experimentTitle || '(untitled experiment)'"
+        tabindex="0"
+        @click="toggleSelected(candidate.id)"
+        @keydown.space.prevent="toggleSelected(candidate.id)"
+        @keydown.enter.prevent="toggleSelected(candidate.id)"
       >
-        <v-checkbox
-          v-model="selectedIds"
-          :value="candidate.id"
-          :label="candidate.experimentTitle || '(untitled experiment)'"
-          color="primary"
-          density="compact"
-          hide-details
-        />
+        <div class="copy-candidate-title">
+          <!-- selection is also shown via border/background color below, but that alone
+               shouldn't be the only signal (WCAG 1.4.1) - this icon gives a non-color one -->
+          <v-icon
+            v-if="isSelected(candidate.id)"
+            icon="mdi-check-circle"
+            color="primary"
+            size="small"
+            class="copy-candidate-check"
+            aria-hidden="true"
+          />
+          {{ candidate.experimentTitle || "(untitled experiment)" }}
+        </div>
 
         <div class="copy-candidate-meta">
           {{ candidate.conditionCount }} condition{{ candidate.conditionCount === 1 ? "" : "s" }}
@@ -95,6 +108,14 @@ watch(
   { immediate: true }
 );
 
+const isSelected = candidateId => selectedIds.value.includes(candidateId);
+
+const toggleSelected = candidateId => {
+  selectedIds.value = isSelected(candidateId)
+    ? selectedIds.value.filter(id => id !== candidateId)
+    : [...selectedIds.value, candidateId];
+};
+
 const selectAll = () => {
   selectedIds.value = props.candidates.map(candidate => candidate.id);
 };
@@ -147,14 +168,49 @@ const unselectAll = () => {
 
 .copy-candidate-option {
   text-align: left;
-  border: thin solid rgba(0, 0, 0, 0.12);
+  // 2px on every state (not just selected) so selecting/unselecting doesn't shift layout
+  // by changing border width
+  border: 2px solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
   padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.3);
+  }
+
+  // a visible focus ring is the one part of this that must never depend on color alone
+  // being enough - this is a custom (div-based) checkbox, so it gets no native outline
+  &:focus-visible {
+    outline: 2px solid map.get($blue, "base");
+    outline-offset: 2px;
+  }
+
+  &--selected {
+    border-color: map.get($blue, "base");
+    background-color: map.get($blue, "lighten-5");
+
+    &:hover {
+      border-color: map.get($blue, "base");
+    }
+  }
+}
+
+.copy-candidate-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.copy-candidate-check {
+  flex: none;
 }
 
 .copy-candidate-meta {
   font-size: 0.85em;
   color: rgba(0, 0, 0, 0.6);
-  margin-left: 32px;
+  // lines up under the title text, which no longer has a checkbox indenting it
+  margin-left: 0;
 }
 </style>
