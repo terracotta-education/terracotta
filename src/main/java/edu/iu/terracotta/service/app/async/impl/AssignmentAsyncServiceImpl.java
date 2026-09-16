@@ -88,6 +88,9 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     @Value("${assignment.file.archive.local.path.root}")
     private String assignmentFileArchiveLocalPathRoot;
 
+    @Value("${app.assignments.obsolete.check.enabled:true}")
+    private boolean obsoleteAssignmentCheckEnabled;
+
     @Async
     @Override
     @Transactional(rollbackFor = { ApiException.class })
@@ -184,6 +187,11 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     @Override
     @Transactional(rollbackFor = { ApiException.class })
     public void handleObsoleteAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        if (!obsoleteAssignmentCheckEnabled) {
+            log.debug("Obsolete assignment check is disabled. Skipping for context ID: [{}]", securedInfo.getContextId());
+            return;
+        }
+
         // get assignments that currently exist in Terracotta for this context
         List<Assignment> terracottaAssignments = assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
 
