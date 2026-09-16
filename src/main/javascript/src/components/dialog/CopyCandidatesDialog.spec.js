@@ -122,13 +122,99 @@ describe("CopyCandidatesDialog", () => {
     expect(buttons[1].attributes("disabled")).toBeUndefined();
   });
 
-  it("emits selectionChange with the current selection, including immediately on mount", async () => {
+  it("disables 'Create selected' until at least one candidate is selected", async () => {
     const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
 
-    expect(wrapper.emitted("selectionChange")[0]).toEqual([[]]);
+    const createButton = wrapper.findAll(".copy-candidates-btn--primary")[0];
+    expect(createButton.attributes("disabled")).toBeDefined();
 
     await wrapper.findAll(".copy-candidate-option")[0].trigger("click");
 
-    expect(wrapper.emitted("selectionChange").at(-1)).toEqual([["c1"]]);
+    expect(createButton.attributes("disabled")).toBeUndefined();
+  });
+
+  describe("confirmation overlay", () => {
+    it("shows a confirmation overlay over the (still-visible) grid instead of hiding it, for each of the three actions", async () => {
+      const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
+
+      await wrapper.findAll(".copy-candidate-option")[0].trigger("click");
+
+      expect(wrapper.find(".copy-candidates-confirm-overlay").exists()).toBe(false);
+      expect(wrapper.find(".copy-candidates-content").attributes("inert")).toBeUndefined();
+
+      const [deferButton, declineButton, createButton] = wrapper.findAll(".copy-candidates-btn").filter(
+        button => !button.element.closest(".copy-candidates-confirm-panel")
+      );
+
+      await deferButton.trigger("click");
+      expect(wrapper.find(".copy-candidates-confirm-overlay").text()).toContain(
+        "Experiment selection will be available"
+      );
+      // the grid is still in the DOM (present, just inert/dimmed) underneath the overlay
+      expect(wrapper.find(".copy-candidates-grid").exists()).toBe(true);
+      expect(wrapper.find(".copy-candidates-content").attributes("inert")).toBeDefined();
+
+      await wrapper.find(".copy-candidates-confirm-buttons .copy-candidates-btn--tertiary").trigger("click");
+      expect(wrapper.find(".copy-candidates-confirm-overlay").exists()).toBe(false);
+
+      await declineButton.trigger("click");
+      expect(wrapper.find(".copy-candidates-confirm-overlay").text()).toContain(
+        "You will not be able to return to this screen"
+      );
+      await wrapper.find(".copy-candidates-confirm-buttons .copy-candidates-btn--tertiary").trigger("click");
+
+      await createButton.trigger("click");
+      expect(wrapper.find(".copy-candidates-confirm-overlay").text()).toContain(
+        "Ensure you've selected all experiments"
+      );
+    });
+
+    it("emits 'defer' only once the overlay confirmation is accepted", async () => {
+      const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
+      const [deferButton] = wrapper.findAll(".copy-candidates-btn");
+
+      await deferButton.trigger("click");
+      expect(wrapper.emitted("defer")).toBeUndefined();
+
+      await wrapper.find(".copy-candidates-confirm-buttons .copy-candidates-btn--primary").trigger("click");
+      expect(wrapper.emitted("defer")).toHaveLength(1);
+    });
+
+    it("emits 'decline' only once the overlay confirmation is accepted", async () => {
+      const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
+      const [, declineButton] = wrapper.findAll(".copy-candidates-btn");
+
+      await declineButton.trigger("click");
+      await wrapper.find(".copy-candidates-confirm-buttons .copy-candidates-btn--primary").trigger("click");
+
+      expect(wrapper.emitted("decline")).toHaveLength(1);
+    });
+
+    it("emits 'create' with the current selection only once the overlay confirmation is accepted", async () => {
+      const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
+
+      await wrapper.findAll(".copy-candidate-option")[0].trigger("click");
+
+      const [, , createButton] = wrapper.findAll(".copy-candidates-btn");
+      await createButton.trigger("click");
+      await wrapper.find(".copy-candidates-confirm-buttons .copy-candidates-btn--primary").trigger("click");
+
+      expect(wrapper.emitted("create")).toEqual([[["c1"]]]);
+    });
+
+    it("does not emit anything when 'Go back to selection' is chosen, and lets the selection keep changing", async () => {
+      const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
+      const [deferButton] = wrapper.findAll(".copy-candidates-btn");
+
+      await deferButton.trigger("click");
+      await wrapper.find(".copy-candidates-confirm-buttons .copy-candidates-btn--tertiary").trigger("click");
+
+      expect(wrapper.emitted("defer")).toBeUndefined();
+      expect(wrapper.find(".copy-candidates-confirm-overlay").exists()).toBe(false);
+
+      await wrapper.findAll(".copy-candidate-option")[0].trigger("click");
+      const hiddenInput = wrapper.find("#copy-candidates-selected");
+      expect(JSON.parse(hiddenInput.element.value)).toEqual(["c1"]);
+    });
   });
 });

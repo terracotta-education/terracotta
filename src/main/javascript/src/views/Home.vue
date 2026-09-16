@@ -573,64 +573,41 @@ const handleImportExperiment = async () => {
   };
 };
 
-// shown before either "leaving without deciding" path (declining for good, or just deferring)
-// actually takes effect - "Go back to selection" re-opens the dialog instead of proceeding
-const confirmLeavingCopyCandidates = async text => {
-  const result = await Swal.fire({
-    text,
-    showCancelButton: true,
-    confirmButtonText: "Got it!",
-    cancelButtonText: "Go back to selection",
-    reverseButtons: true
-  });
-
-  return result.isConfirmed;
-};
-
 const handleShowCopyCandidates = async () => {
   let dialogApp = null;
+  let outcome = null;
 
-  // three distinct outcomes, not just confirm/cancel: confirming imports the selected
-  // candidates; denying ("No thanks") dismisses every candidate currently shown, so the
-  // prompt stops appearing for good; plain cancel (or closing the dialog any other way)
-  // leaves everything PENDING so the prompt simply asks again next visit.
-  const result = await Swal.fire({
+  // the dialog owns its own three confirmations (create/decline/defer) as an overlay over
+  // its own checkbox grid, rather than as separate Swal.fire calls - SweetAlert2 has no
+  // native support for stacking a second popup on top of one that's already open, so a
+  // follow-up Swal.fire would just replace this dialog's content instead of appearing over
+  // it. This one popup stays open for the whole interaction; it's only closed (via
+  // Swal.close()) once the dialog reports a final, already-confirmed outcome.
+  await Swal.fire({
     html: '<div id="dialog-copy-candidates"></div>',
-    showCancelButton: true,
-    showDenyButton: true,
-    confirmButtonText: "Create selected experiments",
-    denyButtonText: "No thank you",
-    cancelButtonText: "I'll decide later",
-    reverseButtons: true,
+    showConfirmButton: false,
+    showDenyButton: false,
+    showCancelButton: false,
     allowOutsideClick: false,
     allowEscapeKey: false,
-    focusConfirm: false,
     customClass: {
       popup: "copy-candidates-popup"
-    },
-    preConfirm: () => {
-      const selectedInput = Swal.getPopup().querySelector("input#copy-candidates-selected");
-      const selectedIds = selectedInput?.value ? JSON.parse(selectedInput.value) : [];
-
-      if (selectedIds.length === 0) {
-        Swal.showValidationMessage("Please select at least one experiment to recreate, or cancel.");
-        return false;
-      }
-
-      return { selectedIds };
     },
     didOpen: () => {
       const mountTarget = document.getElementById("dialog-copy-candidates");
       dialogApp = createApp(CopyCandidatesDialog, {
         candidates: copyCandidates.value,
-        // CopyCandidatesDialog emits this immediately on mount with its (unchecked-by-default)
-        // selection, so the confirm button starts disabled without a separate initial call here
-        onSelectionChange: selectedIdsSoFar => {
-          const confirmButton = Swal.getConfirmButton();
-
-          if (confirmButton) {
-            confirmButton.disabled = selectedIdsSoFar.length === 0;
-          }
+        onCreate: selectedIds => {
+          outcome = { type: "create", selectedIds };
+          Swal.close();
+        },
+        onDecline: () => {
+          outcome = { type: "decline" };
+          Swal.close();
+        },
+        onDefer: () => {
+          outcome = { type: "defer" };
+          Swal.close();
         }
       });
       dialogApp.use(vuetify);
@@ -641,39 +618,16 @@ const handleShowCopyCandidates = async () => {
     }
   });
 
-  if (result.isDenied) {
-    // "No thank you" is permanent (declines every currently-PENDING candidate for this
-    // context) - confirm before actually proceeding, since it can't be undone from here
-    const confirmed = await confirmLeavingCopyCandidates(
-      "You will not be able to return to this screen to select experiments. You will need to export and import manually."
-    );
-
-    if (!confirmed) {
-      await handleShowCopyCandidates();
-      return;
-    }
-  }
-
-  // "No Thanks" resolves with nothing selected - the backend declines (and obsolete-processes)
-  // every currently-PENDING candidate for this context, same as importing zero of them would.
-  const selectedIds = result.isDenied
-    ? []
-    : result.isConfirmed
-      ? result.value.selectedIds
-      : null;
-
-  if (selectedIds === null) {
-    // plain cancel ("I'll decide later") - leave everything PENDING, ask again next visit
-    const confirmed = await confirmLeavingCopyCandidates(
-      "Experiment selection will be available until you either selected one from this list or have created a new one yourself."
-    );
-
-    if (!confirmed) {
-      await handleShowCopyCandidates();
-    }
-
+  // "I'll decide later" (or closing the dialog any other way) leaves everything PENDING,
+  // so the prompt simply asks again next visit.
+  if (!outcome || outcome.type === "defer") {
     return;
   }
+
+  // "No thank you" resolves with nothing selected - the backend declines (and
+  // obsolete-processes) every currently-PENDING candidate for this context, same as
+  // importing zero of them would.
+  const selectedIds = outcome.type === "create" ? outcome.selectedIds : [];
 
   const resolution = await experimentCopyCandidateStore.resolve(selectedIds);
 
