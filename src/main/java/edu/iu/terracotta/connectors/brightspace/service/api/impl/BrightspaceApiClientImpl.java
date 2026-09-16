@@ -511,7 +511,7 @@ public class BrightspaceApiClientImpl implements ApiClient {
     public Optional<LmsAssignment> editAssignment(LtiUserEntity apiUser, LmsAssignment lmsAssignment, String orgUnitId) throws ApiException {
         try {
             return castOptional(
-                getWriter(apiUser, AssignmentWriterService.class)
+                getWriter(apiUser, AssignmentWriterService.class, true)
                     .editAssignment(orgUnitId, lmsAssignment)
             );
         } catch (Exception e) {
@@ -523,7 +523,7 @@ public class BrightspaceApiClientImpl implements ApiClient {
     public Optional<LmsAssignment> editAssignment(PlatformDeployment platformDeployment, LmsAssignment lmsAssignment, String orgUnitId, String tokenOverride) throws ApiException {
         try {
             return castOptional(
-                getWriter(platformDeployment.getBaseUrl(), AssignmentWriterService.class, tokenOverride)
+                getWriter(platformDeployment.getBaseUrl(), AssignmentWriterService.class, tokenOverride, true)
                     .editAssignment(orgUnitId, lmsAssignment)
             );
         } catch (Exception e) {
@@ -863,8 +863,8 @@ public class BrightspaceApiClientImpl implements ApiClient {
         return getApiFactory(apiUser).getWriter(clazz, getOauthToken(apiUser), serializeNulls);
     }
 
-    private <T extends BrightspaceWriterService<?, T>> T getWriter(String baseUrl, Class<T> clazz, String tokenOverride) throws ApiException {
-        return getWriterInternal(baseUrl, clazz, getOauthToken(null, tokenOverride));
+    private <T extends BrightspaceWriterService<?, T>> T getWriter(String baseUrl, Class<T> clazz, String tokenOverride, boolean serializeNulls) throws ApiException {
+        return getApiFactory(baseUrl).getWriter(clazz, getOauthToken(null, tokenOverride), serializeNulls);
     }
 
     private <T extends BrightspaceReaderService<?, T>> T getReader(LtiUserEntity apiUser, Class<T> clazz) throws ApiException {
