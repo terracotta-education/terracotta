@@ -70,6 +70,8 @@ public class ConditionServiceImplTest extends BaseTest {
     public void testPostConditionSuccess() throws Exception {
         ConditionDto conditionDto = ConditionDto.builder().name("New Condition").build();
         when(conditionRepository.save(any(Condition.class))).thenReturn(condition);
+        when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
+        when(experimentRepository.findByUuid(experiment.getUuid())).thenReturn(experiment);
 
         ConditionDto retVal = conditionService.postCondition(conditionDto, 1L);
 
@@ -131,7 +133,7 @@ public class ConditionServiceImplTest extends BaseTest {
         ConditionDto retVal = conditionService.toDto(condition);
 
         assertEquals(condition.getUuid(), retVal.getConditionId());
-        assertEquals(1L, retVal.getExperimentId());
+        assertEquals(experiment.getUuid(), retVal.getExperimentId());
         assertEquals(CONDITION_TITLE, retVal.getName());
         assertTrue(retVal.getDefaultCondition());
         assertEquals(50F, retVal.getDistributionPct());
@@ -142,7 +144,8 @@ public class ConditionServiceImplTest extends BaseTest {
         // conditionDto.getConditionId() (now a uuid) is intentionally not set on a new Condition
         // by fromDto - see the comment on ConditionServiceImpl.fromDto - so it isn't asserted here,
         // mirroring ExperimentServiceImplTest#testFromDtoSuccess.
-        ConditionDto conditionDto = ConditionDto.builder().conditionId(UUID.randomUUID()).experimentId(1L).name("Condition A").defaultCondition(true).distributionPct(50F).build();
+        ConditionDto conditionDto = ConditionDto.builder().conditionId(UUID.randomUUID()).experimentId(experiment.getUuid()).name("Condition A").defaultCondition(true).distributionPct(50F).build();
+        when(experimentRepository.findByUuid(experiment.getUuid())).thenReturn(experiment);
 
         Condition retVal = conditionService.fromDto(conditionDto);
 

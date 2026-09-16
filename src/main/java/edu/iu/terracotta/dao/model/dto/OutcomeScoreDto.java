@@ -20,7 +20,7 @@ public class OutcomeScoreDto {
 
     private UUID outcomeScoreId;
     private UUID outcomeId;
-    private Long participantId;
+    private UUID participantId;
     private Float scoreNumeric;
 
 }

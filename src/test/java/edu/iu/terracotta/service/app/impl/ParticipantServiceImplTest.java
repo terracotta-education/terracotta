@@ -356,6 +356,9 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Test
     public void testPostParticipant() throws IdInPostException, DataServiceException {
         when(participantDto.getParticipantId()).thenReturn(null);
+        UUID experimentUuid = experiment.getUuid();
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(experiment);
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
         ParticipantDto retVal = participantService.postParticipant(participantDto, 1l, securedInfo);
 
         assertNotNull(retVal);
@@ -661,7 +664,9 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoSuccess() throws DataServiceException {
-        when(participantDto.getExperimentId()).thenReturn(1L);
+        UUID experimentUuid = experiment.getUuid();
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(experiment);
 
         Participant retVal = participantService.fromDto(participantDto);
 
@@ -671,7 +676,9 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoGroupAssignedWhenExists() throws DataServiceException {
         UUID groupUuid = UUID.randomUUID();
-        when(participantDto.getExperimentId()).thenReturn(1L);
+        UUID experimentUuid = experiment.getUuid();
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(experiment);
         when(participantDto.getGroupId()).thenReturn(groupUuid);
         when(group.getExperiment()).thenReturn(experiment);
         when(groupRepository.findByUuid(groupUuid)).thenReturn(group);
@@ -683,15 +690,18 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoExperimentNotFoundThrows() {
-        when(participantDto.getExperimentId()).thenReturn(1L);
-        when(experimentRepository.findById(anyLong())).thenReturn(Optional.empty());
+        UUID experimentUuid = UUID.randomUUID();
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(null);
 
         assertThrows(DataServiceException.class, () -> participantService.fromDto(participantDto));
     }
 
     @Test
     public void testFromDtoUserNotFoundThrows() {
-        when(participantDto.getExperimentId()).thenReturn(1L);
+        UUID experimentUuid = experiment.getUuid();
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(experiment);
         when(ltiUserRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         assertThrows(DataServiceException.class, () -> participantService.fromDto(participantDto));

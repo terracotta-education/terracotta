@@ -134,8 +134,8 @@ public class OutcomeScoreControllerTest extends BaseTest {
 
     @Test
     void testPostOutcomeScore() throws Exception {
-        OutcomeScoreDto requestDto = OutcomeScoreDto.builder().participantId(1L).scoreNumeric(5F).build();
-        OutcomeScoreDto returnedDto = OutcomeScoreDto.builder().outcomeScoreId(OUTCOME_SCORE_UUID).participantId(1L).scoreNumeric(5F).build();
+        OutcomeScoreDto requestDto = OutcomeScoreDto.builder().participantId(UUID.randomUUID()).scoreNumeric(5F).build();
+        OutcomeScoreDto returnedDto = OutcomeScoreDto.builder().outcomeScoreId(OUTCOME_SCORE_UUID).participantId(UUID.randomUUID()).scoreNumeric(5F).build();
         HttpHeaders headers = new HttpHeaders();
         when(outcomeScoreService.postOutcomeScore(requestDto, 1L, 1L)).thenReturn(returnedDto);
         when(outcomeScoreService.buildHeaders(any(UriComponentsBuilder.class), any(UUID.class), any(UUID.class), any(UUID.class), any(UUID.class))).thenReturn(headers);

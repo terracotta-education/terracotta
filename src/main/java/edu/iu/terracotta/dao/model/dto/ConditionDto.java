@@ -19,7 +19,7 @@ import java.util.UUID;
 public class ConditionDto {
 
     private UUID conditionId;
-    private Long experimentId;
+    private UUID experimentId;
     private String name;
     private Boolean defaultCondition;
     private float distributionPct;

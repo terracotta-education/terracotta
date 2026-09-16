@@ -21,7 +21,7 @@ import java.util.UUID;
 public class ParticipantDto {
 
     private UUID participantId;
-    private Long experimentId;
+    private UUID experimentId;
     private UserDto user;
     private Boolean consent;
     private Timestamp dateGiven;

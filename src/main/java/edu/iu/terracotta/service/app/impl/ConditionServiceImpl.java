@@ -54,7 +54,8 @@ public class ConditionServiceImpl implements ConditionService {
         validateConditionName("", conditionDto.getName(), experimentId, 0L, false);
         validateMaximumConditionsNotReached(experimentId);
 
-        conditionDto.setExperimentId(experimentId);
+        Experiment experimentForDto = experimentRepository.findById(experimentId).orElse(null);
+        conditionDto.setExperimentId(experimentForDto != null ? experimentForDto.getUuid() : null);
         Condition condition;
 
         try {
@@ -70,7 +71,7 @@ public class ConditionServiceImpl implements ConditionService {
     public ConditionDto toDto(Condition condition) {
         ConditionDto conditionDto = new ConditionDto();
         conditionDto.setConditionId(condition.getUuid());
-        conditionDto.setExperimentId(condition.getExperiment().getExperimentId());
+        conditionDto.setExperimentId(condition.getExperiment().getUuid());
         conditionDto.setName(condition.getName());
         conditionDto.setDefaultCondition(condition.getDefaultCondition());
         conditionDto.setDistributionPct(condition.getDistributionPct());
@@ -85,13 +86,13 @@ public class ConditionServiceImpl implements ConditionService {
         // (IdInPostException), and the real numeric id/uuid are both IDENTITY/@PrePersist
         // generated at insert time regardless.
         Condition condition = new Condition();
-        Optional<Experiment> experiment = experimentRepository.findById(conditionDto.getExperimentId());
+        Experiment experiment = conditionDto.getExperimentId() != null ? experimentRepository.findByUuid(conditionDto.getExperimentId()) : null;
 
-        if (experiment.isEmpty()) {
+        if (experiment == null) {
             throw new DataServiceException("The experiment for the condition does not exist");
         }
 
-        condition.setExperiment(experiment.get());
+        condition.setExperiment(experiment);
         condition.setName(conditionDto.getName());
         condition.setDefaultCondition(conditionDto.getDefaultCondition());
         condition.setDistributionPct(conditionDto.getDistributionPct());

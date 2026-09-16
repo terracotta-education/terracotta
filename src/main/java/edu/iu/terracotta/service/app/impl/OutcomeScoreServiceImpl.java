@@ -77,7 +77,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
         OutcomeScoreDto outcomeScoreDto = new OutcomeScoreDto();
         outcomeScoreDto.setOutcomeScoreId(outcomeScore.getUuid());
         outcomeScoreDto.setOutcomeId(outcomeScore.getOutcome().getUuid());
-        outcomeScoreDto.setParticipantId(outcomeScore.getParticipant().getParticipantId());
+        outcomeScoreDto.setParticipantId(outcomeScore.getParticipant().getUuid());
         outcomeScoreDto.setScoreNumeric(outcomeScore.getScoreNumeric());
 
         return outcomeScoreDto;
@@ -95,7 +95,7 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
 
         outcomeScore.setOutcome(outcome);
 
-        Optional<Participant> participant = participantRepository.findById(outcomeScoreDto.getParticipantId());
+        Optional<Participant> participant = participantRepository.findByUuid(outcomeScoreDto.getParticipantId());
 
         if (participant.isEmpty()) {
             throw new DataServiceException("The participant for the outcome score does not exist.");
@@ -144,14 +144,14 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     }
 
     @Override
-    public void validateParticipant(Long participantId, Long experimentId) throws InvalidParticipantException {
+    public void validateParticipant(UUID participantId, Long experimentId) throws InvalidParticipantException {
         if (participantId == null) {
             throw new InvalidParticipantException("Error 105: Must include a valid participant id in the POST");
         }
 
-        Optional<Participant> participant = participantRepository.findByIdAndExperiment_ExperimentId(participantId, experimentId);
+        Optional<Participant> participant = participantRepository.findByUuid(participantId);
 
-        if (participant.isEmpty()) {
+        if (participant.isEmpty() || !participant.get().getExperiment().getExperimentId().equals(experimentId)) {
             throw new InvalidParticipantException("Error 109: The participant provided does not belong to this experiment.");
         }
     }

@@ -253,7 +253,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         Participant participant;
-        participantDto.setExperimentId(experimentId);
+        participantDto.setExperimentId(experiment.getUuid());
 
         try {
             participant = fromDto(participantDto);
@@ -279,7 +279,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .dateGiven(participant.getDateGiven())
             .dateRevoked(participant.getDateRevoked())
             .dropped(participant.getDropped())
-            .experimentId(participant.getExperiment().getExperimentId())
+            .experimentId(participant.getExperiment().getUuid())
             .source(participant.getSource().name())
             .started(hasParticipantSubmitted(participant, publishedExperimentAssignmentIds))
             .updatedAt(participant.getUpdatedAt())
@@ -306,9 +306,9 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public Participant fromDto(ParticipantDto participantDto) throws DataServiceException {
-        Optional<Experiment> experiment = experimentRepository.findById(participantDto.getExperimentId());
+        Experiment experiment = participantDto.getExperimentId() != null ? experimentRepository.findByUuid(participantDto.getExperimentId()) : null;
 
-        if (experiment.isEmpty()) {
+        if (experiment == null) {
             throw new DataServiceException("The experiment for the participant does not exist");
         }
 
@@ -317,7 +317,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .dateGiven(participantDto.getDateGiven())
             .dateRevoked(participantDto.getDateRevoked())
             .dropped(participantDto.getDropped())
-            .experiment(experiment.get())
+            .experiment(experiment)
             .source(ParticipationTypes.valueOf(participantDto.getSource()))
             .build();
 
@@ -333,7 +333,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (participantDto.getGroupId() != null) {
             Group group = groupRepository.findByUuid(participantDto.getGroupId());
 
-            if (group != null && experiment.get().getExperimentId().equals(group.getExperiment().getExperimentId())) {
+            if (group != null && experiment.getExperimentId().equals(group.getExperiment().getExperimentId())) {
                 participant.setGroup(group);
             }
         }

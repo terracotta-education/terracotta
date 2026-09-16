@@ -52,7 +52,6 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
         setup();
 
         when(outcomeScoreRepository.findByOutcomeScoreId(anyLong())).thenReturn(outcomeScore);
-        when(participantRepository.findByIdAndExperiment_ExperimentId(anyLong(), anyLong())).thenReturn(Optional.of(participant));
         when(outcomeScoreRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
         when(outcome.getUuid()).thenReturn(OUTCOME_UUID);
         when(outcomeRepository.findByUuid(OUTCOME_UUID)).thenReturn(outcome);
@@ -63,13 +62,13 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
     public void testUpdateOutcomeScoresBatchesExistingAndNewScoresIntoOneSaveAll() throws DataServiceException, InvalidParticipantException {
         OutcomeScoreDto existingScoreDto = OutcomeScoreDto.builder()
             .outcomeScoreId(OUTCOME_SCORE_UUID)
-            .participantId(1L)
+            .participantId(UUID.randomUUID())
             .outcomeId(OUTCOME_UUID)
             .scoreNumeric(5F)
             .build();
 
         OutcomeScoreDto newScoreDto = OutcomeScoreDto.builder()
-            .participantId(2L)
+            .participantId(UUID.randomUUID())
             .outcomeId(OUTCOME_UUID)
             .scoreNumeric(3F)
             .build();
@@ -92,13 +91,14 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
 
     @Test
     public void testUpdateOutcomeScoresValidatesParticipantForNewScores() {
+        UUID notFoundParticipantUuid = UUID.randomUUID();
         OutcomeScoreDto newScoreDto = OutcomeScoreDto.builder()
-            .participantId(99L)
+            .participantId(notFoundParticipantUuid)
             .outcomeId(OUTCOME_UUID)
             .scoreNumeric(3F)
             .build();
 
-        when(participantRepository.findByIdAndExperiment_ExperimentId(anyLong(), anyLong())).thenReturn(Optional.empty());
+        when(participantRepository.findByUuid(notFoundParticipantUuid)).thenReturn(Optional.empty());
 
         assertThrows(
             InvalidParticipantException.class,
@@ -147,7 +147,7 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
 
         assertNotNull(dto);
         assertEquals(OUTCOME_UUID, dto.getOutcomeId());
-        assertEquals(participant.getParticipantId(), dto.getParticipantId());
+        assertEquals(participant.getUuid(), dto.getParticipantId());
     }
 
     @Test
@@ -168,7 +168,7 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
     public void testPostOutcomeScoreHappyPath() throws Exception {
         // outcomeId is overwritten by postOutcomeScore itself (resolved from the numeric outcomeId
         // argument via the OUTCOME_UUID stub in beforeEach), so the builder value here is a placeholder.
-        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(OUTCOME_UUID).scoreNumeric(5F).build();
+        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(UUID.randomUUID()).outcomeId(OUTCOME_UUID).scoreNumeric(5F).build();
         when(outcomeScoreRepository.save(any(OutcomeScore.class))).thenReturn(outcomeScore);
 
         OutcomeScoreDto result = outcomeScoreService.postOutcomeScore(dto, 1L, 1L);
@@ -180,7 +180,7 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
 
     @Test
     public void testPostOutcomeScoreFromDtoOutcomeNotFound() {
-        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(OUTCOME_UUID).build();
+        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(UUID.randomUUID()).outcomeId(OUTCOME_UUID).build();
         when(outcomeRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         Exception exception = assertThrows(DataServiceException.class, () -> outcomeScoreService.postOutcomeScore(dto, 1L, 1L));
@@ -189,13 +189,19 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testPostOutcomeScoreFromDtoParticipantNotFound() {
-        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(1L).outcomeId(OUTCOME_UUID).build();
-        when(participantRepository.findById(anyLong())).thenReturn(Optional.empty());
+    public void testFromDtoParticipantNotFound() {
+        // validateParticipant (called before fromDto in postOutcomeScore) now shares the exact same
+        // findByUuid resolution as fromDto's own participant lookup, so a not-found participant is
+        // always caught there first (as InvalidParticipantException) and this path is unreachable via
+        // postOutcomeScore - exercised directly against fromDto instead, mirroring the direct-fromDto
+        // "not found" tests used elsewhere in this migration (e.g. ConditionServiceImplTest).
+        UUID participantUuid = UUID.randomUUID();
+        OutcomeScoreDto dto = OutcomeScoreDto.builder().participantId(participantUuid).outcomeId(OUTCOME_UUID).build();
+        when(participantRepository.findByUuid(participantUuid)).thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(DataServiceException.class, () -> outcomeScoreService.postOutcomeScore(dto, 1L, 1L));
+        Exception exception = assertThrows(DataServiceException.class, () -> outcomeScoreService.fromDto(dto));
 
-        assertEquals("Error 105: Unable to create outcome score: The participant for the outcome score does not exist.", exception.getMessage());
+        assertEquals("The participant for the outcome score does not exist.", exception.getMessage());
     }
 
     @Test
@@ -224,16 +230,27 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
 
     @Test
     public void testValidateParticipantNotBelongToExperiment() {
-        when(participantRepository.findByIdAndExperiment_ExperimentId(anyLong(), anyLong())).thenReturn(Optional.empty());
+        UUID participantUuid = UUID.randomUUID();
+        when(participantRepository.findByUuid(participantUuid)).thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(InvalidParticipantException.class, () -> outcomeScoreService.validateParticipant(1L, 1L));
+        Exception exception = assertThrows(InvalidParticipantException.class, () -> outcomeScoreService.validateParticipant(participantUuid, 1L));
+
+        assertEquals("Error 109: The participant provided does not belong to this experiment.", exception.getMessage());
+    }
+
+    @Test
+    public void testValidateParticipantWrongExperimentThrows() {
+        UUID participantUuid = UUID.randomUUID();
+        when(participantRepository.findByUuid(participantUuid)).thenReturn(Optional.of(participant));
+
+        Exception exception = assertThrows(InvalidParticipantException.class, () -> outcomeScoreService.validateParticipant(participantUuid, 2L));
 
         assertEquals("Error 109: The participant provided does not belong to this experiment.", exception.getMessage());
     }
 
     @Test
     public void testValidateParticipantValid() {
-        assertDoesNotThrow(() -> outcomeScoreService.validateParticipant(1L, 1L));
+        assertDoesNotThrow(() -> outcomeScoreService.validateParticipant(UUID.randomUUID(), 1L));
     }
 
     @Test
