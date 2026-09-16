@@ -460,7 +460,9 @@ public class BaseModelTest {
             when(questionSubmission.getQuestion()).thenReturn(question);
             when(questionSubmission.getQuestionSubmissionId()).thenReturn(1L);
             when(questionSubmission.getSubmission()).thenReturn(submission);
+            when(questionSubmission.getUuid()).thenReturn(UUID.randomUUID());
             when(questionSubmissionComment.getQuestionSubmission()).thenReturn(questionSubmission);
+            when(questionSubmissionComment.getUuid()).thenReturn(UUID.randomUUID());
             when(restTemplate.exchange(anyString(), eq(HttpMethod.PUT), any(HttpEntity.class), eq(LineItem.class))).thenReturn(lineItemResponseEntity);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(LineItem.class))).thenReturn(lineItemResponseEntity);
             when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(LineItems.class))).thenReturn(lineItemsResponseEntity);
@@ -489,6 +491,7 @@ public class BaseModelTest {
             when(submission.getQuestionSubmissions()).thenReturn(Collections.singletonList(questionSubmission));
             when(submission.getSubmissionId()).thenReturn(1L);
             when(submission.getTotalAlteredGrade()).thenReturn(1F);
+            when(submission.getUuid()).thenReturn(UUID.randomUUID());
             when(submission.isIntegration()).thenReturn(false);
             when(submissionCanvas.getScore()).thenReturn(1.0D);
             when(submissionCanvas.getUser()).thenReturn(user);

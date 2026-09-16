@@ -89,6 +89,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -182,6 +183,12 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
+    public Submission getSubmissionByUuid(UUID uuid) throws SubmissionNotMatchingException {
+        return Optional.ofNullable(submissionRepository.findByUuid(uuid))
+            .orElseThrow(() -> new SubmissionNotMatchingException(TextConstants.SUBMISSION_NOT_MATCHING));
+    }
+
+    @Override
     public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student)
             throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         if (submissionDto.getSubmissionId() != null) {
@@ -244,7 +251,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments) {
         SubmissionDto submissionDto = SubmissionDto.builder().build();
-        submissionDto.setSubmissionId(submission.getSubmissionId());
+        submissionDto.setSubmissionId(submission.getUuid());
         submissionDto.setParticipantId(submission.getParticipant().getUuid());
         submissionDto.setAssessmentId(submission.getAssessment().getUuid());
         submissionDto.setConditionId(submission.getAssessment().getTreatment().getCondition().getUuid());
@@ -341,7 +348,10 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException {
         Submission submission = new Submission();
-        submission.setSubmissionId(submissionDto.getSubmissionId());
+
+        // submissionDto.getSubmissionId() (now a uuid) is intentionally not set on a new Submission here -
+        // postSubmission already rejects a create request that carries one (IdInPostException), and
+        // the real numeric id/uuid are both IDENTITY/@PrePersist generated at insert time regardless.
 
         if (!student) {  //Students can't post a submissions and change the grades.
             submission.setCalculatedGrade(submissionDto.getCalculatedGrade());
@@ -791,7 +801,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId).toUri());

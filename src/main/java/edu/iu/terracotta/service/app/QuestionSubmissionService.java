@@ -31,11 +31,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public interface QuestionSubmissionService {
 
     List<QuestionSubmissionDto> getQuestionSubmissions(long submissionId, boolean answerSubmissions, boolean questionSubmissionComments, long assessmentId, boolean isStudent) throws AssessmentNotMatchingException, IOException;
     QuestionSubmission getQuestionSubmission(Long id);
+    QuestionSubmission getQuestionSubmissionByUuid(UUID uuid) throws QuestionSubmissionNotMatchingException;
     List<QuestionSubmissionDto> postQuestionSubmissions(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws DataServiceException, IdInPostException, InvalidUserException, DuplicateQuestionException, IdMissingException, TypeNotSupportedException;
     void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, QuestionSubmissionNotMatchingException, IdMissingException;
     QuestionSubmissionDto toDto(QuestionSubmission questionSubmission, boolean answerSubmissions, boolean questionSubmissionComments) throws IOException;
@@ -49,7 +51,7 @@ public interface QuestionSubmissionService {
     void deleteById(Long id) throws EmptyResultDataAccessException;
     QuestionSubmission automaticGradingMC(QuestionSubmission questionSubmission, AnswerMcSubmission answerMcSubmission);
     void validateDtoPost(QuestionSubmissionDto questionSubmissionDto, Long assessmentId, Long submissionId, boolean student) throws IdMissingException, DuplicateQuestionException, InvalidUserException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId);
     void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException;
     void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException;
     void canSubmit(SecuredInfo securedInfo, long experimentId) throws IOException, AssignmentAttemptException, ApiException, TerracottaConnectorException, AssignmentLockedException;

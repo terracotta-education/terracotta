@@ -61,6 +61,10 @@ public class MediaProfileControllerTest extends BaseTest {
     // what this test's apijwtService stubs already expect
     private static final UUID ASSESSMENT_UUID = UUID.randomUUID();
 
+    // the uuid path variable for the one submission under test; overrides the shared submission
+    // mock's getSubmissionId() (see BaseModelTest) to resolve to SUBMISSION_ID above
+    private static final UUID SUBMISSION_UUID = UUID.randomUUID();
+
     @Mock private MediaService mediaService;
 
     // ConditionService has no mock in the BaseTest hierarchy, so it must be declared locally.
@@ -77,7 +81,7 @@ public class MediaProfileControllerTest extends BaseTest {
         // ApiJwtService/ApiClient/LmsUtils have multiple type-matching mocks in BaseServiceTest
         // (e.g. canvasApiJwtService also implements ApiJwtService), so @InjectMocks constructor
         // resolution by type alone is unreliable here; construct the controller explicitly instead.
-        mediaProfileController = new MediaProfileController(mediaService, apiJwtService, experimentService, conditionService, treatmentService, assessmentService, questionService);
+        mediaProfileController = new MediaProfileController(mediaService, apiJwtService, experimentService, conditionService, treatmentService, assessmentService, questionService, submissionService);
         mediaEventDto = new MediaEventDto();
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), eq(false))).thenReturn(securedInfo);
@@ -89,11 +93,13 @@ public class MediaProfileControllerTest extends BaseTest {
         when(assessmentService.getAssessmentByUuid(ASSESSMENT_UUID)).thenReturn(assessment);
         when(question.getQuestionId()).thenReturn(QUESTION_ID);
         when(questionService.getQuestionByUuid(QUESTION_UUID)).thenReturn(question);
+        when(submission.getSubmissionId()).thenReturn(SUBMISSION_ID);
+        when(submissionService.getSubmissionByUuid(SUBMISSION_UUID)).thenReturn(submission);
     }
 
     @Test
     void testPostMediaEvent() throws Exception {
-        ResponseEntity<?> response = mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_ID, QUESTION_UUID, mediaEventDto, null, httpServletRequest);
+        ResponseEntity<?> response = mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_UUID, mediaEventDto, null, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         verify(mediaService).fromDto(mediaEventDto, securedInfo, EXPERIMENT_ID, SUBMISSION_ID, QUESTION_ID);
@@ -105,7 +111,7 @@ public class MediaProfileControllerTest extends BaseTest {
 
         assertThrows(
             ExperimentNotMatchingException.class,
-            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_ID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
+            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
         );
     }
 
@@ -115,7 +121,7 @@ public class MediaProfileControllerTest extends BaseTest {
 
         assertThrows(
             TreatmentNotMatchingException.class,
-            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_ID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
+            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
         );
     }
 
@@ -125,7 +131,7 @@ public class MediaProfileControllerTest extends BaseTest {
 
         assertThrows(
             SubmissionNotMatchingException.class,
-            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_ID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
+            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
         );
     }
 
@@ -135,7 +141,7 @@ public class MediaProfileControllerTest extends BaseTest {
 
         assertThrows(
             QuestionNotMatchingException.class,
-            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_ID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
+            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
         );
     }
 
@@ -145,7 +151,7 @@ public class MediaProfileControllerTest extends BaseTest {
 
         assertThrows(
             ParameterMissingException.class,
-            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_ID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
+            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
         );
     }
 
@@ -155,7 +161,7 @@ public class MediaProfileControllerTest extends BaseTest {
 
         assertThrows(
             NoSubmissionsException.class,
-            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_ID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
+            () -> mediaProfileController.postMediaEvent(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_UUID, mediaEventDto, null, httpServletRequest)
         );
     }
 

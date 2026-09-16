@@ -229,11 +229,14 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(questionRepository.save(any(QuestionMc.class))).thenReturn(questionMc);
             when(questionRepository.saveAndFlush(any(Question.class))).thenReturn(question);
             when(questionRepository.saveAndFlush(any(QuestionMc.class))).thenReturn(questionMc);
+            when(questionSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(questionSubmission);
             when(questionSubmissionRepository.save(any(QuestionSubmission.class))).thenReturn(questionSubmission);
+            when(questionSubmissionCommentRepository.findByUuid(any(UUID.class))).thenReturn(questionSubmissionComment);
             when(submissionRepository.findById(anyLong())).thenReturn(Optional.of(submission));
             when(submissionRepository.findByParticipant_Id(anyLong())).thenReturn(List.of(submission));
             when(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(List.of(submission));
             when(submissionRepository.findBySubmissionId(anyLong())).thenReturn(submission);
+            when(submissionRepository.findByUuid(any(UUID.class))).thenReturn(submission);
             when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
             when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(anyString(), anyString(), anyString())).thenReturn(List.of(toolDeployment));
             when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(List.of(treatment));

@@ -21,7 +21,7 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SubmissionDto {
 
-    private Long submissionId;
+    private UUID submissionId;
     private UUID participantId;
     private UUID assessmentId;
     private UUID conditionId;

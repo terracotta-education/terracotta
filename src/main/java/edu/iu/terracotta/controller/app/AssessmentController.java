@@ -108,9 +108,10 @@ public class AssessmentController {
                                                        @RequestParam(name = "questions", defaultValue = "false") boolean questions,
                                                        @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
-                                                       @RequestParam(name = "submission_id", required = false) Long submissionId,
+                                                       @RequestParam(name = "submission_id", required = false) UUID submissionUuid,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException, NumberFormatException, TerracottaConnectorException {
+        Long submissionId = submissionUuid != null ? submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId() : null;
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();

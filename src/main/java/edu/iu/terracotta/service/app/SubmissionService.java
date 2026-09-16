@@ -26,12 +26,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface SubmissionService {
 
     List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException;
     Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException;
+    Submission getSubmissionByUuid(UUID uuid) throws SubmissionNotMatchingException;
     SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException;
     void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException;
     SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments);
@@ -46,7 +48,7 @@ public interface SubmissionService {
     Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException;
     void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException;
     void validateDto(Long experimentId, String userId, SubmissionDto submissionDto) throws InvalidUserException, ParticipantNotMatchingException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId);
     void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException;
     boolean isOwnSubmission(Long submissionId, SecuredInfo securedInfo);
     Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);

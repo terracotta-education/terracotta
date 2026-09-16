@@ -156,17 +156,17 @@ public class StepsController {
                 // elevated-role caller finalizing someone else's submission(s) goes through the
                 // instructor batch path below
                 boolean student = apijwtService.isLearner(securedInfo) && submissionsId.size() == 1
-                    && submissionService.isOwnSubmission(Long.parseLong(submissionsId.get(0)), securedInfo);
+                    && submissionService.isOwnSubmission(submissionService.getSubmissionByUuid(UUID.fromString(submissionsId.get(0))).getSubmissionId(), securedInfo);
 
                 try {
                     if (student) {
-                        Long submissionId = Long.parseLong(submissionsId.get(0));
+                        Long submissionId = submissionService.getSubmissionByUuid(UUID.fromString(submissionsId.get(0))).getSubmissionId();
                         questionSubmissionService.canSubmit(securedInfo, experimentId, preferLmsChecks);
                         submissionService.allowedSubmission(submissionId, securedInfo);
                         submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                     } else if (instructorOrHigher) {
                         for (String submissionIdString : submissionsId) {
-                            Long submissionId = Long.parseLong(submissionIdString);
+                            Long submissionId = submissionService.getSubmissionByUuid(UUID.fromString(submissionIdString)).getSubmissionId();
                             submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                         }
                     } else {

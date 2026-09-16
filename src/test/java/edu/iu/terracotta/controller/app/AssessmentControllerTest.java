@@ -52,6 +52,10 @@ public class AssessmentControllerTest extends BaseTest {
     // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
     private static final UUID ASSESSMENT_UUID = UUID.randomUUID();
 
+    // the uuid query param used for tests that resolve to a submission id of 5L via
+    // submissionService.getSubmissionByUuid (stubbed in beforeEach below)
+    private static final UUID SUBMISSION_UUID = UUID.randomUUID();
+
     // ConditionService has no mock in the BaseTest hierarchy, so it must be declared locally.
     @Mock private ConditionService conditionService;
 
@@ -77,6 +81,8 @@ public class AssessmentControllerTest extends BaseTest {
         when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
         when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
         when(assessmentService.getAssessmentByUuid(ASSESSMENT_UUID)).thenReturn(assessment);
+        when(submissionService.getSubmissionByUuid(SUBMISSION_UUID)).thenReturn(submission);
+        when(submission.getSubmissionId()).thenReturn(5L);
     }
 
     private void stubAuthorized() throws Exception {
@@ -159,7 +165,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(assessmentService.getAssessment(assessmentId)).thenReturn(assessment);
         when(assessmentService.toDto(eq(assessment), eq(5L), anyBoolean(), anyBoolean(), anyBoolean(), eq(true), eq(securedInfo))).thenReturn(assessmentDto);
 
-        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, 5L, httpServletRequest);
+        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, SUBMISSION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(submissionService, times(1)).getSubmission(experimentId, securedInfo.getUserId(), 5L, true);
@@ -189,7 +195,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(submissionService.getSubmission(eq(experimentId), any(), eq(5L), eq(true))).thenThrow(new NoSubmissionsException("not the student's submission"));
 
-        assertThrows(NoSubmissionsException.class, () -> assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, 5L, httpServletRequest));
+        assertThrows(NoSubmissionsException.class, () -> assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, SUBMISSION_UUID, httpServletRequest));
     }
 
     @Test
@@ -197,7 +203,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         org.mockito.Mockito.doThrow(new SubmissionNotMatchingException("no match")).when(apiJwtService).submissionAllowed(securedInfo, assessmentId, 5L);
 
-        assertThrows(SubmissionNotMatchingException.class, () -> assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, 5L, httpServletRequest));
+        assertThrows(SubmissionNotMatchingException.class, () -> assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, SUBMISSION_UUID, httpServletRequest));
     }
 
     // postAssessment

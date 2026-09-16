@@ -335,6 +335,26 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetQuestionSubmissionByUuidFound() throws Exception {
+        UUID uuid = questionSubmission.getUuid();
+        when(questionSubmissionRepository.findByUuid(uuid)).thenReturn(questionSubmission);
+
+        QuestionSubmission result = questionSubmissionService.getQuestionSubmissionByUuid(uuid);
+
+        assertEquals(questionSubmission, result);
+    }
+
+    @Test
+    public void testGetQuestionSubmissionByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(questionSubmissionRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionService.getQuestionSubmissionByUuid(uuid));
+
+        assertEquals(edu.iu.terracotta.utils.TextConstants.QUESTION_SUBMISSION_NOT_MATCHING, exception.getMessage());
+    }
+
+    @Test
     public void testAutomaticGradingMcCorrect() {
         when(answerMc.getCorrect()).thenReturn(true);
 
@@ -386,10 +406,17 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders headers = questionSubmissionService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L, 3L, 4L, 5L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+        UUID treatmentUuid = UUID.randomUUID();
+        UUID assessmentUuid = UUID.randomUUID();
+        UUID submissionUuid = UUID.randomUUID();
+
+        HttpHeaders headers = questionSubmissionService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/conditions/2/treatments/3/assessments/4/submissions/5/question_submissions"));
+        assertTrue(headers.getLocation().toString().contains(
+            "/api/experiments/" + experimentUuid + "/conditions/" + conditionUuid + "/treatments/" + treatmentUuid + "/assessments/" + assessmentUuid + "/submissions/" + submissionUuid + "/question_submissions"));
     }
 
     @Test
@@ -473,7 +500,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testValidateAndPrepareQuestionSubmissionListIdInPost() {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
 
         // IdInPostException is thrown internally but gets wrapped by the method's own blanket catch, so DataServiceException is what actually surfaces
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateAndPrepareQuestionSubmissionList(List.of(dto), 1L, 1L, false));
@@ -529,7 +556,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testValidateQuestionSubmissionAnswerSubmissionIdMissing() {
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateQuestionSubmission(dto));
     }
@@ -538,7 +565,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     public void testValidateQuestionSubmissionMcSubmissionNotMatching() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateQuestionSubmission(dto));
     }
@@ -548,7 +575,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
         when(answerMcSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answerMcSubmission));
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).answerId(99L).build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateQuestionSubmission(dto));
     }
@@ -558,7 +585,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
         when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
         when(answerMcSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answerMcSubmission));
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertDoesNotThrow(() -> questionSubmissionService.validateQuestionSubmission(dto));
     }
@@ -567,7 +594,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     public void testValidateQuestionSubmissionEssaySubmissionNotMatching() {
         // default question mock type is ESSAY
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.validateQuestionSubmission(dto));
     }
@@ -576,7 +603,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     public void testValidateQuestionSubmissionEssaySuccess() {
         when(answerEssaySubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answerEssaySubmission));
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertDoesNotThrow(() -> questionSubmissionService.validateQuestionSubmission(dto));
     }
@@ -585,7 +612,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     public void testValidateQuestionSubmissionOtherTypeSuccess() {
         when(question.getQuestionType()).thenReturn(QuestionTypes.PAGE_BREAK);
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().answerSubmissionId(1L).build();
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).answerSubmissionDtoList(List.of(answerSubmissionDto)).build();
 
         assertDoesNotThrow(() -> questionSubmissionService.validateQuestionSubmission(dto));
     }

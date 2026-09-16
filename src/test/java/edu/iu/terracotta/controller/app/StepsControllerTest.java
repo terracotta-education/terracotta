@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
+import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.StepDto;
@@ -37,6 +39,12 @@ import edu.iu.terracotta.utils.TextConstants;
 public class StepsControllerTest extends BaseTest {
 
     private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
+    // uuid wire ids for the "submissionIds" parameter (a comma-separated list); each resolves via
+    // submissionService.getSubmissionByUuid (stubbed below) to a submission whose numeric
+    // getSubmissionId() is 5L/6L respectively, matching this test file's existing numeric expectations
+    private static final UUID SUBMISSION_5_UUID = UUID.randomUUID();
+    private static final UUID SUBMISSION_6_UUID = UUID.randomUUID();
 
     private StepsController stepsController;
 
@@ -53,6 +61,14 @@ public class StepsControllerTest extends BaseTest {
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+
+        Submission submission5 = mock(Submission.class);
+        when(submission5.getSubmissionId()).thenReturn(5L);
+        when(submissionService.getSubmissionByUuid(SUBMISSION_5_UUID)).thenReturn(submission5);
+
+        Submission submission6 = mock(Submission.class);
+        when(submission6.getSubmissionId()).thenReturn(6L);
+        when(submissionService.getSubmissionByUuid(SUBMISSION_6_UUID)).thenReturn(submission6);
     }
 
     private StepDto stepDto(String step) {
@@ -194,7 +210,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(
             EXPERIMENT_UUID,
             true,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -216,7 +232,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(
             EXPERIMENT_UUID,
             true,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -237,7 +253,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(
             EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -254,7 +270,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(
             EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5,6")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID + "," + SUBMISSION_6_UUID)),
             httpServletRequest
         );
 
@@ -270,7 +286,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(
             EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5,6")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID + "," + SUBMISSION_6_UUID)),
             httpServletRequest
         );
 
@@ -287,7 +303,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(
             EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -304,7 +320,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(
             EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -322,7 +338,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> response = stepsController.postStep(
             EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 

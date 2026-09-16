@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.SubmissionComment;
+import edu.iu.terracotta.dao.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.SubmissionCommentDto;
 import edu.iu.terracotta.dao.repository.SubmissionCommentRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -46,13 +48,14 @@ public class SubmissionCommentServiceImplTest extends BaseTest {
     @Test
     public void testGetSubmissionCommentsSuccess() {
         SubmissionComment comment = SubmissionComment.builder().submissionCommentId(1L).comment("comment").creator("creator").submission(submission).build();
+        comment.setUuid(UUID.randomUUID());
         when(submissionCommentRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(List.of(comment));
 
         List<SubmissionCommentDto> retVal = submissionCommentService.getSubmissionComments(1L);
 
         assertEquals(1, retVal.size());
         assertEquals("comment", retVal.get(0).getComment());
-        assertEquals(1L, retVal.get(0).getSubmissionId());
+        assertEquals(submission.getUuid(), retVal.get(0).getSubmissionId());
     }
 
     @Test
@@ -87,19 +90,20 @@ public class SubmissionCommentServiceImplTest extends BaseTest {
     public void testPostSubmissionCommentSuccess() throws IdInPostException, DataServiceException {
         SubmissionCommentDto dto = SubmissionCommentDto.builder().comment("new comment").build();
         SubmissionComment saved = SubmissionComment.builder().submissionCommentId(1L).comment("new comment").creator("Terracotta User").submission(submission).build();
+        saved.setUuid(UUID.randomUUID());
         when(submissionCommentRepository.save(any(SubmissionComment.class))).thenReturn(saved);
 
         SubmissionCommentDto retVal = submissionCommentService.postSubmissionComment(dto, 1L, securedInfo);
 
         assertNotNull(retVal);
-        assertEquals(1L, retVal.getSubmissionCommentId());
+        assertEquals(saved.getUuid(), retVal.getSubmissionCommentId());
         assertEquals("new comment", retVal.getComment());
         assertEquals("Terracotta User", retVal.getCreator());
     }
 
     @Test
     public void testPostSubmissionCommentIdInPostExceptionThrows() {
-        SubmissionCommentDto dto = SubmissionCommentDto.builder().submissionCommentId(5L).build();
+        SubmissionCommentDto dto = SubmissionCommentDto.builder().submissionCommentId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(IdInPostException.class, () -> submissionCommentService.postSubmissionComment(dto, 1L, securedInfo));
 
@@ -108,7 +112,11 @@ public class SubmissionCommentServiceImplTest extends BaseTest {
 
     @Test
     public void testPostSubmissionCommentSubmissionNotFoundThrows() {
+        // findByUuid must be overridden too (not just findById): the global BaseRepositoryTest
+        // findByUuid(any(UUID.class)) stub also matches a null uuid, which is what a not-found
+        // findById resolves to below - see SubmissionCommentServiceImpl.postSubmissionComment/fromDto.
         when(submissionRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(submissionRepository.findByUuid(any())).thenReturn(null);
         SubmissionCommentDto dto = SubmissionCommentDto.builder().build();
 
         Exception exception = assertThrows(DataServiceException.class, () -> submissionCommentService.postSubmissionComment(dto, 1L, securedInfo));
@@ -130,22 +138,22 @@ public class SubmissionCommentServiceImplTest extends BaseTest {
     @Test
     public void testToDto() {
         SubmissionComment comment = SubmissionComment.builder().submissionCommentId(1L).comment("comment").creator("creator").submission(submission).build();
+        comment.setUuid(UUID.randomUUID());
 
         SubmissionCommentDto retVal = submissionCommentService.toDto(comment);
 
-        assertEquals(1L, retVal.getSubmissionCommentId());
-        assertEquals(1L, retVal.getSubmissionId());
+        assertEquals(comment.getUuid(), retVal.getSubmissionCommentId());
+        assertEquals(submission.getUuid(), retVal.getSubmissionId());
         assertEquals("comment", retVal.getComment());
         assertEquals("creator", retVal.getCreator());
     }
 
     @Test
     public void testFromDtoSuccess() throws DataServiceException {
-        SubmissionCommentDto dto = SubmissionCommentDto.builder().submissionCommentId(1L).submissionId(1L).comment("comment").creator("creator").build();
+        SubmissionCommentDto dto = SubmissionCommentDto.builder().submissionCommentId(UUID.randomUUID()).submissionId(UUID.randomUUID()).comment("comment").creator("creator").build();
 
         SubmissionComment retVal = submissionCommentService.fromDto(dto);
 
-        assertEquals(1L, retVal.getSubmissionCommentId());
         assertEquals("comment", retVal.getComment());
         assertEquals("creator", retVal.getCreator());
         assertEquals(submission, retVal.getSubmission());
@@ -153,8 +161,8 @@ public class SubmissionCommentServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoSubmissionNotFoundThrows() {
-        when(submissionRepository.findById(anyLong())).thenReturn(Optional.empty());
-        SubmissionCommentDto dto = SubmissionCommentDto.builder().submissionId(1L).build();
+        when(submissionRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        SubmissionCommentDto dto = SubmissionCommentDto.builder().submissionId(UUID.randomUUID()).build();
 
         Exception exception = assertThrows(DataServiceException.class, () -> submissionCommentService.fromDto(dto));
 
@@ -170,11 +178,42 @@ public class SubmissionCommentServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders retVal = submissionCommentService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L, 3L, 4L, 5L, 6L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+        UUID treatmentUuid = UUID.randomUUID();
+        UUID assessmentUuid = UUID.randomUUID();
+        UUID submissionUuid = UUID.randomUUID();
+        UUID submissionCommentUuid = UUID.randomUUID();
+
+        HttpHeaders retVal = submissionCommentService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid, submissionCommentUuid);
 
         assertNotNull(retVal);
         assertNotNull(retVal.getLocation());
-        assertTrue(retVal.getLocation().toString().endsWith("/api/experiments/1/conditions/2/treatments/3/assessments/4/submissions/5/submission_comments/6"));
+        assertTrue(retVal.getLocation().toString().endsWith(
+            "/api/experiments/" + experimentUuid + "/conditions/" + conditionUuid + "/treatments/" + treatmentUuid + "/assessments/" + assessmentUuid + "/submissions/" + submissionUuid + "/submission_comments/" + submissionCommentUuid));
+    }
+
+    // getSubmissionCommentByUuid
+
+    @Test
+    public void testGetSubmissionCommentByUuidFound() throws Exception {
+        SubmissionComment comment = mock(SubmissionComment.class);
+        UUID uuid = UUID.randomUUID();
+        when(submissionCommentRepository.findByUuid(uuid)).thenReturn(comment);
+
+        SubmissionComment retVal = submissionCommentService.getSubmissionCommentByUuid(uuid);
+
+        assertEquals(comment, retVal);
+    }
+
+    @Test
+    public void testGetSubmissionCommentByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(submissionCommentRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(SubmissionCommentNotMatchingException.class, () -> submissionCommentService.getSubmissionCommentByUuid(uuid));
+
+        assertEquals(TextConstants.SUBMISSION_COMMENT_NOT_MATCHING, exception.getMessage());
     }
 
 }

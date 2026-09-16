@@ -69,9 +69,10 @@ public class SubmissionCommentController {
                                                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                                                         @PathVariable("treatmentId") UUID treatmentUuid,
                                                                                         @PathVariable("assessmentId") UUID assessmentUuid,
-                                                                                        @PathVariable long submissionId,
+                                                                                        @PathVariable("submissionId") UUID submissionUuid,
                                                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
@@ -103,10 +104,12 @@ public class SubmissionCommentController {
                                                                      @PathVariable("conditionId") UUID conditionUuid,
                                                                      @PathVariable("treatmentId") UUID treatmentUuid,
                                                                      @PathVariable("assessmentId") UUID assessmentUuid,
-                                                                     @PathVariable long submissionId,
-                                                                     @PathVariable long submissionCommentId,
+                                                                     @PathVariable("submissionId") UUID submissionUuid,
+                                                                     @PathVariable("submissionCommentId") UUID submissionCommentUuid,
                                                                      HttpServletRequest req)
-            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException{
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException{
+        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
+        long submissionCommentId = submissionCommentService.getSubmissionCommentByUuid(submissionCommentUuid).getSubmissionCommentId();
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
@@ -134,11 +137,12 @@ public class SubmissionCommentController {
                                                                       @PathVariable("conditionId") UUID conditionUuid,
                                                                       @PathVariable("treatmentId") UUID treatmentUuid,
                                                                       @PathVariable("assessmentId") UUID assessmentUuid,
-                                                                      @PathVariable long submissionId,
+                                                                      @PathVariable("submissionId") UUID submissionUuid,
                                                                       @RequestBody SubmissionCommentDto submissionCommentDto,
                                                                       UriComponentsBuilder ucBuilder,
                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
@@ -158,7 +162,7 @@ public class SubmissionCommentController {
         }
 
         SubmissionCommentDto returnedDto = submissionCommentService.postSubmissionComment(submissionCommentDto, submissionId, securedInfo);
-        HttpHeaders headers = submissionCommentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, returnedDto.getSubmissionCommentId());
+        HttpHeaders headers = submissionCommentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid, returnedDto.getSubmissionCommentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
@@ -168,11 +172,13 @@ public class SubmissionCommentController {
                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                         @PathVariable("treatmentId") UUID treatmentUuid,
                                                         @PathVariable("assessmentId") UUID assessmentUuid,
-                                                        @PathVariable long submissionId,
-                                                        @PathVariable long submissionCommentId,
+                                                        @PathVariable("submissionId") UUID submissionUuid,
+                                                        @PathVariable("submissionCommentId") UUID submissionCommentUuid,
                                                         @RequestBody SubmissionCommentDto submissionCommentDto,
                                                         HttpServletRequest req)
-                throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
+                throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
+        long submissionCommentId = submissionCommentService.getSubmissionCommentByUuid(submissionCommentUuid).getSubmissionCommentId();
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
@@ -208,10 +214,12 @@ public class SubmissionCommentController {
                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                         @PathVariable("treatmentId") UUID treatmentUuid,
                                                         @PathVariable("assessmentId") UUID assessmentUuid,
-                                                        @PathVariable long submissionId,
-                                                        @PathVariable long submissionCommentId,
+                                                        @PathVariable("submissionId") UUID submissionUuid,
+                                                        @PathVariable("submissionCommentId") UUID submissionCommentUuid,
                                                         HttpServletRequest req)
-                throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException, ConditionNotMatchingException, NumberFormatException, TerracottaConnectorException {
+                throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
+        long submissionCommentId = submissionCommentService.getSubmissionCommentByUuid(submissionCommentUuid).getSubmissionCommentId();
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();

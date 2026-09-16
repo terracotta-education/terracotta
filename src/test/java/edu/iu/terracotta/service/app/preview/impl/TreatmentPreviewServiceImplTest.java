@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.preview.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -106,10 +107,10 @@ class TreatmentPreviewServiceImplTest extends BaseTest {
         assertEquals(assessment.getUuid(), submissionDto.getAssessmentId());
         assertEquals(condition.getUuid(), submissionDto.getConditionId());
         assertEquals(experiment.getUuid(), submissionDto.getExperimentId());
-        assertEquals(1L, submissionDto.getSubmissionId());
+        assertNotNull(submissionDto.getSubmissionId());
         assertEquals(treatment.getUuid(), submissionDto.getTreatmentId());
         assertEquals(1, submissionDto.getQuestionSubmissionDtoList().size());
-        assertEquals(1L, submissionDto.getQuestionSubmissionDtoList().get(0).getQuestionSubmissionId());
+        assertNotNull(submissionDto.getQuestionSubmissionDtoList().get(0).getQuestionSubmissionId());
         assertEquals(question.getUuid(), submissionDto.getQuestionSubmissionDtoList().get(0).getQuestionId());
         assertEquals(List.of(answerDto), submissionDto.getQuestionSubmissionDtoList().get(0).getAnswerDtoList());
     }
@@ -134,10 +135,11 @@ class TreatmentPreviewServiceImplTest extends BaseTest {
 
         List<edu.iu.terracotta.dao.model.dto.QuestionSubmissionDto> questionSubmissions = result.getSubmission().getQuestionSubmissionDtoList();
         assertEquals(2, questionSubmissions.size());
-        assertEquals(1L, questionSubmissions.get(0).getQuestionSubmissionId());
+        assertNotNull(questionSubmissions.get(0).getQuestionSubmissionId());
         assertEquals(question.getUuid(), questionSubmissions.get(0).getQuestionId());
-        assertEquals(2L, questionSubmissions.get(1).getQuestionSubmissionId());
+        assertNotNull(questionSubmissions.get(1).getQuestionSubmissionId());
         assertEquals(secondQuestionUuid, questionSubmissions.get(1).getQuestionId());
+        assertEquals(2, questionSubmissions.stream().map(edu.iu.terracotta.dao.model.dto.QuestionSubmissionDto::getQuestionSubmissionId).distinct().count());
     }
 
 }

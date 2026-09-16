@@ -68,6 +68,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
+import edu.iu.terracotta.utils.TextConstants;
 
 public class SubmissionServiceImplTest extends BaseTest {
 
@@ -419,7 +420,7 @@ public class SubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testPostSubmissionThrowsWhenIdAlreadyPresent() {
-        SubmissionDto dto = SubmissionDto.builder().submissionId(5L).build();
+        SubmissionDto dto = SubmissionDto.builder().submissionId(UUID.randomUUID()).build();
 
         assertThrows(IdInPostException.class, () -> submissionService.postSubmission(dto, 0L, securedInfo, 0L, false));
     }
@@ -710,11 +711,39 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testBuildHeadersSetsLocation() {
         org.springframework.web.util.UriComponentsBuilder builder = org.springframework.web.util.UriComponentsBuilder.newInstance();
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+        UUID treatmentUuid = UUID.randomUUID();
+        UUID assessmentUuid = UUID.randomUUID();
+        UUID submissionUuid = UUID.randomUUID();
 
-        org.springframework.http.HttpHeaders headers = submissionService.buildHeaders(builder, 1L, 2L, 3L, 4L, 5L);
+        org.springframework.http.HttpHeaders headers = submissionService.buildHeaders(builder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/1/conditions/2/treatments/3/assessments/4/submissions/5"));
+        assertTrue(headers.getLocation().toString().contains(
+            "/" + experimentUuid + "/conditions/" + conditionUuid + "/treatments/" + treatmentUuid + "/assessments/" + assessmentUuid + "/submissions/" + submissionUuid));
+    }
+
+    // getSubmissionByUuid
+
+    @Test
+    public void testGetSubmissionByUuidFound() throws Exception {
+        UUID uuid = submission.getUuid();
+        when(submissionRepository.findByUuid(uuid)).thenReturn(submission);
+
+        Submission result = submissionService.getSubmissionByUuid(uuid);
+
+        assertEquals(submission, result);
+    }
+
+    @Test
+    public void testGetSubmissionByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(submissionRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(SubmissionNotMatchingException.class, () -> submissionService.getSubmissionByUuid(uuid));
+
+        assertEquals(TextConstants.SUBMISSION_NOT_MATCHING, exception.getMessage());
     }
 
     // getAllSubmissionsForMultipleAssignments

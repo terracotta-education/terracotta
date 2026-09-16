@@ -5,6 +5,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.SubmissionComment;
+import edu.iu.terracotta.dao.exceptions.SubmissionCommentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.SubmissionCommentDto;
 import edu.iu.terracotta.dao.repository.SubmissionCommentRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
@@ -22,6 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +47,7 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        submissionCommentDto.setSubmissionId(submissionId);
+        submissionCommentDto.setSubmissionId(submissionRepository.findById(submissionId).map(Submission::getUuid).orElse(null));
         LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         submissionCommentDto.setCreator(user.getDisplayName());
         SubmissionComment submissionComment;
@@ -71,10 +73,16 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
     }
 
     @Override
+    public SubmissionComment getSubmissionCommentByUuid(UUID uuid) throws SubmissionCommentNotMatchingException {
+        return Optional.ofNullable(submissionCommentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new SubmissionCommentNotMatchingException(TextConstants.SUBMISSION_COMMENT_NOT_MATCHING));
+    }
+
+    @Override
     public SubmissionCommentDto toDto(SubmissionComment submissionComment) {
         SubmissionCommentDto submissionCommentDto = new SubmissionCommentDto();
-        submissionCommentDto.setSubmissionCommentId(submissionComment.getSubmissionCommentId());
-        submissionCommentDto.setSubmissionId(submissionComment.getSubmission().getSubmissionId());
+        submissionCommentDto.setSubmissionCommentId(submissionComment.getUuid());
+        submissionCommentDto.setSubmissionId(submissionComment.getSubmission().getUuid());
         submissionCommentDto.setComment(submissionComment.getComment());
         submissionCommentDto.setCreator(submissionComment.getCreator());
 
@@ -83,14 +91,17 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
 
     @Override
     public SubmissionComment fromDto(SubmissionCommentDto submissionCommentDto) throws DataServiceException {
-        Optional<Submission> submission = submissionRepository.findById(submissionCommentDto.getSubmissionId());
+        Optional<Submission> submission = Optional.ofNullable(submissionRepository.findByUuid(submissionCommentDto.getSubmissionId()));
 
         if (submission.isEmpty()) {
             throw new DataServiceException("The submission for the submission comment doesn't exist.");
         }
 
         SubmissionComment submissionComment = new SubmissionComment();
-        submissionComment.setSubmissionCommentId(submissionCommentDto.getSubmissionCommentId());
+
+        // submissionCommentDto.getSubmissionCommentId() (now a uuid) is intentionally not set on a new
+        // SubmissionComment here - the real numeric id/uuid are both IDENTITY/@PrePersist generated at
+        // insert time regardless.
         submissionComment.setComment(submissionCommentDto.getComment());
         submissionComment.setCreator(submissionCommentDto.getCreator());
 
@@ -105,7 +116,7 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId, long submissionCommentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId, UUID submissionCommentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/submission_comments/{submissionCommentId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, submissionCommentId).toUri());

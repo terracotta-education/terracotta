@@ -20,11 +20,11 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QuestionSubmissionDto {
 
-    private Long questionSubmissionId;
+    private UUID questionSubmissionId;
     private UUID questionId;
     private Float calculatedPoints;
     private Float alteredGrade;
-    private Long submissionId;
+    private UUID submissionId;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList;

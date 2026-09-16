@@ -5,6 +5,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
 import edu.iu.terracotta.dao.entity.QuestionSubmissionComment;
+import edu.iu.terracotta.dao.exceptions.QuestionSubmissionCommentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.QuestionSubmissionCommentDto;
 import edu.iu.terracotta.dao.repository.QuestionSubmissionCommentRepository;
 import edu.iu.terracotta.dao.repository.QuestionSubmissionRepository;
@@ -22,6 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -45,12 +47,18 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     }
 
     @Override
+    public QuestionSubmissionComment getQuestionSubmissionCommentByUuid(UUID uuid) throws QuestionSubmissionCommentNotMatchingException {
+        return Optional.ofNullable(questionSubmissionCommentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new QuestionSubmissionCommentNotMatchingException(TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING));
+    }
+
+    @Override
     public QuestionSubmissionCommentDto postQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException {
         if (questionSubmissionCommentDto.getQuestionSubmissionCommentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionId);
+        questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionRepository.findById(questionSubmissionId).map(QuestionSubmission::getUuid).orElse(null));
         LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         questionSubmissionCommentDto.setCreator(user.getDisplayName());
         QuestionSubmissionComment questionSubmissionComment;
@@ -80,8 +88,8 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     @Override
     public QuestionSubmissionCommentDto toDto(QuestionSubmissionComment questionSubmissionComment) {
         QuestionSubmissionCommentDto questionSubmissionCommentDto = new QuestionSubmissionCommentDto();
-        questionSubmissionCommentDto.setQuestionSubmissionCommentId(questionSubmissionComment.getQuestionSubmissionCommentId());
-        questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionComment.getQuestionSubmission().getQuestionSubmissionId());
+        questionSubmissionCommentDto.setQuestionSubmissionCommentId(questionSubmissionComment.getUuid());
+        questionSubmissionCommentDto.setQuestionSubmissionId(questionSubmissionComment.getQuestionSubmission().getUuid());
         questionSubmissionCommentDto.setComment(questionSubmissionComment.getComment());
         questionSubmissionCommentDto.setCreator(questionSubmissionComment.getCreator());
 
@@ -91,10 +99,13 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     @Override
     public QuestionSubmissionComment fromDto(QuestionSubmissionCommentDto questionSubmissionCommentDto) throws DataServiceException {
         QuestionSubmissionComment questionSubmissionComment = new QuestionSubmissionComment();
-        questionSubmissionComment.setQuestionSubmissionCommentId(questionSubmissionCommentDto.getQuestionSubmissionCommentId());
+
+        // questionSubmissionCommentDto.getQuestionSubmissionCommentId() (now a uuid) is intentionally not set on a
+        // new QuestionSubmissionComment here - the real numeric id/uuid are both IDENTITY/@PrePersist generated at
+        // insert time regardless.
         questionSubmissionComment.setComment(questionSubmissionCommentDto.getComment());
         questionSubmissionComment.setCreator(questionSubmissionCommentDto.getCreator());
-        Optional<QuestionSubmission> questionSubmission = questionSubmissionRepository.findById(questionSubmissionCommentDto.getQuestionSubmissionId());
+        Optional<QuestionSubmission> questionSubmission = Optional.ofNullable(questionSubmissionRepository.findByUuid(questionSubmissionCommentDto.getQuestionSubmissionId()));
 
         if (questionSubmission.isEmpty()) {
             throw new DataServiceException("The question submission for the question submission comment doesn't exist.");
@@ -111,7 +122,7 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long questionSubmissionCommentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId, UUID questionSubmissionId, UUID questionSubmissionCommentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/question_submission_comments/{questionSubmissionCommentId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId, questionSubmissionId, questionSubmissionCommentId).toUri());

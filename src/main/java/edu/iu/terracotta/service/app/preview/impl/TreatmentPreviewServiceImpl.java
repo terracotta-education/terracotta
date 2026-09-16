@@ -1,7 +1,6 @@
 package edu.iu.terracotta.service.app.preview.impl;
 
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -73,8 +72,6 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
                 true
             )
         );
-        AtomicLong questionSubmissionId = new AtomicLong(1L);
-
         SubmissionDto submissionDto = SubmissionDto.builder()
             .assessmentId(treatmentPreview.getTreatment().getAssessment().getUuid())
             .conditionId(treatmentPreview.getTreatment().getCondition().getUuid())
@@ -83,13 +80,13 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
                 treatmentPreview.getTreatment().getAssessment().getQuestions().stream()
                     .map(question -> QuestionSubmissionDto.builder()
                         .answerDtoList(answerService.findAllByQuestionIdMC(question.getQuestionId(), true))
-                        .questionSubmissionId(questionSubmissionId.getAndIncrement())
+                        .questionSubmissionId(UUID.randomUUID())
                         .questionId(question.getUuid())
                         .build()
                     )
                     .toList()
             )
-            .submissionId(1L)
+            .submissionId(UUID.randomUUID())
             .treatmentId(treatmentPreview.getTreatment().getUuid())
             .build();
 

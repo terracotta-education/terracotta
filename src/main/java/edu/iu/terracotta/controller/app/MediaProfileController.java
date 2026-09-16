@@ -21,6 +21,7 @@ import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.MediaService;
 import edu.iu.terracotta.service.app.QuestionService;
+import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
 
 import org.springframework.http.HttpStatus;
@@ -52,19 +53,21 @@ public class MediaProfileController {
     private final TreatmentService treatmentService;
     private final AssessmentService assessmentService;
     private final QuestionService questionService;
+    private final SubmissionService submissionService;
 
     @PostMapping
     public ResponseEntity postMediaEvent(@PathVariable("experimentId") UUID experimentUuid,
                                          @PathVariable("conditionId") UUID conditionUuid,
                                          @PathVariable("treatmentId") UUID treatmentUuid,
                                          @PathVariable("assessmentId") UUID assessmentUuid,
-                                         @PathVariable long submissionId,
+                                         @PathVariable("submissionId") UUID submissionUuid,
                                          @PathVariable("questionId") UUID questionUuid,
                                          @RequestBody MediaEventDto mediaEventDto,
                                          UriComponentsBuilder ucBuilder,
                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, IdInPostException, DataServiceException,
             TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException, QuestionNotMatchingException, AssessmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
         long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();

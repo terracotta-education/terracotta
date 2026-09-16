@@ -75,6 +75,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -163,6 +164,12 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
+    public QuestionSubmission getQuestionSubmissionByUuid(UUID uuid) throws QuestionSubmissionNotMatchingException {
+        return Optional.ofNullable(questionSubmissionRepository.findByUuid(uuid))
+            .orElseThrow(() -> new QuestionSubmissionNotMatchingException(TextConstants.QUESTION_SUBMISSION_NOT_MATCHING));
+    }
+
+    @Override
     @Transactional
     // this method isn't technically fully transactional. The dto is validated beforehand.
     public void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException, DataServiceException, IdMissingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException {
@@ -195,14 +202,16 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         log.debug("Creating {} question submissions for submission ID: [{}]", questionSubmissionDtoList.size(), submissionId);
 
         try {
+            UUID submissionUuid = submissionRepository.findById(submissionId).map(Submission::getUuid).orElse(null);
+
             for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
-                questionSubmissionDto.setSubmissionId(submissionId);
+                questionSubmissionDto.setSubmissionId(submissionUuid);
                 QuestionSubmission questionSubmission;
                 questionSubmission = fromDto(questionSubmissionDto);
                 returnedDtoList.add(toDto(save(questionSubmission), false, false));
 
                 for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
-                    answerSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
+                    answerSubmissionDto.setQuestionSubmissionId(questionSubmission.getUuid());
                     answerSubmissionService.postAnswerSubmission(answerSubmissionDto, questionSubmission.getQuestionSubmissionId());
                 }
             }
@@ -237,8 +246,8 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             Map<Long, List<AnswerEssaySubmission>> essayAnswersCache,
             Map<Long, List<AnswerFileSubmission>> fileAnswersCache) throws IOException {
         QuestionSubmissionDto questionSubmissionDto = QuestionSubmissionDto.builder().build();
-        questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getQuestionSubmissionId());
-        questionSubmissionDto.setSubmissionId(questionSubmission.getSubmission().getSubmissionId());
+        questionSubmissionDto.setQuestionSubmissionId(questionSubmission.getUuid());
+        questionSubmissionDto.setSubmissionId(questionSubmission.getSubmission().getUuid());
         questionSubmissionDto.setQuestionId(questionSubmission.getQuestion().getUuid());
         questionSubmissionDto.setCalculatedPoints(questionSubmission.getCalculatedPoints());
         questionSubmissionDto.setAlteredGrade(questionSubmission.getAlteredGrade());
@@ -290,13 +299,16 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Override
     public QuestionSubmission fromDto(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException {
         QuestionSubmission questionSubmission = new QuestionSubmission();
-        questionSubmission.setQuestionSubmissionId(questionSubmissionDto.getQuestionSubmissionId());
+
+        // questionSubmissionDto.getQuestionSubmissionId() (now a uuid) is intentionally not set on a new
+        // QuestionSubmission here - the real numeric id/uuid are both IDENTITY/@PrePersist generated at
+        // insert time regardless.
         questionSubmission.setCalculatedPoints(questionSubmissionDto.getCalculatedPoints());
         questionSubmission.setAlteredGrade(questionSubmissionDto.getAlteredGrade());
-        Optional<Submission> submission = submissionRepository.findById(questionSubmissionDto.getSubmissionId());
+        Optional<Submission> submission = Optional.ofNullable(submissionRepository.findByUuid(questionSubmissionDto.getSubmissionId()));
 
         if (submission.isEmpty()) {
-            throw new DataServiceException("Submission with submissionID: " + questionSubmissionDto.getQuestionSubmissionId() + "  does not exist");
+            throw new DataServiceException("Submission with submissionID: " + questionSubmissionDto.getSubmissionId() + "  does not exist");
         }
 
         questionSubmission.setSubmission(submission.get());
@@ -357,7 +369,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId).toUri());
@@ -368,13 +380,15 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Override
     public void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, InvalidUserException, IdMissingException, DuplicateQuestionException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, ExceedingLimitException, TypeNotSupportedException {
         try {
+            UUID submissionUuid = submissionRepository.findById(submissionId).map(Submission::getUuid).orElse(null);
+
             for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
                 if (questionSubmissionDto.getQuestionSubmissionId() != null) {
                     throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
                 }
 
                 validateDtoPost(questionSubmissionDto, assessmentId, submissionId, student);
-                questionSubmissionDto.setSubmissionId(submissionId);
+                questionSubmissionDto.setSubmissionId(submissionUuid);
                 QuestionSubmission questionSubmission = fromDto(questionSubmissionDto);
 
                 if (questionSubmission.getQuestion().getQuestionType().equals(QuestionTypes.MC)
@@ -411,7 +425,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Override
     public void validateQuestionSubmission(QuestionSubmissionDto questionSubmissionDto) throws DataServiceException {
         try {
-            QuestionSubmission questionSubmission = questionSubmissionRepository.findByQuestionSubmissionId(questionSubmissionDto.getQuestionSubmissionId());
+            QuestionSubmission questionSubmission = questionSubmissionRepository.findByUuid(questionSubmissionDto.getQuestionSubmissionId());
 
             for (AnswerSubmissionDto answerSubmissionDto : questionSubmissionDto.getAnswerSubmissionDtoList()) {
                 if (answerSubmissionDto.getAnswerSubmissionId() == null) {
