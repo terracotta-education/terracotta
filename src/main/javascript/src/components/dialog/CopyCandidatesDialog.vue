@@ -201,6 +201,7 @@ const unselectAll = () => {
   display: flex;
   align-items: center;
   gap: 4px;
+  font-weight: 500;
 }
 
 .copy-candidate-check {
