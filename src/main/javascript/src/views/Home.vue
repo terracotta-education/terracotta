@@ -1180,4 +1180,12 @@ a {
   align-items: center;
   row-gap: 16px;
 }
+// SweetAlert2 defaults to a narrow (32em) popup - wide enough for the
+// copy-candidates checkbox grid to actually lay out 3 columns rather than
+// wrapping to 1 immediately. CopyCandidatesDialog's own grid collapses
+// further as this shrinks on narrower viewports.
+.copy-candidates-popup.swal2-popup {
+  width: 90vw;
+  max-width: 960px;
+}
 </style>

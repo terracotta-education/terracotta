@@ -1,31 +1,49 @@
 <template>
   <div>
     <p class="copy-candidates-intro">
-      This course was copied from a previous course that had one or more Terracotta experiments.
-      Choose which one(s) to recreate here - each is rebuilt as a brand new experiment, exactly
-      like importing an exported experiment file.
+      This course was copied from a previous course, <b>{{ sourceCourseTitle }}</b>, that had one
+      or more Terracotta experiments. Choose which one(s) to recreate here - each is rebuilt as a
+      brand new experiment, exactly like importing an exported experiment file.
     </p>
 
-    <div
-      v-for="candidate in candidates"
-      :key="candidate.id"
-      class="copy-candidate-option"
-    >
-      <v-checkbox
-        v-model="selectedIds"
-        :value="candidate.id"
-        :label="candidate.experimentTitle || '(untitled experiment)'"
-        color="primary"
-        density="compact"
-        hide-details
-      />
+    <div class="copy-candidates-select-all">
+      <button
+        type="button"
+        class="copy-candidates-select-all-link"
+        @click="selectAll"
+      >
+        Select All
+      </button>
+      &middot;
+      <button
+        type="button"
+        class="copy-candidates-select-all-link"
+        @click="unselectAll"
+      >
+        Unselect All
+      </button>
+    </div>
 
-      <div class="copy-candidate-meta">
-        From course: <b>{{ candidate.sourceCourseTitle || "(unknown course)" }}</b>
-        &middot;
-        {{ candidate.conditionCount }} condition{{ candidate.conditionCount === 1 ? "" : "s" }}
-        &middot;
-        {{ candidate.assignmentCount }} assignment{{ candidate.assignmentCount === 1 ? "" : "s" }}
+    <div class="copy-candidates-grid">
+      <div
+        v-for="candidate in candidates"
+        :key="candidate.id"
+        class="copy-candidate-option"
+      >
+        <v-checkbox
+          v-model="selectedIds"
+          :value="candidate.id"
+          :label="candidate.experimentTitle || '(untitled experiment)'"
+          color="primary"
+          density="compact"
+          hide-details
+        />
+
+        <div class="copy-candidate-meta">
+          {{ candidate.conditionCount }} condition{{ candidate.conditionCount === 1 ? "" : "s" }}
+          &middot;
+          {{ candidate.assignmentCount }} assignment{{ candidate.assignmentCount === 1 ? "" : "s" }}
+        </div>
       </div>
     </div>
 
@@ -38,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 defineOptions({
   name: "CopyCandidatesDialog"
@@ -51,7 +69,21 @@ const props = defineProps({
   }
 });
 
-const selectedIds = ref(props.candidates.map(candidate => candidate.id));
+// all candidates are staged from the same course-copy notice, so they share one source
+// course - see ExperimentCopyCandidateServiceImpl.stageFromNotice
+const sourceCourseTitle = computed(() => {
+  return props.candidates[0]?.sourceCourseTitle || "(unknown course)";
+});
+
+const selectedIds = ref([]);
+
+const selectAll = () => {
+  selectedIds.value = props.candidates.map(candidate => candidate.id);
+};
+
+const unselectAll = () => {
+  selectedIds.value = [];
+};
 </script>
 
 <style lang="scss" scoped>
@@ -60,12 +92,40 @@ const selectedIds = ref(props.candidates.map(candidate => candidate.id));
   margin-bottom: 16px;
 }
 
+.copy-candidates-select-all {
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.copy-candidates-select-all-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: map.get($blue, "primary");
+  cursor: pointer;
+  font-size: 0.9em;
+  text-decoration: underline;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: none;
+  }
+}
+
+.copy-candidates-grid {
+  display: grid;
+  // fills as many ~250px columns as fit (3 at the dialog's own widened size), and
+  // collapses down to 2, then 1 (fully stacked) as the available width shrinks -
+  // this dialog renders inside the LTI iframe, whose width varies with the host page
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
 .copy-candidate-option {
   text-align: left;
   border: thin solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
   padding: 8px 12px;
-  margin-bottom: 8px;
 }
 
 .copy-candidate-meta {
