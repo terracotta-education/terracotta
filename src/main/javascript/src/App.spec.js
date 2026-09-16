@@ -266,5 +266,31 @@ describe("App", () => {
 
       expect(disconnectSpy).toHaveBeenCalled();
     });
+
+    // a SweetAlert2 dialog renders as a `position: fixed` overlay appended to <body> -
+    // fixed-position content never changes document.body's own offsetHeight, so the
+    // ResizeObserver watching body alone would never notice a modal taller than the
+    // current viewport (e.g. a long checkbox list). This proves the separate popup-watching
+    // path picks it up instead.
+    it("also reports a height based on an open SweetAlert2 popup, since it's excluded from document.body's own layout", async () => {
+      Object.defineProperty(window, "top", { value: {}, configurable: true });
+      Object.defineProperty(document.body, "offsetHeight", { value: 400, configurable: true });
+      Object.defineProperty(document.documentElement, "offsetHeight", { value: 400, configurable: true });
+      const postMessageSpy = vi.spyOn(window.parent, "postMessage");
+
+      await mountApp();
+      postMessageSpy.mockClear();
+
+      const popup = document.createElement("div");
+      popup.className = "swal2-popup";
+      Object.defineProperty(popup, "offsetHeight", { value: 900, configurable: true });
+      document.body.appendChild(popup);
+
+      await vi.waitFor(() => {
+        expect(postMessageSpy).toHaveBeenCalledWith({ subject: "lti.frameResize", height: 996 }, "*");
+      });
+
+      document.body.removeChild(popup);
+    });
   });
 });
