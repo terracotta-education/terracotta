@@ -76,4 +76,29 @@ describe("CopyCandidatesDialog", () => {
     const hiddenInput = wrapper.find("#copy-candidates-selected");
     expect(JSON.parse(hiddenInput.element.value)).toEqual([]);
   });
+
+  it("disables 'Unselect All' while nothing is selected, and 'Select All' once everything is", async () => {
+    const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
+
+    const buttons = wrapper.findAll(".copy-candidates-select-all-link");
+    expect(buttons[0].attributes("disabled")).toBeUndefined();
+    expect(buttons[1].attributes("disabled")).toBeDefined();
+
+    await buttons[0].trigger("click");
+
+    expect(buttons[0].attributes("disabled")).toBeDefined();
+    expect(buttons[1].attributes("disabled")).toBeUndefined();
+  });
+
+  it("emits selectionChange with the current selection, including immediately on mount", async () => {
+    const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
+
+    expect(wrapper.emitted("selectionChange")[0]).toEqual([[]]);
+
+    const checkboxes = wrapper.findAllComponents({ name: "VCheckbox" });
+    await checkboxes[0].find("input").setValue(true);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted("selectionChange").at(-1)).toEqual([["c1"]]);
+  });
 });

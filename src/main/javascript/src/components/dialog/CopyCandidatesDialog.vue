@@ -10,6 +10,7 @@
       <button
         type="button"
         class="copy-candidates-select-all-link"
+        :disabled="allSelected"
         @click="selectAll"
       >
         Select All
@@ -18,6 +19,7 @@
       <button
         type="button"
         class="copy-candidates-select-all-link"
+        :disabled="noneSelected"
         @click="unselectAll"
       >
         Unselect All
@@ -56,7 +58,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 defineOptions({
   name: "CopyCandidatesDialog"
@@ -69,6 +71,8 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(["selectionChange"]);
+
 // all candidates are staged from the same course-copy notice, so they share one source
 // course - see ExperimentCopyCandidateServiceImpl.stageFromNotice
 const sourceCourseTitle = computed(() => {
@@ -76,6 +80,20 @@ const sourceCourseTitle = computed(() => {
 });
 
 const selectedIds = ref([]);
+
+const allSelected = computed(() => {
+  return selectedIds.value.length === props.candidates.length;
+});
+
+const noneSelected = computed(() => {
+  return selectedIds.value.length === 0;
+});
+
+watch(
+  selectedIds,
+  value => emit("selectionChange", value),
+  { immediate: true }
+);
 
 const selectAll = () => {
   selectedIds.value = props.candidates.map(candidate => candidate.id);
@@ -108,6 +126,12 @@ const unselectAll = () => {
 
   &:hover,
   &:focus-visible {
+    text-decoration: none;
+  }
+
+  &:disabled {
+    color: rgba(0, 0, 0, 0.38);
+    cursor: default;
     text-decoration: none;
   }
 }

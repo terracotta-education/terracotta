@@ -608,7 +608,16 @@ const handleShowCopyCandidates = async () => {
     didOpen: () => {
       const mountTarget = document.getElementById("dialog-copy-candidates");
       dialogApp = createApp(CopyCandidatesDialog, {
-        candidates: copyCandidates.value
+        candidates: copyCandidates.value,
+        // CopyCandidatesDialog emits this immediately on mount with its (unchecked-by-default)
+        // selection, so the confirm button starts disabled without a separate initial call here
+        onSelectionChange: selectedIdsSoFar => {
+          const confirmButton = Swal.getConfirmButton();
+
+          if (confirmButton) {
+            confirmButton.disabled = selectedIdsSoFar.length === 0;
+          }
+        }
       });
       dialogApp.use(vuetify);
       dialogApp.mount(mountTarget);
