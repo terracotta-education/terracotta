@@ -124,7 +124,18 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         if (!experimentRepository.findAllByLtiContextEntity_ContextId(securedInfo.getContextId()).isEmpty()) {
             // this course already has at least one Experiment of its own by the time of this
             // live launch - don't surface candidates, matching the same "is this course new"
-            // gating the rest of the app already applies to the zero-state experience
+            // gating the rest of the app already applies to the zero-state experience. Any
+            // still-PENDING candidates for this context are now stale - they'd never be shown
+            // or resolved through the normal flow - so dismiss them instead of leaving them
+            // PENDING indefinitely.
+            List<ExperimentCopyCandidate> stalePending = experimentCopyCandidateRepository
+                .findAllByDestinationContext_ContextIdAndStatus(securedInfo.getContextId(), ExperimentCopyCandidateStatus.PENDING);
+
+            for (ExperimentCopyCandidate candidate : stalePending) {
+                candidate.setStatus(ExperimentCopyCandidateStatus.DISMISSED);
+                experimentCopyCandidateRepository.save(candidate);
+            }
+
             return List.of();
         }
 

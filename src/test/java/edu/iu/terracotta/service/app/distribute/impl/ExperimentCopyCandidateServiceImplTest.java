@@ -123,11 +123,29 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
     void testGetPendingForContextEmptyWhenDestinationAlreadyHasExperiments() {
         when(securedInfo.getContextId()).thenReturn(1L);
         when(experimentRepository.findAllByLtiContextEntity_ContextId(1L)).thenReturn(List.of(experiment));
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
+            .thenReturn(List.of());
 
         List<CopyCandidateDto> result = experimentCopyCandidateService.getPendingForContext(securedInfo);
 
         assertTrue(result.isEmpty());
-        verify(experimentCopyCandidateRepository, never()).findAllByDestinationContext_ContextIdAndStatus(anyLong(), any());
+        verify(experimentCopyCandidateRepository, never()).save(any());
+    }
+
+    @Test
+    void testGetPendingForContextDismissesStalePendingCandidatesWhenDestinationAlreadyHasExperiments() {
+        ExperimentCopyCandidate stalePending = mock(ExperimentCopyCandidate.class);
+
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(experimentRepository.findAllByLtiContextEntity_ContextId(1L)).thenReturn(List.of(experiment));
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
+            .thenReturn(List.of(stalePending));
+
+        List<CopyCandidateDto> result = experimentCopyCandidateService.getPendingForContext(securedInfo);
+
+        assertTrue(result.isEmpty());
+        verify(stalePending).setStatus(ExperimentCopyCandidateStatus.DISMISSED);
+        verify(experimentCopyCandidateRepository).save(stalePending);
     }
 
     @Test
