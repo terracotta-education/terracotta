@@ -187,8 +187,15 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
 
         List<UUID> declinedIds = new ArrayList<>();
 
+        // an empty selection means every pending candidate was declined at once (e.g. "No thank
+        // you"), not left out of some other choice - anything else is a candidate that simply
+        // wasn't part of an otherwise non-empty selection
+        ExperimentCopyCandidateStatus declineStatus = toImportIds.isEmpty()
+            ? ExperimentCopyCandidateStatus.DISMISSED
+            : ExperimentCopyCandidateStatus.NOT_SELECTED;
+
         for (ExperimentCopyCandidate candidate : toDecline) {
-            candidate.setStatus(ExperimentCopyCandidateStatus.NOT_SELECTED);
+            candidate.setStatus(declineStatus);
             experimentCopyCandidateRepository.save(candidate);
             declinedIds.add(candidate.getUuid());
         }

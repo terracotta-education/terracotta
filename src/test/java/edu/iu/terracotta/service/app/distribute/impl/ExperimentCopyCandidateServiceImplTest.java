@@ -232,7 +232,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testResolveWithEmptySelectionDeclinesEverythingAndStillFiresObsoleteCheck() throws Exception {
+    void testResolveWithEmptySelectionDismissesEverythingAndStillFiresObsoleteCheck() throws Exception {
         ExperimentCopyCandidate onlyCandidate = mock(ExperimentCopyCandidate.class);
         when(onlyCandidate.getUuid()).thenReturn(UUID.randomUUID());
 
@@ -244,7 +244,10 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
 
         assertTrue(result.getImports().isEmpty());
         assertEquals(1, result.getDeclinedCandidateIds().size());
-        verify(onlyCandidate).setStatus(ExperimentCopyCandidateStatus.NOT_SELECTED);
+        // an empty selection ("No thank you") declines every pending candidate at once - that's
+        // DISMISSED, not NOT_SELECTED (which only applies to a candidate left out of an
+        // otherwise non-empty selection - see testResolveImportsSelectedAndDeclinesRestAndFiresObsoleteCheckOnce)
+        verify(onlyCandidate).setStatus(ExperimentCopyCandidateStatus.DISMISSED);
         verify(assignmentService, never()).getAllAssignmentsForLmsCourse(any());
         verify(assignmentAsyncService, times(1)).handleAssignmentTasksInLmsByContext(securedInfo);
     }
