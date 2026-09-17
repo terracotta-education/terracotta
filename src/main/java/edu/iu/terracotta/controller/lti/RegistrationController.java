@@ -113,7 +113,7 @@ public class RegistrationController {
                     throw new ConnectionException(exceptionMsg);
                 }
             } else {
-                log.warn("Problem getting the membership");
+                log.warn("No response received when requesting the platform configuration from: [{}]", openidConfiguration);
             }
 
             model.addAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDto);

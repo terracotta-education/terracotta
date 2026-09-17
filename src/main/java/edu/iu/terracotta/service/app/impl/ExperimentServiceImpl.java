@@ -106,8 +106,6 @@ public class ExperimentServiceImpl implements ExperimentService {
         // sync data with LMS, if configured
         if (syncWithLms) {
             try {
-                log.info("Starting data sync in LMS.");
-
                 // deferred while any candidate for this context is still PENDING - see
                 // NoticeController's identical guard and ExperimentCopyCandidateService.resolve()
                 // for the full reasoning (a copied assignment's URL still carries the source
@@ -149,7 +147,6 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment = save(experiment);
 
         try {
-            log.info("Starting data sync in LMS.");
             participantAsyncService.updateParticipantData(securedInfo);
         } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
             log.error("Error syncing data with LMS. Experiment ID: '{}'", experiment.getExperimentId(), e);

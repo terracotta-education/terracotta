@@ -74,7 +74,7 @@ public class LtiConfigurationController {
         log.info("Creating Deployment : {}", platformDeployment);
 
         if (!platformDeploymentRepository.findByIssAndClientId(platformDeployment.getIss(), platformDeployment.getClientId()).isEmpty()) {
-            log.error("Unable to create. A platformDeployment like that already exist");
+            log.error("Unable to create. A platformDeployment with iss [{}] and clientId [{}] already exists", platformDeployment.getIss(), platformDeployment.getClientId());
             return new ResponseEntity<String>("Unable to create. A platformDeployment with same key already exist.", HttpStatus.CONFLICT);
         }
 

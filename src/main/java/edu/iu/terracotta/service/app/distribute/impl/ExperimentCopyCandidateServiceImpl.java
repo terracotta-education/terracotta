@@ -74,7 +74,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         LtiContextEntity destination = ltiNoticeService.resolveOrCreateContext(noticeClaims).orElse(null);
 
         if (destination == null) {
-            log.warn("Could not resolve or create a destination context for a course-copy notice");
+            log.warn("Could not resolve or create a destination context for a course-copy notice. Issuer: [{}]", noticeClaims.getIssuer());
             return;
         }
 

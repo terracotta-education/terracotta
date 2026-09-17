@@ -292,7 +292,7 @@ public class QuestionSubmissionController {
             DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException, NumberFormatException, TerracottaConnectorException, AssignmentLockedException {
 
         if (file.isEmpty()) {
-            log.error("File cannot be empty.");
+            log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
         }
 
@@ -333,7 +333,7 @@ public class QuestionSubmissionController {
             IOException, SubmissionNotMatchingException, NoSubmissionsException, ApiException, IdMissingException, ExceedingLimitException, AnswerNotMatchingException,
             DuplicateQuestionException, AnswerSubmissionNotMatchingException, AssignmentAttemptException, QuestionSubmissionNotMatchingException, NumberFormatException, TerracottaConnectorException, AssignmentLockedException {
         if (file.isEmpty()) {
-            log.error("File cannot be empty.");
+            log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
         }
 

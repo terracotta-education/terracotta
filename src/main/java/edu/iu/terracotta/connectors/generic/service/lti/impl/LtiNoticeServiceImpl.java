@@ -44,7 +44,7 @@ public class LtiNoticeServiceImpl implements LtiNoticeService {
         String contextKey = getContextKey(noticeClaims);
 
         if (StringUtils.isBlank(contextKey)) {
-            log.warn("Notice is missing the context claim needed to resolve a context");
+            log.warn("Notice is missing the context claim needed to resolve a context. Issuer: [{}]", noticeClaims.getIssuer());
 
             return Optional.empty();
         }
@@ -59,7 +59,7 @@ public class LtiNoticeServiceImpl implements LtiNoticeService {
         String contextKey = getContextKey(noticeClaims);
 
         if (StringUtils.isBlank(contextKey)) {
-            log.warn("Notice is missing the context claim needed to resolve a context");
+            log.warn("Notice is missing the context claim needed to resolve a context. Issuer: [{}]", noticeClaims.getIssuer());
 
             return Optional.empty();
         }

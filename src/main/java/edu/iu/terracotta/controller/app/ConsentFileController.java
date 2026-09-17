@@ -92,7 +92,7 @@ public class ConsentFileController {
         try {
             contentType = req.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
         } catch (IOException ex) {
-            log.error("Could not determine file type.");
+            log.error("Could not determine file type for consent file, experiment ID: [{}]", experimentId, ex);
         }
 
         if (contentType == null) {
