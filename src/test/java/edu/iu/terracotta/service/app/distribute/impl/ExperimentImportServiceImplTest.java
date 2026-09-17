@@ -153,6 +153,39 @@ class ExperimentImportServiceImplTest extends BaseTest {
         verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(Map.of()));
     }
 
+    // validate(...) saves the entity again partway through (to persist the source title),
+    // returning a different (more current) instance than the one passed in - regression test for
+    // a bug where that returned reference was discarded, letting the async process(...) call
+    // receive an already-superseded entity and fail to save its own final status update with an
+    // optimistic-locking error (every save() call returns a fresh instance in real Hibernate
+    // usage, unlike this test's other cases where a single shared mock stands in for all of them)
+    @Test
+    void testPreprocessFromFilePassesPostValidationEntityToAsyncProcess() throws IOException {
+        when(securedInfo.getUserId()).thenReturn("user-id");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getContextId()).thenReturn(1L);
+
+        ExperimentImport preValidation = mock(ExperimentImport.class);
+        ExperimentImport postValidation = mock(ExperimentImport.class);
+        when(postValidation.getErrors()).thenReturn(Collections.emptyList());
+
+        when(experimentImportRepository.save(any(ExperimentImport.class)))
+            .thenReturn(preValidation)
+            .thenReturn(postValidation);
+
+        Path jsonFile = importDirectory.resolve(ExperimentImport.JSON_FILE_NAME);
+        JsonMapper.builder().build().writeValue(jsonFile.toFile(), fullExport());
+
+        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
+            fileUtils.when(() -> FileUtils.getFile(any(File.class), anyString())).thenReturn(jsonFile.toFile());
+
+            experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, Map.of());
+        }
+
+        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(Map.of()));
+        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), anyMap());
+    }
+
     // the map is forwarded unchanged, all the way through to the async import step - this is
     // what lets ExperimentCopyCandidateServiceImpl's repoint-instead-of-duplicate logic reach the
     // assignment-creation step despite it running on a different (@Async) thread
