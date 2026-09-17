@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
@@ -57,6 +58,10 @@ class ExperimentImportServiceImplTest extends BaseTest {
     void beforeEach() throws IOException {
         MockitoAnnotations.openMocks(this);
         setup();
+
+        // entityManager isn't a constructor-injected (final) field, and Mockito's field-injection
+        // fallback for @InjectMocks doesn't reliably reach it here - wire it explicitly
+        ReflectionTestUtils.setField(experimentImportService, "entityManager", entityManager);
 
         importDirectory = Files.createTempDirectory("experiment-import-test");
         when(fileStorageService.getExperimentImportFile(anyLong())).thenReturn(importDirectory.toFile());

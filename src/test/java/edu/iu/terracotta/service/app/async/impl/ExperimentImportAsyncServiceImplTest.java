@@ -215,6 +215,38 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         verify(assignmentService, never()).createAssignmentInLms(any(), any(), anyLong(), anyString());
     }
 
+    // regression test: something else updating this row's version between when process()
+    // received it and when it tries its own final save (see ExperimentImportServiceImpl's
+    // detach() of this same entity, added specifically to prevent that) shouldn't fail the
+    // import outright - it should retry the completion against the row's current state instead
+    @Test
+    void testProcessRetriesFinalSaveOnOptimisticLockingFailure() throws AssignmentNotCreatedException, TerracottaConnectorException {
+        Export export = fullExport();
+        export.setAssignments(Collections.emptyList());
+        export.setTreatments(Collections.emptyList());
+        export.setAssessments(Collections.emptyList());
+        export.setQuestions(Collections.emptyList());
+        export.setIntegrations(Collections.emptyList());
+        export.setAnswersMc(Collections.emptyList());
+
+        try {
+            writeExportJson(export);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        ExperimentImport currentRow = mock(ExperimentImport.class);
+        when(experimentImport.getId()).thenReturn(1L);
+        when(experimentImportRepository.save(experimentImport))
+            .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(ExperimentImport.class, 1L));
+        when(experimentImportRepository.findById(1L)).thenReturn(java.util.Optional.of(currentRow));
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+
+        verify(currentRow).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
+        verify(experimentImportRepository).save(currentRow);
+    }
+
     @Test
     void testProcessSuccessFullExport() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
         writeExportJson(fullExport());
