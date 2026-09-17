@@ -220,7 +220,6 @@ public class ApiJwtServiceImpl implements ApiJwtService {
             .build()
             .parseSignedClaims(token);
         } catch (ExpiredJwtException e) {
-            log.warn("JWT expired. {}", e.getMessage());
             return null;
         }
         // If we are on this point, then the state signature has been validated. We can start other tasks now.
