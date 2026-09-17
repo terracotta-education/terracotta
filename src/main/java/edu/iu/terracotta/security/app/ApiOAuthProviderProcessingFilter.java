@@ -89,9 +89,9 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
                     // - see ApiJwtServiceImpl.validateToken, which catches ExpiredJwtException
                     // internally and returns null instead of rethrowing. Reject it the same way
                     // the catches below do: without this, the request silently proceeds to the
-                    // controller, whose own SecuredInfo extraction re-validates (and re-logs) the
-                    // identical failure a second time instead of failing fast here.
-                    log.warn("Error handling JWT token: token failed validation");
+                    // controller, whose own SecuredInfo extraction re-validates the identical
+                    // failure a second time instead of failing fast here. Not logged - an expired
+                    // token here is routine (e.g. a stale browser tab), not actionable.
                     ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     return;
                 }
