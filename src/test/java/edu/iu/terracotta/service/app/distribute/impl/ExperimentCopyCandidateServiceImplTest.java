@@ -226,7 +226,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         assertEquals(List.of(declinedId), result.getDeclinedCandidateIds());
         verify(selected).setStatus(ExperimentCopyCandidateStatus.IMPORTING);
         verify(selected).setStatus(ExperimentCopyCandidateStatus.IMPORTED);
-        verify(declined).setStatus(ExperimentCopyCandidateStatus.DISMISSED);
+        verify(declined).setStatus(ExperimentCopyCandidateStatus.NOT_SELECTED);
         verify(experimentCopyCandidateRepository).save(declined);
         verify(assignmentAsyncService, times(1)).handleAssignmentTasksInLmsByContext(securedInfo);
     }
@@ -244,7 +244,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
 
         assertTrue(result.getImports().isEmpty());
         assertEquals(1, result.getDeclinedCandidateIds().size());
-        verify(onlyCandidate).setStatus(ExperimentCopyCandidateStatus.DISMISSED);
+        verify(onlyCandidate).setStatus(ExperimentCopyCandidateStatus.NOT_SELECTED);
         verify(assignmentService, never()).getAllAssignmentsForLmsCourse(any());
         verify(assignmentAsyncService, times(1)).handleAssignmentTasksInLmsByContext(securedInfo);
     }

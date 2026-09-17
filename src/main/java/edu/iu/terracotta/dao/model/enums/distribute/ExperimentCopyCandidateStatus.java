@@ -6,6 +6,6 @@ public enum ExperimentCopyCandidateStatus {
     IMPORTING,
     IMPORTED,
     ERROR,
-    DISMISSED
+    NOT_SELECTED
 
 }

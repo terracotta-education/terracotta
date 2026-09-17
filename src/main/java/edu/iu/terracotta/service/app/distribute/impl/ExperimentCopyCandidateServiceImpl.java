@@ -188,7 +188,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         List<UUID> declinedIds = new ArrayList<>();
 
         for (ExperimentCopyCandidate candidate : toDecline) {
-            candidate.setStatus(ExperimentCopyCandidateStatus.DISMISSED);
+            candidate.setStatus(ExperimentCopyCandidateStatus.NOT_SELECTED);
             experimentCopyCandidateRepository.save(candidate);
             declinedIds.add(candidate.getUuid());
         }
