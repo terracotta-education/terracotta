@@ -83,15 +83,19 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         integrationToken.setLastLaunchedAt(Timestamp.from(Instant.now()));
 
         try {
-            integrationTokenRepository.save(integrationToken);
+            // flushed immediately, rather than left for the surrounding @Transactional
+            // method's own commit, so a concurrent launch of this same token - two requests
+            // racing to update the same row - is caught here (where it can be handled)
+            // instead of surfacing as an unhandled optimistic-locking failure once that
+            // later commit happens
+            integrationTokenRepository.saveAndFlush(integrationToken);
         } catch (Exception e) {
+            // another concurrent launch of this same token already won the race and
+            // persisted its own update - that update is just as valid as ours would have
+            // been, so use the token as it now stands rather than writing over it again
             log.error("Error saving token for submission ID: [{}].", submission.getSubmissionId(), e);
-            // token exists; use that one
             integrationToken = integrationTokenRepository.findBySubmission_SubmissionId(submission.getSubmissionId())
                 .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No token found for submission ID: [%s]", submission.getSubmissionId())));
-            integrationToken.setSecuredInfo(securedInfo);
-            integrationToken.setLastLaunchedAt(Timestamp.from(Instant.now()));
-            integrationTokenRepository.save(integrationToken);
         }
 
         submission.setIntegrationToken(integrationToken);
