@@ -47,6 +47,8 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportErrorService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
@@ -64,6 +66,8 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
     private final ExperimentImportAsyncService experimentImportAsyncService;
     private final ExperimentImportErrorService experimentImportErrorService;
     private final FileStorageService fileStorageService;
+
+    @PersistenceContext private EntityManager entityManager;
 
     @Override
     public ImportDto preprocess(MultipartFile file, SecuredInfo securedInfo) throws ExperimentImportException {
@@ -101,10 +105,19 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                 return toDto(experimentImport);
             }
 
+            ImportDto importDto = toDto(experimentImport);
+
+            // this request's Hibernate session stays open for its whole duration
+            // (open-in-view) - detach this entity before handing it off to the async import
+            // so nothing else on this same request thread can touch it again while
+            // process(...) is concurrently finalizing it on its own, separate thread and
+            // persistence context
+            entityManager.detach(experimentImport);
+
             // start async import processing
             experimentImportAsyncService.process(experimentImport, securedInfo);
 
-            return toDto(experimentImport);
+            return importDto;
         } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
