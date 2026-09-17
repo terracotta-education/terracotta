@@ -156,7 +156,7 @@ describe("Home", () => {
     });
   });
 
-  it("does not fetch copy candidates when experiments already exist", async () => {
+  it("goes straight to the experiment listing, without ever showing the copy-candidates dialog, when the course already has experiments", async () => {
     experimentService.getAll.mockResolvedValue({ status: 200, data: [experiment] });
 
     const wrapper = mountComponent(Home);
@@ -165,7 +165,15 @@ describe("Home", () => {
       expect(wrapper.text()).toContain("My Experiment");
     });
 
+    // never even asks the backend for candidates - the guard is "is this course new",
+    // decided before that call would happen (see also the backend's own, independent
+    // "does this context already have an experiment" guard in getPendingForContext)
     expect(experimentCopyCandidateService.getAll).not.toHaveBeenCalled();
+    // no copy-candidates (or any other) popup was shown
+    expect(swalFire).not.toHaveBeenCalled();
+    // the experiment listing table is what's shown, not the zero-state welcome screen
+    expect(wrapper.find(".table-experiments").isVisible()).toBe(true);
+    expect(wrapper.findComponent({ name: "ZeroState" }).isVisible()).toBe(false);
   });
 
   it("automatically opens the copy-candidates dialog when candidates exist, resolving selected candidates on confirm and registering the resulting imports as import requests", async () => {
