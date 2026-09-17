@@ -200,6 +200,45 @@ describe("Home", () => {
     });
   });
 
+  it("shows a preparing-imports loading screen and disables the zero-state action buttons while resolving a 'Create selected' outcome", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    mountCopyCandidatesDialog();
+
+    let resolveImport;
+    experimentCopyCandidateService.resolve.mockReturnValue(
+      new Promise(resolve => { resolveImport = resolve; })
+    );
+
+    const wrapper = mountComponent(Home);
+    const findPreparingLoading = () => wrapper.findAllComponents({ name: "PageLoading" })
+      .find(candidate => candidate.props("message") === "We are preparing to import the selected experiments. Please wait.");
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".copy-candidate-option")).not.toBeNull();
+    });
+
+    expect(findPreparingLoading().props("display")).toBe(false);
+    expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(false);
+
+    await clickCandidateOption(0);
+    await clickCopyCandidatesAction("Create selected");
+    await clickCopyCandidatesOverlayButton("Got it!");
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith(["c1"]);
+    });
+    expect(findPreparingLoading().props("display")).toBe(true);
+    expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(true);
+
+    resolveImport({ data: { imports: [], declinedCandidateIds: [] } });
+    await flushPromises();
+
+    expect(findPreparingLoading().props("display")).toBe(false);
+    expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(false);
+  });
+
   it("does not resolve anything when 'I'll decide later' is chosen and confirmed", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]

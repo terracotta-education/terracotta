@@ -8,11 +8,16 @@
       :display="isDeletingExperiment"
       message="Please wait..."
     />
+    <page-loading
+      :display="isPreparingCopyCandidateImports"
+      message="We are preparing to import the selected experiments. Please wait."
+    />
     <zero-state
       v-show="isLoaded && !hasExperiments"
       :experimentExportEnabled="experimentExportEnabled"
       :experimentImportRequests="experimentImportRequests"
       :importRequestAlerts="importRequestAlerts"
+      :disableActions="isPreparingCopyCandidateImports || isExperimentImporting"
       @handleImportExperiment="handleImportExperiment"
       @handleImportRequestAlertDismiss="handleImportRequestAlertDismiss"
       @handleImportRequestAlertVisibilityChange="handleImportRequestAlertVisibilityChange"
@@ -331,6 +336,7 @@ const headers = [
 const isLoaded = ref(false);
 const isExportingExperiment = ref(false);
 const isDeletingExperiment = ref(false);
+const isPreparingCopyCandidateImports = ref(false);
 
 const experimentDataExportRequests = ref({
   downloadLinkClicked: false
@@ -629,7 +635,20 @@ const handleShowCopyCandidates = async () => {
   // importing zero of them would.
   const selectedIds = outcome.type === "create" ? outcome.selectedIds : [];
 
-  const resolution = await experimentCopyCandidateStore.resolve(selectedIds);
+  // shown only for "Create selected" - covers the gap between that confirmation and the
+  // "being processed" alerts appearing below, and keeps the zero-state's own action buttons
+  // disabled until the resulting imports are done (isExperimentImporting takes over from there)
+  if (outcome.type === "create") {
+    isPreparingCopyCandidateImports.value = true;
+  }
+
+  let resolution;
+
+  try {
+    resolution = await experimentCopyCandidateStore.resolve(selectedIds);
+  } finally {
+    isPreparingCopyCandidateImports.value = false;
+  }
 
   for (const newImport of resolution?.imports ?? []) {
     if (!newImport?.id) {
