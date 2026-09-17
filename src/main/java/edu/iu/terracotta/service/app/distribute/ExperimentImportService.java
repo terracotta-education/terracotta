@@ -14,7 +14,7 @@ public interface ExperimentImportService {
 
     ImportDto preprocess(MultipartFile file, SecuredInfo securedInfo) throws ExperimentImportException;
     ImportDto preprocessError(MultipartFile file, String errorMessage, SecuredInfo securedInfo);
-    void validate(ExperimentImport experimentImport);
+    ExperimentImport validate(ExperimentImport experimentImport);
     ImportDto acknowledge(ExperimentImport experimentImport, ExperimentImportStatus experimentImportStatus);
     List<ImportDto> getAll(SecuredInfo securedInfo);
     ImportDto toDto(ExperimentImport experimentImport);

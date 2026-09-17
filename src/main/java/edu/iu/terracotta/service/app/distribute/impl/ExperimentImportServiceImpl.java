@@ -82,7 +82,11 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             fileStorageService.saveExperimentImportFile(file, experimentImport);
             experimentImport = experimentImportRepository.save(experimentImport);
 
-            validate(experimentImport);
+            // validate(...) saves the entity again partway through (to persist the source title) -
+            // capture its returned reference rather than the one passed in, otherwise the stale,
+            // pre-validation version number below gets handed to the async process(...) call, which
+            // then fails to save its own final status update with an optimistic-locking error
+            experimentImport = validate(experimentImport);
 
             if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
                 // validation errors exists; skip processing
@@ -175,7 +179,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
     }
 
     @Override
-    public void validate(ExperimentImport experimentImport) {
+    public ExperimentImport validate(ExperimentImport experimentImport) {
         /*
          * Validate each experiment component.
          *
@@ -216,6 +220,8 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
          } catch (ExperimentImportException e) {
             log.warn("Validation exception occurred for experiment import ID: [{}]. Exiting.", experimentImport.getId(), e);
          }
+
+        return experimentImport;
     }
 
     private Map<Class<? extends BaseEntity>, List<String>> prepareIdMap(Export export) {
