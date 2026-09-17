@@ -106,7 +106,6 @@ public class ExperimentServiceImpl implements ExperimentService {
         // sync data with LMS, if configured
         if (syncWithLms) {
             try {
-                log.info("Starting data sync in LMS.");
                 assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
 
                 if (CollectionUtils.isNotEmpty(experiments)) {
@@ -147,7 +146,6 @@ public class ExperimentServiceImpl implements ExperimentService {
         experiment = save(experiment);
 
         try {
-            log.info("Starting data sync in LMS.");
             participantAsyncService.updateParticipantData(securedInfo);
         } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
             log.error("Error syncing data with LMS. Experiment ID: '{}'", experiment.getExperimentId(), e);

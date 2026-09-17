@@ -342,7 +342,7 @@ public class QuestionSubmissionController {
         long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
 
         if (file.isEmpty()) {
-            log.error("File cannot be empty.");
+            log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
         }
 
@@ -389,7 +389,7 @@ public class QuestionSubmissionController {
         long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
         long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
         if (file.isEmpty()) {
-            log.error("File cannot be empty.");
+            log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
         }
 

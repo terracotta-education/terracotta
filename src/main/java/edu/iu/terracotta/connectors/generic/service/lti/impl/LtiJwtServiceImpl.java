@@ -161,13 +161,13 @@ public class LtiJwtServiceImpl implements LtiJwtService {
                                 log.error("Kid not found in header", ex);
                                 return null;
                             } catch (URISyntaxException e) {
-                                log.error("The platform configuration must contain a Jwks endpoint");
+                                log.error("The platform configuration for platformDeployment [{}] must contain a valid Jwks endpoint", platformDeployment.getKeyId(), e);
                                 return null;
                             }
                         }
 
                         // If not, we get the key stored in our configuration
-                        log.error("The platform configuration must contain a valid JWKS");
+                        log.error("The platform configuration for platformDeployment [{}] must contain a valid JWKS", platformDeployment.getKeyId());
                         return null;
                     }
 
