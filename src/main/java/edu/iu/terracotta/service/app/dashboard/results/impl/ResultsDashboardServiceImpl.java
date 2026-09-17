@@ -30,7 +30,6 @@ public class ResultsDashboardServiceImpl implements ResultsDashboardService {
 
     @Override
     public ResultsDashboardDto overview(long experimentId, SecuredInfo securedInfo) throws ExperimentNotMatchingException {
-        log.info("Starting results overview dashboard calculations for experiment ID: [{}]", experimentId);
         Optional<Experiment> experiment = experimentRepository.findById(experimentId);
 
         if (experiment.isEmpty()) {
@@ -41,7 +40,7 @@ public class ResultsDashboardServiceImpl implements ResultsDashboardService {
             .experimentId(experiment.get().getUuid())
             .overview(resultsOverviewService.overview(experiment.get(), securedInfo));
 
-        log.info("Finished results overview dashboard calculations for experiment ID: [{}]", experimentId);
+        log.info("Calculated overview for experiment ID: [{}]", experimentId);
 
         return resultsDashboardDto.build();
     }
