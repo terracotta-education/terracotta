@@ -29,6 +29,10 @@ $light-blue: (
   "base": #03a9f4
 );
 
+$orange: (
+  "base": #f57c00
+);
+
 $red: (
   "base": #b40808
 );
@@ -59,7 +63,13 @@ $expansion-panel-content-padding: 30px;
   --grey-lighter: #{map.get($grey, "lighter")};
   --grey-lightest: #{map.get($grey, "lightest")};
 
+  --light-blue-base: #{map.get($light-blue, "base")};
+
+  --orange-base: #{map.get($orange, "base")};
+
   --red-base: #{map.get($red, "base")};
+
+  --yellow-base: #{map.get($yellow, "base")};
 
   --swal-cancel: #{map.get($swal, "cancel")};
 }

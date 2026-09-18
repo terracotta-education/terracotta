@@ -245,7 +245,7 @@ public class AnswerSubmissionController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, NumberFormatException, TerracottaConnectorException {
 
         if (file.isEmpty()) {
-            log.error("Invalid file ");
+            log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
         }
 
@@ -293,7 +293,7 @@ public class AnswerSubmissionController {
                                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, NumberFormatException, TerracottaConnectorException {
         if (file.isEmpty()) {
-            log.error("Invalid file ");
+            log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
         }
 

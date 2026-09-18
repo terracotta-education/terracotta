@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationToken;
@@ -60,7 +60,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
 
         integrationTokenService.create(submission, securedInfo);
 
-        verify(integrationTokenRepository).save(any(IntegrationToken.class));
+        verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
         verify(submission).setIntegrationToken(any(IntegrationToken.class));
     }
 
@@ -71,7 +71,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
 
         integrationTokenService.create(submission, securedInfo);
 
-        verify(integrationTokenRepository).save(any(IntegrationToken.class));
+        verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
         verify(submission).setIntegrationToken(any(IntegrationToken.class));
     }
 
@@ -81,7 +81,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
 
         integrationTokenService.create(submission, securedInfo);
 
-        verify(integrationTokenRepository, never()).save(any(IntegrationToken.class));
+        verify(integrationTokenRepository, never()).saveAndFlush(any(IntegrationToken.class));
         verify(submission, never()).setIntegrationToken(any(IntegrationToken.class));
         verify(integrationTokenRepository, never()).deleteById(anyLong());
     }
@@ -92,7 +92,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
 
         integrationTokenService.create(submission, securedInfo);
 
-        verify(integrationTokenRepository, never()).save(any(IntegrationToken.class));
+        verify(integrationTokenRepository, never()).saveAndFlush(any(IntegrationToken.class));
         verify(submission, never()).setIntegrationToken(any(IntegrationToken.class));
         verify(integrationTokenRepository, never()).deleteById(anyLong());
     }
@@ -104,21 +104,22 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
 
         integrationTokenService.create(submission, securedInfo);
 
-        verify(integrationTokenRepository).save(any(IntegrationToken.class));
+        verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
         verify(submission).setIntegrationToken(any(IntegrationToken.class));
     }
 
     @Test
-    void testCreateSaveFailsThenFindsExistingToken() throws IntegrationTokenNotFoundException {
+    void testCreateSaveFailsThenUsesConcurrentlyLaunchedToken() throws IntegrationTokenNotFoundException {
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
-        when(integrationTokenRepository.save(any(IntegrationToken.class)))
-            .thenThrow(new IllegalStateException("db error"))
-            .thenReturn(integrationToken);
+        when(integrationTokenRepository.saveAndFlush(any(IntegrationToken.class)))
+            .thenThrow(new ObjectOptimisticLockingFailureException(IntegrationToken.class, 1L));
         when(integrationTokenRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Optional.of(integrationToken));
 
         integrationTokenService.create(submission, securedInfo);
 
-        verify(integrationTokenRepository, times(2)).save(any(IntegrationToken.class));
+        // the concurrent launch that won the race already persisted its own update - this
+        // one doesn't retry the write (which would just race again), it uses that token as-is
+        verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
         verify(integrationTokenRepository).findBySubmission_SubmissionId(1L);
         verify(submission).setIntegrationToken(integrationToken);
     }
@@ -126,7 +127,7 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
     @Test
     void testCreateSaveFailsAndNoExistingTokenFoundThrows() {
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
-        when(integrationTokenRepository.save(any(IntegrationToken.class))).thenThrow(new IllegalStateException("db error"));
+        when(integrationTokenRepository.saveAndFlush(any(IntegrationToken.class))).thenThrow(new IllegalStateException("db error"));
         when(integrationTokenRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Optional.empty());
 
         assertThrows(IntegrationTokenNotFoundException.class, () -> { integrationTokenService.create(submission, securedInfo); });
