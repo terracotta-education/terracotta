@@ -11,7 +11,7 @@ export function createMockLocalStorage(initial = {}) {
   // blocking storage access)
   Object.defineProperties(storage, {
     getItem: {
-      value: key => (Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null),
+      value: key => (Object.hasOwn(storage, key) ? storage[key] : null),
       enumerable: false,
       configurable: true,
       writable: true

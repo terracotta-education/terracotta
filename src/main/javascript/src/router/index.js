@@ -436,8 +436,15 @@ const router = createRouter({
   // router.afterEach that would have to reconstruct that same distinction less
   // reliably.
   scrollBehavior(to, from, savedPosition) {
+    // "*" would work for any parent (the tool is embedded across many different,
+    // institution-specific LMS domains, so there's no single origin to hardcode),
+    // but document.referrer reliably names the actual current parent frame in the
+    // normal LTI-launched case - narrow to that when it's available and only fall
+    // back to "*" when it isn't, since the payload itself carries nothing sensitive
+    // either way.
     if (!savedPosition && isEmbeddedInAnIframe()) {
-      window.parent.postMessage({ subject: "lti.scrollToTop" }, "*");
+      const targetOrigin = document.referrer ? new URL(document.referrer).origin : "*";
+      window.parent.postMessage({ subject: "lti.scrollToTop" }, targetOrigin);
     }
 
     return savedPosition || { top: 0 };

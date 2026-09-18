@@ -203,6 +203,38 @@ describe("ExperimentSummary", () => {
     ).toMatchObject({ experimentId: 8 });
   });
 
+  // `loaded` (computed from isLoading) waits on the full fetchExperiment/
+  // fetchExposures/fetchAssignmentsByExposure/messageContainerService.getAll
+  // chain, not just the experiment itself - that's real network time, and until
+  // it resolves the components tab's content area was otherwise just blank
+  // where the components table would appear.
+  it("shows a loading spinner in place of the components table while assignments/messages are still loading", async () => {
+    let resolveAssignments;
+    assignmentService.fetchAssignmentsByExposure.mockReturnValue(
+      new Promise(resolve => { resolveAssignments = resolve; })
+    );
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+
+    // "components" is the default tab (see the test below), so its content is
+    // already mounted without needing switchTab.
+    expect(wrapper.find(".spinner-container-assignments").exists()).toBe(true);
+    expect(wrapper.text()).toContain("Please wait while we load your experiment components.");
+    expect(wrapper.findComponent({ name: "ExperimentAssignments" }).exists()).toBe(false);
+
+    resolveAssignments([]);
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "ExperimentAssignments" }).exists()).toBe(true);
+    });
+
+    expect(wrapper.find(".spinner-container-assignments").exists()).toBe(false);
+  });
+
   it("defaults to the components tab and exposure set 0 without a saved edit mode", async () => {
     const wrapper = mountSummary();
 
@@ -312,6 +344,48 @@ describe("ExperimentSummary", () => {
     await vi.waitFor(() => {
       expect(experimentService.export).toHaveBeenCalledWith(8);
     });
+  });
+
+  it("never counts message containers toward balance, regardless of version", async () => {
+    const exposureA = { exposureId: 60, groupConditionList: [] };
+    const exposureB = { exposureId: 61, groupConditionList: [] };
+    exposuresService.getAll.mockResolvedValue([exposureA, exposureB]);
+
+    configurationModule().$patch({
+      configurations: { messagingEnabled: true }
+    });
+
+    assignmentService.fetchAssignmentsByExposure.mockResolvedValue([]);
+
+    messageContainerService.getAll.mockImplementation((experimentId, exposureId) => {
+      if (exposureId === exposureA.exposureId) {
+        // a lopsided number of message containers, single- and multi-version -
+        // none of it should ever affect balance, which is assignments-only
+        return Promise.resolve([
+          { id: 200, exposureId: exposureA.exposureId, messages: [{ id: 1 }, { id: 2 }] },
+          { id: 201, exposureId: exposureA.exposureId, messages: [{ id: 3 }] },
+          { id: 202, exposureId: exposureA.exposureId, messages: [{ id: 4 }, { id: 5 }] }
+        ]);
+      }
+
+      if (exposureId === exposureB.exposureId) {
+        return Promise.resolve([]);
+      }
+
+      return Promise.resolve([]);
+    });
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.findComponent({ name: "ExperimentAssignments" }).exists()
+      ).toBe(true);
+    });
+
+    expect(
+      wrapper.findComponent({ name: "ExperimentAssignments" }).props("balanced")
+    ).toBe(true);
   });
 
   it("downloads and displays the consent PDF when the consent title button is clicked", async () => {

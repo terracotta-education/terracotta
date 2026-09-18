@@ -14,6 +14,13 @@ vi.mock("@/services", () => ({
     deleteContainer: vi.fn(),
     move: vi.fn(),
     duplicate: vi.fn()
+  },
+  treatmentService: {
+    create: vi.fn()
+  },
+  assessmentService: {
+    fetchAssessments: vi.fn(),
+    createAssessment: vi.fn()
   }
 }));
 
@@ -33,7 +40,9 @@ import { createPinia, setActivePinia } from "pinia";
 import { mountComponent } from "@/test-utils/mount";
 import {
   assignmentService,
-  messageContainerService
+  messageContainerService,
+  treatmentService,
+  assessmentService
 } from "@/services";
 import { experiment as experimentModule } from "@/store/experiment.module";
 import { exposures as exposuresModule } from "@/store/exposures.module";
@@ -71,8 +80,7 @@ const stubs = {
   ComponentTable: true,
   ExposureDesignCard: true,
   AddAssignmentDialog: true,
-  AddMessageDialog: true,
-  Spinner: true
+  AddMessageDialog: true
 };
 
 const seedStores = ({
@@ -99,7 +107,7 @@ const seedStores = ({
 // seeded state ends up on an orphaned instance the mounted component never sees.
 let pinia;
 
-const mountAssignments = (props = {}) => mountComponent(ExperimentAssignments, {
+const mountAssignments = (props = {}, options = {}) => mountComponent(ExperimentAssignments, {
   props: {
     experiment,
     balanced: true,
@@ -107,7 +115,8 @@ const mountAssignments = (props = {}) => mountComponent(ExperimentAssignments, {
     ...props
   },
   global: { stubs },
-  pinia
+  pinia,
+  ...options
 });
 
 describe("ExperimentAssignments", () => {
@@ -119,16 +128,20 @@ describe("ExperimentAssignments", () => {
     seedStores();
   });
 
-  it("shows a spinner until mount finishes, then shows the exposure content", async () => {
+  // the real, user-visible loading wait happens one level up, in
+  // ExperimentSummary.vue - by the time this component mounts, its parent has
+  // already fully resolved `experiment` and every store this reads from. This
+  // component's own `loaded` ref just waits one tick for `tab` to be set from
+  // activeExposureSet before rendering, so the wrong exposure tab's content
+  // never flashes on mount.
+  it("waits until the active tab is set before showing the exposure content", async () => {
     const wrapper = mountAssignments();
 
-    expect(wrapper.find(".spinner-container-assignment").exists()).toBe(true);
     expect(wrapper.findComponent({ name: "ExposureTabs" }).exists()).toBe(false);
 
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.find(".spinner-container-assignment").exists()).toBe(false);
     expect(wrapper.findComponent({ name: "ExposureTabs" }).exists()).toBe(true);
   });
 
@@ -347,6 +360,48 @@ describe("ExperimentAssignments", () => {
     expect(updated.map(row => row.assignmentId)).toEqual([101, 100]);
   });
 
+  // ComponentTable.vue's own handleDragKeydown (tested in ComponentTable.spec.js)
+  // is what supplies focusAssignmentId - this test covers the other half of that
+  // contract: saveOrder using it to put focus back on the right row's drag handle
+  // after componentTableKey's forced remount drops focus to the document body.
+  // ComponentTable is stubbed in this file (see `stubs` above), so there's no real
+  // drag-handle button to refocus - a standalone element with the matching
+  // data-drag-handle attribute, attached to document.body, stands in for it.
+  it("restores focus to the moved row's drag handle after a keyboard-triggered reorder, and announces the new position", async () => {
+    seedStores({
+      assignments: [
+        { ...assignmentRow, assignmentId: 100, assignmentOrder: 1, title: "First" },
+        { ...assignmentRow, assignmentId: 101, assignmentOrder: 2, title: "Second" }
+      ]
+    });
+    assignmentService.updateAssignments.mockResolvedValue([]);
+    messageContainerService.updateAll.mockResolvedValue([]);
+
+    const handleStandIn = document.createElement("button");
+    handleStandIn.setAttribute("data-drag-handle", "100");
+    document.body.appendChild(handleStandIn);
+
+    const wrapper = mountAssignments({}, { attachTo: document.body });
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+
+    table.vm.$emit(
+      "save-order",
+      { oldDraggableIndex: 0, newDraggableIndex: 1, focusAssignmentId: 100 }
+    );
+
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(handleStandIn);
+    });
+
+    expect(wrapper.text()).toContain("First moved to position 2 of 2.");
+
+    wrapper.unmount();
+    handleStandIn.remove();
+  });
+
   it("opens a preview window for a treatment", async () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => {});
 
@@ -363,5 +418,69 @@ describe("ExperimentAssignments", () => {
     );
 
     openSpy.mockRestore();
+  });
+
+  it("creates a treatment and assessment for a missing condition, then navigates to the builder like Edit does", async () => {
+    treatmentService.create.mockResolvedValue({
+      status: 201,
+      data: { treatmentId: 55, conditionId: 2, assignmentId: 100 }
+    });
+    assessmentService.fetchAssessments.mockResolvedValue({ data: [] });
+    assessmentService.createAssessment.mockResolvedValue({
+      status: 201,
+      data: { assessmentId: 77 }
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("add-treatment", { row, condition: { conditionId: 2 } });
+
+    await vi.waitFor(() => {
+      expect(treatmentService.create).toHaveBeenCalledWith(3, 2, 100);
+    });
+
+    await vi.waitFor(() => {
+      expect(assessmentService.createAssessment).toHaveBeenCalledWith(3, 2, 55);
+    });
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "TerracottaBuilder",
+          params: expect.objectContaining({
+            conditionId: 2,
+            treatmentId: 55,
+            assessmentId: 77
+          })
+        })
+      );
+    });
+  });
+
+  it("shows an error alert and does not navigate when creating the treatment fails", async () => {
+    treatmentService.create.mockResolvedValue({ status: 500 });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("add-treatment", { row, condition: { conditionId: 2 } });
+
+    await vi.waitFor(() => {
+      expect(treatmentService.create).toHaveBeenCalled();
+    });
+
+    expect(assessmentService.createAssessment).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: "TerracottaBuilder" })
+    );
   });
 });

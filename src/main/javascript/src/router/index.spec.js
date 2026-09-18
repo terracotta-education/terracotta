@@ -38,6 +38,27 @@ describe("router scrollBehavior", () => {
     expect(postMessageSpy).toHaveBeenCalledWith({ subject: "lti.scrollToTop" }, "*");
   });
 
+  // document.referrer reliably names the actual current parent frame in the real
+  // LTI-launched case - "*" (asserted above) is only the fallback for when it isn't
+  // available, not the normal path.
+  it("narrows the postMessage target to the parent's own origin when document.referrer is available", () => {
+    Object.defineProperty(window, "top", { value: {}, configurable: true });
+    Object.defineProperty(document, "referrer", {
+      value: "https://canvas.instructure.com/courses/123",
+      configurable: true
+    });
+    const postMessageSpy = vi.spyOn(window.parent, "postMessage");
+
+    router.options.scrollBehavior({}, {}, null);
+
+    expect(postMessageSpy).toHaveBeenCalledWith(
+      { subject: "lti.scrollToTop" },
+      "https://canvas.instructure.com"
+    );
+
+    Object.defineProperty(document, "referrer", { value: "", configurable: true });
+  });
+
   it("does not ask the LMS parent to scroll when not embedded in an iframe", () => {
     const postMessageSpy = vi.spyOn(window, "postMessage");
 

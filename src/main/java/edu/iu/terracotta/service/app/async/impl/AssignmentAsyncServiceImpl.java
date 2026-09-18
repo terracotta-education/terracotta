@@ -184,13 +184,12 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                 }
             );
 
-        log.info("Checking Terracotta assignments for context ID: [{}] in LMS COMPLETE. Assignments recreated: [{}].",
-            securedInfo.getContextId(),
-            CollectionUtils.isNotEmpty(assignmentsRecreated) ?
-                assignmentsRecreated.stream()
-                    .collect(Collectors.joining(", ")) :
-                "N/A"
-        );
+        if (CollectionUtils.isNotEmpty(assignmentsRecreated)) {
+            log.info("Checking Terracotta assignments for context ID: [{}] in LMS COMPLETE. Assignments recreated: [{}].",
+                securedInfo.getContextId(),
+                assignmentsRecreated.stream().collect(Collectors.joining(", "))
+            );
+        }
     }
 
     @Async
@@ -329,13 +328,12 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             .filter(Objects::nonNull)
             .toList();
 
+        if (CollectionUtils.isNotEmpty(obsoleteAssignmentIds)) {
             log.info("Checking Terracotta assignments for context ID: [{}] in LMS COMPLETE. Assignments marked as obsolete: [{}].",
                 securedInfo.getContextId(),
-                CollectionUtils.isNotEmpty(obsoleteAssignmentIds) ?
-                    obsoleteAssignmentIds.stream()
-                        .collect(Collectors.joining(", ")) :
-                    "N/A"
-        );
+                obsoleteAssignmentIds.stream().collect(Collectors.joining(", "))
+            );
+        }
     }
 
     /**

@@ -63,6 +63,16 @@ describe("ComponentActionsMenu", () => {
     expect(wrapper.findComponent({ name: "VBtn" }).exists()).toBe(true);
   });
 
+  // a plain "actions" label was identical across every row, so a screen reader user
+  // tabbing through the table heard the same announcement no matter which component's
+  // menu they'd landed on - row.title makes each one distinguishable.
+  it("labels the activator button with the row's own title, not a generic 'actions'", async () => {
+    await mountMenu();
+
+    expect(wrapper.findComponent({ name: "VBtn" }).attributes("aria-label"))
+      .toBe("actions for Assignment 1");
+  });
+
   // TCOTA-1010: the menu must pop up above and to the left of the actions button, rather than
   // covering/overflowing past it - matching the "top start" convention already used for other
   // "opens above" menus in this codebase (e.g. QuestionTypeMenu.vue, CopyTreatmentMenu.vue)

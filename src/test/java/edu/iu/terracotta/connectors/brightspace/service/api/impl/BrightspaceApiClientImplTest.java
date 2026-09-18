@@ -546,12 +546,17 @@ public class BrightspaceApiClientImplTest extends BaseTest {
 
     @Test
     public void testEditAssignmentSuccess() throws Exception {
-        try (MockedConstruction<BrightspaceApiFactory> _ = mockApiFactory()) {
+        try (MockedConstruction<BrightspaceApiFactory> mockedFactory = mockApiFactory()) {
             when(brightspaceAssignmentWriterService.editAssignment(anyString(), any(LmsAssignment.class))).thenReturn(Optional.of(buildAssignmentExtended(true, 1L)));
 
             Optional<LmsAssignment> result = brightspaceApiClient.editAssignment(ltiUserEntity, lmsAssignment, "orgUnitId");
 
             assertTrue(result.isPresent());
+
+            // serializeNulls must be true here - Brightspace's content module PUT rejects the
+            // request with a 400 JSON Binding Error if optional-but-required fields like
+            // ModuleStartDate/ModuleEndDate/Duration are omitted rather than sent as null
+            verify(mockedFactory.constructed().get(0)).getWriter(eq(AssignmentWriterService.class), any(OauthToken.class), eq(true));
         }
     }
 
@@ -566,12 +571,15 @@ public class BrightspaceApiClientImplTest extends BaseTest {
 
     @Test
     public void testEditAssignmentWithTokenOverrideSuccess() throws Exception {
-        try (MockedConstruction<BrightspaceApiFactory> _ = mockApiFactory()) {
+        try (MockedConstruction<BrightspaceApiFactory> mockedFactory = mockApiFactory()) {
             when(brightspaceAssignmentWriterService.editAssignment(anyString(), any(LmsAssignment.class))).thenReturn(Optional.of(buildAssignmentExtended(true, 1L)));
 
             Optional<LmsAssignment> result = brightspaceApiClient.editAssignment(platformDeployment, lmsAssignment, "orgUnitId", "override-token");
 
             assertTrue(result.isPresent());
+
+            // same serializeNulls=true requirement as the non-override editAssignment overload
+            verify(mockedFactory.constructed().get(0)).getWriter(eq(AssignmentWriterService.class), any(OauthToken.class), eq(true));
         }
     }
 
