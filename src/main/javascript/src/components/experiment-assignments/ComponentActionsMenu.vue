@@ -7,8 +7,9 @@
     <template #activator="{ props: menuProps }">
       <v-btn
         v-bind="menuProps"
-        aria-label="actions"
-        icon="mdi-dots-horizontal"
+        :aria-label="`actions for ${row.title}`"
+        class="component-actions-btn"
+        icon="mdi-dots-vertical"
         variant="text"
         density="compact"
       />

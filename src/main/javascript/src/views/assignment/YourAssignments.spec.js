@@ -158,6 +158,30 @@ describe("YourAssignments", () => {
     expect(wrapper.text()).toContain("Add a component to balance the experiment");
   });
 
+  it("does not count single-version assignments toward balance - an extra one does not make an exposure look ahead, or the other look unbalanced", async () => {
+    const { assignmentService } = await import("@/services");
+    assignmentService.fetchAssignmentsByExposure.mockImplementation((experimentId, exposureId) => {
+      if (exposureId === exposureA.exposureId) {
+        // one real multi-version component, plus a single-version one that should not count
+        return Promise.resolve([
+          assignmentFor(1, 100, 2),
+          assignmentFor(1, 101, 1)
+        ]);
+      }
+
+      if (exposureId === exposureB.exposureId) {
+        return Promise.resolve([assignmentFor(2, 200, 2)]);
+      }
+
+      return Promise.resolve([]);
+    });
+
+    const wrapper = await mountView();
+    await expandAllPanels(wrapper);
+
+    expect(wrapper.text()).not.toContain("Add a component to balance the experiment");
+  });
+
   it("flags an exposure as incomplete when a component is missing a treatment for every condition", async () => {
     const { assignmentService } = await import("@/services");
     assignmentService.fetchAssignmentsByExposure.mockImplementation((experimentId, exposureId) => {
