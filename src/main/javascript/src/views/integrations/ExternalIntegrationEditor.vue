@@ -211,12 +211,12 @@ const configurationStore = configurationModule();
 //   of an unbounded inner "*", which caps backtracking to a constant per label. Matches the
 //   exact same strings, including consecutive hyphens (e.g. punycode "xn--..." labels).
 const URL_PATTERN = new RegExp(
-  "^(https?:\\/\\/)?" +
-    "(([a-z\\d](?:[a-z\\d-]{0,61}[a-z\\d])?\\.)+[a-z]{2,}|" +
-    "((\\d{1,3}\\.){3}\\d{1,3}))" +
-    "(\\:\\d+)?[\\/\\-a-z\\d%_.~+]*" +
-    "(\\?[;&a-z\\d%_.~+=-]*)?" +
-    "(\\#[-a-z\\d_]*)?$",
+  String.raw`^(https?:\/\/)?` +
+    String.raw`(([a-z\d](?:[a-z\d-]{0,61}[a-z\d])?\.)+[a-z]{2,}|` +
+    String.raw`((\d{1,3}\.){3}\d{1,3}))` +
+    String.raw`(\:\d+)?[\/\-a-z\d%_.~+]*` +
+    String.raw`(\?[;&a-z\d%_.~+=-]*)?` +
+    String.raw`(\#[-a-z\d_]*)?$`,
   "i"
 );
 

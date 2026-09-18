@@ -63,6 +63,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -87,6 +88,16 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
     @Value("${assignment.file.archive.local.path.root}")
     private String assignmentFileArchiveLocalPathRoot;
+
+    @Value("${app.assignments.obsolete.check.enabled:true}")
+    private boolean obsoleteAssignmentCheckEnabled;
+
+    @PostConstruct
+    public void init() {
+        if (!obsoleteAssignmentCheckEnabled) {
+            log.info("Obsolete assignment check is disabled.");
+        }
+    }
 
     @Async
     @Override
@@ -172,19 +183,22 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                 }
             );
 
-        log.info("Checking Terracotta assignments for context ID: [{}] in LMS COMPLETE. Assignments recreated: [{}].",
-            securedInfo.getContextId(),
-            CollectionUtils.isNotEmpty(assignmentsRecreated) ?
-                assignmentsRecreated.stream()
-                    .collect(Collectors.joining(", ")) :
-                "N/A"
-        );
+        if (CollectionUtils.isNotEmpty(assignmentsRecreated)) {
+            log.info("Checking Terracotta assignments for context ID: [{}] in LMS COMPLETE. Assignments recreated: [{}].",
+                securedInfo.getContextId(),
+                assignmentsRecreated.stream().collect(Collectors.joining(", "))
+            );
+        }
     }
 
     @Async
     @Override
     @Transactional(rollbackFor = { ApiException.class })
     public void handleObsoleteAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        if (!obsoleteAssignmentCheckEnabled) {
+            return;
+        }
+
         // get assignments that currently exist in Terracotta for this context
         List<Assignment> terracottaAssignments = assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
 
@@ -301,13 +315,12 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             .filter(Objects::nonNull)
             .toList();
 
+        if (CollectionUtils.isNotEmpty(obsoleteAssignmentIds)) {
             log.info("Checking Terracotta assignments for context ID: [{}] in LMS COMPLETE. Assignments marked as obsolete: [{}].",
                 securedInfo.getContextId(),
-                CollectionUtils.isNotEmpty(obsoleteAssignmentIds) ?
-                    obsoleteAssignmentIds.stream()
-                        .collect(Collectors.joining(", ")) :
-                    "N/A"
-        );
+                obsoleteAssignmentIds.stream().collect(Collectors.joining(", "))
+            );
+        }
     }
 
     @Async

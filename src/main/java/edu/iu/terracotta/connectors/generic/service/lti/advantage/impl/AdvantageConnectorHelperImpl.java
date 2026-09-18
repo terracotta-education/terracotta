@@ -166,7 +166,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
             ResponseEntity<LtiToken> reportPostResponse = postEntity(postTokenUrl, request, platformDeployment, scope);
 
             if (reportPostResponse == null) {
-                log.warn("Problem getting the token");
+                log.warn("Problem getting the token for platformDeployment [{}]", platformDeployment.getKeyId());
                 throw new ConnectionException("Problem getting the token");
             }
 
@@ -202,8 +202,7 @@ public class AdvantageConnectorHelperImpl implements AdvantageConnectorHelper {
         try {
             return restTemplate.postForEntity(postTokenUrl, request, LtiToken.class);
         } catch (Exception ex) {
-            log.error("Error getting the token: '{}'", ex.getMessage());
-            log.error("Can't get the token. Exception. We will try again with a JSON Payload");
+            log.error("Error getting the token for platformDeployment [{}]: '{}'. Retrying with a JSON payload", platformDeployment.getKeyId(), ex.getMessage());
 
             try {
                 HttpEntity request2 = createTokenRequestJSON(scope, platformDeployment);

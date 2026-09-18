@@ -117,7 +117,7 @@ public class MessageEmailServiceImpl implements MessageEmailService {
                             try {
                                 return new InternetAddress(replyTo);
                             } catch (AddressException e) {
-                                log.error("Error converting reply-to address: [{}]", replyTo, e);
+                                log.error("Error converting a reply-to address for message ID: [{}]", message.getId(), e);
                                 return null;
                             }
                         }
@@ -245,7 +245,7 @@ public class MessageEmailServiceImpl implements MessageEmailService {
 
     @Override
     public void sendTest(Message message, MessageSendTestDto messageSendTestDto) throws MessageSendEmailException, TerracottaConnectorException {
-        log.info("Sending test email to: [{}] for message ID: [{}]", messageSendTestDto.getTo(), message.getId());
+        log.info("Sending test email for message ID: [{}]", message.getId());
         MimeMessageHelper emailMessage = null;
         MessageLog messageLog = null;
 
@@ -268,9 +268,9 @@ public class MessageEmailServiceImpl implements MessageEmailService {
                 messageLog,
                 true
             );
-            log.info("Completed sending test email to [{}] for message ID: [{}]", messageSendTestDto.getTo(), message.getId());
+            log.info("Completed sending test email for message ID: [{}]", message.getId());
         } catch (Exception e) {
-            log.error("Error sending test email to: [{}] for message ID: [{}] ", messageSendTestDto.getTo(), message.getId(), e);
+            log.error("Error sending test email for message ID: [{}] ", message.getId(), e);
 
             if (emailMessage != null) {
                 messageLog = MessageLog.builder()

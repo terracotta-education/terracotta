@@ -330,11 +330,11 @@ public class SimpleRestClient implements RestClient {
 
         if (statusCode == 401) {
             if (httpResponse.containsHeader(HttpHeaders.WWW_AUTHENTICATE)) {
-                log.debug("User's token is invalid. It might need refreshing");
+                log.debug("User's token is invalid and might need refreshing. Requested URL: [{}]", request.getURI());
                 throw new InvalidOauthTokenException();
             }
 
-            log.error("User is not authorized to perform this action");
+            log.error("User is not authorized to perform this action. Requested URL: [{}]", request.getURI());
             throw new BrightspaceException("User is not authorized to perform this action", String.valueOf(request.getURI()));
         }
 
