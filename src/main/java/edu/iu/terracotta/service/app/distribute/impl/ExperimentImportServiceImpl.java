@@ -47,6 +47,8 @@ import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportErrorService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
@@ -65,6 +67,8 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
     private final ExperimentImportErrorService experimentImportErrorService;
     private final FileStorageService fileStorageService;
 
+    @PersistenceContext private EntityManager entityManager;
+
     @Override
     public ImportDto preprocess(MultipartFile file, SecuredInfo securedInfo) throws ExperimentImportException {
         LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
@@ -82,7 +86,11 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             fileStorageService.saveExperimentImportFile(file, experimentImport);
             experimentImport = experimentImportRepository.save(experimentImport);
 
-            validate(experimentImport);
+            // validate(...) saves the entity again partway through (to persist the source title) -
+            // capture its returned reference rather than the one passed in, otherwise the stale,
+            // pre-validation version number below gets handed to the async process(...) call, which
+            // then fails to save its own final status update with an optimistic-locking error
+            experimentImport = validate(experimentImport);
 
             if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
                 // validation errors exists; skip processing
@@ -97,10 +105,19 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                 return toDto(experimentImport);
             }
 
+            ImportDto importDto = toDto(experimentImport);
+
+            // this request's Hibernate session stays open for its whole duration
+            // (open-in-view) - detach this entity before handing it off to the async import
+            // so nothing else on this same request thread can touch it again while
+            // process(...) is concurrently finalizing it on its own, separate thread and
+            // persistence context
+            entityManager.detach(experimentImport);
+
             // start async import processing
             experimentImportAsyncService.process(experimentImport, securedInfo);
 
-            return toDto(experimentImport);
+            return importDto;
         } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
@@ -175,7 +192,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
     }
 
     @Override
-    public void validate(ExperimentImport experimentImport) {
+    public ExperimentImport validate(ExperimentImport experimentImport) {
         /*
          * Validate each experiment component.
          *
@@ -216,6 +233,8 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
          } catch (ExperimentImportException e) {
             log.warn("Validation exception occurred for experiment import ID: [{}]. Exiting.", experimentImport.getId(), e);
          }
+
+        return experimentImport;
     }
 
     private Map<Class<? extends BaseEntity>, List<Long>> prepareIdMap(Export export) {

@@ -478,7 +478,7 @@ public class Lti3Request {
             // just below (same iss/aud/ltiDeploymentId) can reuse it instead of re-querying
             this.toolDeployment = this.ltiDataService.findOrCreateToolDeployment(iss, aud, ltiDeploymentId);
         } catch (Exception e) {
-            log.error("No deployment found");
+            log.error("No deployment found for iss: [{}], aud: [{}], ltiDeploymentId: [{}]", iss, aud, ltiDeploymentId, e);
         }
 
         // And now we will check that all the mandatory fields are there and are correct

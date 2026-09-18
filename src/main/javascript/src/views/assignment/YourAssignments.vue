@@ -177,8 +177,18 @@ const exposures = computed(() => {
 
 const assignmentCountsByExposure = computed(() => {
   return exposures.value.map(exposure => {
+    return getBalanceRelevantAssignmentsForExposure(exposure.exposureId).length;
+  });
+});
+
+// unfiltered (includes single-version assignments) - used only to check whether any
+// assignment exists at all, not for the balance comparison itself
+const rawLongestLength = computed(() => {
+  const counts = exposures.value.map(exposure => {
     return getAssignmentsForExposure(exposure.exposureId).length;
   });
+
+  return counts.length ? Math.max(...counts) : 0;
 });
 
 const shortestLength = computed(() => {
@@ -203,14 +213,11 @@ const finishDisabled = computed(() => {
     exposures.value.length !== 1;
 
   const noAssignments =
-    longestLength.value < 1;
+    rawLongestLength.value < 1;
 
   const incompleteTreatments =
     assignments.value.some(assignment => {
-      return (
-        (assignment.treatments?.length || 0) <
-        conditions.value.length
-      );
+      return (assignment.treatments?.length || 0) < conditions.value.length;
     });
 
   return (
@@ -223,6 +230,14 @@ const finishDisabled = computed(() => {
 const getAssignmentsForExposure = exposureIdValue => {
   return assignments.value.filter(assignment => {
     return assignment.exposureId === exposureIdValue;
+  });
+};
+
+// single-version assignments (the same content for every condition) don't count toward
+// balance, only multi-version ones do - matches the "balanced" rule in ExperimentSummary.vue
+const getBalanceRelevantAssignmentsForExposure = exposureIdValue => {
+  return getAssignmentsForExposure(exposureIdValue).filter(assignment => {
+    return (assignment.treatments?.length || 0) > 1;
   });
 };
 
@@ -246,7 +261,7 @@ const allComplete = exposureIdValue => {
 
 const assignmentIsBalanced = exposureIdValue => {
   const currentLength =
-    getAssignmentsForExposure(exposureIdValue).length;
+    getBalanceRelevantAssignmentsForExposure(exposureIdValue).length;
 
   return (
     currentLength > 0 &&
