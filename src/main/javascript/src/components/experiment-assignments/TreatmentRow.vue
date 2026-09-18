@@ -20,7 +20,20 @@
         activator-type="icon"
         activator-class="icon-treatment-incomplete"
       />
-      <span class="treatment-condition-name" :class="treatmentRowClass">
+      <v-chip
+        v-if="!isSingleVersionRow"
+        :color="conditionColorMapping[conditionName]"
+        variant="flat"
+        density="compact"
+        class="treatment-condition-chip"
+        label
+      >
+        {{ conditionName }}
+      </v-chip>
+      <span
+        v-else
+        class="treatment-condition-name"
+      >
         {{ conditionName }}
       </span>
     </div>
@@ -94,6 +107,12 @@ const props = defineProps({
     required: true
   },
   exposure: {
+    type: Object,
+    required: true
+  },
+  // condition name -> color, shared with the "design" element's own condition chips
+  // (ExposureDesignCard.vue) so a condition reads as the same color everywhere on this page
+  conditionColorMapping: {
     type: Object,
     required: true
   },
@@ -227,12 +246,6 @@ const treatmentRowTooltipText = computed(() => {
   return "";
 });
 
-const treatmentRowClass = computed(() => {
-  return showTreatmentRowTooltip.value
-    ? "label-treatment-incomplete"
-    : "label-treatment-complete";
-});
-
 const editTreatmentIcon = computed(() => {
   if (props.row.type === rowType.assignment) {
     return "mdi-pencil";
@@ -337,6 +350,13 @@ const integrationsPreviewLaunchUrl = (url = "http://localhost") => {
 
 .treatment-condition-name {
   font-weight: 600;
+}
+
+.treatment-condition-chip {
+  // spacing the plain-text .treatment-condition-name never needed (it just sat directly
+  // against the tooltip icon/icon-circle before it), since a chip's own box makes that
+  // read as cramped rather than adjacent
+  margin-left: 4px;
 }
 
 // --treatment-indent is set on the shared ancestor by ComponentTable.vue's
