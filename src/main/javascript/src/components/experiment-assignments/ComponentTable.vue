@@ -97,7 +97,22 @@
                       <div class="icon-circle" :class="placeholderIconCircleClass(row, item.treatment)">
                         <v-icon>{{ placeholderIcon(row, item.treatment) }}</v-icon>
                       </div>
-                      <span class="treatment-add-condition-name mr-2">{{ conditionDisplayName(row, item.condition) }}</span>
+                      <v-chip
+                        v-if="!isSingleVersionRow(row)"
+                        :color="conditionColorMapping[item.condition.name]"
+                        variant="flat"
+                        density="compact"
+                        class="treatment-add-condition-chip mr-2"
+                        label
+                      >
+                        {{ conditionDisplayName(row, item.condition) }}
+                      </v-chip>
+                      <span
+                        v-else
+                        class="treatment-add-condition-name mr-2"
+                      >
+                        {{ conditionDisplayName(row, item.condition) }}
+                      </span>
                       <div class="treatment-add-action d-flex align-center">
                         <button
                           type="button"
