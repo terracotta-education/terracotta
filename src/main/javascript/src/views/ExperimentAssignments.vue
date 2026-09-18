@@ -4,7 +4,7 @@
     bump (see below) remounts ComponentTable entirely on every reorder - a live region
     inside it would remount along with it and most screen readers won't reliably
     announce a region that didn't exist a moment ago. -->
-    <div class="sr-only" aria-live="polite" role="status">{{ dragAnnouncement }}</div>
+    <output class="sr-only" aria-live="polite">{{ dragAnnouncement }}</output>
 
     <v-container v-if="loaded && experiment" class="px-0" fluid>
       <v-row>

@@ -386,7 +386,7 @@ const getAncestorScaleX = element => {
     const match = transform && transform !== "none" ? transform.match(/^matrix\(([^,]+),/) : null;
 
     if (match) {
-      return parseFloat(match[1]) || 1;
+      return Number.parseFloat(match[1]) || 1;
     }
 
     el = el.parentElement;
@@ -455,7 +455,7 @@ const measureColumnOffsets = () => {
   const treatmentGroup = tableRoot.value.querySelector(".treatment-info-group");
 
   if (outerIcon && treatmentGroup) {
-    const currentMarginLeft = parseFloat(getComputedStyle(treatmentGroup).marginLeft) || 0;
+    const currentMarginLeft = Number.parseFloat(getComputedStyle(treatmentGroup).marginLeft) || 0;
     const groupLeft = treatmentGroup.getBoundingClientRect().left;
     const targetLeft = outerIcon.getBoundingClientRect().left;
     const neededMarginLeft = currentMarginLeft + (targetLeft - groupLeft) / scaleX;
