@@ -63,10 +63,16 @@ const messageTreatment = status => ({
   configuration: { status }
 });
 
+const conditionColorMapping = {
+  "Condition A": "#c62828",
+  "Condition B": "#2e7d32"
+};
+
 const mountRow = props => {
   wrapper = mountComponent(TreatmentRow, {
     props: {
       exposure,
+      conditionColorMapping,
       ...props
     }
   });
@@ -100,16 +106,15 @@ describe("TreatmentRow", () => {
 
     expect(wrapper.find(".component-icon").classes()).toContain("mdi-wrench-outline");
     expect(wrapper.find(".icon-circle").classes()).toContain("icon-circle-control");
-    expect(wrapper.find(".label-treatment-complete").exists()).toBe(true);
+    expect(wrapper.findComponent({ name: "ToolTip" }).exists()).toBe(false);
   });
 
-  it("shows the incomplete tooltip and label for an assignment treatment with no questions", () => {
+  it("shows the incomplete tooltip for an assignment treatment with no questions", () => {
     mountRow({
       row: assignmentRow(),
       treatment: fileTreatment({ questions: [] })
     });
 
-    expect(wrapper.find(".label-treatment-incomplete").exists()).toBe(true);
     expect(wrapper.findComponent({ name: "ToolTip" }).exists()).toBe(true);
   });
 
@@ -194,13 +199,15 @@ describe("TreatmentRow", () => {
     expect(wrapper.emitted("edit-treatment")[0][0]).toEqual({ row, treatment });
   });
 
-  it("shows the condition name as the row's label for a complete treatment", () => {
+  it("shows the condition name as a chip, colored to match the design element's condition chips", () => {
     mountRow({
       row: assignmentRow(2),
       treatment: fileTreatment()
     });
 
-    expect(wrapper.find(".treatment-condition-name").text()).toBe("Condition A");
+    const chip = wrapper.findComponent({ name: "VChip" });
+    expect(chip.text()).toBe("Condition A");
+    expect(chip.props("color")).toBe(conditionColorMapping["Condition A"]);
   });
 
   it("shows 'Treatment' instead of the condition name for a single-version (Only One Version) row", () => {
@@ -210,6 +217,9 @@ describe("TreatmentRow", () => {
     });
 
     expect(wrapper.find(".treatment-condition-name").text()).toBe("Treatment");
+    // a single-version treatment isn't tied to any one condition, so it isn't a
+    // colored chip like the real per-condition case above
+    expect(wrapper.findComponent({ name: "VChip" }).exists()).toBe(false);
   });
 
   it("falls back to 'No condition name' when a condition has no name (should never happen, but isn't silently blank if it does)", () => {
@@ -221,7 +231,7 @@ describe("TreatmentRow", () => {
       }
     });
 
-    expect(wrapper.find(".treatment-condition-name").text()).toBe("No condition name");
+    expect(wrapper.findComponent({ name: "VChip" }).text()).toBe("No condition name");
   });
 
   it("shows the message icon in the message icon-circle and status-driven label for a message treatment", () => {
@@ -232,7 +242,7 @@ describe("TreatmentRow", () => {
 
     expect(wrapper.find(".component-icon").classes()).toContain("mdi-message-text-outline");
     expect(wrapper.find(".icon-circle").classes()).toContain("icon-circle-message");
-    expect(wrapper.find(".label-treatment-complete").exists()).toBe(true);
+    expect(wrapper.findComponent({ name: "ToolTip" }).exists()).toBe(false);
   });
 
   it("shows Edit for a not-yet-sent message treatment and View for a sent one", async () => {
@@ -258,7 +268,6 @@ describe("TreatmentRow", () => {
       treatment: messageTreatment(messageStatus.incomplete)
     });
 
-    expect(wrapper.find(".label-treatment-incomplete").exists()).toBe(true);
     expect(wrapper.findComponent({ name: "ToolTip" }).exists()).toBe(true);
   });
 

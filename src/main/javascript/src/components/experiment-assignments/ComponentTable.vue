@@ -176,6 +176,7 @@
                   :row="row"
                   :treatment="item"
                   :exposure="exposure"
+                  :condition-color-mapping="conditionColorMapping"
                   :actions-offset="columnOffsets.actions"
                   @edit-treatment="$emit('edit-treatment', $event)"
                   @preview-treatment="$emit('preview-treatment', $event)"
