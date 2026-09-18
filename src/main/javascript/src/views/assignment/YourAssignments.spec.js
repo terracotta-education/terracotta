@@ -164,13 +164,13 @@ describe("YourAssignments", () => {
       if (exposureId === exposureA.exposureId) {
         // one real multi-version component, plus a single-version one that should not count
         return Promise.resolve([
-          assignmentFor(1, 100, 2),
-          assignmentFor(1, 101, 1)
+          assignmentFor("1", 100, 2),
+          assignmentFor("1", 101, 1)
         ]);
       }
 
       if (exposureId === exposureB.exposureId) {
-        return Promise.resolve([assignmentFor(2, 200, 2)]);
+        return Promise.resolve([assignmentFor("2", 200, 2)]);
       }
 
       return Promise.resolve([]);
