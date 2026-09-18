@@ -258,8 +258,8 @@ class ExperimentImportServiceImplTest extends BaseTest {
             experimentImportService.preprocess(multipartFile, securedInfo);
         }
 
-        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo));
-        verify(experimentImportAsyncService, never()).process(eq(preValidation), any());
+        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(Map.of()));
+        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), any());
     }
 
     @Test
