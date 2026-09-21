@@ -289,4 +289,20 @@ public class OutcomeScoreServiceImplTest extends BaseTest {
         assertTrue(exception.getMessage().startsWith("Error 108"));
     }
 
+    @Test
+    public void testGetOutcomeScoreIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(outcomeScoreRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, outcomeScoreService.getOutcomeScoreIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetOutcomeScoreIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(outcomeScoreRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(OutcomeScoreNotMatchingException.class, () -> outcomeScoreService.getOutcomeScoreIdByUuid(uuid));
+    }
+
 }

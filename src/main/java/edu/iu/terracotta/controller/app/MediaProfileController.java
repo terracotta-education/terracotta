@@ -67,12 +67,12 @@ public class MediaProfileController {
                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, IdInPostException, DataServiceException,
             TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException, QuestionNotMatchingException, AssessmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
-        long questionId = questionService.getQuestionByUuid(questionUuid).getQuestionId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
+        long questionId = questionService.getQuestionIdByUuid(questionUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);

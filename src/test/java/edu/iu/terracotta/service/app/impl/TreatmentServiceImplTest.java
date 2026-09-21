@@ -13,6 +13,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -322,6 +323,22 @@ public class TreatmentServiceImplTest extends BaseTest {
         Exception exception = assertThrows(TreatmentNotMatchingException.class, () -> treatmentService.getTreatmentByUuid(uuid));
 
         assertEquals(TextConstants.TREATMENT_NOT_MATCHING, exception.getMessage());
+    }
+
+    @Test
+    public void testGetTreatmentIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(treatmentRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, treatmentService.getTreatmentIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetTreatmentIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(treatmentRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(TreatmentNotMatchingException.class, () -> treatmentService.getTreatmentIdByUuid(uuid));
     }
 
 }

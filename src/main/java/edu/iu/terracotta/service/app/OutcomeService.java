@@ -29,6 +29,7 @@ public interface OutcomeService {
     List<OutcomeDto> getAllByExperiment(long experimentId);
     Outcome getOutcome(long id);
     Outcome getOutcomeByUuid(UUID uuid) throws OutcomeNotMatchingException;
+    long getOutcomeIdByUuid(UUID uuid) throws OutcomeNotMatchingException;
     OutcomeDto postOutcome(OutcomeDto outcomeDto, long exposureId) throws IdInPostException, DataServiceException, TitleValidationException;
     OutcomeDto toDto(Outcome outcome, boolean outcomeScores);
     Outcome fromDto(OutcomeDto outcomeDto) throws DataServiceException;

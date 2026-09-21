@@ -510,4 +510,20 @@ public class QuestionServiceImplTest extends BaseTest {
         assertDoesNotThrow(() -> questionService.validateQuestionType(questionDto));
     }
 
+    @Test
+    public void testGetQuestionIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(questionRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, questionService.getQuestionIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetQuestionIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(questionRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(QuestionNotMatchingException.class, () -> questionService.getQuestionIdByUuid(uuid));
+    }
+
 }

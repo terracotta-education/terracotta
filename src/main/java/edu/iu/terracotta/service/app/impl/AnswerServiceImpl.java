@@ -183,6 +183,12 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
+    public long getAnswerMcIdByUuid(UUID uuid) throws AnswerNotMatchingException {
+        return answerMcRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING));
+    }
+
+    @Override
     @Transactional
     public List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map) {
         List<AnswerDto> answerDtos = new ArrayList<>();

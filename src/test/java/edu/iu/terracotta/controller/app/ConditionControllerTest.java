@@ -62,8 +62,8 @@ public class ConditionControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(conditionService.findByConditionId(anyLong())).thenReturn(condition);
-        when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
     }
 
     @Test

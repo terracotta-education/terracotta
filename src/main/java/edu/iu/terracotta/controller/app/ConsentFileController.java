@@ -64,7 +64,7 @@ public class ConsentFileController {
                                                           @RequestParam(defaultValue = "Invitation to Participate in a Research Study") String title,
                                                           HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, BadConsentFileTypeException, AssignmentNotCreatedException, ApiException, AssignmentNotEditedException, AssignmentNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -81,7 +81,7 @@ public class ConsentFileController {
 
     @GetMapping
     public ResponseEntity<Resource> getConsent(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -110,7 +110,7 @@ public class ConsentFileController {
 
     @DeleteMapping
     public ResponseEntity<Void> deleteConsent(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

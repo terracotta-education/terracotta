@@ -60,15 +60,15 @@ public class StepsControllerTest extends BaseTest {
         stepsController = new StepsController(exposureService, participantService, participantAsyncService, groupService, submissionService, assessmentService, assignmentService, questionSubmissionService, apiJwtService, experimentService);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
 
         Submission submission5 = mock(Submission.class);
         when(submission5.getSubmissionId()).thenReturn(5L);
-        when(submissionService.getSubmissionByUuid(SUBMISSION_5_UUID)).thenReturn(submission5);
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_5_UUID)).thenAnswer(invocation -> submission5.getSubmissionId());
 
         Submission submission6 = mock(Submission.class);
         when(submission6.getSubmissionId()).thenReturn(6L);
-        when(submissionService.getSubmissionByUuid(SUBMISSION_6_UUID)).thenReturn(submission6);
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_6_UUID)).thenAnswer(invocation -> submission6.getSubmissionId());
     }
 
     private StepDto stepDto(String step) {

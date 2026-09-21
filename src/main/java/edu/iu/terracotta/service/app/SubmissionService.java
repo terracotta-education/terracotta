@@ -34,6 +34,7 @@ public interface SubmissionService {
     List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException;
     Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException;
     Submission getSubmissionByUuid(UUID uuid) throws SubmissionNotMatchingException;
+    long getSubmissionIdByUuid(UUID uuid) throws SubmissionNotMatchingException;
     SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException;
     void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException;
     SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments);

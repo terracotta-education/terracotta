@@ -28,6 +28,7 @@ public interface QuestionService {
     List<QuestionDto> getQuestions(Long assessmentId);
     Question getQuestion(Long id);
     Question getQuestionByUuid(UUID uuid) throws QuestionNotMatchingException;
+    long getQuestionIdByUuid(UUID uuid) throws QuestionNotMatchingException;
     QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew)
         throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException,
         IntegrationNotFoundException, IntegrationClientNotFoundException;

@@ -57,8 +57,8 @@ public class ParticipantControllerTest extends BaseTest {
         participantController = new ParticipantController(participantService, apiJwtService, experimentService);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(participantService.getParticipantByUuid(PARTICIPANT_UUID)).thenReturn(participant);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(participantService.getParticipantIdByUuid(PARTICIPANT_UUID)).thenAnswer(invocation -> participant.getParticipantId());
     }
 
     @Test
@@ -230,7 +230,7 @@ public class ParticipantControllerTest extends BaseTest {
     @Test
     void updateParticipantsHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        when(participantService.getParticipantByUuid(participantDto.getParticipantId())).thenReturn(participant);
+        when(participantService.getParticipantIdByUuid(participantDto.getParticipantId())).thenAnswer(invocation -> participant.getParticipantId());
         when(participantService.getParticipant(1L, 1L, USER_ID, false)).thenReturn(participant);
 
         ResponseEntity<Void> response = participantController.updateParticipants(EXPERIMENT_UUID, List.of(participantDto), httpServletRequest);
@@ -251,7 +251,7 @@ public class ParticipantControllerTest extends BaseTest {
     @Test
     void updateParticipantsWrapsUnexpectedExceptionTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        when(participantService.getParticipantByUuid(participantDto.getParticipantId())).thenReturn(participant);
+        when(participantService.getParticipantIdByUuid(participantDto.getParticipantId())).thenAnswer(invocation -> participant.getParticipantId());
         when(participantService.getParticipant(1L, 1L, USER_ID, false)).thenReturn(participant);
         doThrow(new RuntimeException("db fail")).when(participantService).changeParticipant(anyMap(), eq(1L), eq(securedInfo));
 

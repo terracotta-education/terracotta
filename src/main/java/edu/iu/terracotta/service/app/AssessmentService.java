@@ -42,6 +42,8 @@ import java.util.UUID;
 public interface AssessmentService {
 
     Assessment getAssessmentByUuid(UUID uuid) throws AssessmentNotMatchingException;
+
+    long getAssessmentIdByUuid(UUID uuid) throws AssessmentNotMatchingException;
     List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException;
     AssessmentDto postAssessment(AssessmentDto assessmentDto, long treatmentId, SecuredInfo securedInfo) throws IdInPostException, AssessmentNotMatchingException, DataServiceException, TitleValidationException;
     Assessment duplicateAssessment(long assessmentId, long treatmentId) throws DataServiceException, AssessmentNotMatchingException, TreatmentNotMatchingException, QuestionNotMatchingException;

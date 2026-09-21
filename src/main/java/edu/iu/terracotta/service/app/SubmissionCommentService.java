@@ -19,6 +19,7 @@ public interface SubmissionCommentService {
     List<SubmissionCommentDto> getSubmissionComments(Long submissionId);
     SubmissionComment getSubmissionComment(Long id);
     SubmissionComment getSubmissionCommentByUuid(UUID uuid) throws SubmissionCommentNotMatchingException;
+    long getSubmissionCommentIdByUuid(UUID uuid) throws SubmissionCommentNotMatchingException;
     SubmissionCommentDto postSubmissionComment(SubmissionCommentDto submissionCommentDto, long submissionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
     void updateSubmissionComment(SubmissionComment submissionComment, SubmissionCommentDto submissionCommentDto);
     SubmissionCommentDto toDto(SubmissionComment submissionComment);

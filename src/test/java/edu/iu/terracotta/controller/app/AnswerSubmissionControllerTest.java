@@ -55,7 +55,7 @@ public class AnswerSubmissionControllerTest extends BaseTest {
     private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
     private static final long EXPERIMENT_ID = 1L;
     // matches condition.getConditionId() (the mock's globally-stubbed return value, see BaseModelTest),
-    // which is what conditionService.getConditionByUuid(CONDITION_UUID) below resolves to
+    // which is what conditionService.getConditionIdByUuid(CONDITION_UUID) below resolves to
     private static final long CONDITION_ID = 1L;
     private static final UUID CONDITION_UUID = UUID.randomUUID();
     private static final long TREATMENT_ID = 3L;
@@ -115,16 +115,16 @@ public class AnswerSubmissionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(answerSubmissionService.getAnswerType(anyLong())).thenReturn(ANSWER_TYPE);
         when(answerSubmissionService.resolveAnswerSubmissionId(ANSWER_SUBMISSION_UUID, ANSWER_TYPE)).thenReturn(ANSWER_SUBMISSION_ID);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
         when(treatment.getTreatmentId()).thenReturn(TREATMENT_ID);
-        when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
+        when(treatmentService.getTreatmentIdByUuid(TREATMENT_UUID)).thenAnswer(invocation -> treatment.getTreatmentId());
         when(assessment.getAssessmentId()).thenReturn(ASSESSMENT_ID);
-        when(assessmentService.getAssessmentByUuid(ASSESSMENT_UUID)).thenReturn(assessment);
+        when(assessmentService.getAssessmentIdByUuid(ASSESSMENT_UUID)).thenAnswer(invocation -> assessment.getAssessmentId());
         when(submission.getSubmissionId()).thenReturn(SUBMISSION_ID);
-        when(submissionService.getSubmissionByUuid(SUBMISSION_UUID)).thenReturn(submission);
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_UUID)).thenAnswer(invocation -> submission.getSubmissionId());
         when(questionSubmission.getQuestionSubmissionId()).thenReturn(QUESTION_SUBMISSION_ID);
-        when(questionSubmissionService.getQuestionSubmissionByUuid(QUESTION_SUBMISSION_UUID)).thenReturn(questionSubmission);
+        when(questionSubmissionService.getQuestionSubmissionIdByUuid(QUESTION_SUBMISSION_UUID)).thenAnswer(invocation -> questionSubmission.getQuestionSubmissionId());
     }
 
     private String dtoJson(UUID questionSubmissionId) {
@@ -254,7 +254,7 @@ public class AnswerSubmissionControllerTest extends BaseTest {
     void testPostAnswerSubmissionsSuccess() throws Exception {
         edu.iu.terracotta.dao.entity.QuestionSubmission questionSubmission2 = org.mockito.Mockito.mock(edu.iu.terracotta.dao.entity.QuestionSubmission.class);
         when(questionSubmission2.getQuestionSubmissionId()).thenReturn(QUESTION_SUBMISSION_ID_2);
-        when(questionSubmissionService.getQuestionSubmissionByUuid(QUESTION_SUBMISSION_UUID_2)).thenReturn(questionSubmission2);
+        when(questionSubmissionService.getQuestionSubmissionIdByUuid(QUESTION_SUBMISSION_UUID_2)).thenAnswer(invocation -> questionSubmission2.getQuestionSubmissionId());
         AnswerSubmissionDto dto1 = AnswerSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID).build();
         AnswerSubmissionDto dto2 = AnswerSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID_2).build();
         List<AnswerSubmissionDto> requestList = List.of(dto1, dto2);
@@ -299,7 +299,7 @@ public class AnswerSubmissionControllerTest extends BaseTest {
     void testPostAnswerSubmissionsPropagatesQuestionSubmissionNotMatchingOnSecondItem() throws Exception {
         edu.iu.terracotta.dao.entity.QuestionSubmission questionSubmission2 = org.mockito.Mockito.mock(edu.iu.terracotta.dao.entity.QuestionSubmission.class);
         when(questionSubmission2.getQuestionSubmissionId()).thenReturn(QUESTION_SUBMISSION_ID_2);
-        when(questionSubmissionService.getQuestionSubmissionByUuid(QUESTION_SUBMISSION_UUID_2)).thenReturn(questionSubmission2);
+        when(questionSubmissionService.getQuestionSubmissionIdByUuid(QUESTION_SUBMISSION_UUID_2)).thenAnswer(invocation -> questionSubmission2.getQuestionSubmissionId());
         doThrow(new QuestionSubmissionNotMatchingException("not matching")).when(apiJwtService)
             .questionSubmissionAllowed(securedInfo, ASSESSMENT_ID, SUBMISSION_ID, QUESTION_SUBMISSION_ID_2);
         List<AnswerSubmissionDto> requestList = List.of(

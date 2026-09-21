@@ -32,7 +32,7 @@ public class PreviewControllerTest extends BaseTest {
     private static final long EXPERIMENT_ID = 1L;
     private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
     // matches condition.getConditionId() (the mock's globally-stubbed return value, see BaseModelTest),
-    // which is what conditionService.getConditionByUuid(CONDITION_UUID) below resolves to
+    // which is what conditionService.getConditionIdByUuid(CONDITION_UUID) below resolves to
     private static final long CONDITION_ID = 1L;
     private static final UUID CONDITION_UUID = UUID.randomUUID();
     private static final long TREATMENT_ID = 3L;
@@ -64,10 +64,10 @@ public class PreviewControllerTest extends BaseTest {
         previewId = UUID.randomUUID();
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), eq(false))).thenReturn(securedInfo);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
         when(treatment.getTreatmentId()).thenReturn(TREATMENT_ID);
-        when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
+        when(treatmentService.getTreatmentIdByUuid(TREATMENT_UUID)).thenAnswer(invocation -> treatment.getTreatmentId());
     }
 
     @Test

@@ -80,8 +80,8 @@ public class MessageController {
         long exposureId;
 
         try {
-            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
@@ -107,7 +107,7 @@ public class MessageController {
         }
 
         try {
-            experimentService.getExperimentByUuid(experimentUuid);
+            experimentService.getExperimentIdByUuid(experimentUuid);
 
             return new ResponseEntity<>(messageService.getAssignments(securedInfo), HttpStatus.OK);
         } catch (ExperimentNotMatchingException e) {
@@ -130,8 +130,8 @@ public class MessageController {
         long experimentId;
 
         try {
-            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
@@ -160,8 +160,8 @@ public class MessageController {
         long experimentId;
 
         try {
-            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
@@ -192,8 +192,8 @@ public class MessageController {
         long experimentId;
 
         try {
-            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
@@ -223,8 +223,8 @@ public class MessageController {
         long experimentId;
 
         try {
-            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);

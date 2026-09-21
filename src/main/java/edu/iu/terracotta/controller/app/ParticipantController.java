@@ -62,7 +62,7 @@ public class ParticipantController {
                                                                             @RequestParam(defaultValue = "false") boolean refresh,
                                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotUpdatedException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -91,8 +91,8 @@ public class ParticipantController {
                                                         @PathVariable("participantId") UUID participantUuid,
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long participantId = participantService.getParticipantByUuid(participantUuid).getParticipantId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long participantId = participantService.getParticipantIdByUuid(participantUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
@@ -116,7 +116,7 @@ public class ParticipantController {
                                                          UriComponentsBuilder ucBuilder,
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         log.debug("Creating Participant for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -137,8 +137,8 @@ public class ParticipantController {
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long participantId = participantService.getParticipantByUuid(participantUuid).getParticipantId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long participantId = participantService.getParticipantIdByUuid(participantUuid);
         log.debug("Updating Participant with id {}", participantId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -192,7 +192,7 @@ public class ParticipantController {
                                                    @RequestBody List<ParticipantDto> participantDtoList,
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -203,7 +203,7 @@ public class ParticipantController {
         Map<Participant, ParticipantDto> participantMap = new HashMap<>();
 
         for (ParticipantDto participantDto : participantDtoList) {
-            long participantId = participantService.getParticipantByUuid(participantDto.getParticipantId()).getParticipantId();
+            long participantId = participantService.getParticipantIdByUuid(participantDto.getParticipantId());
             apijwtService.participantAllowed(securedInfo, experimentId, participantId);
             Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false);
             log.debug("Updating participant with id: {}", participant.getParticipantId());
@@ -224,8 +224,8 @@ public class ParticipantController {
                                                   @PathVariable("participantId") UUID participantUuid,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long participantId = participantService.getParticipantByUuid(participantUuid).getParticipantId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long participantId = participantService.getParticipantIdByUuid(participantUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);

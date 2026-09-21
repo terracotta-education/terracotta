@@ -18,6 +18,11 @@ public interface AnswerMcRepository extends JpaRepository<AnswerMc, Long> {
 
     AnswerMc findByUuid(UUID uuid);
 
+
+    @Query("select e.answerMcId from AnswerMc e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
     List<AnswerMc> findByQuestion_QuestionId(Long questionId);
     @Query("SELECT a FROM AnswerMc a WHERE a.question.assessment.treatment.condition.experiment.experimentId = :experimentId")
     List<AnswerMc> findByQuestion_Assessment_Treatment_Condition_Experiment_ExperimentId(@Param("experimentId") Long experimentId);

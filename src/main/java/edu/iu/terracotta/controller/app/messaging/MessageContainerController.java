@@ -62,8 +62,8 @@ public class MessageContainerController {
         long exposureId;
 
         try {
-            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         } catch (BadTokenException | ExperimentNotMatchingException | ExposureNotMatchingException e) {
@@ -84,8 +84,8 @@ public class MessageContainerController {
         Exposure exposure = null;
 
         try {
-            long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             exposure = apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         } catch (BadTokenException | ExperimentNotMatchingException | ExposureNotMatchingException e) {
@@ -106,8 +106,8 @@ public class MessageContainerController {
         MessageContainer messageContainer;
 
         try {
-            long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -139,8 +139,8 @@ public class MessageContainerController {
         List<MessageContainer> messageContainers = new ArrayList<>();
 
         try {
-            long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
 
             for (MessageContainerDto messageContainerDto : messageContainerDtos) {
                 apiJwtService.messagingContainerAllowed(securedInfo, exposureId, messageContainerDto.getId());
@@ -172,8 +172,8 @@ public class MessageContainerController {
         MessageContainer messageContainer;
 
         try {
-            long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -202,12 +202,12 @@ public class MessageContainerController {
         MessageContainer messageContainer;
 
         try {
-            long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
-            newExposure = apiJwtService.exposureAllowed(securedInfo, experimentId, exposureService.getExposureByUuid(messageContainerDto.getExposureId()).getExposureId());
+            newExposure = apiJwtService.exposureAllowed(securedInfo, experimentId, exposureService.getExposureIdByUuid(messageContainerDto.getExposureId()));
         } catch (BadTokenException | ExperimentNotMatchingException | ExposureNotMatchingException | MessageContainerOwnerNotMatchingException | MessageContainerNotMatchingException | MessageContainerNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -232,8 +232,8 @@ public class MessageContainerController {
         MessageContainer messageContainer;
 
         try {
-            long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             exposure = apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);

@@ -66,6 +66,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
         MockitoAnnotations.openMocks(this);
 
         setup();
+        when(submissionRepository.findUuidBySubmissionId(anyLong())).thenAnswer(invocation -> Optional.ofNullable(submission.getUuid()));
 
         // apiClient below also collides with CanvasApiClientImpl in BaseServiceTest (see the @InjectMocks
         // pitfall note there), so this class is constructed manually instead of relying on @InjectMocks,
@@ -497,6 +498,7 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
     @Test
     public void testPostQuestionSubmissionsError() {
         when(submissionRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(submissionRepository.findUuidBySubmissionId(anyLong())).thenReturn(Optional.empty());
         QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).answerSubmissionDtoList(new ArrayList<>()).build();
 
         assertThrows(DataServiceException.class, () -> questionSubmissionService.postQuestionSubmissions(List.of(dto), 1L, 1L, false));
@@ -731,6 +733,22 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
             Files.deleteIfExists(oldFilePath);
             Files.deleteIfExists(newFilePath);
         }
+    }
+
+    @Test
+    public void testGetQuestionSubmissionIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(questionSubmissionRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, questionSubmissionService.getQuestionSubmissionIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetQuestionSubmissionIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(questionSubmissionRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionService.getQuestionSubmissionIdByUuid(uuid));
     }
 
 }

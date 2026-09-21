@@ -60,7 +60,7 @@ public class DistributeControllerTest extends BaseTest {
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
         when(apiJwtService.experimentImportAllowed(any(), any(UUID.class))).thenReturn(experimentImport);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
     }
 
     @AfterEach

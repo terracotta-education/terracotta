@@ -54,9 +54,9 @@ public class AssignmentControllerTest extends BaseTest {
         assignmentController = new AssignmentController(assignmentService, assignmentTreatmentService, apiJwtService, experimentService, exposureService);
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), eq(false))).thenReturn(securedInfo);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(exposureService.getExposureByUuid(EXPOSURE_UUID)).thenReturn(exposure);
-        when(assignmentService.getAssignmentByUuid(ASSIGNMENT_UUID)).thenReturn(assignment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
+        when(assignmentService.getAssignmentIdByUuid(ASSIGNMENT_UUID)).thenAnswer(invocation -> assignment.getAssignmentId());
     }
 
     @Test

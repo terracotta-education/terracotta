@@ -41,7 +41,7 @@ public class ResultsDashboardController {
 
     @GetMapping("/overview")
     public ResponseEntity<ResultsDashboardDto> getOverview(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -60,7 +60,7 @@ public class ResultsDashboardController {
     @PostMapping("/outcomes")
     public ResponseEntity<ResultsDashboardDto> postComparison(@PathVariable("experimentId") UUID experimentUuid, @RequestBody ResultsOutcomesRequestDto resultsOutcomesRequestDto, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

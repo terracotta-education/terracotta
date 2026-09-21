@@ -63,9 +63,9 @@ public class TreatmentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(treatmentDto.getTreatmentId()).thenReturn(TREATMENT_UUID);
         when(treatmentService.getTreatment(anyLong())).thenReturn(treatment);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
-        when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
+        when(treatmentService.getTreatmentIdByUuid(TREATMENT_UUID)).thenAnswer(invocation -> treatment.getTreatmentId());
     }
 
     @Test

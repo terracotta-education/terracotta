@@ -59,8 +59,8 @@ public class MessageContentAttachmentController {
         long exposureId;
 
         try {
-            experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-            exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
+            experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.messagingContainerAllowed(securedInfo, exposureId, containerUuid);
             apiJwtService.messagingAllowed(securedInfo, containerUuid, messageUuid);
             messageContent = apiJwtService.messagingContentAllowed(securedInfo, messageUuid, contentUuid);

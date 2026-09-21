@@ -20,6 +20,14 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     Submission findByUuid(UUID uuid);
 
+
+    @Query("select e.submissionId from Submission e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
+    @Query("select e.uuid from Submission e where e.submissionId = ?1")
+    Optional<UUID> findUuidBySubmissionId(long submissionId);
+
     List<Submission> findByAssessment_AssessmentId(long assessmentId);
     long countByAssessment_AssessmentId(long assessmentId);
     List<Submission> findByParticipant_Id(long participantId);

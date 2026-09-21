@@ -357,4 +357,20 @@ public class AnswerServiceImplTest extends BaseTest {
             + "/assessments/" + assessmentUuid + "/questions/" + questionUuid + "/answers/" + answerUuid));
     }
 
+    @Test
+    public void testGetAnswerMcIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(answerMcRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, answerService.getAnswerMcIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetAnswerMcIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(answerMcRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(AnswerNotMatchingException.class, () -> answerService.getAnswerMcIdByUuid(uuid));
+    }
+
 }

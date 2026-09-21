@@ -64,6 +64,7 @@ public interface AssignmentService {
 
     Assignment getAssignment(Long id);
     Assignment getAssignmentByUuid(UUID uuid) throws AssignmentNotMatchingException;
+    long getAssignmentIdByUuid(UUID uuid) throws AssignmentNotMatchingException;
     AssignmentDto postAssignment(AssignmentDto assignmentDto, long experimentId, long exposureId, SecuredInfo securedInfo)
             throws DataServiceException, IdInPostException, TitleValidationException, AssessmentNotMatchingException,
             AssignmentNotCreatedException, RevealResponsesSettingValidationException,

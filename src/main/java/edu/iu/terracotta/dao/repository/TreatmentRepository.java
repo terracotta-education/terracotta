@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Treatment;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
@@ -16,6 +17,11 @@ import java.util.List;
 public interface TreatmentRepository extends JpaRepository<Treatment, Long> {
 
     Treatment findByUuid(UUID uuid);
+
+
+    @Query("select e.treatmentId from Treatment e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
 
     List<Treatment> findByCondition_ConditionIdOrderByCondition_ConditionIdAsc(Long conditionId);
     List<Treatment> findByCondition_ConditionIdAndAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(Long conditionId, Long assignmentId);

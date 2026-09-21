@@ -61,7 +61,7 @@ public class ConsentFileControllerTest extends BaseTest {
 
         when(apiJwtService.extractValues(any(), eq(false))).thenReturn(securedInfo);
         when(httpServletRequest.getServletContext()).thenReturn(servletContext);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
     }
 
     @Test

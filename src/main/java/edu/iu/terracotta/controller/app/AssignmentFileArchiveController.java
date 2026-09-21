@@ -60,9 +60,9 @@ public class AssignmentFileArchiveController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long assignmentId = assignmentService.getAssignmentIdByUuid(assignmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -83,9 +83,9 @@ public class AssignmentFileArchiveController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long assignmentId = assignmentService.getAssignmentIdByUuid(assignmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -110,9 +110,9 @@ public class AssignmentFileArchiveController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long assignmentId = assignmentService.getAssignmentIdByUuid(assignmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -145,9 +145,9 @@ public class AssignmentFileArchiveController {
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long assignmentId = assignmentService.getAssignmentByUuid(assignmentUuid).getAssignmentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long assignmentId = assignmentService.getAssignmentIdByUuid(assignmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);

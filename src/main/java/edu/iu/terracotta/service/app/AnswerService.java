@@ -28,6 +28,7 @@ public interface AnswerService {
     AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException;
     AnswerMc findByAnswerId(Long answerId);
     AnswerMc getAnswerMcByUuid(UUID uuid) throws AnswerNotMatchingException;
+    long getAnswerMcIdByUuid(UUID uuid) throws AnswerNotMatchingException;
     List<AnswerDto> updateAnswerMC(Map<AnswerMc, AnswerDto> map);
     void deleteByIdMC(Long id) throws EmptyResultDataAccessException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID questionId, UUID answerId);

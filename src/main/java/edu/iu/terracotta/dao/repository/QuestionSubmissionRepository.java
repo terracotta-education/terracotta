@@ -19,6 +19,14 @@ public interface QuestionSubmissionRepository extends JpaRepository<QuestionSubm
 
     QuestionSubmission findByUuid(UUID uuid);
 
+
+    @Query("select e.questionSubmissionId from QuestionSubmission e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
+    @Query("select e.uuid from QuestionSubmission e where e.questionSubmissionId = ?1")
+    Optional<UUID> findUuidByQuestionSubmissionId(long questionSubmissionId);
+
     List<QuestionSubmission> findBySubmission_SubmissionId(Long submissionId);
     @Query("SELECT qs FROM QuestionSubmission qs WHERE qs.submission.participant.experiment.experimentId = :experimentId")
     List<QuestionSubmission> findBySubmission_Participant_Experiment_ExperimentId(@Param("experimentId") Long experimentId);

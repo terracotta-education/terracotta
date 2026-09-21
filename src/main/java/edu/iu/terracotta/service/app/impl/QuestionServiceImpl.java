@@ -87,6 +87,12 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    public long getQuestionIdByUuid(UUID uuid) throws QuestionNotMatchingException {
+        return questionRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING));
+    }
+
+    @Override
     public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew)
         throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         if (questionDto.getQuestionId() != null) {

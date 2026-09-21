@@ -107,6 +107,12 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
+    public long getTreatmentIdByUuid(UUID uuid) throws TreatmentNotMatchingException {
+        return treatmentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING));
+    }
+
+    @Override
     public TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException {
         if (treatmentDto.getTreatmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);

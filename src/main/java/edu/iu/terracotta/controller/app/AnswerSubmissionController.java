@@ -93,12 +93,12 @@ public class AnswerSubmissionController {
                                                                                       @PathVariable("questionSubmissionId") UUID questionSubmissionUuid,
                                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, DataServiceException, IOException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionByUuid(questionSubmissionUuid).getQuestionSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -132,12 +132,12 @@ public class AnswerSubmissionController {
                                                                    @PathVariable("answerSubmissionId") UUID answerSubmissionUuid,
                                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, DataServiceException, IOException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionByUuid(questionSubmissionUuid).getQuestionSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
         long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -169,18 +169,18 @@ public class AnswerSubmissionController {
                                                                         throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException,
                                                                         QuestionSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, IdInPostException,
                                                                         TypeNotSupportedException, DataServiceException, IdMissingException, ExceedingLimitException, IOException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         log.info("Creating answer submissions for submission ID: {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
         for (AnswerSubmissionDto answerSubmissionDto : answerSubmissionDtoList) {
-            long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionByUuid(answerSubmissionDto.getQuestionSubmissionId()).getQuestionSubmissionId();
+            long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(answerSubmissionDto.getQuestionSubmissionId());
             apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId,
                     answerSubmissionQuestionSubmissionId);
         }
@@ -213,12 +213,12 @@ public class AnswerSubmissionController {
                                                        @RequestBody AnswerSubmissionDto answerSubmissionDto,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, AnswerNotMatchingException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionByUuid(questionSubmissionUuid).getQuestionSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
         long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -253,12 +253,12 @@ public class AnswerSubmissionController {
                                                        @PathVariable("answerSubmissionId") UUID answerSubmissionUuid,
                                                        HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionByUuid(questionSubmissionUuid).getQuestionSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
         long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -290,11 +290,11 @@ public class AnswerSubmissionController {
                                                                             @RequestPart("file") MultipartFile file,
                                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
 
         if (file.isEmpty()) {
             log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
@@ -311,7 +311,7 @@ public class AnswerSubmissionController {
                 answerSubmissionDtoStr,
                 AnswerSubmissionDto.class
             );
-        long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionByUuid(answerSubmissionDto.getQuestionSubmissionId()).getQuestionSubmissionId();
+        long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(answerSubmissionDto.getQuestionSubmissionId());
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionQuestionSubmissionId);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
@@ -345,11 +345,11 @@ public class AnswerSubmissionController {
                                                                             @RequestPart("file") MultipartFile file,
                                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         if (file.isEmpty()) {
             log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
@@ -365,7 +365,7 @@ public class AnswerSubmissionController {
                 answerSubmissionDtoStr,
                 AnswerSubmissionDto.class
             );
-        long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionByUuid(answerSubmissionDto.getQuestionSubmissionId()).getQuestionSubmissionId();
+        long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(answerSubmissionDto.getQuestionSubmissionId());
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionQuestionSubmissionId);
         String answerType = answerSubmissionService.getAnswerType(answerSubmissionQuestionSubmissionId);
         // the resolved id here isn't otherwise consumed by this endpoint (mirrors the pre-existing
@@ -402,12 +402,12 @@ public class AnswerSubmissionController {
                                                                         @PathVariable("answerSubmissionId") UUID answerSubmissionUuid,
                                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, AnswerSubmissionNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException {
-        long submissionId = submissionService.getSubmissionByUuid(submissionUuid).getSubmissionId();
-        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionByUuid(questionSubmissionUuid).getQuestionSubmissionId();
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
-        long assessmentId = assessmentService.getAssessmentByUuid(assessmentUuid).getAssessmentId();
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
         long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);

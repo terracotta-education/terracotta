@@ -170,6 +170,12 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     }
 
     @Override
+    public long getQuestionSubmissionIdByUuid(UUID uuid) throws QuestionSubmissionNotMatchingException {
+        return questionSubmissionRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new QuestionSubmissionNotMatchingException(TextConstants.QUESTION_SUBMISSION_NOT_MATCHING));
+    }
+
+    @Override
     @Transactional
     // this method isn't technically fully transactional. The dto is validated beforehand.
     public void updateQuestionSubmissions(Map<QuestionSubmission, QuestionSubmissionDto> map, boolean student) throws InvalidUserException, DataServiceException, IdMissingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, AnswerNotMatchingException {
@@ -204,7 +210,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         log.debug("Creating {} question submissions for submission ID: [{}]", questionSubmissionDtoList.size(), submissionId);
 
         try {
-            UUID submissionUuid = submissionRepository.findById(submissionId).map(Submission::getUuid).orElse(null);
+            UUID submissionUuid = submissionRepository.findUuidBySubmissionId(submissionId).orElse(null);
 
             for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
                 questionSubmissionDto.setSubmissionId(submissionUuid);
@@ -382,7 +388,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     @Override
     public void validateAndPrepareQuestionSubmissionList(List<QuestionSubmissionDto> questionSubmissionDtoList, long assessmentId, long submissionId, boolean student) throws IdInPostException, DataServiceException, InvalidUserException, IdMissingException, DuplicateQuestionException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, ExceedingLimitException, TypeNotSupportedException {
         try {
-            UUID submissionUuid = submissionRepository.findById(submissionId).map(Submission::getUuid).orElse(null);
+            UUID submissionUuid = submissionRepository.findUuidBySubmissionId(submissionId).orElse(null);
 
             for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
                 if (questionSubmissionDto.getQuestionSubmissionId() != null) {

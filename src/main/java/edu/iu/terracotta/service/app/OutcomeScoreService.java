@@ -18,6 +18,7 @@ public interface OutcomeScoreService {
     List<OutcomeScoreDto> getOutcomeScores(Long outcomeId);
     OutcomeScore getOutcomeScore(Long id);
     OutcomeScore getOutcomeScoreByUuid(UUID uuid) throws OutcomeScoreNotMatchingException;
+    long getOutcomeScoreIdByUuid(UUID uuid) throws OutcomeScoreNotMatchingException;
     OutcomeScoreDto postOutcomeScore(OutcomeScoreDto outcomeScoreDto, long experimentId, long outcomeId) throws IdInPostException, DataServiceException, InvalidParticipantException;
     OutcomeScoreDto toDto(OutcomeScore outcomeScore);
     OutcomeScore fromDto(OutcomeScoreDto outcomeScoreDto) throws DataServiceException;

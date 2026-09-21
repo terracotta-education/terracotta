@@ -53,7 +53,7 @@ public class ExperimentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
         when(apiJwtService.experimentLocked(anyLong(), anyBoolean())).thenReturn(false);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
     }
 
     @Test

@@ -93,7 +93,7 @@ public class StepsController {
             ParticipantNotUpdatedException, ExperimentStartedException, ConnectionException, ApiException,
             IOException, AssignmentDatesException, AssessmentNotMatchingException, GroupNotMatchingException,
             ParticipantNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException, NumberFormatException, TerracottaConnectorException, IntegrationTokenNotFoundException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -156,17 +156,17 @@ public class StepsController {
                 // elevated-role caller finalizing someone else's submission(s) goes through the
                 // instructor batch path below
                 boolean student = apijwtService.isLearner(securedInfo) && submissionsId.size() == 1
-                    && submissionService.isOwnSubmission(submissionService.getSubmissionByUuid(UUID.fromString(submissionsId.get(0))).getSubmissionId(), securedInfo);
+                    && submissionService.isOwnSubmission(submissionService.getSubmissionIdByUuid(UUID.fromString(submissionsId.get(0))), securedInfo);
 
                 try {
                     if (student) {
-                        Long submissionId = submissionService.getSubmissionByUuid(UUID.fromString(submissionsId.get(0))).getSubmissionId();
+                        Long submissionId = submissionService.getSubmissionIdByUuid(UUID.fromString(submissionsId.get(0)));
                         questionSubmissionService.canSubmit(securedInfo, experimentId, preferLmsChecks);
                         submissionService.allowedSubmission(submissionId, securedInfo);
                         submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                     } else if (instructorOrHigher) {
                         for (String submissionIdString : submissionsId) {
-                            Long submissionId = submissionService.getSubmissionByUuid(UUID.fromString(submissionIdString)).getSubmissionId();
+                            Long submissionId = submissionService.getSubmissionIdByUuid(UUID.fromString(submissionIdString));
                             submissionService.finalizeAndGrade(submissionId, securedInfo, student);
                         }
                     } else {
@@ -259,7 +259,7 @@ public class StepsController {
 
     @GetMapping("/status/{batchId}")
     public ResponseEntity<Object> getStepStatus(@PathVariable("experimentId") UUID experimentUuid, @PathVariable UUID batchId, HttpServletRequest req) throws BadTokenException, ExperimentNotMatchingException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 

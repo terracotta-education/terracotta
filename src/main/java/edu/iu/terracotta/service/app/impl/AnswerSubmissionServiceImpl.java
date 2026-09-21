@@ -110,7 +110,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        answerSubmissionDto.setQuestionSubmissionId(questionSubmissionRepository.findById(questionSubmissionId).map(QuestionSubmission::getUuid).orElse(null));
+        answerSubmissionDto.setQuestionSubmissionId(questionSubmissionRepository.findUuidByQuestionSubmissionId(questionSubmissionId).orElse(null));
 
         SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, getAnswerType(questionSubmissionId));
 

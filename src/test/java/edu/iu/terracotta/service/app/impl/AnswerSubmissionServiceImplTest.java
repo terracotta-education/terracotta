@@ -68,6 +68,7 @@ public class AnswerSubmissionServiceImplTest extends BaseTest {
         setup();
 
         when(questionSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(questionSubmission));
+        when(questionSubmissionRepository.findUuidByQuestionSubmissionId(anyLong())).thenAnswer(invocation -> Optional.ofNullable(questionSubmission.getUuid()));
         when(questionSubmissionRepository.findByQuestionSubmissionId(anyLong())).thenReturn(questionSubmission);
         when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(answerMc);
         when(answerMcSubmission.getQuestionSubmission()).thenReturn(questionSubmission);

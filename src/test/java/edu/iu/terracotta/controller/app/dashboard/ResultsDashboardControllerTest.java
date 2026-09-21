@@ -47,7 +47,7 @@ public class ResultsDashboardControllerTest extends BaseTest {
         resultsDashboardController = new ResultsDashboardController(apiJwtService, experimentService, resultsDashboardService);
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), anyBoolean())).thenReturn(securedInfo);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
     }
 
     @Test

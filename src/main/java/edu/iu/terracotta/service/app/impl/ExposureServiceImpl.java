@@ -55,8 +55,7 @@ public class ExposureServiceImpl implements ExposureService {
         }
 
         validateTitle(exposureDto.getTitle());
-        Experiment experiment = experimentRepository.findById(experimentId).orElse(null);
-        exposureDto.setExperimentId(experiment != null ? experiment.getUuid() : null);
+        exposureDto.setExperimentId(experimentRepository.findUuidByExperimentId(experimentId).orElse(null));
         Exposure exposure;
 
         try {
@@ -160,6 +159,12 @@ public class ExposureServiceImpl implements ExposureService {
     @Override
     public Exposure getExposureByUuid(UUID uuid) throws ExposureNotMatchingException {
         return Optional.ofNullable(exposureRepository.findByUuid(uuid))
+            .orElseThrow(() -> new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING));
+    }
+
+    @Override
+    public long getExposureIdByUuid(UUID uuid) throws ExposureNotMatchingException {
+        return exposureRepository.findIdByUuid(uuid)
             .orElseThrow(() -> new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING));
     }
 

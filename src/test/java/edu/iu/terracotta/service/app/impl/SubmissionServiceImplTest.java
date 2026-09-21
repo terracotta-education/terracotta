@@ -88,6 +88,7 @@ public class SubmissionServiceImplTest extends BaseTest {
         MockitoAnnotations.openMocks(this);
 
         setup();
+        when(assessmentRepository.findUuidByAssessmentId(anyLong())).thenAnswer(invocation -> Optional.ofNullable(assessment.getUuid()));
         clearInvocations(assignmentRepository);
 
         submissionService = new SubmissionServiceImpl(
@@ -928,6 +929,22 @@ public class SubmissionServiceImplTest extends BaseTest {
 
         assertEquals(1, result.size());
         assertEquals(7F, result.get(1L));
+    }
+
+    @Test
+    public void testGetSubmissionIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(submissionRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, submissionService.getSubmissionIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetSubmissionIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(submissionRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(SubmissionNotMatchingException.class, () -> submissionService.getSubmissionIdByUuid(uuid));
     }
 
 }

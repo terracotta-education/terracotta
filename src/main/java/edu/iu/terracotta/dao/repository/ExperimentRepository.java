@@ -16,6 +16,14 @@ public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
 
     Experiment findByUuid(UUID uuid);
 
+
+    @Query("select e.experimentId from Experiment e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
+    @Query("select e.uuid from Experiment e where e.experimentId = ?1")
+    Optional<UUID> findUuidByExperimentId(long experimentId);
+
     List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(long keyId, long contextId, String userKey);
     List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(long keyId, long contextId);
     List<Experiment> findAllByLtiContextEntity_ContextId(long contextId);

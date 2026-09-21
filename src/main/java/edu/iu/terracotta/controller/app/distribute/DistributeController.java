@@ -66,7 +66,7 @@ public class DistributeController {
 
     @GetMapping("/{id}/export")
     public ResponseEntity<Resource> export(@PathVariable("id") UUID uuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long id = experimentService.getExperimentByUuid(uuid).getExperimentId();
+        long id = experimentService.getExperimentIdByUuid(uuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         Experiment experiment = apijwtService.experimentAllowed(securedInfo, id);
 

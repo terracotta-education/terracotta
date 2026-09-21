@@ -62,9 +62,9 @@ public class AssignmentFileArchiveControllerTest extends BaseTest {
         when(apiJwtService.extractValues(any(), eq(false))).thenReturn(securedInfo);
         when(apiJwtService.exposureAllowed(eq(securedInfo), anyLong(), anyLong())).thenReturn(exposure);
         when(apiJwtService.assignmentAllowed(eq(securedInfo), anyLong(), anyLong(), anyLong())).thenReturn(assignment);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(exposureService.getExposureByUuid(EXPOSURE_UUID)).thenReturn(exposure);
-        when(assignmentService.getAssignmentByUuid(ASSIGNMENT_UUID)).thenReturn(assignment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
+        when(assignmentService.getAssignmentIdByUuid(ASSIGNMENT_UUID)).thenAnswer(invocation -> assignment.getAssignmentId());
         // this test suite asserts calls carry EXPOSURE_ID (2L), not exposure's globally-stubbed 1L
         when(exposure.getExposureId()).thenReturn(EXPOSURE_ID);
         // this test suite asserts calls carry ASSIGNMENT_ID (3L), not assignment's globally-stubbed 1L

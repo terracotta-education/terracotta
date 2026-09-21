@@ -76,6 +76,7 @@ public class ExposureServiceImplTest extends BaseTest {
         ExposureDto exposureDto = ExposureDto.builder().title("New Exposure").build();
         when(exposureRepository.save(any(Exposure.class))).thenReturn(exposure);
         when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
+        when(experimentRepository.findUuidByExperimentId(anyLong())).thenAnswer(invocation -> Optional.ofNullable(experiment.getUuid()));
         when(experimentRepository.findByUuid(experiment.getUuid())).thenReturn(experiment);
 
         ExposureDto retVal = exposureService.postExposure(exposureDto, 1L);
@@ -295,6 +296,22 @@ public class ExposureServiceImplTest extends BaseTest {
 
         assertNotNull(retVal);
         assertTrue(retVal.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/exposures/" + exposureUuid));
+    }
+
+    @Test
+    public void testGetExposureIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(exposureRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, exposureService.getExposureIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetExposureIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(exposureRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(ExposureNotMatchingException.class, () -> exposureService.getExposureIdByUuid(uuid));
     }
 
 }

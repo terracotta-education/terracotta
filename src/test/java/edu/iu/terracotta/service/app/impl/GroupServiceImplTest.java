@@ -313,4 +313,20 @@ public class GroupServiceImplTest extends BaseTest {
         assertEquals("Error 110: The experiment has started but there is an error with the group/exposure/condition associations amount", exception.getMessage());
     }
 
+    @Test
+    public void testGetGroupIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(groupRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, groupService.getGroupIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetGroupIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(groupRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(GroupNotMatchingException.class, () -> groupService.getGroupIdByUuid(uuid));
+    }
+
 }

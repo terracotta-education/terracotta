@@ -22,6 +22,7 @@ public interface GroupService {
     GroupDto postGroup(GroupDto groupDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
     Group getGroup(Long id);
     Group getGroupByUuid(UUID uuid) throws GroupNotMatchingException;
+    long getGroupIdByUuid(UUID uuid) throws GroupNotMatchingException;
     GroupDto toDto(Group group, SecuredInfo securedInfo);
     Group fromDto(GroupDto groupDto) throws DataServiceException;
     void updateGroup(Long groupId, GroupDto groupDto) throws TitleValidationException;

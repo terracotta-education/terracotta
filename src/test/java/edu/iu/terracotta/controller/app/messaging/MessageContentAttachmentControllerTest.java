@@ -57,8 +57,8 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(any(HttpServletRequest.class), eq(false))).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(apiJwtService.messagingContentAllowed(securedInfo, messageUuid, contentUuid)).thenReturn(messageContent);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(exposureService.getExposureByUuid(EXPOSURE_UUID)).thenReturn(exposure);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
         // this test suite asserts calls carry EXPOSURE_ID (2L), not exposure's globally-stubbed 1L
         when(exposure.getExposureId()).thenReturn(EXPOSURE_ID);
     }

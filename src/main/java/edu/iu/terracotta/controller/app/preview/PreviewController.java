@@ -48,9 +48,9 @@ public class PreviewController {
     @GetMapping("/conditions/{conditionId}/treatments/{treatmentId}")
     public String getTreatmentPreview(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("conditionId") UUID conditionUuid, @PathVariable("treatmentId") UUID treatmentUuid, @RequestParam String ownerId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, NumberFormatException, TerracottaConnectorException, ExposureNotMatchingException, ConditionNotMatchingException, TreatmentNotMatchingException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         TreatmentPreview treatmentPreview = treatmentPreviewService.create(treatmentId, experimentId, conditionId, ownerId);
 
         // experimentUuid/conditionUuid/treatmentUuid (not the internal experimentId/conditionId/
@@ -62,9 +62,9 @@ public class PreviewController {
     @GetMapping("/conditions/{conditionId}/treatments/{treatmentId}/id/{previewId}")
     public ResponseEntity<TreatmentPreviewDto> getTreatmentPreviewId(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("conditionId") UUID conditionUuid, @PathVariable("treatmentId") UUID treatmentUuid, @PathVariable UUID previewId, @RequestParam String ownerId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, NumberFormatException, TerracottaConnectorException, ExposureNotMatchingException, ConditionNotMatchingException, TreatmentNotMatchingException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
-        long treatmentId = treatmentService.getTreatmentByUuid(treatmentUuid).getTreatmentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         SecuredInfo securedInfo = apiJwtService.extractValues(req,false);
 
         try {
@@ -77,7 +77,7 @@ public class PreviewController {
     @GetMapping("/conditions/{conditionId}/treatments/{treatmentId}/complete")
     public String getTreatmentPreviewComplete(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("conditionId") UUID conditionUuid, @PathVariable("treatmentId") UUID treatmentUuid, @RequestParam String ownerId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, NumberFormatException, TerracottaConnectorException, ExposureNotMatchingException, ConditionNotMatchingException, TreatmentNotMatchingException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         return "redirect:/app/app.html?treatmentPreview=true&complete=true";
     }
 

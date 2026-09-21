@@ -68,6 +68,12 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
+    public long getGroupIdByUuid(UUID uuid) throws GroupNotMatchingException {
+        return groupRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new GroupNotMatchingException(TextConstants.GROUP_NOT_MATCHING));
+    }
+
+    @Override
     public GroupDto postGroup(GroupDto groupDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException{
         if (groupDto.getGroupId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);

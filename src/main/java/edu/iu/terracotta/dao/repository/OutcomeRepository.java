@@ -19,6 +19,11 @@ public interface OutcomeRepository extends JpaRepository<Outcome, Long> {
 
     Outcome findByUuid(UUID uuid);
 
+
+    @Query("select e.outcomeId from Outcome e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
     List<Outcome> findByExposure_ExposureId(Long exposureId);
     @Query("SELECT o FROM Outcome o WHERE o.exposure.experiment.experimentId = :experimentId")
     List<Outcome> findByExposure_Experiment_ExperimentId(@Param("experimentId") Long experimentId);

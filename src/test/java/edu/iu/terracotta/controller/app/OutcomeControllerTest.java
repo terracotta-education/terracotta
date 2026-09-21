@@ -60,9 +60,9 @@ public class OutcomeControllerTest extends BaseTest {
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(exposureService.getExposureByUuid(EXPOSURE_UUID)).thenReturn(exposure);
-        when(outcomeService.getOutcomeByUuid(OUTCOME_UUID)).thenReturn(outcome);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
+        when(outcomeService.getOutcomeIdByUuid(OUTCOME_UUID)).thenAnswer(invocation -> outcome.getOutcomeId());
     }
 
     @Test

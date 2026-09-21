@@ -229,4 +229,20 @@ public class QuestionSubmissionCommentServiceImplTest extends BaseTest {
         assertEquals(TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING, exception.getMessage());
     }
 
+    @Test
+    public void testGetQuestionSubmissionCommentIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(questionSubmissionCommentRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, questionSubmissionCommentService.getQuestionSubmissionCommentIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetQuestionSubmissionCommentIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(questionSubmissionCommentRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(QuestionSubmissionCommentNotMatchingException.class, () -> questionSubmissionCommentService.getQuestionSubmissionCommentIdByUuid(uuid));
+    }
+
 }

@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Group;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
 
@@ -14,6 +15,11 @@ import java.util.List;
 public interface GroupRepository extends JpaRepository<Group, Long> {
 
     Group findByUuid(UUID uuid);
+
+
+    @Query("select e.groupId from Group e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
 
     List<Group> findByExperiment_ExperimentId(Long experimentId);
     Group findByGroupId(Long groupId);

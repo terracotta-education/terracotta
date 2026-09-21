@@ -264,6 +264,12 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public long getAssignmentIdByUuid(UUID uuid) throws AssignmentNotMatchingException {
+        return assignmentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
+    }
+
+    @Override
     public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, SecuredInfo securedInfo)
             throws TitleValidationException, ApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {

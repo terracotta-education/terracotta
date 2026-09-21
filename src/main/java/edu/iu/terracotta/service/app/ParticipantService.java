@@ -32,6 +32,7 @@ public interface ParticipantService {
     List<ParticipantDto> getParticipants(long experimentId, String userId, boolean student, SecuredInfo securedInfo, boolean refresh) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException;
     Participant getParticipant(long id, long experimentId, String userId, boolean student) throws InvalidUserException, ParticipantNotMatchingException;
     Participant getParticipantByUuid(UUID uuid) throws ParticipantNotMatchingException;
+    long getParticipantIdByUuid(UUID uuid) throws ParticipantNotMatchingException;
     ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
     ParticipantDto toDto(Participant participant, SecuredInfo securedInfo);
     ParticipantDto toDto(Participant participant, List<Long> publishedExperimentAssignmentIds, SecuredInfo securedInfo);

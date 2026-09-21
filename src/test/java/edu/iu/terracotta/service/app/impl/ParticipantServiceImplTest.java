@@ -1306,4 +1306,20 @@ public class ParticipantServiceImplTest extends BaseTest {
         assertEquals(Isolation.READ_COMMITTED, transactional.isolation(), method.getName() + " must use READ_COMMITTED isolation");
     }
 
+    @Test
+    public void testGetParticipantIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(participantRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, participantService.getParticipantIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetParticipantIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(participantRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(ParticipantNotMatchingException.class, () -> participantService.getParticipantIdByUuid(uuid));
+    }
+
 }

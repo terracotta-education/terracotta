@@ -93,7 +93,7 @@ public class ExperimentController {
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
-        long experimentId = experimentService.getExperimentByUuid(id).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(id);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
@@ -152,7 +152,7 @@ public class ExperimentController {
             throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException, ParticipantNotUpdatedException,
                     DataServiceException, ExperimentStartedException, IOException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
-        long experimentId = experimentService.getExperimentByUuid(id).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(id);
         log.debug("Updating Experiment with id {}", experimentId);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -170,7 +170,7 @@ public class ExperimentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IOException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
-        long experimentId = experimentService.getExperimentByUuid(id).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(id);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);
 

@@ -60,9 +60,9 @@ public class OutcomeScoreController {
                                                                               @PathVariable("outcomeId") UUID outcomeUuid,
                                                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long outcomeId = outcomeService.getOutcomeByUuid(outcomeUuid).getOutcomeId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -88,10 +88,10 @@ public class OutcomeScoreController {
                                                            @PathVariable("outcomeScoreId") UUID outcomeScoreUuid,
                                                            HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long outcomeId = outcomeService.getOutcomeByUuid(outcomeUuid).getOutcomeId();
-        long outcomeScoreId = outcomeScoreService.getOutcomeScoreByUuid(outcomeScoreUuid).getOutcomeScoreId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
+        long outcomeScoreId = outcomeScoreService.getOutcomeScoreIdByUuid(outcomeScoreUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -114,9 +114,9 @@ public class OutcomeScoreController {
                                                             UriComponentsBuilder ucBuilder,
                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, BadTokenException, InvalidParticipantException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long outcomeId = outcomeService.getOutcomeByUuid(outcomeUuid).getOutcomeId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
         log.debug("Creating outcome score for outcome ID: {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -139,9 +139,9 @@ public class OutcomeScoreController {
                                                      @RequestBody List<OutcomeScoreDto> outcomeScoreDtoList,
                                                      HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException, InvalidParticipantException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long outcomeId = outcomeService.getOutcomeByUuid(outcomeUuid).getOutcomeId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -152,7 +152,7 @@ public class OutcomeScoreController {
 
         for (OutcomeScoreDto outcomeScoreDto : outcomeScoreDtoList) {
             if (outcomeScoreDto.getOutcomeScoreId() != null) {
-                long existingOutcomeScoreId = outcomeScoreService.getOutcomeScoreByUuid(outcomeScoreDto.getOutcomeScoreId()).getOutcomeScoreId();
+                long existingOutcomeScoreId = outcomeScoreService.getOutcomeScoreIdByUuid(outcomeScoreDto.getOutcomeScoreId());
                 apijwtService.outcomeScoreAllowed(securedInfo, outcomeId, existingOutcomeScoreId);
             }
 
@@ -178,10 +178,10 @@ public class OutcomeScoreController {
                                               @RequestBody OutcomeScoreDto outcomeScoreDto,
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long outcomeId = outcomeService.getOutcomeByUuid(outcomeUuid).getOutcomeId();
-        long outcomeScoreId = outcomeScoreService.getOutcomeScoreByUuid(outcomeScoreUuid).getOutcomeScoreId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
+        long outcomeScoreId = outcomeScoreService.getOutcomeScoreIdByUuid(outcomeScoreUuid);
         log.debug("Updating outcome score with id {}", outcomeScoreId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -204,10 +204,10 @@ public class OutcomeScoreController {
                                                    @PathVariable("outcomeScoreId") UUID outcomeScoreUuid,
                                                    HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long exposureId = exposureService.getExposureByUuid(exposureUuid).getExposureId();
-        long outcomeId = outcomeService.getOutcomeByUuid(outcomeUuid).getOutcomeId();
-        long outcomeScoreId = outcomeScoreService.getOutcomeScoreByUuid(outcomeScoreUuid).getOutcomeScoreId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
+        long outcomeScoreId = outcomeScoreService.getOutcomeScoreIdByUuid(outcomeScoreUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);

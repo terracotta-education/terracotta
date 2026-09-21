@@ -90,6 +90,12 @@ public class OutcomeServiceImpl implements OutcomeService {
     }
 
     @Override
+    public long getOutcomeIdByUuid(UUID uuid) throws OutcomeNotMatchingException {
+        return outcomeRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new OutcomeNotMatchingException(TextConstants.OUTCOME_NOT_MATCHING));
+    }
+
+    @Override
     public List<OutcomeDto> getAllByExperiment(long experimentId) {
         return CollectionUtils.emptyIfNull(outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId)).stream()
             .map(

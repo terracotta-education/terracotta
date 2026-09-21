@@ -86,15 +86,15 @@ public class SubmissionCommentControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(submissionCommentDto.getSubmissionCommentId()).thenReturn(SUBMISSION_COMMENT_UUID);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
-        when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
-        when(assessmentService.getAssessmentByUuid(ASSESSMENT_UUID)).thenReturn(assessment);
-        when(submissionService.getSubmissionByUuid(SUBMISSION_UUID)).thenReturn(submission);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
+        when(treatmentService.getTreatmentIdByUuid(TREATMENT_UUID)).thenAnswer(invocation -> treatment.getTreatmentId());
+        when(assessmentService.getAssessmentIdByUuid(ASSESSMENT_UUID)).thenAnswer(invocation -> assessment.getAssessmentId());
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_UUID)).thenAnswer(invocation -> submission.getSubmissionId());
 
         SubmissionComment submissionCommentForUuid = mock(SubmissionComment.class);
         when(submissionCommentForUuid.getSubmissionCommentId()).thenReturn(1L);
-        when(submissionCommentService.getSubmissionCommentByUuid(SUBMISSION_COMMENT_UUID)).thenReturn(submissionCommentForUuid);
+        when(submissionCommentService.getSubmissionCommentIdByUuid(SUBMISSION_COMMENT_UUID)).thenAnswer(invocation -> submissionCommentForUuid.getSubmissionCommentId());
     }
 
     @Test

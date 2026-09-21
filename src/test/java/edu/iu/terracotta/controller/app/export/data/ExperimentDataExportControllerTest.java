@@ -48,7 +48,7 @@ public class ExperimentDataExportControllerTest extends BaseTest {
 
         when(apiJwtService.extractValues(any(), eq(false))).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
         when(experiment.getExperimentId()).thenReturn(EXPERIMENT_ID);
         when(apiJwtService.experimentAllowed(securedInfo, EXPERIMENT_ID)).thenReturn(experiment);
     }
@@ -81,7 +81,7 @@ public class ExperimentDataExportControllerTest extends BaseTest {
     @Test
     void testPollListUnknownExperimentUuidIsBadRequest() throws Exception {
         UUID unknownUuid = UUID.randomUUID();
-        when(experimentService.getExperimentByUuid(unknownUuid)).thenThrow(new ExperimentNotMatchingException("not found"));
+        when(experimentService.getExperimentIdByUuid(unknownUuid)).thenThrow(new ExperimentNotMatchingException("not found"));
 
         ResponseEntity<List<ExperimentDataExportDto>> response = experimentDataExportController.pollList("0", false, List.of(unknownUuid), httpServletRequest);
 

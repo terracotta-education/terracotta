@@ -244,6 +244,12 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
+    public long getParticipantIdByUuid(UUID uuid) throws ParticipantNotMatchingException {
+        return participantRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING));
+    }
+
+    @Override
     public ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());

@@ -23,6 +23,7 @@ public interface ExposureService {
     Exposure fromDto(ExposureDto exposureDto) throws DataServiceException;
     Exposure getExposure(Long id);
     Exposure getExposureByUuid(UUID uuid) throws ExposureNotMatchingException;
+    long getExposureIdByUuid(UUID uuid) throws ExposureNotMatchingException;
     void updateExposure(Long exposureId, ExposureDto exposureDto)throws TitleValidationException;
     void deleteById(Long id) throws EmptyResultDataAccessException;
     void createExposures(Long experimentId) throws DataServiceException, ExperimentStartedException;

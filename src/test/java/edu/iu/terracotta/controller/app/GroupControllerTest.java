@@ -63,8 +63,8 @@ public class GroupControllerTest extends BaseTest {
         groupController = new GroupController(groupService, apiJwtService, experimentService);
 
         when(apiJwtService.extractValues(any(), eq(false))).thenReturn(securedInfo);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(groupService.getGroupByUuid(GROUP_UUID)).thenReturn(group);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(groupService.getGroupIdByUuid(GROUP_UUID)).thenAnswer(invocation -> group.getGroupId());
     }
 
     @Test

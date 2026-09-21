@@ -25,6 +25,7 @@ public interface ExperimentService {
     List<ExperimentDto> getExperiments(SecuredInfo securedInfo, boolean syncWithLms) throws ConnectionException, TerracottaConnectorException;
     Experiment getExperiment(long experimentId);
     Experiment getExperimentByUuid(UUID uuid) throws ExperimentNotMatchingException;
+    long getExperimentIdByUuid(UUID uuid) throws ExperimentNotMatchingException;
     ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException;
     void updateExperiment(long experimentId, long contextId, ExperimentDto experimentDto, SecuredInfo securedInfo) throws TitleValidationException, WrongValueException, ParticipantNotUpdatedException, ExperimentNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException;
     ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants, SecuredInfo securedInfo);

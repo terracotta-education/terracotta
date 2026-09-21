@@ -16,6 +16,11 @@ public interface SubmissionCommentRepository extends JpaRepository<SubmissionCom
 
     SubmissionComment findByUuid(UUID uuid);
 
+
+    @Query("select e.submissionCommentId from SubmissionComment e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
     List<SubmissionComment> findBySubmission_SubmissionId(Long submissionId);
     Optional<SubmissionComment> findBySubmission_SubmissionIdAndSubmissionCommentId(Long submissionId, Long submissionCommentId);
     SubmissionComment findBySubmissionCommentId(Long submissionCommentId);

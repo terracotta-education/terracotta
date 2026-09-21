@@ -131,6 +131,12 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
+    public long getExperimentIdByUuid(UUID uuid) throws ExperimentNotMatchingException {
+        return experimentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING));
+    }
+
+    @Override
     public ExperimentDto postExperiment(ExperimentDto experimentDto, SecuredInfo securedInfo) throws DataServiceException, TitleValidationException {
         validateTitle(experimentDto.getTitle(), securedInfo.getContextId());
 

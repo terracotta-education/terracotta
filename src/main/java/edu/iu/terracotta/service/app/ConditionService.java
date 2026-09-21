@@ -24,6 +24,7 @@ public interface ConditionService {
     Condition fromDto(ConditionDto conditionDto) throws DataServiceException;
     Condition findByConditionId(Long conditionId);
     Condition getConditionByUuid(UUID uuid) throws ConditionNotMatchingException;
+    long getConditionIdByUuid(UUID uuid) throws ConditionNotMatchingException;
     ConditionDto getCondition(Long id);
     void updateCondition(Map<Condition, ConditionDto> map);
     void deleteById(Long id) throws EmptyResultDataAccessException;

@@ -19,6 +19,7 @@ public interface QuestionSubmissionCommentService {
     List<QuestionSubmissionCommentDto> getQuestionSubmissionComments(Long questionSubmissionId);
     QuestionSubmissionComment getQuestionSubmissionComment(Long id);
     QuestionSubmissionComment getQuestionSubmissionCommentByUuid(UUID uuid) throws QuestionSubmissionCommentNotMatchingException;
+    long getQuestionSubmissionCommentIdByUuid(UUID uuid) throws QuestionSubmissionCommentNotMatchingException;
     QuestionSubmissionCommentDto postQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException;
     void updateQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionCommentId, long experimentId, long submissionId, SecuredInfo securedInfo) throws DataServiceException;
     QuestionSubmissionCommentDto toDto(QuestionSubmissionComment questionSubmissionComment);

@@ -52,7 +52,7 @@ public class GroupController {
     @GetMapping
     public ResponseEntity<List<GroupDto>> allGroupsByExperiment(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -72,8 +72,8 @@ public class GroupController {
     @GetMapping("/{groupId}")
     public ResponseEntity<GroupDto> getGroup(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("groupId") UUID groupUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long groupId = groupService.getGroupByUuid(groupUuid).getGroupId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long groupId = groupService.getGroupIdByUuid(groupUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
@@ -93,7 +93,7 @@ public class GroupController {
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         log.debug("Creating Group for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
@@ -112,7 +112,7 @@ public class GroupController {
     @PostMapping("/create")
     public ResponseEntity<Void> createGroups(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -132,8 +132,8 @@ public class GroupController {
                                                @RequestBody GroupDto groupDto,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long groupId = groupService.getGroupByUuid(groupUuid).getGroupId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long groupId = groupService.getGroupIdByUuid(groupUuid);
         log.debug("Updating group with id {}", groupId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -151,8 +151,8 @@ public class GroupController {
     @DeleteMapping("/{groupId}")
     public ResponseEntity<Void> deleteGroup(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("groupId") UUID groupUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, ExperimentLockedException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long groupId = groupService.getGroupByUuid(groupUuid).getGroupId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long groupId = groupService.getGroupIdByUuid(groupUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);

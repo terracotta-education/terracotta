@@ -54,6 +54,12 @@ public class OutcomeScoreServiceImpl implements OutcomeScoreService {
     }
 
     @Override
+    public long getOutcomeScoreIdByUuid(UUID uuid) throws OutcomeScoreNotMatchingException {
+        return outcomeScoreRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new OutcomeScoreNotMatchingException(TextConstants.OUTCOME_SCORE_NOT_MATCHING));
+    }
+
+    @Override
     public OutcomeScoreDto postOutcomeScore(OutcomeScoreDto outcomeScoreDto, long experimentId, long outcomeId) throws IdInPostException, InvalidParticipantException, DataServiceException {
         if (outcomeScoreDto.getOutcomeScoreId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);

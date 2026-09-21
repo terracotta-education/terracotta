@@ -74,8 +74,8 @@ public class MessageControllerTest extends BaseTest {
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
         messageController = new MessageController(apiJwtService, experimentService, exposureService, contentService, messageEmailService, previewService, messageService);
 
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(exposureService.getExposureByUuid(exposureUuid)).thenReturn(exposure);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(exposureUuid)).thenAnswer(invocation -> exposure.getExposureId());
     }
 
     private void stubAllowedForMessage() throws Exception {

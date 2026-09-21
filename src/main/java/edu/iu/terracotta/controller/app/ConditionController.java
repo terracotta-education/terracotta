@@ -54,7 +54,7 @@ public class ConditionController {
 
     @GetMapping
     public ResponseEntity<List<ConditionDto>> allConditionsByExperiment(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -76,8 +76,8 @@ public class ConditionController {
                                                      @PathVariable("conditionId") UUID conditionUuid,
                                                      HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
@@ -94,7 +94,7 @@ public class ConditionController {
                                                       @RequestBody(required = false) ConditionDto conditionDto,
                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException, DataServiceException, ExperimentConditionLimitReachedException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         log.debug("Creating Condition for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
@@ -119,8 +119,8 @@ public class ConditionController {
                                                 @RequestBody ConditionDto conditionDto,
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         log.debug("Updating condition with id {}", conditionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -144,7 +144,7 @@ public class ConditionController {
                                                  @RequestBody List<ConditionDto> conditionDtoList,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, ConditionNotMatchingException, BadTokenException, DataServiceException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         conditionService.validateConditionNames(conditionDtoList,experimentId,true);
@@ -156,7 +156,7 @@ public class ConditionController {
         Map<Condition, ConditionDto> map = new HashMap<>();
 
         for (ConditionDto conditionDto : conditionDtoList) {
-            long conditionId = conditionService.getConditionByUuid(conditionDto.getConditionId()).getConditionId();
+            long conditionId = conditionService.getConditionIdByUuid(conditionDto.getConditionId());
             apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
             Condition condition = conditionService.findByConditionId(conditionId);
             log.debug("Updating condition: " + condition.getConditionId());
@@ -177,8 +177,8 @@ public class ConditionController {
                                                  @PathVariable("conditionId") UUID conditionUuid,
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, ConditionsLockedException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
-        long conditionId = conditionService.getConditionByUuid(conditionUuid).getConditionId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);

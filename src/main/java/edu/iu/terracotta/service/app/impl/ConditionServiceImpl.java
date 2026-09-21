@@ -54,8 +54,7 @@ public class ConditionServiceImpl implements ConditionService {
         validateConditionName("", conditionDto.getName(), experimentId, 0L, false);
         validateMaximumConditionsNotReached(experimentId);
 
-        Experiment experimentForDto = experimentRepository.findById(experimentId).orElse(null);
-        conditionDto.setExperimentId(experimentForDto != null ? experimentForDto.getUuid() : null);
+        conditionDto.setExperimentId(experimentRepository.findUuidByExperimentId(experimentId).orElse(null));
         Condition condition;
 
         try {
@@ -112,6 +111,12 @@ public class ConditionServiceImpl implements ConditionService {
     @Override
     public Condition getConditionByUuid(UUID uuid) throws ConditionNotMatchingException {
         return Optional.ofNullable(conditionRepository.findByUuid(uuid))
+            .orElseThrow(() -> new ConditionNotMatchingException(TextConstants.CONDITION_NOT_MATCHING));
+    }
+
+    @Override
+    public long getConditionIdByUuid(UUID uuid) throws ConditionNotMatchingException {
+        return conditionRepository.findIdByUuid(uuid)
             .orElseThrow(() -> new ConditionNotMatchingException(TextConstants.CONDITION_NOT_MATCHING));
     }
 

@@ -16,6 +16,11 @@ public interface ExposureRepository extends JpaRepository<Exposure, Long> {
 
     Exposure findByUuid(UUID uuid);
 
+
+    @Query("select e.exposureId from Exposure e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
     List<Exposure> findByExperiment_ExperimentId(Long experimentId);
     Exposure findByExposureId(Long exposureId);
     boolean existsByExperiment_ExperimentIdAndExposureId(Long experimentId, Long exposureId);

@@ -53,6 +53,12 @@ public class QuestionSubmissionCommentServiceImpl implements QuestionSubmissionC
     }
 
     @Override
+    public long getQuestionSubmissionCommentIdByUuid(UUID uuid) throws QuestionSubmissionCommentNotMatchingException {
+        return questionSubmissionCommentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new QuestionSubmissionCommentNotMatchingException(TextConstants.QUESTION_SUBMISSION_COMMENT_NOT_MATCHING));
+    }
+
+    @Override
     public QuestionSubmissionCommentDto postQuestionSubmissionComment(QuestionSubmissionCommentDto questionSubmissionCommentDto, long questionSubmissionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException {
         if (questionSubmissionCommentDto.getQuestionSubmissionCommentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);

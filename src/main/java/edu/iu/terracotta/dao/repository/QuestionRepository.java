@@ -18,6 +18,11 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     Question findByUuid(UUID uuid);
 
+
+    @Query("select e.questionId from Question e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
     List<Question> findByAssessment_AssessmentIdOrderByQuestionOrder(Long assessmentId);
     @Query("SELECT q FROM Question q WHERE q.assessment.treatment.condition.experiment.experimentId = :experimentId")
     List<Question> findByAssessment_Treatment_Condition_Experiment_ExperimentId(@Param("experimentId") Long experimentId);

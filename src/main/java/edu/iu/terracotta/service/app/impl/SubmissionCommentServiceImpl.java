@@ -79,6 +79,12 @@ public class SubmissionCommentServiceImpl implements SubmissionCommentService {
     }
 
     @Override
+    public long getSubmissionCommentIdByUuid(UUID uuid) throws SubmissionCommentNotMatchingException {
+        return submissionCommentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new SubmissionCommentNotMatchingException(TextConstants.SUBMISSION_COMMENT_NOT_MATCHING));
+    }
+
+    @Override
     public SubmissionCommentDto toDto(SubmissionComment submissionComment) {
         SubmissionCommentDto submissionCommentDto = new SubmissionCommentDto();
         submissionCommentDto.setSubmissionCommentId(submissionComment.getUuid());

@@ -34,7 +34,7 @@ public class MediaProfileControllerTest extends BaseTest {
 
     private static final long EXPERIMENT_ID = 1L;
     // matches condition.getConditionId() (the mock's globally-stubbed return value, see BaseModelTest),
-    // which is what conditionService.getConditionByUuid(CONDITION_UUID) below resolves to
+    // which is what conditionService.getConditionIdByUuid(CONDITION_UUID) below resolves to
     private static final long CONDITION_ID = 1L;
     private static final long TREATMENT_ID = 3L;
     private static final long ASSESSMENT_ID = 4L;
@@ -85,16 +85,16 @@ public class MediaProfileControllerTest extends BaseTest {
         mediaEventDto = new MediaEventDto();
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), eq(false))).thenReturn(securedInfo);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
         when(treatment.getTreatmentId()).thenReturn(TREATMENT_ID);
-        when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
+        when(treatmentService.getTreatmentIdByUuid(TREATMENT_UUID)).thenAnswer(invocation -> treatment.getTreatmentId());
         when(assessment.getAssessmentId()).thenReturn(ASSESSMENT_ID);
-        when(assessmentService.getAssessmentByUuid(ASSESSMENT_UUID)).thenReturn(assessment);
+        when(assessmentService.getAssessmentIdByUuid(ASSESSMENT_UUID)).thenAnswer(invocation -> assessment.getAssessmentId());
         when(question.getQuestionId()).thenReturn(QUESTION_ID);
-        when(questionService.getQuestionByUuid(QUESTION_UUID)).thenReturn(question);
+        when(questionService.getQuestionIdByUuid(QUESTION_UUID)).thenAnswer(invocation -> question.getQuestionId());
         when(submission.getSubmissionId()).thenReturn(SUBMISSION_ID);
-        when(submissionService.getSubmissionByUuid(SUBMISSION_UUID)).thenReturn(submission);
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_UUID)).thenAnswer(invocation -> submission.getSubmissionId());
     }
 
     @Test

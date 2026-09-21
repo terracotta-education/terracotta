@@ -17,6 +17,11 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     Assignment findByUuid(UUID uuid);
 
+
+    @Query("select e.assignmentId from Assignment e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(long experimentId, String lmsAssignmentId);
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndAssignmentId(long experimentId, long assignmentId);
     Optional<Assignment> findByExposure_Experiment_ExperimentIdAndExposure_ExposureIdAndAssignmentId(long experimentId, long exposureId, long assignmentId);

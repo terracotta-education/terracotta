@@ -189,6 +189,12 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
+    public long getSubmissionIdByUuid(UUID uuid) throws SubmissionNotMatchingException {
+        return submissionRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new SubmissionNotMatchingException(TextConstants.SUBMISSION_NOT_MATCHING));
+    }
+
+    @Override
     public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student)
             throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         if (submissionDto.getSubmissionId() != null) {
@@ -202,9 +208,10 @@ public class SubmissionServiceImpl implements SubmissionService {
             // resolved from the path's own assessment uuid) so fromDto below can look it back up via
             // findByUuid - mirrors the identical numeric-id-to-uuid round trip in
             // AssessmentServiceImpl.defaultAssessment/fromDto for the treatment FK.
-            Assessment assessmentForDto = assessmentRepository.findById(assessmentId)
-                .orElseThrow(() -> new DataServiceException("The assessment for the submission does not exist."));
-            submissionDto.setAssessmentId(assessmentForDto.getUuid());
+            submissionDto.setAssessmentId(
+                assessmentRepository.findUuidByAssessmentId(assessmentId)
+                    .orElseThrow(() -> new DataServiceException("The assessment for the submission does not exist."))
+            );
             validateDto(experimentId, securedInfo.getUserId(), submissionDto);
             submission = fromDto(submissionDto, student);
         } catch (DataServiceException ex) {

@@ -909,4 +909,20 @@ public class AssignmentServiceImplTest extends BaseTest {
         assertThrows(IllegalArgumentException.class, () -> assignmentService.isSingleVersion((Assignment) null));
     }
 
+    @Test
+    public void testGetAssignmentIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(assignmentRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, assignmentService.getAssignmentIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetAssignmentIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(assignmentRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(AssignmentNotMatchingException.class, () -> assignmentService.getAssignmentIdByUuid(uuid));
+    }
+
 }

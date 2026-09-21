@@ -725,4 +725,21 @@ public class AssessmentServiceImplTest extends BaseTest {
         assertTrue(e.getCause() instanceof AssessmentNotMatchingException);
         assertEquals("Error 131: This assignment does not have a treatment assigned.", e.getCause().getMessage());
     }
+
+    @Test
+    public void testGetAssessmentIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(assessmentRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, assessmentService.getAssessmentIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetAssessmentIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(assessmentRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(AssessmentNotMatchingException.class, () -> assessmentService.getAssessmentIdByUuid(uuid));
+    }
+
 }

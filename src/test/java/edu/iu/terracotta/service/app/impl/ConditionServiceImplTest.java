@@ -71,6 +71,7 @@ public class ConditionServiceImplTest extends BaseTest {
         ConditionDto conditionDto = ConditionDto.builder().name("New Condition").build();
         when(conditionRepository.save(any(Condition.class))).thenReturn(condition);
         when(experimentRepository.findById(anyLong())).thenReturn(Optional.of(experiment));
+        when(experimentRepository.findUuidByExperimentId(anyLong())).thenAnswer(invocation -> Optional.ofNullable(experiment.getUuid()));
         when(experimentRepository.findByUuid(experiment.getUuid())).thenReturn(experiment);
 
         ConditionDto retVal = conditionService.postCondition(conditionDto, 1L);
@@ -354,6 +355,22 @@ public class ConditionServiceImplTest extends BaseTest {
         Exception exception = assertThrows(TitleValidationException.class, () -> conditionService.validateConditionNames(conditionDtoList, 1L, false));
 
         assertTrue(exception.getMessage().startsWith("Error 102:"));
+    }
+
+    @Test
+    public void testGetConditionIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(conditionRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, conditionService.getConditionIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetConditionIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(conditionRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(ConditionNotMatchingException.class, () -> conditionService.getConditionIdByUuid(uuid));
     }
 
 }

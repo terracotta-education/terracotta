@@ -56,8 +56,8 @@ public class MessageContainerControllerTest extends BaseTest {
         messageContainerController = new MessageContainerController(apiJwtService, experimentService, exposureService, messageContainerService);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(exposureService.getExposureByUuid(EXPOSURE_UUID)).thenReturn(exposure);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
     }
 
     @Test
@@ -142,7 +142,7 @@ public class MessageContainerControllerTest extends BaseTest {
         when(apiJwtService.messagingContainerAllowed(any(SecuredInfo.class), anyLong(), any(UUID.class))).thenReturn(messageContainer);
         when(apiJwtService.exposureAllowed(any(SecuredInfo.class), anyLong(), anyLong())).thenReturn(exposure);
         when(messageContainerDto.getExposureId()).thenReturn(DIFFERENT_EXPOSURE_UUID);
-        when(exposureService.getExposureByUuid(DIFFERENT_EXPOSURE_UUID)).thenReturn(exposure);
+        when(exposureService.getExposureIdByUuid(DIFFERENT_EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
         when(messageContainerService.move(any(Exposure.class), any(MessageContainer.class))).thenReturn(messageContainerDto);
         when(messageContainerService.update(any(MessageContainerDto.class), any(MessageContainer.class))).thenReturn(messageContainerDto);
 

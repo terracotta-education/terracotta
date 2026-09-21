@@ -54,7 +54,7 @@ public class ExperimentDataExportController {
     @GetMapping
     public ResponseEntity<ExperimentDataExportDto> process(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -71,7 +71,7 @@ public class ExperimentDataExportController {
     @GetMapping("/poll")
     public ResponseEntity<ExperimentDataExportDto> poll(@PathVariable("experimentId") UUID experimentUuid, @RequestParam(defaultValue = "false") boolean createNewOnOutdated, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException, AssignmentFileArchiveNotFoundException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -102,7 +102,7 @@ public class ExperimentDataExportController {
             List<Experiment> experiments = new ArrayList<>();
 
             for (UUID experimentUuid : experimentUuids) {
-                long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+                long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
                 experiments.add(apijwtService.experimentAllowed(securedInfo, experimentId));
             }
 
@@ -115,7 +115,7 @@ public class ExperimentDataExportController {
     @GetMapping("/{fileId}/retrieve")
     public ResponseEntity<Resource> retrieve(@PathVariable("experimentId") UUID experimentUuid, @PathVariable UUID fileId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -146,7 +146,7 @@ public class ExperimentDataExportController {
     @PutMapping("/{fileId}/acknowledge")
     public ResponseEntity<ExperimentDataExportDto> errorAcknowledge(@PathVariable("experimentId") UUID experimentUuid, @PathVariable UUID fileId, @RequestParam ExperimentDataExportStatus status, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {

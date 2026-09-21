@@ -148,6 +148,12 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
+    public long getAssessmentIdByUuid(UUID uuid) throws AssessmentNotMatchingException {
+        return assessmentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING));
+    }
+
+    @Override
     public List<AssessmentDto> getAllAssessmentsByTreatment(Long treatmentId, boolean submissions, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
         List<Assessment> assessmentList = findAllByTreatmentId(treatmentId);
         List<AssessmentDto> assessmentDtoList = new ArrayList<>();

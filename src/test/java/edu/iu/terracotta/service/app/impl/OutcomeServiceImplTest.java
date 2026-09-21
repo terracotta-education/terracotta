@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -425,5 +426,20 @@ public class OutcomeServiceImplTest extends BaseTest {
         return "a".repeat(256);
     }
 
+    @Test
+    public void testGetOutcomeIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(outcomeRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, outcomeService.getOutcomeIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetOutcomeIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(outcomeRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(OutcomeNotMatchingException.class, () -> outcomeService.getOutcomeIdByUuid(uuid));
+    }
 
 }

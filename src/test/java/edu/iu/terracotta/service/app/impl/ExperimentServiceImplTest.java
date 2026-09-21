@@ -643,4 +643,20 @@ public class ExperimentServiceImplTest extends BaseTest {
         assertTrue(exception.getMessage().contains("Duplicate"));
     }
 
+    @Test
+    public void testGetExperimentIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(experimentRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, experimentService.getExperimentIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetExperimentIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(experimentRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(ExperimentNotMatchingException.class, () -> experimentService.getExperimentIdByUuid(uuid));
+    }
+
 }

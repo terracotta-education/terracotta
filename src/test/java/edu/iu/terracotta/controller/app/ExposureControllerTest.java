@@ -53,8 +53,8 @@ public class ExposureControllerTest extends BaseTest {
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
         when(apiJwtService.exposureAllowed(any(), anyLong(), anyLong())).thenReturn(exposure);
         when(apiJwtService.experimentLocked(anyLong(), anyBoolean())).thenReturn(false);
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(exposureService.getExposureByUuid(EXPOSURE_UUID)).thenReturn(exposure);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
     }
 
     @Test

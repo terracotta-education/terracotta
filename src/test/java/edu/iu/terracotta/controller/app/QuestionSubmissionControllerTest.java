@@ -89,12 +89,12 @@ public class QuestionSubmissionControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(questionSubmissionService.buildHeaders(any(UriComponentsBuilder.class), any(UUID.class), any(UUID.class), any(UUID.class), any(UUID.class), any(UUID.class))).thenReturn(new HttpHeaders());
-        when(experimentService.getExperimentByUuid(EXPERIMENT_UUID)).thenReturn(experiment);
-        when(conditionService.getConditionByUuid(CONDITION_UUID)).thenReturn(condition);
-        when(treatmentService.getTreatmentByUuid(TREATMENT_UUID)).thenReturn(treatment);
-        when(assessmentService.getAssessmentByUuid(ASSESSMENT_UUID)).thenReturn(assessment);
-        when(submissionService.getSubmissionByUuid(SUBMISSION_UUID)).thenReturn(submission);
-        when(questionSubmissionService.getQuestionSubmissionByUuid(QUESTION_SUBMISSION_UUID)).thenReturn(questionSubmission);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
+        when(treatmentService.getTreatmentIdByUuid(TREATMENT_UUID)).thenAnswer(invocation -> treatment.getTreatmentId());
+        when(assessmentService.getAssessmentIdByUuid(ASSESSMENT_UUID)).thenAnswer(invocation -> assessment.getAssessmentId());
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_UUID)).thenAnswer(invocation -> submission.getSubmissionId());
+        when(questionSubmissionService.getQuestionSubmissionIdByUuid(QUESTION_SUBMISSION_UUID)).thenAnswer(invocation -> questionSubmission.getQuestionSubmissionId());
     }
 
     // ---- getQuestionSubmissionsBySubmission ----

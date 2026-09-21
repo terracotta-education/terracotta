@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.QuestionSubmissionComment;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
@@ -15,6 +16,11 @@ import java.util.List;
 public interface QuestionSubmissionCommentRepository extends JpaRepository<QuestionSubmissionComment, Long> {
 
     QuestionSubmissionComment findByUuid(UUID uuid);
+
+
+    @Query("select e.questionSubmissionCommentId from QuestionSubmissionComment e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
 
     List<QuestionSubmissionComment> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
     List<QuestionSubmissionComment> findByQuestionSubmission_QuestionSubmissionIdIn(Collection<Long> questionSubmissionIds);
