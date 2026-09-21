@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.dao.entity.Submission;
@@ -22,6 +23,9 @@ import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationTokenRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,10 +37,13 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
 
     private final IntegrationTokenRepository integrationTokenRepository;
 
+    @PersistenceContext private EntityManager entityManager;
+
     @Value("${app.integrations.token.ttl:43200}")
     private long ttl;
 
     @Override
+    @Transactional
     public void create(Submission submission, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException {
         if (!submission.isIntegration()) {
             // not an integration; no token needed
@@ -58,6 +65,15 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
                 .token(buildToken())
                 .user(submission.getParticipant().getLtiUserEntity())
                 .build();
+        } else {
+            // two launches of the same in-progress submission can race to stamp this one row.
+            // Re-read it under a row lock (blocking behind any launch already mid-write) so
+            // this update always targets the row's current version rather than the copy the
+            // session loaded earlier. Without this, the loser's flush fails its version check
+            // as an optimistic-locking error - and catching that inside the caller's
+            // @Transactional is no recovery at all, since the repository proxy has already
+            // marked the transaction rollback-only by then and the launch still fails at commit.
+            entityManager.refresh(integrationToken, LockModeType.PESSIMISTIC_WRITE);
         }
 
         LocalDateTime launchedAt = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
@@ -82,21 +98,9 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         integrationToken.setSecuredInfo(securedInfo);
         integrationToken.setLastLaunchedAt(Timestamp.from(Instant.now()));
 
-        try {
-            // flushed immediately, rather than left for the surrounding @Transactional
-            // method's own commit, so a concurrent launch of this same token - two requests
-            // racing to update the same row - is caught here (where it can be handled)
-            // instead of surfacing as an unhandled optimistic-locking failure once that
-            // later commit happens
-            integrationTokenRepository.saveAndFlush(integrationToken);
-        } catch (Exception e) {
-            // another concurrent launch of this same token already won the race and
-            // persisted its own update - that update is just as valid as ours would have
-            // been, so use the token as it now stands rather than writing over it again
-            log.error("Error saving token for submission ID: [{}].", submission.getSubmissionId(), e);
-            integrationToken = integrationTokenRepository.findBySubmission_SubmissionId(submission.getSubmissionId())
-                .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No token found for submission ID: [%s]", submission.getSubmissionId())));
-        }
+        // flushed now rather than at commit so a genuine write failure surfaces here, at the
+        // call that caused it, instead of as an opaque commit-time error
+        integrationTokenRepository.saveAndFlush(integrationToken);
 
         submission.setIntegrationToken(integrationToken);
     }
