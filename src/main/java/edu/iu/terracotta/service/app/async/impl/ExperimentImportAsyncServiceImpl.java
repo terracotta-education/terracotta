@@ -17,7 +17,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -155,21 +154,15 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             // import completed without errors; set status to complete
             experimentImport.setStatus(ExperimentImportStatus.COMPLETE);
 
-            try {
-                experimentImportRepository.save(experimentImport);
-            } catch (ObjectOptimisticLockingFailureException e) {
-                // belt-and-suspenders: something else updated this row's version since it was
-                // handed to this method (see ExperimentImportServiceImpl.finishPreprocess,
-                // which detaches this entity from its own request thread's session specifically
-                // to prevent that) - re-fetch the current row and re-apply completion onto that
-                // fresh copy rather than letting this @Async method's own final update fail
-                log.warn("Optimistic-locking conflict finalizing experiment import ID: [{}] - retrying against the current row", experimentImport.getId(), e);
-                experimentImportRepository.findById(experimentImport.getId())
-                    .ifPresent(current -> {
-                        current.setStatus(ExperimentImportStatus.COMPLETE);
-                        experimentImportRepository.save(current);
-                    });
-            }
+            // deliberately no retry if this save hits an optimistic-locking failure: this method
+            // is itself @Transactional, so by the time save() has thrown, the repository proxy
+            // has already marked the transaction rollback-only and any re-fetch/re-save here
+            // would be silently discarded at commit along with the rest of the import. Letting
+            // it propagate rolls the import back loudly instead. Preventing the conflict is
+            // ExperimentImportServiceImpl.preprocess's job - it detaches this entity from its
+            // request thread's session before handing it here, so nothing else can bump the
+            // row's version underneath this thread.
+            experimentImportRepository.save(experimentImport);
         }
 
         log.info("Processing experiment import with ID: [{}] COMPLETE", experimentImport.getId());
