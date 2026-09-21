@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationToken;
@@ -30,6 +31,7 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundExc
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.integrations.impl.IntegrationTokenServiceImpl;
+import jakarta.persistence.LockModeType;
 
 public class IntegrationTokenServiceImplTest extends BaseTest {
 
@@ -45,6 +47,10 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
             submission
         );
         setup();
+
+        // entityManager isn't a constructor-injected (final) field, and Mockito's field-injection
+        // fallback for @InjectMocks doesn't reliably reach it - wire it explicitly
+        ReflectionTestUtils.setField(integrationTokenService, "entityManager", entityManager);
 
         when(question.getQuestionType()).thenReturn(QuestionTypes.INTEGRATION);
         when(submission.isIntegration()).thenReturn(true);
@@ -108,29 +114,41 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         verify(submission).setIntegrationToken(any(IntegrationToken.class));
     }
 
+    // an existing token means another launch of this same submission may be racing to stamp the
+    // same row - it has to be re-read under a row lock first, so the write always targets the
+    // row's current version instead of failing its version check as an optimistic-locking error
     @Test
-    void testCreateSaveFailsThenUsesConcurrentlyLaunchedToken() throws IntegrationTokenNotFoundException {
+    void testCreateLocksExistingTokenRowBeforeStamping() throws IntegrationTokenNotFoundException {
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
-        when(integrationTokenRepository.saveAndFlush(any(IntegrationToken.class)))
-            .thenThrow(new ObjectOptimisticLockingFailureException(IntegrationToken.class, 1L));
-        when(integrationTokenRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Optional.of(integrationToken));
 
         integrationTokenService.create(submission, securedInfo);
 
-        // the concurrent launch that won the race already persisted its own update - this
-        // one doesn't retry the write (which would just race again), it uses that token as-is
-        verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
-        verify(integrationTokenRepository).findBySubmission_SubmissionId(1L);
+        verify(entityManager).refresh(integrationToken, LockModeType.PESSIMISTIC_WRITE);
+        verify(integrationTokenRepository).saveAndFlush(integrationToken);
         verify(submission).setIntegrationToken(integrationToken);
     }
 
     @Test
-    void testCreateSaveFailsAndNoExistingTokenFoundThrows() {
+    void testCreateDoesNotLockWhenBuildingANewToken() throws IntegrationTokenNotFoundException {
         when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
-        when(integrationTokenRepository.saveAndFlush(any(IntegrationToken.class))).thenThrow(new IllegalStateException("db error"));
-        when(integrationTokenRepository.findBySubmission_SubmissionId(anyLong())).thenReturn(Optional.empty());
+        when(submission.getIntegrationToken()).thenReturn(null);
 
-        assertThrows(IntegrationTokenNotFoundException.class, () -> { integrationTokenService.create(submission, securedInfo); });
+        integrationTokenService.create(submission, securedInfo);
+
+        verify(entityManager, never()).refresh(any(), any(LockModeType.class));
+    }
+
+    // a failure of the write itself has to propagate: catching it inside the caller's
+    // transaction can't recover anything (that transaction is already rollback-only by then),
+    // it would only hide the real cause behind a later, opaque commit failure
+    @Test
+    void testCreateSaveFailurePropagates() {
+        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(integrationTokenRepository.saveAndFlush(any(IntegrationToken.class)))
+            .thenThrow(new ObjectOptimisticLockingFailureException(IntegrationToken.class, 1L));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class, () -> integrationTokenService.create(submission, securedInfo));
+        verify(integrationTokenRepository, never()).findBySubmission_SubmissionId(anyLong());
     }
 
     @Test
