@@ -186,13 +186,31 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         assertThrows(DataServiceException.class, () -> { integrationTokenService.redeemToken(""); });
     }
 
+    // a double-click (or a slow response retried) on an external integration site's submit
+    // button - which Terracotta has no control over and can't debounce - sends two concurrent
+    // redemption attempts for the same token. The row lock is what makes this safe: it's
+    // acquired before the already-redeemed check runs, so a second concurrent call blocks until
+    // the first's transaction commits, instead of both reading "not yet redeemed" and both
+    // proceeding to score the same submission.
+    @Test
+    public void testRedeemTokenLocksRowBeforeCheckingRedeemedState() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+        integrationTokenService.redeemToken("token");
+
+        verify(entityManager).refresh(integrationToken, LockModeType.PESSIMISTIC_WRITE);
+    }
+
+    // not re-invalidated: setRedeemedAt() again here would overwrite the original redemption's
+    // timestamp with this duplicate attempt's own, corrupting the value the exception message
+    // itself reports (and the value any earlier, successful request's submission was scored
+    // under)
     @Test
     public void testredeemTokenIntegrationTokenAlreadyRedeemedException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
         when(integrationToken.isAlreadyRedeemed()).thenReturn(true);
 
         assertThrows(IntegrationTokenAlreadyRedeemedException.class, () -> { integrationTokenService.redeemToken("token"); });
-        verify(integrationToken).setRedeemedAt(any(Timestamp.class));
-        verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
+        verify(entityManager).refresh(integrationToken, LockModeType.PESSIMISTIC_WRITE);
+        verify(integrationToken, never()).setRedeemedAt(any(Timestamp.class));
+        verify(integrationTokenRepository, never()).saveAndFlush(any(IntegrationToken.class));
     }
 
     @Test

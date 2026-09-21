@@ -166,23 +166,27 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
                     .build()
             );
         } catch (IntegrationTokenInvalidException e) {
+            // these four all come from redeemToken() (or the blank-token check above it),
+            // before this request has touched any submission - see handleError's own comment
+            // on deleteSubmission for why that means there's never a submission of this
+            // request's own to clean up here
             throw new IntegrationTokenInvalidException(
-                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.INVALID),
+                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.INVALID, false),
                 e
             );
         } catch (IntegrationTokenExpiredException e) {
             throw new IntegrationTokenExpiredException(
-                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.EXPIRED),
+                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.EXPIRED, false),
                 e
             );
         } catch (IntegrationTokenAlreadyRedeemedException e) {
             throw new IntegrationTokenAlreadyRedeemedException(
-                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.ALREADY_REDEEMED),
+                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.ALREADY_REDEEMED, false),
                 e
             );
         } catch (IntegrationTokenNotFoundException e) {
             throw new IntegrationTokenNotFoundException(
-                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.NOT_FOUND),
+                handleError(e.getMessage(), score, launchToken, IntegrationTokenStatus.NOT_FOUND, false),
                 e
             );
         } catch (DataServiceException e) {
@@ -218,10 +222,13 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
     }
 
     private String handleError(String errorMessage, String score, String launchToken) {
-        return handleError(errorMessage, score, launchToken, IntegrationTokenStatus.ERROR);
+        // only reached from score()'s DataServiceException/generic Exception catches, both of
+        // which mean redeemToken() already succeeded and this request's own submission
+        // processing is what failed - that submission is this request's own to clean up
+        return handleError(errorMessage, score, launchToken, IntegrationTokenStatus.ERROR, true);
     }
 
-    private String handleError(String errorMessage, String score, String launchToken, IntegrationTokenStatus status) {
+    private String handleError(String errorMessage, String score, String launchToken, IntegrationTokenStatus status, boolean deleteSubmission) {
         String code = RandomStringUtils.secure().nextAlphanumeric(IntegrationTokenLog.ERROR_CODE_LENGTH);
 
         while(integrationTokenLogRepository.findByCode(code).isPresent()) {
@@ -242,13 +249,21 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
         Optional<String> resubmitError = canResubmit(launchToken);
         boolean moreAttemptsAvailable = resubmitError.isEmpty();
 
-        // delete invalid submission
-        Optional<Submission> submission = submissionRepository.findByIntegrationToken_Token(launchToken);
+        // deleteSubmission is false for a token-lifecycle failure (invalid/expired/already
+        // redeemed/not found) - those all come from redeemToken() itself, before this request
+        // ever touches a submission, so whatever submission the token points to (if any) belongs
+        // to a different, earlier request - most commonly the redemption that actually won a
+        // race against a duplicate click on an external integration site's submit button, which
+        // Terracotta has no way to debounce. Deleting it here would destroy that other request's
+        // legitimate, already-scored submission.
+        if (deleteSubmission) {
+            Optional<Submission> submission = submissionRepository.findByIntegrationToken_Token(launchToken);
 
-        if (submission.isPresent()) {
-            submissionService.deleteById(submission.get().getSubmissionId());
-        } else {
-            log.error("Cannot find submission for token: [{}] to delete invalid submission after error: [{}]", launchToken, errorMessage);
+            if (submission.isPresent()) {
+                submissionService.deleteById(submission.get().getSubmissionId());
+            } else {
+                log.error("Cannot find submission for token: [{}] to delete invalid submission after error: [{}]", launchToken, errorMessage);
+            }
         }
 
         try {

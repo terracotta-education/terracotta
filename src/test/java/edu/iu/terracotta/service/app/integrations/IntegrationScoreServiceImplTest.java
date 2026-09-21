@@ -70,51 +70,75 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
     }
 
+    // these four token-lifecycle exceptions all come from redeemToken() itself, before this
+    // request ever touches a submission - so whatever submission the token points to (if any)
+    // belongs to a different, earlier request, most commonly the one that actually won a race
+    // against a duplicate click on an external integration site's submit button (which
+    // Terracotta can't debounce - it doesn't control that page). Deleting it would destroy that
+    // other request's legitimate, already-scored submission - see IntegrationTokenServiceImplTest
+    // for the row-lock fix that makes "who won the race" well-defined in the first place.
     @Test
     public void testScoreIntegrationTokenInvalidException()
         throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+        when(submissionRepository.findByIntegrationToken_Token(anyString())).thenReturn(Optional.of(submission));
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new IntegrationTokenInvalidException("error"));
 
         assertThrows(IntegrationTokenInvalidException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
+        verify(submissionService, never()).deleteById(any());
     }
 
     @Test
     public void testScoreNullIntegrationTokenInvalidException() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
+        when(submissionRepository.findByIntegrationToken_Token(anyString())).thenReturn(Optional.of(submission));
+
         assertThrows(IntegrationTokenInvalidException.class, () -> { integrationScoreService.score(null, "1", Optional.empty()); });
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
+        verify(submissionService, never()).deleteById(any());
     }
 
     @Test
     public void testScoreIntegrationTokenNotFoundException()
         throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+        when(submissionRepository.findByIntegrationToken_Token(anyString())).thenReturn(Optional.of(submission));
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new IntegrationTokenNotFoundException("error"));
 
         assertThrows(IntegrationTokenNotFoundException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
 
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
+        verify(submissionService, never()).deleteById(any());
     }
 
     @Test
     public void testScoreIntegrationTokenAlreadyRedeemedException()
         throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+        when(submissionRepository.findByIntegrationToken_Token(anyString())).thenReturn(Optional.of(submission));
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new IntegrationTokenAlreadyRedeemedException("error"));
 
         assertThrows(IntegrationTokenAlreadyRedeemedException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
 
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
+        verify(submissionService, never()).deleteById(any());
     }
 
     @Test
     public void testScoreIntegrationTokenExpiredException()
         throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
+        when(submissionRepository.findByIntegrationToken_Token(anyString())).thenReturn(Optional.of(submission));
         when(integrationTokenService.redeemToken(anyString())).thenThrow(new IntegrationTokenExpiredException("error"));
 
         assertThrows(IntegrationTokenExpiredException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
 
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
+        verify(submissionService, never()).deleteById(any());
     }
 
+    // DataServiceException doesn't get the same treatment as the four exceptions above, even
+    // though this particular test triggers it from the mocked redeemToken() call: score()'s own
+    // blank-token check (already covered by testScoreNullIntegrationTokenInvalidException)
+    // guarantees a non-blank token reaches the real redeemToken() first, so in real traffic this
+    // exception only ever comes from mid-processing - see testScoreDataServiceExceptionNoQuestionExists,
+    // where deleteById() firing is the behavior actually being pinned
     @Test
     public void testScoreDataServiceException()
         throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
@@ -153,14 +177,19 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
     }
 
+    // a genuine mid-processing failure (redeemToken() already succeeded here) - the broken
+    // submission this request was scoring is this request's own, so deleting it is correct,
+    // unlike the four token-lifecycle exceptions above where it would belong to someone else
     @Test
     public void testScoreDataServiceExceptionNoQuestionExists() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
         when(submission.getQuestionSubmissions()).thenReturn(Collections.emptyList());
         when(questionRepository.findByAssessment_AssessmentIdAndQuestionId(anyLong(), anyLong())).thenReturn(Optional.empty());
+        when(submissionRepository.findByIntegrationToken_Token(anyString())).thenReturn(Optional.of(submission));
 
         assertThrows(DataServiceException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
 
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
+        verify(submissionService).deleteById(submission.getSubmissionId());
     }
 
     @Test

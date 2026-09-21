@@ -116,6 +116,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
     }
 
     @Override
+    @Transactional
     public IntegrationToken redeemToken(String launchToken)
         throws DataServiceException, IntegrationTokenNotFoundException, IntegrationTokenInvalidException, IntegrationTokenAlreadyRedeemedException, IntegrationTokenExpiredException {
         if (StringUtils.isBlank(launchToken)) {
@@ -125,8 +126,20 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         IntegrationToken integrationToken = integrationTokenRepository.findByToken(launchToken)
             .orElseThrow(() -> new IntegrationTokenNotFoundException(String.format("No integration token found with launch token: [%s]", launchToken)));
 
+        // an external integration site's submit action isn't something Terracotta can debounce
+        // (no control over that page's own button) - a double-click or a slow response that
+        // gets retried sends two concurrent redemption attempts for the same token. Lock the row
+        // before checking its redeemed state, so the second attempt blocks here until the
+        // first's transaction commits, then correctly sees the row as already redeemed - without
+        // this, both requests can read "not yet redeemed" before either writes, and both proceed
+        // to score the same submission.
+        entityManager.refresh(integrationToken, LockModeType.PESSIMISTIC_WRITE);
+
         if (integrationToken.isAlreadyRedeemed()) {
-            invalidate(integrationToken);
+            // not re-invalidated here (unlike the expired branch below) - the token is already
+            // redeemed, and calling invalidate() again would overwrite redeemedAt with this
+            // duplicate attempt's own timestamp, corrupting the very value the message below
+            // reports
             throw new IntegrationTokenAlreadyRedeemedException(
                 String.format(
                     "Integration token: [%s] was already redeemed at [%s].",
