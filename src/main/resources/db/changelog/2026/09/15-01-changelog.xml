@@ -15,6 +15,15 @@
         value="(UUID_TO_BIN(UUID()))"
         dbms="mysql"
     />
+    <!--
+        Deployment prerequisite for the CREATE TRIGGER changesets below: on a MySQL server with
+        binary logging enabled, creating a trigger that calls a non-deterministic function
+        (UUID()) requires either the SUPER privilege or log_bin_trust_function_creators=1.
+        Managed services (RDS/Aurora) never grant SUPER, so set that parameter to 1 in the
+        instance's parameter group before deploying; otherwise the migration stops at the first
+        trigger changeset (ERROR 1419) with the schema half-applied. A column DEFAULT was not an
+        option here: MySQL rejects a non-deterministic DEFAULT expression outright under binlog.
+    -->
     <changeSet author="rlong" id="1757937600000-01">
         <addColumn tableName="terr_submission">
             <column name="uuid" type="BINARY(16)" afterColumn="submission_id">
