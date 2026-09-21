@@ -190,6 +190,12 @@ const rowType = {
 };
 
 const conditions = computed(() => experimentStore.conditions || []);
+
+// a message row lists its treatments in the experiment's condition order. The API returns
+// conditions in creation order, so a treatment's position is its condition's index in that
+// list - the id subtraction this used to sort by became a NaN no-op once conditionId turned
+// into a uuid string
+const conditionPosition = conditionId => conditions.value.findIndex(condition => condition.conditionId === conditionId);
 const exposures = computed(() => exposuresStore.exposures || []);
 const assignments = computed(() => assignmentStore.assignments || []);
 const conditionColorMapping = computed(() => conditionStore.conditionColorMapping || {});
@@ -234,7 +240,7 @@ const rows = computed(() => {
               questions: []
             }
           }))
-          .sort((a, b) => a.conditionId - b.conditionId),
+          .sort((a, b) => conditionPosition(a.conditionId) - conditionPosition(b.conditionId)),
         type: rowType.message
       }))
     : [];

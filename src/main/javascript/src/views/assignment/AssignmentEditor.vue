@@ -144,12 +144,6 @@ const exposureId = computed(() => {
   return route.params.exposureId;
 });
 
-const resolvedExposureId = computed(() => {
-  return Number.isNaN(exposureId.value)
-    ? route.params.exposureId
-    : exposureId.value;
-});
-
 const contDisabled = computed(() => {
   return !assignment.value?.title?.trim();
 });
@@ -218,7 +212,7 @@ const saveNext = async routeName => {
     name: routeName,
     params: {
       experiment: props.experiment.experimentId,
-      exposureId: resolvedExposureId.value
+      exposureId: exposureId.value
     }
   });
 };

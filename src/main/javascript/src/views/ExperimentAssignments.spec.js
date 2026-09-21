@@ -183,6 +183,29 @@ describe("ExperimentAssignments", () => {
     expect(rows[1].title).toBe("Reading Quiz");
   });
 
+  it("lists a message row's treatments in the experiment's condition order, not the order the messages arrived in", async () => {
+    seedStores({
+      messagingEnabled: true,
+      messageContainers: [
+        {
+          ...messageContainer,
+          messages: [
+            { id: "m-2", conditionId: 2, configuration: { status: "PUBLISHED" } },
+            { id: "m-1", conditionId: 1, configuration: { status: "PUBLISHED" } }
+          ]
+        }
+      ]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const messageRow = wrapper.findComponent({ name: "ComponentTable" }).props("rows").find(row => row.type === "message");
+
+    expect(messageRow.treatments.map(treatment => treatment.conditionId)).toEqual([1, 2]);
+  });
+
   it("excludes message-container rows when messaging is disabled", async () => {
     seedStores({ messagingEnabled: false });
 
