@@ -92,8 +92,8 @@ describe("Preview", () => {
   it("lists participants sorted alphabetically by display name", async () => {
     const pinia = setupStores({
       participants: [
-        { id: 2, user: { displayName: "Zed" } },
-        { id: 1, user: { displayName: "Anna" } }
+        { participantId: "participant-2", user: { displayName: "Zed" } },
+        { participantId: "participant-1", user: { displayName: "Anna" } }
       ]
     });
 
@@ -119,7 +119,7 @@ describe("Preview", () => {
 
   it("fetches and displays the preview for the selected participant", async () => {
     const pinia = setupStores({
-      participants: [{ id: 5, user: { displayName: "Anna" } }]
+      participants: [{ participantId: "participant-5", user: { displayName: "Anna" } }]
     });
     useMessageStore().fetchPreview = vi.fn().mockImplementation(async () => {
       useMessageStore().preview = { body: "<p>Hi Anna!</p>" };
@@ -138,16 +138,32 @@ describe("Preview", () => {
       baseProps.exposureId,
       baseProps.containerId,
       baseProps.messageId,
-      expect.objectContaining({ id: 5, body: "<p>Hello</p>" })
+      expect.objectContaining({ id: "participant-5", body: "<p>Hello</p>" })
     ]);
     expect(wrapper.text()).toContain("Hi Anna!");
+  });
+
+  // participantId is the participant's only identifier on the wire (it's what the preview
+  // request sends as its id, and what the backend resolves the participant by) - it must
+  // survive initialization untouched
+  it("keeps each fetched participant's participantId intact after initialization", async () => {
+    const pinia = setupStores({
+      participants: [{ participantId: "participant-5", user: { displayName: "Anna" } }]
+    });
+
+    wrapper = mountComponent(Preview, { props: baseProps, pinia });
+    await flushPromises();
+
+    expect(useParticipantsStore().participants).toEqual([
+      { participantId: "participant-5", user: { displayName: "Anna" } }
+    ]);
   });
 
   it("shows a refresh button once the message body changes after a preview was already fetched", async () => {
     const msg = buildMessage();
     const pinia = setupStores({
       message: msg,
-      participants: [{ id: 5, user: { displayName: "Anna" } }]
+      participants: [{ participantId: "participant-5", user: { displayName: "Anna" } }]
     });
     useMessageStore().fetchPreview = vi.fn().mockImplementation(async () => {
       useMessageStore().preview = { body: "<p>Hi!</p>" };

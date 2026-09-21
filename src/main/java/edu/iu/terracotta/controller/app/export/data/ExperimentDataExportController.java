@@ -86,10 +86,12 @@ public class ExperimentDataExportController {
         }
     }
 
+    // this list endpoint hangs off the per-experiment route purely for URL shape - the frontend
+    // sends a placeholder "0" for that segment, so it's taken as an opaque String and never
+    // resolved (binding it as a UUID would reject the placeholder before this method even ran)
     @PostMapping("/poll/list")
-    public ResponseEntity<List<ExperimentDataExportDto>> pollList(@PathVariable("experimentId") UUID experimentUuid, @RequestParam(defaultValue = "false") boolean createNewOnOutdated, @RequestBody List<Long> experimentIds, HttpServletRequest req)
+    public ResponseEntity<List<ExperimentDataExportDto>> pollList(@PathVariable("experimentId") String ignoredExperimentId, @RequestParam(defaultValue = "false") boolean createNewOnOutdated, @RequestBody List<UUID> experimentUuids, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException, AssignmentFileArchiveNotFoundException {
-        long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -99,8 +101,9 @@ public class ExperimentDataExportController {
         try {
             List<Experiment> experiments = new ArrayList<>();
 
-            for (Long id : experimentIds) {
-                experiments.add(apijwtService.experimentAllowed(securedInfo, id));
+            for (UUID experimentUuid : experimentUuids) {
+                long experimentId = experimentService.getExperimentByUuid(experimentUuid).getExperimentId();
+                experiments.add(apijwtService.experimentAllowed(securedInfo, experimentId));
             }
 
             return new ResponseEntity<>(experimentDataExportService.poll(experiments, securedInfo, createNewOnOutdated), HttpStatus.OK);

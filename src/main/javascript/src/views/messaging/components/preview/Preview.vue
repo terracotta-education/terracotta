@@ -61,12 +61,12 @@
             >
               <v-list-item
                 v-for="participant in availableParticipants"
-                :key="participant.id"
-                :value="participant.id"
+                :key="participant.participantId"
+                :value="participant.participantId"
                 active-class="selected-participant"
                 class="preview-participant"
                 link
-                @click="handlePreview(participant.id)"
+                @click="handlePreview(participant.participantId)"
               >
                 {{ participant.user.displayName }}
               </v-list-item>
@@ -266,13 +266,6 @@ const initialize = async () => {
 
     return false;
   }
-
-  participantsStore.setParticipants(
-    participants.value.map(participant => ({
-      ...participant,
-      participantId: null
-    }))
-  );
 
   return true;
 };
