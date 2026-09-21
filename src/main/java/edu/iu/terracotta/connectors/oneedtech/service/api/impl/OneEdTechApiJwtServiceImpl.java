@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -208,10 +209,13 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public String buildJwt(long platformDeploymentId, String userKey, Claims claims) throws GeneralSecurityException, IOException {
-        String assignmentIdText = claims.get("assignmentId", String.class);
-        UUID assignmentId = StringUtils.isNotBlank(assignmentIdText) ? UUID.fromString(assignmentIdText) : null;
-        String experimentIdText = claims.get("experimentId", String.class);
-        UUID experimentId = StringUtils.isNotBlank(experimentIdText) ? UUID.fromString(experimentIdText) : null;
+        // read as plain Objects rather than String.class: a token issued before the uuid
+        // migration still carries these claims as numbers, and jjwt throws RequiredTypeException
+        // on a type mismatch rather than converting. Resolving through the same dual-format
+        // helpers the launch path uses lets a session that was open across the deploy refresh
+        // normally instead of failing on its first refresh.
+        UUID assignmentId = resolveAssignmentUuid(Objects.toString(claims.get("assignmentId"), null));
+        UUID experimentId = resolveExperimentUuid(Objects.toString(claims.get("experimentId"), null));
 
         return buildJwt(
             true,
@@ -583,18 +587,19 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
         if ((Boolean) claims.getPayload().get("oneUse")) {
             try {
                 // experimentId and assignmentId are optionals so check the null. This token was
-                // built by this same server's buildJwt() moments earlier, so these claims (if
-                // present) are always uuids already - never the legacy numeric format.
+                // built by this same server's buildJwt() moments earlier, so these claims are
+                // normally uuids already - resolving them the same way the launch path does
+                // also covers a token minted just before a deploy of the uuid migration.
                 UUID assignmentId = null;
 
                 if (claims.getPayload().get("assignmentId") != null) {
-                    assignmentId = UUID.fromString(claims.getPayload().get("assignmentId").toString());
+                    assignmentId = resolveAssignmentUuid(claims.getPayload().get("assignmentId").toString());
                 }
 
                 UUID experimentId = null;
 
                 if (claims.getPayload().get("experimentId") != null) {
-                    experimentId = UUID.fromString(claims.getPayload().get("experimentId").toString());
+                    experimentId = resolveExperimentUuid(claims.getPayload().get("experimentId").toString());
                 }
 
                 return new ResponseEntity<>(
@@ -647,9 +652,16 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
             // resolve to the entity's uuid so the JWT claim (and everything downstream that
             // reads it) always sees a uuid regardless of which URL format the LMS happens to
             // have stored
-            Experiment experiment = experimentRepository.findByExperimentId(Long.parseLong(experimentIdText));
+            Experiment experiment = experimentRepository.findByExperimentId(parseLegacyId("experiment", experimentIdText));
 
-            return experiment != null ? experiment.getUuid() : null;
+            if (experiment == null) {
+                // fail here, where the cause is obvious, rather than issuing a token with no
+                // experiment claim - that only surfaces later as the frontend spinning forever on
+                // a load that can never complete
+                throw new IllegalArgumentException(String.format("Launch URL experiment ID [%s] does not match any experiment", experimentIdText));
+            }
+
+            return experiment.getUuid();
         }
     }
 
@@ -665,9 +677,28 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
         try {
             return UUID.fromString(assignmentIdText);
         } catch (IllegalArgumentException e) {
-            Assignment assignment = assignmentRepository.findByAssignmentId(Long.parseLong(assignmentIdText));
+            Assignment assignment = assignmentRepository.findByAssignmentId(parseLegacyId("assignment", assignmentIdText));
 
-            return assignment != null ? assignment.getUuid() : null;
+            if (assignment == null) {
+                throw new IllegalArgumentException(String.format("Launch URL assignment ID [%s] does not match any assignment", assignmentIdText));
+            }
+
+            return assignment.getUuid();
+        }
+    }
+
+    // a launch URL id that is neither a uuid nor a legacy numeric id (e.g. "?assignment=undefined")
+    // is a malformed link, not something to guess at - name the problem instead of letting
+    // Long.parseLong's bare NumberFormatException escape the launch
+    private long parseLegacyId(String parameter, String idText) {
+        if (!StringUtils.isNumeric(idText)) {
+            throw new IllegalArgumentException(String.format("Launch URL %s ID [%s] is neither a uuid nor a legacy numeric ID", parameter, idText));
+        }
+
+        try {
+            return Long.parseLong(idText);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(String.format("Launch URL %s ID [%s] is neither a uuid nor a legacy numeric ID", parameter, idText), e);
         }
     }
 

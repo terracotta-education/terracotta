@@ -265,6 +265,31 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
         assertEquals(3, parsed.getPayload().get("allowedAttempts"));
     }
 
+    // a token issued before the uuid migration carries these claims as numbers - refreshing it
+    // has to resolve them to uuids rather than fail on a jjwt type mismatch
+    @Test
+    public void testBuildJwtFromClaimsResolvesLegacyNumericIds() throws Exception {
+        Map<String, Object> claimsMap = new HashMap<>();
+        claimsMap.put("roles", List.of("Instructor"));
+        claimsMap.put("contextId", 2L);
+        claimsMap.put("assignmentId", 5);
+        claimsMap.put("experimentId", 7);
+        claimsMap.put("consent", Boolean.TRUE);
+        claimsMap.put("allowedAttempts", 3);
+        claimsMap.put("studentAttempts", 1);
+        Claims claims = Jwts.claims().add(claimsMap).build();
+        when(assignmentRepository.findByAssignmentId(5L)).thenReturn(assignment);
+        when(experimentRepository.findByExperimentId(7L)).thenReturn(experiment);
+        when(assignment.getUuid()).thenReturn(ASSIGNMENT_UUID);
+        when(experiment.getUuid()).thenReturn(EXPERIMENT_UUID);
+
+        String token = oneEdTechApiJwtService.buildJwt(1L, "user-key", claims);
+
+        Claims payload = oneEdTechApiJwtService.validateToken(token).getPayload();
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get("assignmentId"));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get("experimentId"));
+    }
+
     // ======================= buildJwt(oneUse, roles, ...) =======================
 
     @Test
@@ -349,19 +374,28 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
     }
 
     // legacy numeric id that no longer resolves to any entity (e.g. a since-deleted
-    // assignment/experiment) falls back to null rather than throwing
+    // assignment/experiment) fails the launch with a clear message - a token issued with no
+    // assignment/experiment claim would only surface later as the frontend spinning forever
     @Test
-    public void testBuildJwtFromLti3RequestWithLegacyNumericIdsNotFoundResolvesToNull() throws Exception {
+    public void testBuildJwtFromLti3RequestWithLegacyNumericIdsNotFoundFailsTheLaunch() {
         when(lti3Request.getLtiTargetLinkUrl()).thenReturn("http://example.com/launch?assignment=5&consent=true&experiment=7");
-        when(lti3Request.getLtiRoles()).thenReturn(List.of("Learner"));
         when(assignmentRepository.findByAssignmentId(5L)).thenReturn(null);
-        when(experimentRepository.findByExperimentId(7L)).thenReturn(null);
 
-        String token = oneEdTechApiJwtService.buildJwt(false, lti3Request);
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> oneEdTechApiJwtService.buildJwt(false, lti3Request));
 
-        Jws<Claims> parsed = oneEdTechApiJwtService.validateToken(token);
-        assertNull(parsed.getPayload().get("assignmentId"));
-        assertNull(parsed.getPayload().get("experimentId"));
+        assertTrue(exception.getMessage().contains("assignment ID [5]"));
+    }
+
+    // a launch URL id that is neither a uuid nor a legacy numeric id (e.g. "?assignment=undefined")
+    // is named as malformed instead of escaping as a bare NumberFormatException
+    @Test
+    public void testBuildJwtFromLti3RequestWithMalformedIdFailsTheLaunch() {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/launch?assignment=undefined&consent=true");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> oneEdTechApiJwtService.buildJwt(false, lti3Request));
+
+        assertTrue(exception.getMessage().contains("neither a uuid nor a legacy numeric ID"));
+        verify(assignmentRepository, never()).findByAssignmentId(anyLong());
     }
 
     // new-format launch URL - the "assignment"/"experiment" query params are already uuids, so
