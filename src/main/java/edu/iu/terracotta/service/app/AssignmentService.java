@@ -106,6 +106,25 @@ public interface AssignmentService {
     void validateTitle(String title) throws TitleValidationException;
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID exposureId, UUID assignmentId);
     Assignment createAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException;
+
+    /**
+     * Re-points an already-existing LMS assignment (e.g. one Canvas copied along with the rest
+     * of a course, whose launch URL still carries the source course's old experiment/assignment
+     * IDs) at a newly-recreated Terracotta assignment, instead of creating a brand-new LMS
+     * assignment - preserving whatever due dates/points/rubrics/customization the instructor
+     * already has on it. existingLmsAssignment is mutated in place (its external-tool URL
+     * rewritten) and PUT back via the same connector-agnostic edit path the obsolete-assignment
+     * process already uses.
+     */
+    Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException;
+
+    /**
+     * Best-effort restore of a repointAssignmentInLms() call's URL mutation - used when the rest
+     * of an import transaction rolls back after a repoint already succeeded, since that Canvas-
+     * side PUT isn't covered by the DB transaction. Logs and swallows failures rather than
+     * throwing, matching this same rollback path's existing delete-failure handling.
+     */
+    void restoreRepointedAssignmentUrlInLms(LtiUserEntity instructorUser, LmsAssignment lmsAssignment, String originalUrl, String lmsCourseId);
     void editAssignmentNameInLms(Assignment assignment, String lmsCourseId, String newName, LtiUserEntity instructorUser) throws AssignmentNotEditedException, ApiException, TerracottaConnectorException;
     void deleteAssignmentInLms(Assignment assignment, String lmsCourseId, LtiUserEntity instructorUser) throws AssignmentNotEditedException, ApiException, TerracottaConnectorException;
     void deleteAllFromExperiment(Long id, SecuredInfo securedInfo) throws TerracottaConnectorException;

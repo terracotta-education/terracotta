@@ -48,12 +48,14 @@ import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 
 public class ExperimentServiceImplTest extends BaseTest {
 
     @Mock private AssignmentAsyncService assignmentAsyncService;
     @Mock private ConditionService conditionService;
     @Mock private FeatureService featureService;
+    @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
 
     @InjectMocks private ExperimentServiceImpl experimentService;
 
@@ -107,6 +109,21 @@ public class ExperimentServiceImplTest extends BaseTest {
         List<ExperimentDto> retVal = assertDoesNotThrow(() -> experimentService.getExperiments(securedInfo, true));
 
         assertEquals(1, retVal.size());
+    }
+
+    // while a candidate is still PENDING for this context (e.g. the instructor's very first
+    // launch into a freshly copied course), the obsolete-assignment check must not run - it would
+    // mark the copied assignment obsolete before the instructor gets a chance to import the
+    // matching experiment and re-point it. See NoticeController's identical guard.
+    @Test
+    public void testGetExperimentsSuppressesObsoleteAssignmentCheckWhilePendingCandidatesExist() throws Exception {
+        when(experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(anyLong(), anyLong())).thenReturn(List.of(experiment));
+        when(experimentCopyCandidateService.hasPendingForContext(securedInfo.getContextId())).thenReturn(true);
+
+        List<ExperimentDto> retVal = experimentService.getExperiments(securedInfo, true);
+
+        assertEquals(1, retVal.size());
+        verify(assignmentAsyncService, never()).handleAssignmentTasksInLmsByContext(any());
     }
 
     @Test

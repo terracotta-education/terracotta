@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { nextTick } from "vue";
 
 vi.mock("@/services", () => ({
   experimentService: {
@@ -17,6 +18,10 @@ vi.mock("@/services", () => ({
     pollList: vi.fn(),
     retrieve: vi.fn(),
     acknowledge: vi.fn()
+  },
+  experimentCopyCandidateService: {
+    getAll: vi.fn(),
+    resolve: vi.fn()
   }
 }));
 
@@ -28,16 +33,65 @@ vi.mock("vue-router", () => ({
 }));
 
 const swalFire = vi.fn();
+const swalClose = vi.fn();
 
 vi.mock("sweetalert2", () => ({
-  default: { fire: (...args) => swalFire(...args) }
+  default: {
+    fire: (...args) => swalFire(...args),
+    close: (...args) => swalClose(...args)
+  }
 }));
 
+// The copy-candidates dialog is a single Swal.fire call that stays open for the whole
+// interaction (create/decline/defer are all confirmed via an overlay inside the mounted
+// CopyCandidatesDialog component, not via separate Swal.fire calls - see Home.vue). To
+// exercise that for real, this mounts the dialog's actual `html` + `didOpen` into the
+// document (SweetAlert2 itself is mocked out, so nothing does this automatically), and
+// wires Swal.close() to resolve the pending Swal.fire() promise, matching real behavior.
+const mountCopyCandidatesDialog = () => {
+  swalFire.mockImplementation(options => {
+    const container = document.createElement("div");
+    container.innerHTML = options.html;
+    document.body.appendChild(container);
+    options.didOpen?.();
+
+    return new Promise(resolve => {
+      swalClose.mockImplementation(() => {
+        options.willClose?.();
+        container.remove();
+        resolve({ isDismissed: true });
+      });
+    });
+  });
+};
+
+const clickCandidateOption = async (index = 0) => {
+  document.querySelectorAll(".copy-candidate-option")[index]
+    .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  await nextTick();
+};
+
+const clickCopyCandidatesAction = async label => {
+  const button = [...document.querySelectorAll(".copy-candidates-content .copy-candidates-btn")]
+    .find(candidate => candidate.textContent.trim() === label);
+  button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  await nextTick();
+};
+
+const clickCopyCandidatesOverlayButton = async label => {
+  const button = [...document.querySelectorAll(".copy-candidates-confirm-buttons .copy-candidates-btn")]
+    .find(candidate => candidate.textContent.trim() === label);
+  button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  await nextTick();
+};
+
 import { createPinia, setActivePinia } from "pinia";
+import { flushPromises } from "@vue/test-utils";
 import { mountComponent } from "@/test-utils/mount";
 import {
   experimentService,
-  experimentDataExportService
+  experimentDataExportService,
+  experimentCopyCandidateService
 } from "@/services";
 import { configuration as configurationModule } from "@/store/configuration.module";
 import { assignment as assignmentModule } from "@/store/assignment.module";
@@ -69,9 +123,248 @@ describe("Home", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     swalFire.mockReset();
+    swalClose.mockReset();
     experimentService.getAll.mockResolvedValue({ status: 200, data: [] });
     experimentService.pollImports.mockResolvedValue({ data: [] });
     experimentDataExportService.pollList.mockResolvedValue([]);
+    experimentCopyCandidateService.getAll.mockResolvedValue({ data: [] });
+  });
+
+  // some copy-candidates tests leave the popup open (e.g. deferring, which just leaves it
+  // showing PENDING candidates) - clean up its manually-appended DOM between tests so a
+  // leftover mounted CopyCandidatesDialog app/element from one test can't be picked up by
+  // the next test's document.getElementById("dialog-copy-candidates") lookup
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("fetches copy candidates when there are no experiments and automatically opens the dialog", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    mountCopyCandidatesDialog();
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    expect(experimentCopyCandidateService.getAll).toHaveBeenCalled();
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalled();
+    });
+  });
+
+  it("goes straight to the experiment listing, without ever showing the copy-candidates dialog, when the course already has experiments", async () => {
+    experimentService.getAll.mockResolvedValue({ status: 200, data: [experiment] });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+
+    // never even asks the backend for candidates - the guard is "is this course new",
+    // decided before that call would happen (see also the backend's own, independent
+    // "does this context already have an experiment" guard in getPendingForContext)
+    expect(experimentCopyCandidateService.getAll).not.toHaveBeenCalled();
+    // no copy-candidates (or any other) popup was shown
+    expect(swalFire).not.toHaveBeenCalled();
+    // the experiment listing table is what's shown, not the zero-state welcome screen
+    expect(wrapper.find(".table-experiments").isVisible()).toBe(true);
+    expect(wrapper.findComponent({ name: "ZeroState" }).isVisible()).toBe(false);
+  });
+
+  it("automatically opens the copy-candidates dialog when candidates exist, resolving selected candidates on confirm and registering the resulting imports as import requests", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    experimentCopyCandidateService.resolve.mockResolvedValue({
+      data: { imports: [{ id: "import-1", status: "PROCESSING" }], declinedCandidateIds: [] }
+    });
+    mountCopyCandidatesDialog();
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".copy-candidate-option")).not.toBeNull();
+    });
+
+    await clickCandidateOption(0);
+    await clickCopyCandidatesAction("Create selected");
+    await clickCopyCandidatesOverlayButton("Got it!");
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith(["c1"]);
+    });
+    // resolving the outcome is what closes the single, still-open popup
+    expect(swalFire).toHaveBeenCalledTimes(1);
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.findComponent({ name: "ZeroState" }).props("experimentImportRequests")["import-1"]
+      ).toMatchObject({ showAlert: true });
+    });
+  });
+
+  it("shows a preparing-imports loading screen and disables the zero-state action buttons while resolving a 'Create selected' outcome", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    mountCopyCandidatesDialog();
+
+    let resolveImport;
+    experimentCopyCandidateService.resolve.mockReturnValue(
+      new Promise(resolve => { resolveImport = resolve; })
+    );
+
+    const wrapper = mountComponent(Home);
+    const findPreparingLoading = () => wrapper.findAllComponents({ name: "PageLoading" })
+      .find(candidate => candidate.props("message") === "We are preparing to import the selected experiments. Please wait.");
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".copy-candidate-option")).not.toBeNull();
+    });
+
+    expect(findPreparingLoading().props("display")).toBe(false);
+    expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(false);
+
+    await clickCandidateOption(0);
+    await clickCopyCandidatesAction("Create selected");
+    await clickCopyCandidatesOverlayButton("Got it!");
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith(["c1"]);
+    });
+    expect(findPreparingLoading().props("display")).toBe(true);
+    expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(true);
+
+    resolveImport({ data: { imports: [], declinedCandidateIds: [] } });
+    await flushPromises();
+
+    expect(findPreparingLoading().props("display")).toBe(false);
+    expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(false);
+  });
+
+  it("does not resolve anything when 'I'll decide later' is chosen and confirmed", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    mountCopyCandidatesDialog();
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".copy-candidate-option")).not.toBeNull();
+    });
+
+    await clickCopyCandidatesAction("I'll decide later");
+    await clickCopyCandidatesOverlayButton("Got it!");
+
+    await flushPromises();
+    expect(experimentCopyCandidateService.resolve).not.toHaveBeenCalled();
+    // deferring leaves everything PENDING - there's nothing more for this popup to do,
+    // so it just closes without a second, separate acknowledgement popup
+    expect(swalFire).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the dialog open, without emitting anything, when 'Go back to selection' is chosen from an action's confirmation overlay", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    experimentCopyCandidateService.resolve.mockResolvedValue({
+      data: { imports: [], declinedCandidateIds: ["c1"] }
+    });
+    mountCopyCandidatesDialog();
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".copy-candidate-option")).not.toBeNull();
+    });
+
+    // starts down the "I'll decide later" path, then backs out of it - the overlay
+    // covers the grid rather than replacing the dialog, so no second Swal.fire happens
+    await clickCopyCandidatesAction("I'll decide later");
+    await clickCopyCandidatesOverlayButton("Go back to selection");
+    expect(document.querySelector(".copy-candidates-confirm-overlay")).toBeNull();
+
+    // the same, still-open dialog can now be used to pick a different action instead
+    await clickCopyCandidatesAction("No thank you");
+    await clickCopyCandidatesOverlayButton("Got it!");
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith([]);
+    });
+    expect(swalFire).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves with an empty selection when 'No thank you' is chosen and confirmed", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [
+        { id: "c1", experimentTitle: "Reading Study" },
+        { id: "c2", experimentTitle: "Writing Study" }
+      ]
+    });
+    experimentCopyCandidateService.resolve.mockResolvedValue({
+      data: { imports: [], declinedCandidateIds: ["c1", "c2"] }
+    });
+    mountCopyCandidatesDialog();
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".copy-candidate-option")).not.toBeNull();
+    });
+
+    await clickCopyCandidatesAction("No thank you");
+    await clickCopyCandidatesOverlayButton("Got it!");
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith([]);
+    });
+  });
+
+  it("does not decline anything when 'No thank you' is chosen but then 'Go back to selection' is picked, and creates the eventual selection instead", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    experimentCopyCandidateService.resolve.mockResolvedValue({
+      data: { imports: [{ id: "import-1", status: "PROCESSING" }], declinedCandidateIds: [] }
+    });
+    mountCopyCandidatesDialog();
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".copy-candidate-option")).not.toBeNull();
+    });
+
+    await clickCopyCandidatesAction("No thank you");
+    await clickCopyCandidatesOverlayButton("Go back to selection");
+
+    await clickCandidateOption(0);
+    await clickCopyCandidatesAction("Create selected");
+    await clickCopyCandidatesOverlayButton("Got it!");
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith(["c1"]);
+    });
+    // proves the initial "No thank you" was aborted rather than also going through -
+    // resolve was only ever called once, with the eventual selection
+    expect(experimentCopyCandidateService.resolve).toHaveBeenCalledTimes(1);
+    expect(swalFire).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not automatically open the copy-candidates dialog when there are no candidates", async () => {
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    expect(swalFire).not.toHaveBeenCalled();
   });
 
   it("shows the zero state and hides the table when there are no experiments", async () => {

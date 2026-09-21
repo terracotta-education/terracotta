@@ -676,6 +676,52 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public void restoreRepointedAssignmentUrlInLms(LtiUserEntity instructorUser, LmsAssignment lmsAssignment, String originalUrl, String lmsCourseId) {
+        if (lmsAssignment.getLmsExternalToolFields() == null) {
+            return;
+        }
+
+        try {
+            lmsAssignment.getLmsExternalToolFields().setUrl(originalUrl);
+            apiClient.editAssignment(instructorUser, lmsAssignment, lmsCourseId);
+        } catch (ApiException | TerracottaConnectorException e) {
+            log.warn("Error occurred while restoring repointed LMS assignment ID: [{}] in LMS Course ID: [{}]", lmsAssignment.getId(), lmsCourseId);
+        }
+    }
+
+    @Override
+    public Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException {
+        try {
+            existingLmsAssignment.getLmsExternalToolFields().setUrl(
+                String.format(
+                    "%s/lti3?experiment=%s&assignment=%s",
+                    instructorUser.getPlatformDeployment().getLocalUrl(),
+                    experimentId,
+                    assignment.getAssignmentId()
+                )
+            );
+
+            LmsAssignment lmsAssignmentReturned = apiClient.editAssignment(instructorUser, existingLmsAssignment, lmsCourseId).orElse(existingLmsAssignment);
+            assignment.setLmsAssignmentId(lmsAssignmentReturned.getId());
+            assignment.setMetadata(lmsAssignmentReturned.getMetadata());
+
+            // not derived from a secure_params JWT the way createAssignmentInLms does it above -
+            // an edit response carries no such JWT. The copied assignment already has its own
+            // real resource_link_id, assigned by the LMS when it copied the course; that's
+            // already sitting on existingLmsAssignment from the earlier listing call this method
+            // was handed, and a URL-only edit doesn't disturb it.
+            assignment.setResourceLinkId(
+                existingLmsAssignment.getLmsExternalToolFields() != null ? existingLmsAssignment.getLmsExternalToolFields().getResourceLinkId() : null
+            );
+        } catch (ApiException e) {
+            log.error("Repointing existing LMS assignment ID: [{}] failed", existingLmsAssignment.getId(), e);
+            throw new AssignmentNotCreatedException("Error: The assignment was not repointed in the LMS.");
+        }
+
+        return assignment;
+    }
+
+    @Override
     public void editAssignmentNameInLms(Assignment assignment, String lmsCourseId, String newName, LtiUserEntity instructorUser) throws AssignmentNotEditedException, ApiException, TerracottaConnectorException {
         try {
             apiClient.editAssignmentNameInLms(assignment, lmsCourseId, newName, instructorUser);

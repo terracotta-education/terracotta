@@ -27,17 +27,23 @@ import org.springframework.http.ResponseEntity;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.exceptions.ExperimentImportNotFoundException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
+import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
+import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionRequestDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ImportDto;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
 import edu.iu.terracotta.exceptions.ExperimentExportException;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
 
 public class DistributeControllerTest extends BaseTest {
 
-    // ExperimentExportService has no mock declared anywhere in the BaseTest hierarchy, so it is declared here.
+    // ExperimentExportService/ExperimentCopyCandidateService have no mocks declared anywhere in
+    // the BaseTest hierarchy, so they are declared here.
     @Mock private ExperimentExportService exportService;
+    @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
 
     // the uuid path variable for the one experiment under test; experiment.getExperimentId() (the
     // mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
@@ -55,7 +61,7 @@ public class DistributeControllerTest extends BaseTest {
 
         // ApiJwtService has two matching mocks in BaseServiceTest (apiJwtService and canvasApiJwtService),
         // so the controller is constructed manually rather than relying on @InjectMocks to avoid ambiguous wiring.
-        distributeController = new DistributeController(apiJwtService, exportService, experimentImportService, experimentService);
+        distributeController = new DistributeController(apiJwtService, exportService, experimentImportService, experimentService, experimentCopyCandidateService);
 
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
@@ -294,6 +300,75 @@ public class DistributeControllerTest extends BaseTest {
             ExperimentImportNotFoundException.class,
             () -> distributeController.acknowledgeError(id, ExperimentImportStatus.ERROR_ACKNOWLEDGED, httpServletRequest)
         );
+    }
+
+    @Test
+    void copyCandidatesUnauthorizedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        ResponseEntity<List<CopyCandidateDto>> ret = distributeController.copyCandidates(httpServletRequest);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
+    }
+
+    @Test
+    void copyCandidatesSuccessTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        CopyCandidateDto candidateDto = CopyCandidateDto.builder().id(UUID.randomUUID()).build();
+        when(experimentCopyCandidateService.getPendingForContext(securedInfo)).thenReturn(List.of(candidateDto));
+
+        ResponseEntity<List<CopyCandidateDto>> ret = distributeController.copyCandidates(httpServletRequest);
+
+        assertEquals(HttpStatus.OK, ret.getStatusCode());
+        assertEquals(List.of(candidateDto), ret.getBody());
+    }
+
+    @Test
+    void resolveCopyCandidatesUnauthorizedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+        CopyCandidateResolutionRequestDto request = new CopyCandidateResolutionRequestDto();
+        request.setImportCandidateIds(List.of(UUID.randomUUID()));
+
+        ResponseEntity<CopyCandidateResolutionDto> ret = distributeController.resolveCopyCandidates(request, httpServletRequest);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
+    }
+
+    @Test
+    void resolveCopyCandidatesSuccessTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        UUID selectedId = UUID.randomUUID();
+        UUID declinedId = UUID.randomUUID();
+        CopyCandidateResolutionRequestDto request = new CopyCandidateResolutionRequestDto();
+        request.setImportCandidateIds(List.of(selectedId));
+        CopyCandidateResolutionDto resolution = CopyCandidateResolutionDto.builder()
+            .imports(List.of(importDto))
+            .declinedCandidateIds(List.of(declinedId))
+            .build();
+        when(experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo)).thenReturn(resolution);
+
+        ResponseEntity<CopyCandidateResolutionDto> ret = distributeController.resolveCopyCandidates(request, httpServletRequest);
+
+        assertEquals(HttpStatus.ACCEPTED, ret.getStatusCode());
+        assertEquals(resolution, ret.getBody());
+    }
+
+    @Test
+    void resolveCopyCandidatesEmptySelectionDeclinesAllTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        UUID declinedId = UUID.randomUUID();
+        CopyCandidateResolutionRequestDto request = new CopyCandidateResolutionRequestDto();
+        request.setImportCandidateIds(List.of());
+        CopyCandidateResolutionDto resolution = CopyCandidateResolutionDto.builder()
+            .imports(List.of())
+            .declinedCandidateIds(List.of(declinedId))
+            .build();
+        when(experimentCopyCandidateService.resolve(List.of(), securedInfo)).thenReturn(resolution);
+
+        ResponseEntity<CopyCandidateResolutionDto> ret = distributeController.resolveCopyCandidates(request, httpServletRequest);
+
+        assertEquals(HttpStatus.ACCEPTED, ret.getStatusCode());
+        assertEquals(resolution, ret.getBody());
     }
 
 }

@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImportError;
 import edu.iu.terracotta.dao.model.distribute.export.AnswerMcExport;
@@ -129,7 +131,101 @@ class ExperimentImportServiceImplTest extends BaseTest {
         }
 
         verify(fileStorageService).saveExperimentImportFile(eq(multipartFile), any(ExperimentImport.class));
-        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo));
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(Map.of()));
+    }
+
+    // used by ExperimentCopyCandidateServiceImpl to feed an in-process export straight into this
+    // same import pipeline, without a real uploaded MultipartFile
+    @Test
+    void testPreprocessFromFileSuccess() throws IOException {
+        when(securedInfo.getUserId()).thenReturn("user-id");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(experimentImport.getErrors()).thenReturn(Collections.emptyList());
+
+        Path jsonFile = importDirectory.resolve(ExperimentImport.JSON_FILE_NAME);
+        JsonMapper.builder().build().writeValue(jsonFile.toFile(), fullExport());
+
+        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
+            fileUtils.when(() -> FileUtils.getFile(any(File.class), anyString())).thenReturn(jsonFile.toFile());
+
+            ImportDto result = experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, Map.of());
+
+            assertNotNull(result);
+        }
+
+        verify(fileStorageService).saveExperimentImportFile(eq(file), any(ExperimentImport.class));
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(Map.of()));
+    }
+
+    // validate(...) saves the entity again partway through (to persist the source title),
+    // returning a different (more current) instance than the one passed in - regression test for
+    // a bug where that returned reference was discarded, letting the async process(...) call
+    // receive an already-superseded entity and fail to save its own final status update with an
+    // optimistic-locking error (every save() call returns a fresh instance in real Hibernate
+    // usage, unlike this test's other cases where a single shared mock stands in for all of them)
+    @Test
+    void testPreprocessFromFilePassesPostValidationEntityToAsyncProcess() throws IOException {
+        when(securedInfo.getUserId()).thenReturn("user-id");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getContextId()).thenReturn(1L);
+
+        ExperimentImport preValidation = mock(ExperimentImport.class);
+        ExperimentImport postValidation = mock(ExperimentImport.class);
+        when(postValidation.getErrors()).thenReturn(Collections.emptyList());
+
+        when(experimentImportRepository.save(any(ExperimentImport.class)))
+            .thenReturn(preValidation)
+            .thenReturn(postValidation);
+
+        Path jsonFile = importDirectory.resolve(ExperimentImport.JSON_FILE_NAME);
+        JsonMapper.builder().build().writeValue(jsonFile.toFile(), fullExport());
+
+        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
+            fileUtils.when(() -> FileUtils.getFile(any(File.class), anyString())).thenReturn(jsonFile.toFile());
+
+            experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, Map.of());
+        }
+
+        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(Map.of()));
+        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), anyMap());
+    }
+
+    // the map is forwarded unchanged, all the way through to the async import step - this is
+    // what lets ExperimentCopyCandidateServiceImpl's repoint-instead-of-duplicate logic reach the
+    // assignment-creation step despite it running on a different (@Async) thread
+    @Test
+    void testPreprocessFromFileForwardsNonEmptyRepointMap() throws IOException {
+        when(securedInfo.getUserId()).thenReturn("user-id");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(experimentImport.getErrors()).thenReturn(Collections.emptyList());
+
+        Path jsonFile = importDirectory.resolve(ExperimentImport.JSON_FILE_NAME);
+        JsonMapper.builder().build().writeValue(jsonFile.toFile(), fullExport());
+
+        LmsAssignment existingLmsAssignment = mock(LmsAssignment.class);
+        Map<Long, LmsAssignment> assignmentRepointMap = Map.of(50L, existingLmsAssignment);
+
+        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
+            fileUtils.when(() -> FileUtils.getFile(any(File.class), anyString())).thenReturn(jsonFile.toFile());
+
+            experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, assignmentRepointMap);
+        }
+
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(assignmentRepointMap));
+    }
+
+    @Test
+    void testPreprocessFromFileContextNotFound() {
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(ltiContextRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> {
+            experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, Map.of());
+        });
+
+        assertEquals("Context ID: [1] not found", exception.getMessage());
     }
 
     // validate(...) saves the entity again partway through (to persist the source title),
@@ -162,8 +258,8 @@ class ExperimentImportServiceImplTest extends BaseTest {
             experimentImportService.preprocess(multipartFile, securedInfo);
         }
 
-        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo));
-        verify(experimentImportAsyncService, never()).process(eq(preValidation), any());
+        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(Map.of()));
+        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), any());
     }
 
     @Test
@@ -201,7 +297,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
             assertEquals(ExperimentImportStatus.ERROR, result.getStatus());
         }
 
-        verify(experimentImportAsyncService, never()).process(any(ExperimentImport.class), eq(securedInfo));
+        verify(experimentImportAsyncService, never()).process(any(ExperimentImport.class), eq(securedInfo), anyMap());
         verify(experimentImportErrorRepository).save(any(ExperimentImportError.class));
     }
 

@@ -606,6 +606,21 @@ public class FileStorageServiceImplTest extends BaseTest {
         assertTrue(Files.exists(experimentExportRoot.resolve(experimentImportEntity.getFileUri())));
     }
 
+    // the File-based overload used by ExperimentCopyCandidateServiceImpl to feed an in-process
+    // export straight into the import pipeline, without a real uploaded MultipartFile
+    @Test
+    public void testSaveExperimentImportFileFromFileSuccess() throws IOException {
+        Path sourceFile = Files.createTempFile("copy-candidate-export", ".zip");
+        Files.writeString(sourceFile, "zip bytes");
+        ExperimentImport experimentImportEntity = new ExperimentImport();
+
+        fileStorageService.saveExperimentImportFile(sourceFile.toFile(), experimentImportEntity);
+
+        assertNotNull(experimentImportEntity.getFileUri());
+        assertTrue(Files.exists(experimentExportRoot.resolve(experimentImportEntity.getFileUri())));
+        assertEquals("zip bytes", Files.readString(experimentExportRoot.resolve(experimentImportEntity.getFileUri())));
+    }
+
     @Test
     public void testGetExperimentImportFileNotFoundReturnsNull() {
         when(experimentImportRepository.findById(anyLong())).thenReturn(Optional.empty());

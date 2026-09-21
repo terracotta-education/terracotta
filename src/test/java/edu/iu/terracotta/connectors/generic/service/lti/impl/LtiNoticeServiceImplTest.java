@@ -3,6 +3,9 @@ package edu.iu.terracotta.connectors.generic.service.lti.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -11,6 +14,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -176,6 +180,123 @@ public class LtiNoticeServiceImplTest {
         when(ltiMembershipRepository.findFirstByContextAndRoleGreaterThanEqual(any(), any(Integer.class))).thenReturn(Optional.empty());
 
         Optional<SecuredInfo> result = ltiNoticeService.resolveSecuredInfo(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResolveOrCreateContextReusesExisting() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment(CONTEXT_KEY, toolDeployment)).thenReturn(ltiContextEntity);
+
+        Optional<LtiContextEntity> result = ltiNoticeService.resolveOrCreateContext(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
+
+        assertTrue(result.isPresent());
+        assertEquals(ltiContextEntity, result.get());
+        verify(ltiContextRepository, never()).save(any());
+    }
+
+    @Test
+    public void testResolveOrCreateContextCreatesWhenAbsent() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment(CONTEXT_KEY, toolDeployment)).thenReturn(null);
+        when(ltiContextRepository.save(any(LtiContextEntity.class))).thenReturn(ltiContextEntity);
+
+        Claims claims = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .add(LtiStrings.LTI_CONTEXT, Map.of(LtiStrings.LTI_CONTEXT_ID, CONTEXT_KEY, LtiStrings.LTI_CONTEXT_TITLE, "New Course"))
+            .build();
+
+        Optional<LtiContextEntity> result = ltiNoticeService.resolveOrCreateContext(claims);
+
+        assertTrue(result.isPresent());
+        assertEquals(ltiContextEntity, result.get());
+
+        ArgumentCaptor<LtiContextEntity> captor = ArgumentCaptor.forClass(LtiContextEntity.class);
+        verify(ltiContextRepository).save(captor.capture());
+        assertEquals(CONTEXT_KEY, captor.getValue().getContextKey());
+        assertEquals("New Course", captor.getValue().getTitle());
+        assertEquals(toolDeployment, captor.getValue().getToolDeployment());
+    }
+
+    @Test
+    public void testResolveOrCreateContextNoToolDeploymentReturnsEmpty() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of());
+
+        Optional<LtiContextEntity> result = ltiNoticeService.resolveOrCreateContext(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResolveOriginContextsMultipleElements() {
+        LtiContextEntity origin1 = mock(LtiContextEntity.class);
+        LtiContextEntity origin2 = mock(LtiContextEntity.class);
+
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment("origin-1", toolDeployment)).thenReturn(origin1);
+        when(ltiContextRepository.findByContextKeyAndToolDeployment("origin-2", toolDeployment)).thenReturn(origin2);
+
+        Claims claims = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .add(LtiStrings.LTI_ORIGIN_CONTEXTS, List.of("origin-1", "origin-2"))
+            .build();
+
+        List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(claims);
+
+        assertEquals(List.of(origin1, origin2), result);
+    }
+
+    // an origin context Terracotta has no launch record for legitimately has no Experiments to
+    // offer, not an error - it's silently omitted rather than surfaced as null
+    @Test
+    public void testResolveOriginContextsFiltersUnmatched() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment("origin-1", toolDeployment)).thenReturn(null);
+
+        Claims claims = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .add(LtiStrings.LTI_ORIGIN_CONTEXTS, List.of("origin-1"))
+            .build();
+
+        List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(claims);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResolveOriginContextsMissingClaimReturnsEmpty() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+
+        Claims claims = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .build();
+
+        List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(claims);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResolveOriginContextsNoToolDeploymentReturnsEmpty() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of());
+
+        List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
 
         assertTrue(result.isEmpty());
     }

@@ -1,6 +1,9 @@
 package edu.iu.terracotta.connectors.generic.service.lti.impl;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -38,42 +41,116 @@ public class LtiNoticeServiceImpl implements LtiNoticeService {
 
     @Override
     public Optional<SecuredInfo> resolveSecuredInfo(Claims noticeClaims) {
+        String contextKey = getContextKey(noticeClaims);
+
+        if (StringUtils.isBlank(contextKey)) {
+            log.warn("Notice is missing the context claim needed to resolve a context. Issuer: [{}]", noticeClaims.getIssuer());
+
+            return Optional.empty();
+        }
+
+        return resolveToolDeployment(noticeClaims)
+            .map(toolDeployment -> ltiContextRepository.findByContextKeyAndToolDeployment(contextKey, toolDeployment))
+            .flatMap(this::resolveActingInstructor);
+    }
+
+    @Override
+    public Optional<LtiContextEntity> resolveOrCreateContext(Claims noticeClaims) {
+        String contextKey = getContextKey(noticeClaims);
+
+        if (StringUtils.isBlank(contextKey)) {
+            log.warn("Notice is missing the context claim needed to resolve a context. Issuer: [{}]", noticeClaims.getIssuer());
+
+            return Optional.empty();
+        }
+
+        return resolveToolDeployment(noticeClaims)
+            .map(toolDeployment -> {
+                LtiContextEntity existing = ltiContextRepository.findByContextKeyAndToolDeployment(contextKey, toolDeployment);
+
+                if (existing != null) {
+                    return existing;
+                }
+
+                // brand-new copied course - nobody has launched Terracotta there yet, so there's
+                // no LtiContextEntity to find. NRPS/line-items URLs are left null, matching the
+                // same nullable fields a live launch itself leaves unset until upsertLTIDataInDB
+                // fills them in (see LtiDataServiceImpl) - a real launch into this course later
+                // updates this same row rather than creating a duplicate.
+                return ltiContextRepository.save(
+                    new LtiContextEntity(contextKey, toolDeployment, getContextTitle(noticeClaims), null, null, null)
+                );
+            });
+    }
+
+    @Override
+    public List<LtiContextEntity> resolveOriginContexts(Claims noticeClaims) {
+        return resolveToolDeployment(noticeClaims)
+            .map(toolDeployment ->
+                getOriginContextKeys(noticeClaims).stream()
+                    .map(originContextKey -> ltiContextRepository.findByContextKeyAndToolDeployment(originContextKey, toolDeployment))
+                    .filter(Objects::nonNull)
+                    .toList()
+            )
+            .orElse(List.of());
+    }
+
+    private Optional<ToolDeployment> resolveToolDeployment(Claims noticeClaims) {
         String iss = noticeClaims.getIssuer();
         String clientId = Optional.ofNullable(noticeClaims.getAudience()).stream()
             .flatMap(Set::stream)
             .findFirst()
             .orElse(null);
         String deploymentId = noticeClaims.get(LtiStrings.LTI_DEPLOYMENT_ID, String.class);
-        String contextKey = getContextKey(noticeClaims);
 
-        if (StringUtils.isAnyBlank(iss, clientId, deploymentId, contextKey)) {
+        if (StringUtils.isAnyBlank(iss, clientId, deploymentId)) {
             log.warn(
-                "Notice is missing one or more claims needed to resolve a context - iss: [{}], clientId: [{}], deploymentId: [{}], contextKey: [{}]",
+                "Notice is missing one or more claims needed to resolve a tool deployment - iss: [{}], clientId: [{}], deploymentId: [{}]",
                 iss,
                 clientId,
-                deploymentId,
-                contextKey
+                deploymentId
             );
 
             return Optional.empty();
         }
 
         return toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(iss, clientId, deploymentId).stream()
-            .findFirst()
-            .map(toolDeployment -> ltiContextRepository.findByContextKeyAndToolDeployment(contextKey, toolDeployment))
-            .flatMap(this::resolveActingInstructor);
+            .findFirst();
     }
 
     private String getContextKey(Claims noticeClaims) {
+        Object contextId = getContextClaim(noticeClaims, LtiStrings.LTI_CONTEXT_ID);
+
+        return contextId instanceof String ? (String) contextId : null;
+    }
+
+    private String getContextTitle(Claims noticeClaims) {
+        Object title = getContextClaim(noticeClaims, LtiStrings.LTI_CONTEXT_TITLE);
+
+        return title instanceof String ? (String) title : null;
+    }
+
+    private Object getContextClaim(Claims noticeClaims, String key) {
         Object context = noticeClaims.get(LtiStrings.LTI_CONTEXT);
 
         if (!(context instanceof Map<?, ?> contextMap)) {
             return null;
         }
 
-        Object contextId = contextMap.get(LtiStrings.LTI_CONTEXT_ID);
+        return contextMap.get(key);
+    }
 
-        return contextId instanceof String ? (String) contextId : null;
+    private List<String> getOriginContextKeys(Claims noticeClaims) {
+        Object originContexts = noticeClaims.get(LtiStrings.LTI_ORIGIN_CONTEXTS);
+
+        if (!(originContexts instanceof Collection<?> originContextsCollection)) {
+            return List.of();
+        }
+
+        return originContextsCollection.stream()
+            .filter(String.class::isInstance)
+            .map(String.class::cast)
+            .toList();
     }
 
     private Optional<SecuredInfo> resolveActingInstructor(LtiContextEntity ltiContextEntity) {

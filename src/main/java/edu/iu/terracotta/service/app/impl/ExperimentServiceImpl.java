@@ -36,6 +36,7 @@ import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.FileStorageService;
@@ -82,6 +83,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     private final PlatformDeploymentRepository platformDeploymentRepository;
     private final AssignmentService assignmentService;
     private final AssignmentAsyncService assignmentAsyncService;
+    private final ExperimentCopyCandidateService experimentCopyCandidateService;
     private final ConditionService conditionService;
     private final ExposureService exposureService;
     private final FeatureService featureService;
@@ -106,7 +108,14 @@ public class ExperimentServiceImpl implements ExperimentService {
         // sync data with LMS, if configured
         if (syncWithLms) {
             try {
-                assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
+                // deferred while any candidate for this context is still PENDING - see
+                // NoticeController's identical guard and ExperimentCopyCandidateService.resolve()
+                // for the full reasoning (a copied assignment's URL still carries the source
+                // course's old IDs, so this would mark it obsolete before the instructor gets a
+                // chance to import the matching experiment and re-point it)
+                if (!experimentCopyCandidateService.hasPendingForContext(securedInfo.getContextId())) {
+                    assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
+                }
 
                 if (CollectionUtils.isNotEmpty(experiments)) {
                     participantAsyncService.updateParticipantData(securedInfo);

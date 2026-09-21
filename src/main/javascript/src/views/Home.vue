@@ -8,11 +8,16 @@
       :display="isDeletingExperiment"
       message="Please wait..."
     />
+    <page-loading
+      :display="isPreparingCopyCandidateImports"
+      message="We are preparing to import the selected experiments. Please wait."
+    />
     <zero-state
       v-show="isLoaded && !hasExperiments"
       :experimentExportEnabled="experimentExportEnabled"
       :experimentImportRequests="experimentImportRequests"
       :importRequestAlerts="importRequestAlerts"
+      :disableActions="isPreparingCopyCandidateImports || isExperimentImporting"
       @handleImportExperiment="handleImportExperiment"
       @handleImportRequestAlertDismiss="handleImportRequestAlertDismiss"
       @handleImportRequestAlertVisibilityChange="handleImportRequestAlertVisibilityChange"
@@ -258,7 +263,8 @@ import {
   watch,
   onMounted,
   onBeforeUnmount,
-  nextTick
+  nextTick,
+  createApp
 } from "vue";
 
 import { useRouter, onBeforeRouteLeave } from "vue-router";
@@ -276,8 +282,11 @@ import {
 import Help from "@/components/Help.vue";
 import PageLoading from "@/components/PageLoading.vue";
 import ZeroState from "@/views/ZeroState.vue";
+import CopyCandidatesDialog from "@/components/dialog/CopyCandidatesDialog.vue";
+import vuetify from "@/plugins/vuetify";
 
 import { experiment as experimentModule } from "@/store/experiment.module";
+import { experimentCopyCandidate as experimentCopyCandidateModule } from "@/store/experiment-copy-candidate.module";
 import { dataExportRequest as dataExportRequestModule } from "@/store/experiment-data-export.module";
 import { configuration as configurationModule } from "@/store/configuration.module";
 import { consent as consentModule } from "@/store/consent.module";
@@ -301,6 +310,7 @@ defineOptions({
 const router = useRouter();
 
 const experimentStore = experimentModule();
+const experimentCopyCandidateStore = experimentCopyCandidateModule();
 const dataExportRequestStore = dataExportRequestModule();
 const configurationStore = configurationModule();
 const consentStore = consentModule();
@@ -326,6 +336,7 @@ const headers = [
 const isLoaded = ref(false);
 const isExportingExperiment = ref(false);
 const isDeletingExperiment = ref(false);
+const isPreparingCopyCandidateImports = ref(false);
 
 const experimentDataExportRequests = ref({
   downloadLinkClicked: false
@@ -334,6 +345,7 @@ const experimentDataExportRequests = ref({
 const experimentImportRequests = ref({});
 
 const experiments = computed(() => experimentStore.experiments);
+const copyCandidates = computed(() => experimentCopyCandidateStore.copyCandidates);
 const dataExportRequests = computed(() => dataExportRequestStore.dataExportRequests);
 const importRequests = computed(() => experimentStore.importRequests);
 const configurations = computed(() => configurationStore.get);
@@ -565,6 +577,99 @@ const handleImportExperiment = async () => {
       }
     }
   };
+};
+
+const handleShowCopyCandidates = async () => {
+  let dialogApp = null;
+  let outcome = null;
+
+  // the dialog owns its own three confirmations (create/decline/defer) as an overlay over
+  // its own checkbox grid, rather than as separate Swal.fire calls - SweetAlert2 has no
+  // native support for stacking a second popup on top of one that's already open, so a
+  // follow-up Swal.fire would just replace this dialog's content instead of appearing over
+  // it. This one popup stays open for the whole interaction; it's only closed (via
+  // Swal.close()) once the dialog reports a final, already-confirmed outcome.
+  await Swal.fire({
+    html: '<div id="dialog-copy-candidates"></div>',
+    showConfirmButton: false,
+    showDenyButton: false,
+    showCancelButton: false,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    customClass: {
+      popup: "copy-candidates-popup"
+    },
+    didOpen: () => {
+      const mountTarget = document.getElementById("dialog-copy-candidates");
+      dialogApp = createApp(CopyCandidatesDialog, {
+        candidates: copyCandidates.value,
+        onCreate: selectedIds => {
+          outcome = { type: "create", selectedIds };
+          Swal.close();
+        },
+        onDecline: () => {
+          outcome = { type: "decline" };
+          Swal.close();
+        },
+        onDefer: () => {
+          outcome = { type: "defer" };
+          Swal.close();
+        }
+      });
+      dialogApp.use(vuetify);
+      dialogApp.mount(mountTarget);
+    },
+    willClose: () => {
+      dialogApp?.unmount();
+    }
+  });
+
+  // "I'll decide later" (or closing the dialog any other way) leaves everything PENDING,
+  // so the prompt simply asks again next visit.
+  if (!outcome || outcome.type === "defer") {
+    return;
+  }
+
+  // "No thank you" resolves with nothing selected - the backend declines (and
+  // obsolete-processes) every currently-PENDING candidate for this context, same as
+  // importing zero of them would.
+  const selectedIds = outcome.type === "create" ? outcome.selectedIds : [];
+
+  // shown only for "Create selected" - covers the gap between that confirmation and the
+  // "being processed" alerts appearing below, and keeps the zero-state's own action buttons
+  // disabled until the resulting imports are done (isExperimentImporting takes over from there)
+  if (outcome.type === "create") {
+    isPreparingCopyCandidateImports.value = true;
+  }
+
+  let resolution;
+
+  try {
+    resolution = await experimentCopyCandidateStore.resolve(selectedIds);
+  } finally {
+    isPreparingCopyCandidateImports.value = false;
+  }
+
+  for (const newImport of resolution?.imports ?? []) {
+    if (!newImport?.id) {
+      continue;
+    }
+
+    experimentStore.upsertImportRequest(newImport);
+
+    const request = importRequest(newImport.id);
+
+    experimentImportRequests.value = {
+      ...experimentImportRequests.value,
+      [newImport.id]: {
+        showAlert: true,
+        polling: {
+          active: request?.processing,
+          id: null
+        }
+      }
+    };
+  }
 };
 
 const handleDelete = async experiment => {
@@ -933,10 +1038,19 @@ onMounted(async () => {
   navigationStore.deleteEditMode();
   dataExportRequestStore.reset();
   experimentStore.resetImportRequests();
+  experimentCopyCandidateStore.reset();
   messagingContainerStore.reset();
   messagingConditionalTextStore.reset();
 
   await experimentStore.fetchExperiments();
+
+  if (!experiments.value || experiments.value.length === 0) {
+    await experimentCopyCandidateStore.fetchAll();
+
+    if (copyCandidates.value.length > 0) {
+      handleShowCopyCandidates();
+    }
+  }
 
   if (experiments.value && experiments.value.length > 0) {
     await dataExportRequestStore.pollList([
@@ -1082,5 +1196,13 @@ a {
   justify-content: flex-end;
   align-items: center;
   row-gap: 16px;
+}
+// SweetAlert2 defaults to a narrow (32em) popup - wide enough for the
+// copy-candidates checkbox grid to actually lay out 3 columns rather than
+// wrapping to 1 immediately. CopyCandidatesDialog's own grid collapses
+// further as this shrinks on narrower viewports.
+.copy-candidates-popup.swal2-popup {
+  width: 90vw;
+  max-width: 960px;
 }
 </style>

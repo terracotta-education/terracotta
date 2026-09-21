@@ -840,6 +840,58 @@ public class AssignmentServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testRepointAssignmentInLmsSuccess() throws AssignmentNotCreatedException, TerracottaConnectorException, ApiException {
+        when(instructorUser.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getLocalUrl()).thenReturn(LTI_URL);
+        when(assignment.getAssignmentId()).thenReturn(5L);
+        when(lmsExternalToolFields.getResourceLinkId()).thenReturn(RESOURCE_LINK_ID);
+        when(apiClient.editAssignment(instructorUser, lmsAssignment, "course-1")).thenReturn(Optional.of(lmsAssignment));
+
+        Assignment retVal = assignmentService.repointAssignmentInLms(instructorUser, assignment, 1L, "course-1", lmsAssignment);
+
+        assertEquals(assignment, retVal);
+        verify(lmsExternalToolFields).setUrl(LTI_URL + "/lti3?experiment=1&assignment=5");
+        verify(assignment).setLmsAssignmentId("1");
+        verify(assignment).setResourceLinkId(RESOURCE_LINK_ID);
+        verify(apiClient, never()).createLmsAssignment(any(), any(), anyString());
+    }
+
+    @Test
+    public void testRepointAssignmentInLmsApiException() throws ApiException, TerracottaConnectorException {
+        when(instructorUser.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getLocalUrl()).thenReturn(LTI_URL);
+        when(apiClient.editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString())).thenThrow(new ApiException("failed"));
+
+        assertThrows(AssignmentNotCreatedException.class, () -> assignmentService.repointAssignmentInLms(instructorUser, assignment, 1L, "course-1", lmsAssignment));
+    }
+
+    @Test
+    public void testRestoreRepointedAssignmentUrlInLmsSuccess() throws ApiException, TerracottaConnectorException {
+        assignmentService.restoreRepointedAssignmentUrlInLms(instructorUser, lmsAssignment, "https://original.example.com/lti3?experiment=1&assignment=5", "course-1");
+
+        verify(lmsExternalToolFields).setUrl("https://original.example.com/lti3?experiment=1&assignment=5");
+        verify(apiClient).editAssignment(instructorUser, lmsAssignment, "course-1");
+    }
+
+    @Test
+    public void testRestoreRepointedAssignmentUrlInLmsNoExternalToolFieldsIsNoOp() throws ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getLmsExternalToolFields()).thenReturn(null);
+
+        assignmentService.restoreRepointedAssignmentUrlInLms(instructorUser, lmsAssignment, "https://original.example.com/lti3?experiment=1&assignment=5", "course-1");
+
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+    }
+
+    @Test
+    public void testRestoreRepointedAssignmentUrlInLmsApiExceptionIsSwallowed() throws ApiException, TerracottaConnectorException {
+        doThrow(new ApiException("failed")).when(apiClient).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+
+        assignmentService.restoreRepointedAssignmentUrlInLms(instructorUser, lmsAssignment, "https://original.example.com/lti3?experiment=1&assignment=5", "course-1");
+
+        verify(lmsExternalToolFields).setUrl("https://original.example.com/lti3?experiment=1&assignment=5");
+    }
+
+    @Test
     public void testEditAssignmentNameInLmsSuccess() throws AssignmentNotEditedException, ApiException, TerracottaConnectorException, IOException {
         assignmentService.editAssignmentNameInLms(assignment, "course-1", "New Name", instructorUser);
 

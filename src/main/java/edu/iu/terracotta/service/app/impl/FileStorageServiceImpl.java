@@ -794,6 +794,17 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
+    public void saveExperimentImportFile(File file, ExperimentImport experimentImport) throws IOException {
+        String path = String.format("%s/%s", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH")), UUID.randomUUID().toString());
+        Path parentPath = Files.createDirectories(Paths.get(String.format("%s/%s", experimentExportLocalPathRoot, path)));
+        String filename = String.format("%s.zip", UUID.randomUUID().toString());
+        File storedFile = FileUtils.getFile(parentPath.toFile(), filename);
+        FileUtils.copyFile(file, storedFile);
+
+        experimentImport.setFileUri(String.format("%s/%s", path, filename));
+    }
+
+    @Override
     public boolean compressFile(String filePathToCompress, String encryptionPhrase, String compressedFileExtension) {
         return compressFile(filePathToCompress, encryptionPhrase, compressedFileExtension, true);
     }

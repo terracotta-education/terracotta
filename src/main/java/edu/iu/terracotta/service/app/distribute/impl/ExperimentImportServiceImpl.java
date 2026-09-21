@@ -17,6 +17,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.dao.entity.AnswerMc;
@@ -71,58 +72,84 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
 
     @Override
     public ImportDto preprocess(MultipartFile file, SecuredInfo securedInfo) throws ExperimentImportException {
-        LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        LtiContextEntity context = ltiContextRepository.findById(securedInfo.getContextId())
-            .orElseThrow(() -> new ExperimentImportException(String.format("Context ID: [%s] not found", securedInfo.getContextId())));
+        ExperimentImport experimentImport = buildExperimentImport(file.getOriginalFilename(), securedInfo);
 
         try {
-            ExperimentImport experimentImport = ExperimentImport.builder()
-                    .context(context)
-                    .fileName(file.getOriginalFilename())
-                    .owner(owner)
-                    .status(ExperimentImportStatus.PROCESSING)
-                    .build();
-
             fileStorageService.saveExperimentImportFile(file, experimentImport);
-            experimentImport = experimentImportRepository.save(experimentImport);
 
-            // validate(...) saves the entity again partway through (to persist the source title) -
-            // capture its returned reference rather than the one passed in, otherwise the stale,
-            // pre-validation version number below gets handed to the async process(...) call, which
-            // then fails to save its own final status update with an optimistic-locking error
-            experimentImport = validate(experimentImport);
-
-            if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
-                // validation errors exists; skip processing
-                for (ExperimentImportError experimentImportError : experimentImport.getErrors()) {
-                    experimentImportError.setExperimentImport(experimentImport);
-                    experimentImportErrorRepository.save(experimentImportError);
-                }
-
-                experimentImport.setStatus(ExperimentImportStatus.ERROR);
-                experimentImport = experimentImportRepository.save(experimentImport);
-
-                return toDto(experimentImport);
-            }
-
-            ImportDto importDto = toDto(experimentImport);
-
-            // this request's Hibernate session stays open for its whole duration
-            // (open-in-view) - detach this entity before handing it off to the async import
-            // so nothing else on this same request thread can touch it again while
-            // process(...) is concurrently finalizing it on its own, separate thread and
-            // persistence context
-            entityManager.detach(experimentImport);
-
-            // start async import processing
-            experimentImportAsyncService.process(experimentImport, securedInfo);
-
-            return importDto;
+            return finishPreprocess(experimentImport, securedInfo, Map.of());
         } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
             throw new ExperimentImportException(error, e);
         }
+    }
+
+    @Override
+    public ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) throws ExperimentImportException {
+        ExperimentImport experimentImport = buildExperimentImport(originalFilename, securedInfo);
+
+        try {
+            fileStorageService.saveExperimentImportFile(file, experimentImport);
+
+            return finishPreprocess(experimentImport, securedInfo, assignmentRepointMap);
+        } catch (Exception e) {
+            String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
+            log.error(error, e);
+            throw new ExperimentImportException(error, e);
+        }
+    }
+
+    private ExperimentImport buildExperimentImport(String fileName, SecuredInfo securedInfo) throws ExperimentImportException {
+        LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiContextEntity context = ltiContextRepository.findById(securedInfo.getContextId())
+            .orElseThrow(() -> new ExperimentImportException(String.format("Context ID: [%s] not found", securedInfo.getContextId())));
+
+        return ExperimentImport.builder()
+            .context(context)
+            .fileName(fileName)
+            .owner(owner)
+            .status(ExperimentImportStatus.PROCESSING)
+            .build();
+    }
+
+    private ImportDto finishPreprocess(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) {
+        experimentImport = experimentImportRepository.save(experimentImport);
+
+        // validate(...) saves the entity again partway through (to persist the source title) -
+        // capture its returned reference rather than the one passed in, otherwise the stale,
+        // pre-validation version number below gets handed to the async process(...) call, which
+        // then fails to save its own final status update with an optimistic-locking error
+        experimentImport = validate(experimentImport);
+
+        if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
+            // validation errors exists; skip processing
+            for (ExperimentImportError experimentImportError : experimentImport.getErrors()) {
+                experimentImportError.setExperimentImport(experimentImport);
+                experimentImportErrorRepository.save(experimentImportError);
+            }
+
+            experimentImport.setStatus(ExperimentImportStatus.ERROR);
+            experimentImport = experimentImportRepository.save(experimentImport);
+
+            return toDto(experimentImport);
+        }
+
+        ImportDto importDto = toDto(experimentImport);
+
+        // this request's Hibernate session stays open for its whole duration (open-in-view),
+        // tracking every candidate's experimentImport as managed the entire time - including
+        // while a resolve() call still has more candidates left to process after this one.
+        // Detach this entity before handing it off to the async import, so nothing later in
+        // this same request (e.g. processing the next candidate) can cause this session to
+        // flush a change to this same row while process(...) is concurrently finalizing it on
+        // its own, separate thread and persistence context.
+        entityManager.detach(experimentImport);
+
+        // start async import processing
+        experimentImportAsyncService.process(experimentImport, securedInfo, assignmentRepointMap);
+
+        return importDto;
     }
 
     @Override

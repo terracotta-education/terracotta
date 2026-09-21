@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.AnswerMc;
@@ -102,7 +104,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
     @Async
     @Override
     @Transactional(rollbackFor = { Exception.class, ExperimentImportException.class })
-    public void process(ExperimentImport experimentImport, SecuredInfo securedInfo) throws ExperimentImportException {
+    public void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) throws ExperimentImportException {
         log.info("Processing experiment import with ID: [{}]", experimentImport.getId());
         Optional<Export> export = prepare(experimentImport);
 
@@ -147,7 +149,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
             // no errors occurred yet; create assignments in LMS
-            sendAssignmentsToLms(export.get(), experimentImport, idMap, securedInfo);
+            sendAssignmentsToLms(export.get(), experimentImport, idMap, securedInfo, assignmentRepointMap);
         }
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
@@ -601,13 +603,38 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo) {
+    // captures a repointed assignment's LmsAssignment + its pre-repoint URL, so a rollback (see
+    // below) can best-effort restore it - a repointed assignment is the instructor's own
+    // pre-existing LMS content, so on error it must be put back the way it was, never deleted.
+    private record RepointedAssignment(LmsAssignment lmsAssignment, String originalUrl) { }
+
+    // the export DTO's own "assignment" cross-reference id (idMap's key) is the source
+    // assignment's real persisted identifier, carried through as an opaque string - a uuid for
+    // an export built after the uuid migration, or a legacy numeric id for an older export file
+    // (see ExperimentCopyCandidateServiceImpl's identical resolution, which builds
+    // assignmentRepointMap from the same kind of id). assignmentRepointMap itself is always
+    // keyed by the assignment's real internal Long id, so this id needs resolving to that
+    // before it can be looked up there.
+    private Long resolveOldAssignmentId(String idText) {
+        try {
+            return assignmentRepository.findIdByUuid(UUID.fromString(idText)).orElse(null);
+        } catch (IllegalArgumentException e) {
+            try {
+                return Long.parseLong(idText);
+            } catch (NumberFormatException nfe) {
+                return null;
+            }
+        }
+    }
+
+    private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) {
         if (MapUtils.isEmpty(idMap.get(Assignment.class))) {
             // no assignments to process
             return;
         }
 
         List<Assignment> createdAssignments = new ArrayList<>();
+        List<RepointedAssignment> repointedAssignments = new ArrayList<>();
         AtomicBoolean errorOccurred = new AtomicBoolean(false);
 
         idMap.get(Assignment.class).entrySet().stream()
@@ -618,17 +645,34 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
                         return;
                     }
 
+                    Long oldAssignmentId = resolveOldAssignmentId(entry.getKey());
                     Assignment assignment = (Assignment) entry.getValue();
+                    long newExperimentId = ((Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId())).getExperimentId();
+                    LmsAssignment existingLmsAssignment = oldAssignmentId != null ? MapUtils.emptyIfNull(assignmentRepointMap).get(oldAssignmentId) : null;
 
                     try {
-                        Assignment newAssignment = assignmentService.createAssignmentInLms(
-                            experimentImport.getOwner(),
-                            assignment,
-                            ((Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId())).getExperimentId(),
-                            securedInfo.getLmsCourseId()
-                        );
+                        if (existingLmsAssignment != null) {
+                            String originalUrl = existingLmsAssignment.getLmsExternalToolFields() != null ? existingLmsAssignment.getLmsExternalToolFields().getUrl() : null;
 
-                        createdAssignments.add(newAssignment);
+                            assignmentService.repointAssignmentInLms(
+                                experimentImport.getOwner(),
+                                assignment,
+                                newExperimentId,
+                                securedInfo.getLmsCourseId(),
+                                existingLmsAssignment
+                            );
+
+                            repointedAssignments.add(new RepointedAssignment(existingLmsAssignment, originalUrl));
+                        } else {
+                            Assignment newAssignment = assignmentService.createAssignmentInLms(
+                                experimentImport.getOwner(),
+                                assignment,
+                                newExperimentId,
+                                securedInfo.getLmsCourseId()
+                            );
+
+                            createdAssignments.add(newAssignment);
+                        }
                     } catch (AssignmentNotCreatedException | TerracottaConnectorException e) {
                         log.error("Error processing experiment import with ID: [{}]. Assignment creation in LMS failed.", experimentImport.getUuid(), e);
                         handleError(experimentImport, "Assignment creation in LMS failed");
@@ -638,7 +682,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             );
 
         if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
-            // an error occurred; delete any created assignments in LMS
+            // an error occurred; delete any newly-created assignments in LMS
             log.warn("An error occurred creating an assignment in the LMS. Removing all newly-created assignments from the LMS course ID: [{}].", securedInfo.getLmsCourseId());
             createdAssignments.stream()
                 .forEach(
@@ -649,6 +693,19 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
                             log.warn("Error occurred while deleting an assignment LMS ID: [{}] from LMS Course ID: [{}]", assignment.getLmsAssignmentId(), securedInfo.getLmsCourseId());
                         }
                     }
+                );
+
+            // a repointed assignment is never deleted (see the RepointedAssignment comment
+            // above) - only its URL mutation gets best-effort restored, since that Canvas-side
+            // PUT isn't covered by this method's own DB transaction rollback
+            repointedAssignments.stream()
+                .forEach(
+                    repointed -> assignmentService.restoreRepointedAssignmentUrlInLms(
+                        experimentImport.getOwner(),
+                        repointed.lmsAssignment(),
+                        repointed.originalUrl(),
+                        securedInfo.getLmsCourseId()
+                    )
                 );
         }
 

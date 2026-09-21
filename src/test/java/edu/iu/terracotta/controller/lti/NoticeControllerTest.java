@@ -29,6 +29,7 @@ import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.utils.LtiStrings;
 
 public class NoticeControllerTest {
@@ -36,6 +37,7 @@ public class NoticeControllerTest {
     @Mock private LtiJwtService ltiJwtService;
     @Mock private LtiNoticeService ltiNoticeService;
     @Mock private AssignmentAsyncService assignmentAsyncService;
+    @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
 
     private NoticeController noticeController;
 
@@ -43,7 +45,7 @@ public class NoticeControllerTest {
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
-        noticeController = new NoticeController(ltiJwtService, ltiNoticeService, assignmentAsyncService);
+        noticeController = new NoticeController(ltiJwtService, ltiNoticeService, assignmentAsyncService, experimentCopyCandidateService);
     }
 
     @SuppressWarnings("unchecked")
@@ -105,14 +107,64 @@ public class NoticeControllerTest {
         verify(ltiNoticeService, never()).resolveSecuredInfo(any());
     }
 
+    // this is the actual bug this feature fixes: a brand-new copied course has no
+    // LtiContextEntity/membership yet, so resolveSecuredInfo legitimately returns empty - but
+    // stageFromNotice must still run, since it's the one thing that can create that course's
+    // LtiContextEntity and stage its copy candidates in the first place.
     @Test
-    public void testReceiveNoticesCourseCopyWithNoResolvedContextIsSkipped() throws Exception {
+    public void testReceiveNoticesCourseCopyWithNoResolvedContextStillStagesCandidates() throws Exception {
         Claims claims = claimsWithNoticeType(LtiStrings.LTI_NOTICE_TYPE_COURSE_COPY);
         Jws<Claims> jws = jwsOf(claims);
         when(ltiJwtService.validateJWT("jwt-1")).thenReturn(jws);
         when(ltiNoticeService.resolveSecuredInfo(claims)).thenReturn(Optional.empty());
 
         noticeController.receiveNotices(requestWith("jwt-1"));
+
+        verify(experimentCopyCandidateService).stageFromNotice(claims);
+        verify(assignmentAsyncService, never()).handleAssignmentTasksInLmsByContext(any());
+    }
+
+    @Test
+    public void testReceiveNoticesCourseCopyStagesCandidatesEvenWhenContextResolves() throws Exception {
+        Claims claims = claimsWithNoticeType(LtiStrings.LTI_NOTICE_TYPE_COURSE_COPY);
+        SecuredInfo securedInfo = SecuredInfo.builder().contextId(42L).build();
+        Jws<Claims> jws = jwsOf(claims);
+        when(ltiJwtService.validateJWT("jwt-1")).thenReturn(jws);
+        when(ltiNoticeService.resolveSecuredInfo(claims)).thenReturn(Optional.of(securedInfo));
+
+        noticeController.receiveNotices(requestWith("jwt-1"));
+
+        verify(experimentCopyCandidateService).stageFromNotice(claims);
+        verify(assignmentAsyncService).handleAssignmentTasksInLmsByContext(securedInfo);
+    }
+
+    @Test
+    public void testReceiveNoticesExceptionFromStagingIsCaughtAndDoesNotBlockObsoleteAssignmentCheck() throws Exception {
+        Claims claims = claimsWithNoticeType(LtiStrings.LTI_NOTICE_TYPE_COURSE_COPY);
+        SecuredInfo securedInfo = SecuredInfo.builder().contextId(42L).build();
+        Jws<Claims> jws = jwsOf(claims);
+        when(ltiJwtService.validateJWT("jwt-1")).thenReturn(jws);
+        when(ltiNoticeService.resolveSecuredInfo(claims)).thenReturn(Optional.of(securedInfo));
+        doThrow(new RuntimeException("fail")).when(experimentCopyCandidateService).stageFromNotice(claims);
+
+        assertEquals(200, noticeController.receiveNotices(requestWith("jwt-1")).getStatusCode().value());
+
+        verify(assignmentAsyncService).handleAssignmentTasksInLmsByContext(securedInfo);
+    }
+
+    // the whole point of this feature: while a candidate is still PENDING for this context, the
+    // obsolete-assignment check must not run - it would immediately mark the copied assignment
+    // obsolete before the instructor ever gets a chance to import the matching experiment.
+    @Test
+    public void testReceiveNoticesSuppressesObsoleteAssignmentCheckWhilePendingCandidatesExist() throws Exception {
+        Claims claims = claimsWithNoticeType(LtiStrings.LTI_NOTICE_TYPE_COURSE_COPY);
+        SecuredInfo securedInfo = SecuredInfo.builder().contextId(42L).build();
+        Jws<Claims> jws = jwsOf(claims);
+        when(ltiJwtService.validateJWT("jwt-1")).thenReturn(jws);
+        when(ltiNoticeService.resolveSecuredInfo(claims)).thenReturn(Optional.of(securedInfo));
+        when(experimentCopyCandidateService.hasPendingForContext(42L)).thenReturn(true);
+
+        assertEquals(200, noticeController.receiveNotices(requestWith("jwt-1")).getStatusCode().value());
 
         verify(assignmentAsyncService, never()).handleAssignmentTasksInLmsByContext(any());
     }
