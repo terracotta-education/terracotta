@@ -214,12 +214,14 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         verify(assignmentService, never()).createAssignmentInLms(any(), any(), anyLong(), anyString());
     }
 
-    // regression test: something else updating this row's version between when process()
-    // received it and when it tries its own final save (see ExperimentImportServiceImpl's
-    // detach() of this same entity, added specifically to prevent that) shouldn't fail the
-    // import outright - it should retry the completion against the row's current state instead
+    // an optimistic-locking failure on the final save must propagate rather than be retried
+    // in place: process() is @Transactional, so once save() has thrown the transaction is
+    // already rollback-only and any in-transaction re-fetch/re-save would be silently thrown
+    // away at commit - surfacing it rolls the import back loudly instead. Preventing the
+    // conflict in the first place is ExperimentImportServiceImpl.preprocess's job (it detaches
+    // this entity from its request thread's session before handing it here).
     @Test
-    void testProcessRetriesFinalSaveOnOptimisticLockingFailure() throws AssignmentNotCreatedException, TerracottaConnectorException {
+    void testProcessPropagatesOptimisticLockingFailureOnFinalSave() {
         Export export = fullExport();
         export.setAssignments(Collections.emptyList());
         export.setTreatments(Collections.emptyList());
@@ -234,16 +236,17 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
             throw new RuntimeException(e);
         }
 
-        ExperimentImport currentRow = mock(ExperimentImport.class);
         when(experimentImport.getId()).thenReturn(1L);
         when(experimentImportRepository.save(experimentImport))
             .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(ExperimentImport.class, 1L));
-        when(experimentImportRepository.findById(1L)).thenReturn(java.util.Optional.of(currentRow));
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        assertThrows(
+            org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo)
+        );
 
-        verify(currentRow).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
-        verify(experimentImportRepository).save(currentRow);
+        verify(experimentImportRepository, never()).findById(anyLong());
+        verify(experimentImportRepository).save(experimentImport);
     }
 
     @Test
