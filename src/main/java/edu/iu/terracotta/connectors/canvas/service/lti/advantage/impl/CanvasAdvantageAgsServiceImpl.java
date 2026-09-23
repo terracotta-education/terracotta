@@ -177,7 +177,7 @@ public class CanvasAdvantageAgsServiceImpl implements AdvantageAgsService {
             throw new ConnectionException(exceptionMsg);
         } catch (Exception e) {
             String exceptionMsg = "Can't post scores";
-            log.error(exceptionMsg.toString(), e);
+            log.error("{}: {}", exceptionMsg, e.getMessage());
             throw new ConnectionException(exceptionMessageGenerator.exceptionMessage(exceptionMsg.toString(), e));
         }
     }
