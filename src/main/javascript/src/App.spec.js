@@ -25,9 +25,10 @@ vi.mock("@/services", () => ({
 }));
 
 import Swal from "sweetalert2";
-import { apiService } from "@/services";
+import { apiService, configurationService } from "@/services";
 import { mountComponent } from "@/test-utils/mount";
 import { api as apiModule } from "@/store/api.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
 import App from "./App.vue";
 
 const FIFTY_NINE_MINUTES_MS = 1000 * 60 * 59;
@@ -72,6 +73,62 @@ async function mountApp(props = {}) {
 function foregroundTab() {
   Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
   document.dispatchEvent(new Event("visibilitychange"));
+}
+
+// mountApp() above always mounts with { shallow: true }, which - per @vue/test-utils -
+// auto-stubs EVERY child component App.vue's template encounters, including Vuetify's own
+// globally-registered ones (v-app, v-main, v-row, v-col, v-alert...). Since App.vue's whole
+// template lives inside v-app's default slot, and VTU's default stubs don't render a stubbed
+// component's slot content, that means none of App.vue's own template (the Instructor/
+// Treatment-Preview/Learner/Error/Integration/Obsolete v-if branches, and every computed only
+// read from the template) ever actually renders under mountApp() - confirmed by inspecting
+// wrapper.html(), which comes back as a bare `<v-app-stub>` with no children. mountApp()'s
+// existing tests still work because everything they assert on (setInterval/localStorage/
+// visibilitychange/the app--embedded class/frame-resize reporting) lives in script-level logic
+// or on attributes of v-app itself, not inside that swallowed slot.
+//
+// To actually exercise App.vue's own template branches, mount WITHOUT shallow (so v-app/v-main/
+// v-row/v-col/v-alert render for real, like ExperimentSummary.spec.js's non-shallow pattern),
+// while explicitly stubbing out the heavy child views/components App.vue imports - the same
+// role `shallow` would normally play, just scoped to this component's own children instead of
+// every descendant.
+const templateStubs = {
+  SkipTo: true,
+  StatusAlert: true,
+  StudentQuiz: true,
+  StudentConsent: true,
+  TreatmentPreviewComplete: true,
+  PageLoading: true,
+  IntegrationsTokenAlert: true,
+  Integrations: true,
+  IntegrationsPreview: true,
+  Assignment: true,
+  "router-view": true
+};
+
+async function mountAppRendered(props = {}, configure = () => {}) {
+  const pinia = createPinia();
+  setActivePinia(pinia);
+
+  const apiStore = apiModule();
+  const configurationStore = configurationModule();
+
+  configure(apiStore, configurationStore);
+
+  const wrapper = mountComponent(App, {
+    pinia,
+    props,
+    global: {
+      stubs: templateStubs,
+      mocks: {
+        $route: { path: "/some-route" }
+      }
+    }
+  });
+
+  await flushPromises(); // let onMounted's await retrieveConfiguration() resolve
+
+  return { wrapper, apiStore, configurationStore };
 }
 
 describe("App", () => {
@@ -291,6 +348,168 @@ describe("App", () => {
       });
 
       document.body.removeChild(popup);
+    });
+  });
+
+  // authStore.sessionExpired only ever flips false -> true once per real session (see the
+  // comment above the watcher in App.vue), so the watcher's `if (!expired) return;` guard is
+  // never exercised by the app's actual usage. It's still real defensive code guarding real
+  // behavior (don't show/re-run the expiry flow for a falsy value), so it's worth pinning down
+  // directly rather than leaving it untested.
+  it("does nothing when the sessionExpired watcher fires with a falsy value", async () => {
+    const { apiStore } = await mountApp();
+
+    apiStore.sessionExpired = true;
+    await flushPromises();
+    Swal.fire.mockClear();
+
+    apiStore.sessionExpired = false;
+    await flushPromises();
+
+    expect(Swal.fire).not.toHaveBeenCalled();
+  });
+
+  describe("template branches (full mount - see mountAppRendered's comment above)", () => {
+    it("renders the generic error state when unauthenticated and no other mode applies", async () => {
+      const { wrapper } = await mountAppRendered();
+
+      expect(wrapper.text()).toContain("Error");
+    });
+
+    it("renders router-view for an authenticated Instructor", async () => {
+      const { wrapper } = await mountAppRendered({}, apiStore => {
+        apiStore.ltiToken = "lti-token";
+        apiStore.apiToken = "api-token";
+        apiStore.userInfo = "Instructor";
+      });
+
+      expect(wrapper.find("router-view-stub").exists()).toBe(true);
+    });
+
+    it("renders StudentConsent for a Learner with pending consent", async () => {
+      const { wrapper } = await mountAppRendered({}, apiStore => {
+        apiStore.ltiToken = "lti-token";
+        apiStore.apiToken = "api-token";
+        apiStore.userInfo = "Learner";
+        apiStore.consent = true;
+        apiStore.experimentId = "1";
+        apiStore.userId = "2";
+      });
+
+      expect(wrapper.find("student-consent-stub").exists()).toBe(true);
+      expect(wrapper.find("student-quiz-stub").exists()).toBe(false);
+    });
+
+    it("renders StudentQuiz for a Learner without consent who has an assignment", async () => {
+      const { wrapper } = await mountAppRendered({}, apiStore => {
+        apiStore.ltiToken = "lti-token";
+        apiStore.apiToken = "api-token";
+        apiStore.userInfo = "Learner";
+        apiStore.consent = false;
+        apiStore.assignmentId = "5";
+        apiStore.experimentId = "1";
+      });
+
+      expect(wrapper.find("student-quiz-stub").exists()).toBe(true);
+      expect(wrapper.find("student-consent-stub").exists()).toBe(false);
+    });
+
+    it("shows IntegrationsTokenAlert once StudentQuiz has loaded and reports an alert, for a Learner without consent", async () => {
+      const { wrapper } = await mountAppRendered({}, apiStore => {
+        apiStore.ltiToken = "lti-token";
+        apiStore.apiToken = "api-token";
+        apiStore.userInfo = "Learner";
+        apiStore.consent = false;
+        apiStore.assignmentId = "5";
+        apiStore.experimentId = "1";
+      });
+
+      expect(wrapper.find("integrations-token-alert-stub").exists()).toBe(false);
+
+      const quiz = wrapper.findComponent({ name: "StudentQuiz" });
+      quiz.vm.$emit("loaded");
+      quiz.vm.$emit("integrationsTokenAlert", { message: "an alert" });
+      await flushPromises();
+
+      expect(wrapper.find("integrations-token-alert-stub").exists()).toBe(true);
+    });
+
+    it("renders Integrations for the integration entry point", async () => {
+      const { wrapper } = await mountAppRendered({ integrationData: { foo: "bar" } });
+
+      expect(wrapper.find("integrations-stub").exists()).toBe(true);
+      expect(wrapper.find("integrations-preview-stub").exists()).toBe(false);
+    });
+
+    it("renders IntegrationsPreview when integrationData carries a previewUrl", async () => {
+      const { wrapper } = await mountAppRendered({
+        integrationData: { previewUrl: "https://example.test/preview" }
+      });
+
+      expect(wrapper.find("integrations-preview-stub").exists()).toBe(true);
+      expect(wrapper.find("integrations-stub").exists()).toBe(false);
+    });
+
+    it("renders the obsolete Assignment view for obsoleteData.type === 'assignment'", async () => {
+      const { wrapper } = await mountAppRendered({ obsoleteData: { type: "assignment" } });
+
+      expect(wrapper.find("assignment-stub").exists()).toBe(true);
+    });
+
+    it("renders no Assignment component for an obsoleteData.type it doesn't recognize", async () => {
+      const { wrapper } = await mountAppRendered({ obsoleteData: { type: "something-else" } });
+
+      expect(wrapper.find("assignment-stub").exists()).toBe(false);
+    });
+
+    it("renders TreatmentPreviewComplete once the treatment preview is marked complete", async () => {
+      const { wrapper } = await mountAppRendered({
+        treatmentPreviewData: {
+          preview: true,
+          complete: true,
+          experimentId: "1",
+          conditionId: "1",
+          treatmentId: "1",
+          previewId: "1",
+          ownerId: "1"
+        }
+      });
+
+      expect(wrapper.find("treatment-preview-complete-stub").exists()).toBe(true);
+      expect(wrapper.find("student-quiz-stub").exists()).toBe(false);
+      expect(wrapper.find("page-loading-stub").exists()).toBe(false);
+    });
+
+    it("renders PageLoading and StudentQuiz while the treatment preview is not yet complete", async () => {
+      const { wrapper } = await mountAppRendered({
+        treatmentPreviewData: {
+          preview: true,
+          complete: false,
+          experimentId: "1",
+          conditionId: "1",
+          treatmentId: "1",
+          previewId: "1",
+          ownerId: "1"
+        }
+      });
+
+      expect(wrapper.find("student-quiz-stub").exists()).toBe(true);
+      expect(wrapper.find("page-loading-stub").exists()).toBe(true);
+      expect(wrapper.find("treatment-preview-complete-stub").exists()).toBe(false);
+    });
+
+    it("renders SkipTo when the retrieved configuration enables showSkipLink", async () => {
+      configurationService.get.mockResolvedValueOnce({ showSkipLink: true });
+
+      const { wrapper } = await mountAppRendered();
+
+      expect(wrapper.find("skip-to-stub").exists()).toBe(true);
+    });
+
+    it("does not render SkipTo when the retrieved configuration doesn't enable showSkipLink", async () => {
+      const { wrapper } = await mountAppRendered();
+
+      expect(wrapper.find("skip-to-stub").exists()).toBe(false);
     });
   });
 });

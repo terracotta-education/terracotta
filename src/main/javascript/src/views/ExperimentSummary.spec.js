@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/services", () => ({
   experimentService: {
@@ -23,6 +23,13 @@ vi.mock("@/services", () => ({
   },
   consentService: {
     getConsentFile: vi.fn()
+  },
+  treatmentService: {
+    create: vi.fn()
+  },
+  assessmentService: {
+    fetchAssessments: vi.fn(),
+    createAssessment: vi.fn()
   }
 }));
 
@@ -56,12 +63,29 @@ import {
   assignmentService,
   messageContainerService,
   experimentDataExportService,
-  consentService
+  consentService,
+  treatmentService,
+  assessmentService
 } from "@/services";
 import { navigation as navigationModule } from "@/store/navigation.module";
 import { alert as alertModule } from "@/store/alert.module";
 import { configuration as configurationModule } from "@/store/configuration.module";
+import { treatment as treatmentModule } from "@/store/treatment.module";
+import { assessment as assessmentModule } from "@/store/assessment.module";
+import { EventBus } from "@/helpers/event-bus";
 import ExperimentSummary from "./ExperimentSummary.vue";
+
+// setTimeout-based flushPromises() can't resolve once vi.useFakeTimers() is active
+// (its own macrotask never fires without an explicit advance). Promise microtasks
+// are untouched by fake timers, so draining the microtask queue directly is the
+// safe way to let pending native-Promise awaits (service mocks) settle.
+function flushMicrotasks(times = 10) {
+  let chain = Promise.resolve();
+  for (let i = 0; i < times; i++) {
+    chain = chain.then(() => Promise.resolve());
+  }
+  return chain;
+}
 
 const experiment = {
   experimentId: 8,
@@ -119,7 +143,11 @@ const mountSummary = (options = {}) => {
 
 describe("ExperimentSummary", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // resetAllMocks (not clearAllMocks) - clearAllMocks only wipes call history, not
+    // any mockResolvedValue/mockImplementation left behind by a previous test, which
+    // made later tests order-dependent on whatever an earlier test happened to leave
+    // on shared service mocks like experimentDataExportService.poll/retrieve.
+    vi.resetAllMocks();
     swalFire.mockReset();
     routeRef.params = { experimentId: "8" };
 
@@ -134,6 +162,10 @@ describe("ExperimentSummary", () => {
     assignmentService.fetchAssignmentsByExposure.mockResolvedValue([]);
     messageContainerService.getAll.mockResolvedValue([]);
     experimentDataExportService.pollList.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("shows 'no experiment' before the experiment has loaded", () => {
@@ -455,5 +487,551 @@ describe("ExperimentSummary", () => {
 
     expect(experimentService.getById).toHaveBeenCalledWith("12");
     expect(next).toHaveBeenCalled();
+  });
+
+  it("treats the experiment as unbalanced when it has no exposures at all", async () => {
+    exposuresService.getAll.mockResolvedValue([]);
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.findComponent({ name: "ExperimentAssignments" }).exists()
+      ).toBe(true);
+    });
+
+    expect(
+      wrapper.findComponent({ name: "ExperimentAssignments" }).props("balanced")
+    ).toBe(false);
+  });
+
+  it("marks exposure sets unbalanced when published multi-treatment assignment counts differ across exposures, and shows the published-note banner", async () => {
+    const exposureA = { exposureId: 60, groupConditionList: [] };
+    const exposureB = { exposureId: 61, groupConditionList: [] };
+    exposuresService.getAll.mockResolvedValue([exposureA, exposureB]);
+
+    assignmentService.fetchAssignmentsByExposure.mockImplementation(
+      (experimentId, exposureId) => {
+        if (exposureId === exposureA.exposureId) {
+          return Promise.resolve([
+            {
+              assignmentId: 1,
+              exposureId: exposureA.exposureId,
+              published: true,
+              treatments: [{ treatmentId: 1 }, { treatmentId: 2 }]
+            }
+          ]);
+        }
+
+        return Promise.resolve([]);
+      }
+    );
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.findComponent({ name: "ExperimentAssignments" }).exists()
+      ).toBe(true);
+    });
+
+    expect(
+      wrapper.findComponent({ name: "ExperimentAssignments" }).props("balanced")
+    ).toBe(false);
+    expect(wrapper.find(".label-unbalanced").exists()).toBe(true);
+    expect(wrapper.text()).toContain(
+      "You are currently collecting component submissions"
+    );
+  });
+
+  it("navigates to the design editor from both 'edit' links in the exposure set explanation", async () => {
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("exposure sets");
+    });
+
+    const editLinks = wrapper.findAll("a").filter(a => a.text().trim() === "edit");
+    expect(editLinks.length).toBe(2);
+
+    await editLinks[0].trigger("click");
+    expect(push).toHaveBeenCalledWith({ name: "ExperimentDesignConditions" });
+
+    push.mockClear();
+    await editLinks[1].trigger("click");
+    expect(push).toHaveBeenCalledWith({ name: "ExperimentDesignConditions" });
+  });
+
+  it("shows a ready data-export alert and falls back to the generic message once downloaded via the alert link", async () => {
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 21, experimentId: 8, status: "READY", experimentTitle: "My Experiment" }
+    ]);
+    experimentDataExportService.poll.mockResolvedValue({
+      id: 21, experimentId: 8, status: "READY", experimentTitle: "My Experiment"
+    });
+    experimentDataExportService.retrieve.mockResolvedValue({
+      id: 21, experimentId: 8, status: "DOWNLOADED", experimentTitle: "My Experiment"
+    });
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".alert-data-export-request").exists()).toBe(true);
+    });
+
+    expect(wrapper.find(".alert-data-export-request").text()).toContain(
+      'Your data export for experiment "My Experiment" is ready.'
+    );
+
+    const downloadLink = wrapper
+      .findAll("a")
+      .find(a => a.text().trim() === "Click here to download.");
+    expect(downloadLink).toBeTruthy();
+
+    await downloadLink.trigger("click");
+
+    // handleDataExportRequest re-polls, sees the (stale, pre-retrieve) ready flag and
+    // retrieves the file, but the store now holds a downloaded-only request - so the
+    // alert falls through to the generic "still being processed" fallback message.
+    await vi.waitFor(() => {
+      expect(experimentDataExportService.retrieve).toHaveBeenCalled();
+    });
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".alert-data-export-request").text()).toContain(
+        "Your data export is being processed. Please do not navigate away from this page."
+      );
+    });
+  });
+
+  it("acknowledges a ready data-export alert as READY_ACKNOWLEDGED when dismissed", async () => {
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 22, experimentId: 8, status: "READY", experimentTitle: "My Experiment" }
+    ]);
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".alert-data-export-request").exists()).toBe(true);
+    });
+
+    const alertComponent = wrapper.findComponent({ name: "VAlert" });
+    alertComponent.vm.$emit("update:model-value", false);
+
+    await vi.waitFor(() => {
+      expect(experimentDataExportService.acknowledge).toHaveBeenCalledWith(
+        8, 22, "READY_ACKNOWLEDGED"
+      );
+    });
+
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".alert-data-export-request").exists()).toBe(false);
+  });
+
+  it("shows an outdated data-export alert with a recreate link, and does nothing when the user declines recreating it", async () => {
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 23, experimentId: 8, status: "OUTDATED", experimentTitle: "My Experiment" }
+    ]);
+    swalFire.mockResolvedValue({ isConfirmed: false });
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".alert-data-export-request").exists()).toBe(true);
+    });
+
+    expect(wrapper.find(".alert-data-export-request").text()).toContain(
+      'There have been updates since the last requested data export for experiment "My Experiment".'
+    );
+
+    const recreateLink = wrapper
+      .findAll("a")
+      .find(a => a.text().trim() === "Click here to download a new data export.");
+    expect(recreateLink).toBeTruthy();
+
+    await recreateLink.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalled();
+    });
+
+    expect(experimentDataExportService.prepare).not.toHaveBeenCalled();
+  });
+
+  it("acknowledges an outdated data-export alert as OUTDATED_ACKNOWLEDGED when dismissed", async () => {
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 24, experimentId: 8, status: "OUTDATED", experimentTitle: "My Experiment" }
+    ]);
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".alert-data-export-request").exists()).toBe(true);
+    });
+
+    const alertComponent = wrapper.findComponent({ name: "VAlert" });
+    alertComponent.vm.$emit("update:model-value", false);
+
+    await vi.waitFor(() => {
+      expect(experimentDataExportService.acknowledge).toHaveBeenCalledWith(
+        8, 24, "OUTDATED_ACKNOWLEDGED"
+      );
+    });
+  });
+
+  it("shows an error data-export alert and acknowledges it as ERROR_ACKNOWLEDGED when dismissed", async () => {
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 25, experimentId: 8, status: "ERROR", experimentTitle: "My Experiment" }
+    ]);
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".alert-data-export-request").exists()).toBe(true);
+    });
+
+    expect(wrapper.find(".alert-data-export-request").text()).toContain(
+      'There was an error processing the requested data export for experiment "My Experiment". Please try again or contact support.'
+    );
+
+    const alertComponent = wrapper.findComponent({ name: "VAlert" });
+    alertComponent.vm.$emit("update:model-value", false);
+
+    await vi.waitFor(() => {
+      expect(experimentDataExportService.acknowledge).toHaveBeenCalledWith(
+        8, 25, "ERROR_ACKNOWLEDGED"
+      );
+    });
+  });
+
+  it("resets the alert without acknowledging when a reprocessing export is dismissed", async () => {
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 26, experimentId: 8, status: "REPROCESSING", experimentTitle: "My Experiment" }
+    ]);
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".alert-data-export-request").exists()).toBe(true);
+    });
+
+    const alertComponent = wrapper.findComponent({ name: "VAlert" });
+    alertComponent.vm.$emit("update:model-value", false);
+
+    await wrapper.vm.$nextTick();
+
+    expect(experimentDataExportService.acknowledge).not.toHaveBeenCalled();
+    expect(wrapper.find(".alert-data-export-request").exists()).toBe(false);
+  });
+
+  it("shows a reprocessing notice when a reprocessing export is requested via the Export Data button", async () => {
+    experimentDataExportService.poll.mockResolvedValueOnce({
+      id: 30, experimentId: 8, status: "REPROCESSING", experimentTitle: "My Experiment"
+    });
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("Export Data");
+    });
+
+    const exportDataButton = wrapper
+      .findAll("button")
+      .find(button => button.text() === "Export Data");
+    await exportDataButton.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: expect.stringContaining("New submissons have occurred")
+        })
+      );
+    });
+
+    expect(wrapper.find(".alert-data-export-request").exists()).toBe(true);
+  });
+
+  it("polls the data export status every 5 seconds while processing, and stops once resolved", async () => {
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("Export Data");
+    });
+
+    vi.useFakeTimers();
+
+    experimentDataExportService.poll.mockResolvedValueOnce({
+      id: 9, experimentId: 8, status: "PROCESSING", experimentTitle: "My Experiment"
+    });
+
+    const exportDataButton = wrapper
+      .findAll("button")
+      .find(button => button.text() === "Export Data");
+    await exportDataButton.trigger("click");
+    await flushMicrotasks();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find(".alert-data-export-request").text()).toContain(
+      "is being processed"
+    );
+
+    const pollCallsBeforeInterval = experimentDataExportService.poll.mock.calls.length;
+
+    // The next poll (triggered by the 5s interval) reports the export as ready.
+    experimentDataExportService.poll.mockResolvedValueOnce({
+      id: 9, experimentId: 8, status: "READY", experimentTitle: "My Experiment"
+    });
+
+    await vi.advanceTimersByTimeAsync(5000);
+    await flushMicrotasks();
+    await wrapper.vm.$nextTick();
+
+    expect(experimentDataExportService.poll.mock.calls.length).toBe(
+      pollCallsBeforeInterval + 1
+    );
+    expect(wrapper.find(".alert-data-export-request").text()).toContain(
+      "is ready"
+    );
+
+    // Once ready, polling.active flips false and the watcher must clear the interval:
+    // advancing another 5s should trigger no further poll calls.
+    const pollCallsAfterReady = experimentDataExportService.poll.mock.calls.length;
+
+    await vi.advanceTimersByTimeAsync(5000);
+    await flushMicrotasks();
+
+    expect(experimentDataExportService.poll.mock.calls.length).toBe(pollCallsAfterReady);
+  });
+
+  it("ignores a second click on the consent download button once the PDF is already loading or loaded", async () => {
+    let resolveFile;
+    consentService.getConsentFile.mockReturnValue(
+      new Promise(resolve => { resolveFile = resolve; })
+    );
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+
+    await switchTab(wrapper, "participant");
+
+    await wrapper.find(".pdfButton").trigger("click");
+    await wrapper.vm.$nextTick();
+
+    // pdfLoading is now true, so the button is hidden while loading.
+    expect(wrapper.find(".pdfButton").exists()).toBe(false);
+
+    resolveFile({ status: 200, base: "data:application/pdf;base64,ZmFrZQ==" });
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".pdfButton").exists()).toBe(true);
+    });
+
+    const callsAfterFirstLoad = consentService.getConsentFile.mock.calls.length;
+
+    // loadPdfFrame is now true, so a second click is a no-op guard clause.
+    await wrapper.find(".pdfButton").trigger("click");
+
+    expect(consentService.getConsentFile.mock.calls.length).toBe(callsAfterFirstLoad);
+  });
+
+  it("creates a treatment and assessment then navigates to the builder", async () => {
+    treatmentService.create.mockResolvedValue({
+      status: 201,
+      data: { treatmentId: 55, assignmentId: 3 }
+    });
+    assessmentService.fetchAssessments.mockResolvedValue({ data: [] });
+    assessmentService.createAssessment.mockResolvedValue({
+      status: 201,
+      data: { assessmentId: 77 }
+    });
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+
+    const result = await wrapper.vm.goToBuilder(1, 3, 60);
+
+    expect(treatmentService.create).toHaveBeenCalledWith(8, 1, 3);
+    expect(assessmentService.createAssessment).toHaveBeenCalledWith(8, 1, 55);
+    expect(result).not.toBe(false);
+    expect(push).toHaveBeenCalledWith({
+      name: "TerracottaBuilder",
+      params: {
+        experimentId: 8,
+        exposureId: 60,
+        assignmentId: 3,
+        conditionId: 1,
+        treatmentId: 55,
+        assessmentId: 77
+      }
+    });
+  });
+
+  it("shows an error and does not navigate to the builder when treatment creation fails", async () => {
+    treatmentService.create.mockResolvedValue({ status: 400, data: "bad treatment" });
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+
+    push.mockClear();
+    const result = await wrapper.vm.goToBuilder(1, 3, 60);
+
+    expect(result).toBe(false);
+    expect(swalFire).toHaveBeenCalledWith(
+      expect.stringContaining("There was a problem creating your treatment")
+    );
+    expect(push).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: "TerracottaBuilder" })
+    );
+  });
+
+  it("shows an error and does not navigate to the builder when assessment creation fails", async () => {
+    treatmentService.create.mockResolvedValue({
+      status: 201,
+      data: { treatmentId: 55, assignmentId: 3 }
+    });
+    assessmentService.fetchAssessments.mockResolvedValue({ data: [] });
+    assessmentService.createAssessment.mockResolvedValue({ status: 500, data: "bad assessment" });
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+
+    push.mockClear();
+    const result = await wrapper.vm.goToBuilder(1, 3, 60);
+
+    expect(result).toBe(false);
+    expect(swalFire).toHaveBeenCalledWith(
+      expect.stringContaining("There was a problem creating your assessment")
+    );
+    expect(push).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: "TerracottaBuilder" })
+    );
+  });
+
+  it("recovers when creating the treatment throws, showing the treatment error", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const store = treatmentModule();
+    vi.spyOn(store, "createTreatment").mockRejectedValue(new Error("boom"));
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+
+    const result = await wrapper.vm.goToBuilder(1, 3, 60);
+
+    expect(result).toBe(false);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "handleCreateTreatment | catch",
+      expect.objectContaining({ error: expect.any(Error) })
+    );
+    expect(swalFire).toHaveBeenCalledWith(
+      expect.stringContaining("There was a problem creating your treatment")
+    );
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("recovers when creating the assessment throws, showing the assessment error", async () => {
+    treatmentService.create.mockResolvedValue({
+      status: 201,
+      data: { treatmentId: 55, assignmentId: 3 }
+    });
+
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const store = assessmentModule();
+    vi.spyOn(store, "createAssessment").mockRejectedValue(new Error("kaboom"));
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+
+    const result = await wrapper.vm.goToBuilder(1, 3, 60);
+
+    expect(result).toBe(false);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "handleCreateAssessment | catch",
+      expect.objectContaining({ error: expect.any(Error) })
+    );
+    expect(swalFire).toHaveBeenCalledWith(
+      expect.stringContaining("There was a problem creating your assessment")
+    );
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("maps group names to condition names, and safely returns an empty map for a missing list", () => {
+    const wrapper = mountSummary();
+
+    expect(
+      wrapper.vm.groupNameConditionMapping([
+        { groupName: "Group 1", conditionName: "Condition A" },
+        { groupName: "Group 2", conditionName: "Condition B" }
+      ])
+    ).toEqual({ "Group 1": "Condition A", "Group 2": "Condition B" });
+
+    expect(wrapper.vm.groupNameConditionMapping(undefined)).toEqual({});
+  });
+
+  it("sorts group names alphabetically, and safely returns undefined for a missing list", () => {
+    const wrapper = mountSummary();
+
+    expect(
+      wrapper.vm.sortedGroups([
+        { groupName: "Zebra" },
+        { groupName: "Apple" }
+      ])
+    ).toEqual(["Apple", "Zebra"]);
+
+    expect(wrapper.vm.sortedGroups(undefined)).toBeUndefined();
+  });
+
+  it("redirects to the participation selection editor when a consent-type experiment has no consent configured", async () => {
+    experimentService.getById.mockResolvedValue({
+      status: 200,
+      data: { ...experiment, consent: undefined }
+    });
+
+    mountSummary();
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith({ name: "ExperimentParticipationSelectionMethod" });
+    });
+
+    expect(navigationModule().editMode).toMatchObject({
+      initialPage: "ExperimentParticipationSelectionMethod",
+      callerPage: { name: "ExperimentSummary", tab: "participant" }
+    });
+  });
+
+  it("switches to the status tab when the statusPageNav event fires on the event bus", async () => {
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.findComponent({ name: "ExperimentAssignments" }).exists()
+      ).toBe(true);
+    });
+
+    EventBus.emit("statusPageNav");
+    await wrapper.vm.$nextTick();
+
+    expect(
+      wrapper.findComponent({ name: "ExperimentSummaryStatus" }).exists()
+    ).toBe(true);
   });
 });
