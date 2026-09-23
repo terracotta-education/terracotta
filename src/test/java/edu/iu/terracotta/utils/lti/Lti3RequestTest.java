@@ -263,6 +263,21 @@ public class Lti3RequestTest extends BaseTest {
         assertThrows(UnsupportedJwtException.class, () -> new Lti3Request(httpServletRequest, ltiDataService, true, "link1"));
     }
 
+    // the key locator's own JOSEException|ParseException|IOException|URISyntaxException catch block:
+    // a jwks endpoint that new URI(String) itself rejects forces JwksCache.fetch() to throw
+    // URISyntaxException, which must be swallowed and resolved to a null key rather than
+    // propagating raw out of the locator
+    @Test
+    void testConstructorMalformedJwksEndpointThrowsUnsupportedJwtException() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        String jwt = buildJwt(keyPair.getPrivate(), KID, ISS, AUD, "sub-1", now(), inOneHour(), "nonce-1", resourceLinkClaims());
+
+        when(httpServletRequest.getParameter("id_token")).thenReturn(jwt);
+        stubJwksLookup(ISS, AUD, "http://bad uri with spaces");
+
+        assertThrows(UnsupportedJwtException.class, () -> new Lti3Request(httpServletRequest, ltiDataService, true, "link1"));
+    }
+
     // ------------------------------------------------------------------
     // constructor: message type / version validation
     // ------------------------------------------------------------------
