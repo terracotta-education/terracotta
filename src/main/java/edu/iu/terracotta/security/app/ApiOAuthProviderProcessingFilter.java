@@ -119,7 +119,10 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
         } catch (SecurityException e) {
             log.warn("Invalid JWT signature: {}", e.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        } catch (AuthenticationCredentialsNotFoundException | IllegalStateException e) {
+        } catch (AuthenticationCredentialsNotFoundException e) {
+            // no JWT token on the request - routine for requests that don't require API auth,
+            // not actionable
+        } catch (IllegalStateException e) {
             log.warn("Error handling JWT token: {}", e.getMessage());
         }
     }

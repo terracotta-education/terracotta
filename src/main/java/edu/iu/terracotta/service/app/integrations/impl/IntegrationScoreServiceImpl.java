@@ -211,7 +211,7 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
             IntegrationToken integrationToken = integrationTokenService.findByToken(launchToken);
             questionSubmissionService.canSubmit(integrationToken.getSecuredInfo().get(), integrationToken.getSubmission().getParticipant().getExperiment().getExperimentId(), true);
         } catch (IOException | ApiException | AssignmentAttemptException | TerracottaConnectorException | IntegrationTokenNotFoundException e) {
-            log.error("Error retrieving assignment attempt information for token: [{}]", launchToken, e);
+            log.error("Error retrieving assignment attempt information for token: [{}]: {}", launchToken, e.getMessage());
             return Optional.of(e.getMessage());
         } catch (AssignmentLockedException e) {
             log.warn("Assignment is locked for token: [{}]", launchToken);
