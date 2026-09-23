@@ -169,7 +169,7 @@ public class ParticipantController {
                 // recording their actual consent decision below - the two are independent
                 // outcomes, and the student shouldn't be stuck unable to consent over a
                 // gradebook sync issue
-                log.warn("Failed to post grade to the LMS for consent submission for participant ID: [{}]", participantId, e);
+                log.warn("Failed to post grade to the LMS for consent submission for participant ID: [{}]: {}", participantId, e.getMessage());
             }
 
             try {
