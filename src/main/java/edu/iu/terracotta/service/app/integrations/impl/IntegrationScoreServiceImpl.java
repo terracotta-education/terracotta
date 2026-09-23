@@ -60,8 +60,6 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
     @Override
     public void score(String launchToken, String score, Optional<String> previewTokenClient) throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
         try {
-            log.info("Processing external integration score: [{}] for launch token: [{}]", score, launchToken);
-
             if (StringUtils.isBlank(launchToken)) {
                 throw new IntegrationTokenInvalidException("Launch token cannot be null");
             }
@@ -82,13 +80,14 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
                         calculatedScore = null;
                     } else {
                         log.info(
-                            "No score returned for token: [{}]. Setting calculated score to question points: [{}]",
+                            "No score returned for launch token: [{}] - defaulting to the question's full point value [{}] as the score",
                             launchToken,
                             integrationToken.getIntegration().getQuestion().getPoints()
                         );
                         calculatedScore = integrationToken.getIntegration().getQuestion().getPoints();
                     }
                 } else {
+                    log.info("Processing external integration score: [{}] for launch token: [{}]", score, launchToken);
                     calculatedScore = Float.parseFloat(score);
                 }
             } catch (Exception e) {
