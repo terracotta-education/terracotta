@@ -506,4 +506,698 @@ describe("ExperimentAssignments", () => {
       expect.objectContaining({ name: "TerracottaBuilder" })
     );
   });
+
+  it("creates a treatment and assessment when the assessment API responds 200 instead of 201", async () => {
+    treatmentService.create.mockResolvedValue({
+      status: 201,
+      data: { treatmentId: 55, conditionId: 2, assignmentId: 100 }
+    });
+    assessmentService.createAssessment.mockResolvedValue({
+      status: 200,
+      data: { assessmentId: 78 }
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("add-treatment", { row, condition: { conditionId: 2 } });
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "TerracottaBuilder",
+          params: expect.objectContaining({ assessmentId: 78 })
+        })
+      );
+    });
+  });
+
+  it("shows an error and does not call treatmentService when add-treatment targets a message-container row", async () => {
+    seedStores({ messagingEnabled: true });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("add-treatment", { row, condition: { conditionId: 2 } });
+    await wrapper.vm.$nextTick();
+
+    expect(treatmentService.create).not.toHaveBeenCalled();
+  });
+
+  it("navigates straight to the builder when editing an existing treatment on an assignment row that hasn't started", async () => {
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+    const treatment = {
+      conditionId: 2,
+      treatmentId: 88,
+      assessmentDto: { assessmentId: 99 }
+    };
+
+    table.vm.$emit("edit-treatment", { row, treatment });
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "TerracottaBuilder",
+          params: expect.objectContaining({
+            conditionId: 2,
+            treatmentId: 88,
+            assessmentId: 99
+          })
+        })
+      );
+    });
+  });
+
+  it("shows a warning before editing a treatment on an assignment that has already started, and cancels when dismissed", async () => {
+    swalFire.mockResolvedValue({ isConfirmed: false });
+    seedStores({
+      assignments: [{ ...assignmentRow, started: true }]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+    const treatment = { conditionId: 2, treatmentId: 88, assessmentDto: { assessmentId: 99 } };
+
+    table.vm.$emit("edit-treatment", { row, treatment });
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalled();
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(push).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: "TerracottaBuilder" })
+    );
+  });
+
+  it("proceeds to the builder when the started-assignment warning is confirmed", async () => {
+    swalFire.mockResolvedValue({ isConfirmed: true });
+    seedStores({
+      assignments: [{ ...assignmentRow, started: true }]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+    const treatment = { conditionId: 2, treatmentId: 88, assessmentDto: { assessmentId: 99 } };
+
+    table.vm.$emit("edit-treatment", { row, treatment });
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "TerracottaBuilder" })
+      );
+    });
+  });
+
+  it("routes to the Message editor when editing a treatment on a message-container row", async () => {
+    seedStores({
+      messagingEnabled: true,
+      messageContainers: [
+        {
+          ...messageContainer,
+          messages: [
+            { id: "m-1", conditionId: 1, configuration: { status: "PUBLISHED" } }
+          ]
+        }
+      ]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+    const treatment = row.treatments[0];
+
+    table.vm.$emit("edit-treatment", { row, treatment });
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Message",
+          query: { messageId: treatment.id, containerId: row.id }
+        })
+      );
+    });
+  });
+
+  it("edits an assignment component directly, saving edit mode, when the assignment hasn't started", async () => {
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("edit", row);
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith({
+        name: "AssignmentEditor",
+        params: { assignmentId: row.assignmentId, exposureId: 50 }
+      });
+    });
+
+    const navigationStore = navigationModule();
+    expect(navigationStore.editMode).toMatchObject({ initialPage: "AssignmentEditor" });
+  });
+
+  it("warns before editing a started assignment directly, and cancels when dismissed", async () => {
+    swalFire.mockResolvedValue({ isConfirmed: false });
+    seedStores({
+      assignments: [{ ...assignmentRow, started: true }]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("edit", row);
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalled();
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(push).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: "AssignmentEditor" })
+    );
+  });
+
+  it("edits a message-container component directly, routing to the Message container editor", async () => {
+    seedStores({ messagingEnabled: true });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("edit", row);
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith({
+        name: "MessageContainer",
+        params: { experimentId: 3 },
+        query: { exposureId: 50, mode: "EDIT", containerId: row.id }
+      });
+    });
+  });
+
+  it("duplicates an assignment component and refreshes the assignment list on success", async () => {
+    assignmentService.duplicateAssignment.mockResolvedValue({ assignmentId: 999 });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("duplicate", row);
+
+    await vi.waitFor(() => {
+      expect(assignmentService.duplicateAssignment).toHaveBeenCalledWith(3, 50, 100);
+    });
+  });
+
+  it("shows an error alert when duplicating an assignment fails unexpectedly", async () => {
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    assignmentModule().duplicateAssignment = vi.fn().mockRejectedValue(new Error("boom"));
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("duplicate", row);
+
+    await vi.waitFor(() => {
+      expect(assignmentModule().duplicateAssignment).toHaveBeenCalled();
+    });
+  });
+
+  it("duplicates a message-container component", async () => {
+    seedStores({ messagingEnabled: true });
+    messageContainerService.duplicate.mockResolvedValue({ ...messageContainer, id: 201 });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("duplicate", row);
+
+    await vi.waitFor(() => {
+      expect(messageContainerService.duplicate).toHaveBeenCalledWith(3, 50, 200);
+    });
+  });
+
+  it("shows an error alert when duplicating a message container fails unexpectedly", async () => {
+    seedStores({ messagingEnabled: true });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    messagingContainerModule().duplicate = vi.fn().mockRejectedValue(new Error("boom"));
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("duplicate", row);
+
+    await vi.waitFor(() => {
+      expect(messagingContainerModule().duplicate).toHaveBeenCalled();
+    });
+  });
+
+  it("deletes a message-container component after confirmation", async () => {
+    swalFire.mockResolvedValue({ isConfirmed: true });
+    seedStores({ messagingEnabled: true });
+    messageContainerService.deleteContainer.mockResolvedValue({});
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("delete", row);
+
+    await vi.waitFor(() => {
+      expect(messageContainerService.deleteContainer).toHaveBeenCalledWith(3, 50, 200);
+    });
+  });
+
+  it("does not delete a message-container component when the confirmation is dismissed", async () => {
+    swalFire.mockResolvedValue({ isConfirmed: false });
+    seedStores({ messagingEnabled: true });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("delete", row);
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    expect(messageContainerService.deleteContainer).not.toHaveBeenCalled();
+  });
+
+  it("shows an error alert when deleting a message container fails unexpectedly", async () => {
+    swalFire.mockResolvedValue({ isConfirmed: true });
+    seedStores({ messagingEnabled: true });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    messagingContainerModule().deleteContainer = vi.fn().mockRejectedValue(new Error("boom"));
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("delete", row);
+
+    await vi.waitFor(() => {
+      expect(messagingContainerModule().deleteContainer).toHaveBeenCalled();
+    });
+  });
+
+  it("ignores publish events for assignment-type rows", async () => {
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("publish", row);
+    await wrapper.vm.$nextTick();
+
+    expect(messageContainerService.update).not.toHaveBeenCalled();
+  });
+
+  it("unpublishes a message-container component", async () => {
+    seedStores({ messagingEnabled: true });
+    messageContainerService.update.mockResolvedValue({
+      ...messageContainer,
+      configuration: { ...messageContainer.configuration, status: "UNPUBLISHED" }
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("unpublish", row);
+
+    await vi.waitFor(() => {
+      expect(messageContainerService.update).toHaveBeenCalled();
+    });
+
+    const [, , , payload] = messageContainerService.update.mock.calls[0];
+    expect(payload.configuration.status).not.toBe("PUBLISHED");
+  });
+
+  it("ignores unpublish events for assignment-type rows", async () => {
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("unpublish", row);
+    await wrapper.vm.$nextTick();
+
+    expect(messageContainerService.update).not.toHaveBeenCalled();
+  });
+
+  it("does not attempt to move a component when the move dialog is dismissed", async () => {
+    swalFire.mockResolvedValue({ isDismissed: true });
+    seedStores({
+      exposures: [exposure, { exposureId: 51, exposureName: "Exposure 2" }]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("move", row);
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalled();
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(assignmentService.moveAssignment).not.toHaveBeenCalled();
+  });
+
+  it("moves an assignment component to another exposure", async () => {
+    swalFire.mockResolvedValue({ isDismissed: false, value: { exposureId: 51 } });
+    assignmentService.moveAssignment.mockResolvedValue({ assignmentId: 100 });
+    seedStores({
+      exposures: [exposure, { exposureId: 51, exposureName: "Exposure 2" }]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("move", row);
+
+    await vi.waitFor(() => {
+      expect(assignmentService.moveAssignment).toHaveBeenCalledWith(
+        3,
+        50,
+        100,
+        expect.objectContaining({ assignmentId: null, exposureId: 51 })
+      );
+    });
+  });
+
+  it("shows an error alert when moving an assignment fails unexpectedly", async () => {
+    swalFire.mockResolvedValue({ isDismissed: false, value: { exposureId: 51 } });
+    seedStores({
+      exposures: [exposure, { exposureId: 51, exposureName: "Exposure 2" }]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    assignmentModule().moveAssignment = vi.fn().mockRejectedValue(new Error("boom"));
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("move", row);
+
+    await vi.waitFor(() => {
+      expect(assignmentModule().moveAssignment).toHaveBeenCalled();
+    });
+  });
+
+  it("moves a message-container component to another exposure", async () => {
+    swalFire.mockResolvedValue({ isDismissed: false, value: { exposureId: 51 } });
+    messageContainerService.move.mockResolvedValue({ ...messageContainer, exposureId: 51 });
+    seedStores({
+      messagingEnabled: true,
+      exposures: [exposure, { exposureId: 51, exposureName: "Exposure 2" }]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("move", row);
+
+    await vi.waitFor(() => {
+      expect(messageContainerService.move).toHaveBeenCalledWith(
+        3,
+        50,
+        200,
+        expect.objectContaining({ exposureId: 51 })
+      );
+    });
+  });
+
+  it("shows an error alert when moving a message container fails unexpectedly", async () => {
+    swalFire.mockResolvedValue({ isDismissed: false, value: { exposureId: 51 } });
+    seedStores({
+      messagingEnabled: true,
+      exposures: [exposure, { exposureId: 51, exposureName: "Exposure 2" }]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    messagingContainerModule().move = vi.fn().mockRejectedValue(new Error("boom"));
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "message");
+
+    table.vm.$emit("move", row);
+
+    await vi.waitFor(() => {
+      expect(messagingContainerModule().move).toHaveBeenCalled();
+    });
+  });
+
+  it("shows the no-components AddAssignmentDialog and navigates for single/multiple versions", async () => {
+    seedStores({ assignments: [], messageContainers: [], messagingEnabled: false });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const dialog = wrapper
+      .findAllComponents({ name: "AddAssignmentDialog" })
+      .find(cmp => cmp.props("hasExisting") === false);
+
+    expect(dialog).toBeTruthy();
+
+    dialog.vm.$emit("single");
+    await wrapper.vm.$nextTick();
+
+    expect(push).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "AssignmentCreateAssignment" })
+    );
+  });
+
+  it("navigates for a multi-version assignment from the no-components AddAssignmentDialog", async () => {
+    seedStores({
+      assignments: [],
+      messageContainers: [],
+      messagingEnabled: false,
+      exposures: [
+        { ...exposure, groupConditionList: [{ conditionId: 1 }, { conditionId: 2 }] }
+      ]
+    });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const dialog = wrapper
+      .findAllComponents({ name: "AddAssignmentDialog" })
+      .find(cmp => cmp.props("hasExisting") === false);
+
+    dialog.vm.$emit("multiple");
+    await wrapper.vm.$nextTick();
+
+    expect(push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "AssignmentCreateAssignment",
+        query: { conditionIds: JSON.stringify([1, 2]) }
+      })
+    );
+  });
+
+  it("shows an error alert when deleting an assignment fails unexpectedly", async () => {
+    swalFire.mockResolvedValue({ isConfirmed: true });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    assignmentModule().deleteAssignment = vi.fn().mockRejectedValue(new Error("boom"));
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows")[0];
+
+    table.vm.$emit("delete", row);
+
+    await vi.waitFor(() => {
+      expect(assignmentModule().deleteAssignment).toHaveBeenCalled();
+    });
+  });
+
+  it("shows an error alert and does not navigate when assessment creation fails after a successful treatment creation", async () => {
+    treatmentService.create.mockResolvedValue({
+      status: 201,
+      data: { treatmentId: 55, conditionId: 2, assignmentId: 100 }
+    });
+    assessmentService.createAssessment.mockResolvedValue({ status: 500 });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+    const row = table.props("rows").find(item => item.type === "assignment");
+
+    table.vm.$emit("add-treatment", { row, condition: { conditionId: 2 } });
+
+    await vi.waitFor(() => {
+      expect(assessmentService.createAssessment).toHaveBeenCalled();
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(push).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: "TerracottaBuilder" })
+    );
+  });
+
+  it("shows the no-components AddMessageDialog when messaging is enabled, and navigates on add", async () => {
+    seedStores({ assignments: [], messageContainers: [], messagingEnabled: true });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const dialog = wrapper
+      .findAllComponents({ name: "AddMessageDialog" })
+      .find(cmp => cmp.props("hasExisting") === false);
+
+    expect(dialog).toBeTruthy();
+
+    dialog.vm.$emit("add", "text");
+    await wrapper.vm.$nextTick();
+
+    expect(push).toHaveBeenCalledWith({
+      name: "MessageContainer",
+      params: { experimentId: 3 },
+      query: { exposureId: 50, version: "text", mode: "NEW" }
+    });
+  });
+
+  it("shows the header AddMessageDialog when messaging is enabled and components already exist, and navigates on add", async () => {
+    seedStores({ messagingEnabled: true });
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const dialog = wrapper
+      .findAllComponents({ name: "AddMessageDialog" })
+      .find(cmp => cmp.props("hasExisting") === true);
+
+    expect(dialog).toBeTruthy();
+
+    dialog.vm.$emit("add", "video");
+    await wrapper.vm.$nextTick();
+
+    expect(push).toHaveBeenCalledWith({
+      name: "MessageContainer",
+      params: { experimentId: 3 },
+      query: { exposureId: 50, version: "video", mode: "NEW" }
+    });
+  });
+
+  it("includes message-container rows in the saved order, updating their configuration.order", async () => {
+    seedStores({
+      messagingEnabled: true,
+      assignments: [{ ...assignmentRow, assignmentId: 100, assignmentOrder: 1 }],
+      messageContainers: [{ ...messageContainer, id: 200, configuration: { ...messageContainer.configuration, order: 2 } }]
+    });
+    assignmentService.updateAssignments.mockResolvedValue([]);
+    messageContainerService.updateAll.mockResolvedValue([]);
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+
+    table.vm.$emit(
+      "save-order",
+      { oldDraggableIndex: 0, newDraggableIndex: 1 }
+    );
+
+    await vi.waitFor(() => {
+      expect(messageContainerService.updateAll).toHaveBeenCalled();
+    });
+
+    const [, , updatedContainers] = messageContainerService.updateAll.mock.calls[0];
+    expect(updatedContainers).toHaveLength(1);
+    expect(updatedContainers[0].configuration.order).toBe(1);
+  });
 });

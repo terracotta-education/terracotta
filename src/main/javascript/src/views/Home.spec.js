@@ -87,6 +87,7 @@ const clickCopyCandidatesOverlayButton = async label => {
 
 import { createPinia, setActivePinia } from "pinia";
 import { flushPromises } from "@vue/test-utils";
+import { onBeforeRouteLeave } from "vue-router";
 import { mountComponent } from "@/test-utils/mount";
 import {
   experimentService,
@@ -95,6 +96,7 @@ import {
 } from "@/services";
 import { configuration as configurationModule } from "@/store/configuration.module";
 import { assignment as assignmentModule } from "@/store/assignment.module";
+import { experiment as experimentModule } from "@/store/experiment.module";
 import Home from "./Home.vue";
 
 const experiment = {
@@ -367,6 +369,24 @@ describe("Home", () => {
     expect(swalFire).not.toHaveBeenCalled();
   });
 
+  it("tracks import requests that were already in progress when the page loads", async () => {
+    experimentService.pollImports.mockResolvedValue({
+      data: [{ id: "already-running", status: "PROCESSING" }]
+    });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.findComponent({ name: "ZeroState" }).props("experimentImportRequests")["already-running"]
+      ).toMatchObject({ showAlert: true, polling: { active: true } });
+    });
+  });
+
   it("shows the zero state and hides the table when there are no experiments", async () => {
     const wrapper = mountComponent(Home);
 
@@ -587,5 +607,732 @@ describe("Home", () => {
     await vi.waitFor(() => {
       expect(experimentDataExportService.prepare).toHaveBeenCalledWith(11);
     });
+  });
+
+  it("does not prepare a data export when the final confirmation is cancelled", async () => {
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [experiment]
+    });
+    experimentDataExportService.poll.mockResolvedValue(null);
+    swalFire.mockResolvedValue({ isConfirmed: false });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".mdi-dots-horizontal").exists()).toBe(true);
+    });
+
+    const exportResultsItem = await openRowAction(wrapper, "Export Results");
+    await exportResultsItem.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalled();
+    });
+    expect(experimentDataExportService.prepare).not.toHaveBeenCalled();
+  });
+
+  it("shows an info message and does not prepare a new export while one is already processing or reprocessing", async () => {
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [experiment]
+    });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".mdi-dots-horizontal").exists()).toBe(true);
+    });
+
+    experimentDataExportService.poll.mockResolvedValueOnce({
+      id: 4,
+      experimentId: 11,
+      experimentTitle: "My Experiment",
+      status: "PROCESSING"
+    });
+
+    let exportResultsItem = await openRowAction(wrapper, "Export Results");
+    await exportResultsItem.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({
+        text: expect.stringContaining("still being processed")
+      }));
+    });
+    expect(experimentDataExportService.prepare).not.toHaveBeenCalled();
+
+    swalFire.mockClear();
+    experimentDataExportService.poll.mockResolvedValueOnce({
+      id: 4,
+      experimentId: 11,
+      experimentTitle: "My Experiment",
+      status: "REPROCESSING"
+    });
+
+    exportResultsItem = await openRowAction(wrapper, "Export Results");
+    await exportResultsItem.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({
+        text: expect.stringContaining("New submissons have occurred")
+      }));
+    });
+    expect(experimentDataExportService.prepare).not.toHaveBeenCalled();
+  });
+
+  it("shows a ready data export alert with a download link and finishes the download flow without further prompts", async () => {
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [experiment]
+    });
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 1, experimentId: 11, experimentTitle: "My Experiment", status: "READY" }
+    ]);
+    experimentDataExportService.poll.mockResolvedValue({
+      id: 1,
+      experimentId: 11,
+      experimentTitle: "My Experiment",
+      status: "READY"
+    });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Your data export for experiment "My Experiment" is ready.');
+    });
+
+    const downloadLink = wrapper.findAll("a")
+      .find(a => a.text().includes("Click here to download") && !a.text().includes("new data export"));
+
+    expect(downloadLink).not.toBeUndefined();
+    await downloadLink.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(experimentDataExportService.poll).toHaveBeenCalledWith(11, true);
+    });
+    // the ready/retrieve short-circuit never needs to prompt the user again
+    expect(swalFire).not.toHaveBeenCalled();
+  });
+
+  it("shows an outdated data export alert with a recreate link and prepares a new export when confirmed", async () => {
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [experiment]
+    });
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 2, experimentId: 11, experimentTitle: "My Experiment", status: "OUTDATED" }
+    ]);
+    experimentDataExportService.poll.mockResolvedValue({
+      id: 2,
+      experimentId: 11,
+      experimentTitle: "My Experiment",
+      status: "OUTDATED"
+    });
+    experimentDataExportService.prepare.mockResolvedValue({
+      id: 3,
+      experimentId: 11,
+      experimentTitle: "My Experiment",
+      status: "PROCESSING"
+    });
+    swalFire.mockResolvedValue({ isConfirmed: true });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain(
+        'There have been updates since the last requested data export for experiment "My Experiment".'
+      );
+    });
+
+    const recreateLink = wrapper.findAll("a").find(a => a.text().includes("new data export"));
+    expect(recreateLink).not.toBeUndefined();
+    await recreateLink.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(experimentDataExportService.prepare).toHaveBeenCalledWith(11);
+    });
+    expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({
+      text: expect.stringContaining("Depending on its size")
+    }));
+  });
+
+  it("hides a still-processing data export alert without acknowledging it when dismissed", async () => {
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [experiment]
+    });
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 5, experimentId: 11, experimentTitle: "My Experiment", status: "PROCESSING" }
+    ]);
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('The data export for experiment "My Experiment" is being processed.');
+    });
+
+    const findAlert = () => wrapper.findAllComponents({ name: "VAlert" })
+      .find(a => a.attributes("aria-label") === "data export request alert for experiment 11");
+
+    expect(findAlert()).not.toBeUndefined();
+
+    findAlert().vm.$emit("click:close");
+    await nextTick();
+
+    expect(experimentDataExportService.acknowledge).not.toHaveBeenCalled();
+    expect(findAlert()).toBeUndefined();
+  });
+
+  it("acknowledges the export request when dismissing ready, outdated, or error alerts", async () => {
+    const readyExperiment = { ...experiment, experimentId: 12, title: "Ready Study" };
+    const outdatedExperiment = { ...experiment, experimentId: 13, title: "Outdated Study" };
+    const errorExperiment = { ...experiment, experimentId: 14, title: "Error Study" };
+
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [readyExperiment, outdatedExperiment, errorExperiment]
+    });
+    experimentDataExportService.pollList.mockResolvedValue([
+      { id: 20, experimentId: 12, experimentTitle: "Ready Study", status: "READY" },
+      { id: 21, experimentId: 13, experimentTitle: "Outdated Study", status: "OUTDATED" },
+      { id: 22, experimentId: 14, experimentTitle: "Error Study", status: "ERROR" }
+    ]);
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.findAllComponents({ name: "VAlert" }).length).toBeGreaterThanOrEqual(3);
+    });
+
+    const dismiss = async experimentId => {
+      const alert = wrapper.findAllComponents({ name: "VAlert" })
+        .find(a => a.attributes("aria-label") === `data export request alert for experiment ${experimentId}`);
+      alert.vm.$emit("click:close");
+      await nextTick();
+    };
+
+    await dismiss(12);
+    await dismiss(13);
+    await dismiss(14);
+
+    expect(experimentDataExportService.acknowledge).toHaveBeenCalledWith(12, 20, "READY_ACKNOWLEDGED");
+    expect(experimentDataExportService.acknowledge).toHaveBeenCalledWith(13, 21, "OUTDATED_ACKNOWLEDGED");
+    expect(experimentDataExportService.acknowledge).toHaveBeenCalledWith(14, 22, "ERROR_ACKNOWLEDGED");
+  });
+
+  it("polls a processing data export request on an interval and clears it once no longer active", async () => {
+    const setIntervalSpy = vi.spyOn(window, "setInterval").mockReturnValue(9911);
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval").mockImplementation(() => {});
+
+    experimentService.getAll.mockResolvedValue({ status: 200, data: [experiment] });
+    experimentDataExportService.poll.mockResolvedValue(null);
+    experimentDataExportService.prepare.mockResolvedValue({
+      id: 30,
+      experimentId: 11,
+      experimentTitle: "My Experiment",
+      status: "PROCESSING"
+    });
+    swalFire.mockResolvedValue({ isConfirmed: true });
+
+    const wrapper = mountComponent(Home);
+
+    // wait for the whole onMounted chain (including its own data-export polling
+    // setup) to settle first, so it can't race with - and clobber - the polling
+    // state this test is about to set up via the "Export Results" action
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+    await vi.waitFor(() => {
+      expect(wrapper.find(".mdi-dots-horizontal").exists()).toBe(true);
+    });
+
+    const exportResultsItem = await openRowAction(wrapper, "Export Results");
+    await exportResultsItem.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(experimentDataExportService.prepare).toHaveBeenCalledWith(11);
+    });
+    await vi.waitFor(() => {
+      expect(setIntervalSpy).toHaveBeenCalled();
+    });
+
+    const pollCallback = setIntervalSpy.mock.calls.at(-1)[0];
+
+    experimentDataExportService.poll.mockResolvedValueOnce({
+      id: 30,
+      experimentId: 11,
+      experimentTitle: "My Experiment",
+      status: "READY"
+    });
+    await pollCallback();
+    await flushPromises();
+
+    expect(experimentDataExportService.poll).toHaveBeenCalledWith(11, false);
+    await vi.waitFor(() => {
+      expect(clearIntervalSpy).toHaveBeenCalledWith(9911);
+    });
+
+    setIntervalSpy.mockRestore();
+    clearIntervalSpy.mockRestore();
+  });
+
+  it("imports an experiment from a selected file and tracks the resulting import request", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({
+      configurations: { experimentExportEnabled: true }
+    });
+
+    swalFire.mockResolvedValue({ value: new File(["zip"], "experiment.zip") });
+    experimentService.import.mockResolvedValue({ id: "import-happy", status: "PROCESSING" });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    // the "Import Experiment" button is present in the DOM (just v-show hidden)
+    // even before onMounted finishes, and onMounted's own trailing pollImports()
+    // call would otherwise race with - and wipe out - the import request this
+    // test is about to create, so wait for it to fully settle first
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    const importButton = wrapper.findAll("button").find(button => button.text() === "Import Experiment");
+    await importButton.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(experimentService.import).toHaveBeenCalled();
+    });
+    expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Import experiment from file"
+    }));
+
+    const [file] = experimentService.import.mock.calls[0];
+    expect(file).toBeInstanceOf(File);
+  });
+
+  it("does not import anything when the file selection dialog is cancelled", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({
+      configurations: { experimentExportEnabled: true }
+    });
+
+    swalFire.mockResolvedValue({ value: undefined });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    const importButton = wrapper.findAll("button").find(button => button.text() === "Import Experiment");
+    await importButton.trigger("click");
+
+    await flushPromises();
+    expect(experimentService.import).not.toHaveBeenCalled();
+  });
+
+  it("renders import request alerts for completed and failed imports once experiments are loaded", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({
+      configurations: { experimentExportEnabled: true }
+    });
+
+    experimentService.getAll.mockResolvedValue({ status: 200, data: [experiment] });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    const importButton = () => wrapper.findAll("button").find(button => button.text() === "Import Experiment");
+
+    swalFire.mockResolvedValueOnce({ value: new File(["z"], "a.zip") });
+    experimentService.import.mockResolvedValueOnce({
+      id: "import-complete",
+      status: "COMPLETE",
+      sourceTitle: "Old Name",
+      importedTitle: "New Name"
+    });
+    await importButton().trigger("click");
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain(
+        'Your import of experiment "Old Name" is complete. The new title is "New Name".'
+      );
+    });
+
+    swalFire.mockResolvedValueOnce({ value: new File(["z"], "b.zip") });
+    experimentService.import.mockResolvedValueOnce({
+      id: "import-error",
+      status: "ERROR",
+      sourceTitle: "Broken Study",
+      errorMessages: [
+        { text: "bad row 1" },
+        { text: "bad row 2" },
+        { text: "bad row 3" },
+        { text: "bad row 4" }
+      ]
+    });
+    await importButton().trigger("click");
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain(
+        'There were errors in processing the import of experiment "Broken Study"'
+      );
+    });
+
+    // ZeroState renders its own (identical) copy of importRequestAlerts too, so scope
+    // the search to just one of the matching alerts rather than the whole wrapper
+    const errorAlert = wrapper.findAllComponents({ name: "VAlert" })
+      .find(alert => alert.text().includes("Broken Study"));
+    const errorItems = errorAlert.findAll("li").map(li => li.text());
+    expect(errorItems).toEqual(["bad row 1", "bad row 2", "bad row 3"]);
+  });
+
+  it("updates a zero-state import alert's tracked visibility, ignoring unknown ids", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({
+      configurations: { experimentExportEnabled: true }
+    });
+
+    swalFire.mockResolvedValue({ value: new File(["z"], "a.zip") });
+    experimentService.import.mockResolvedValue({ id: "import-vis", status: "PROCESSING" });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    // wait for onMounted (including its trailing pollImports() call) to fully settle
+    // before importing, so it can't race with - and wipe out - the import request
+    // this test is about to create
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    const importButton = wrapper.findAll("button").find(button => button.text() === "OR IMPORT AN EXPERIMENT");
+    await importButton.trigger("click");
+
+    const zeroState = wrapper.findComponent({ name: "ZeroState" });
+    await vi.waitFor(() => {
+      expect(zeroState.props("experimentImportRequests")["import-vis"]).toBeDefined();
+    });
+
+    // an id that was never tracked (e.g. already dismissed) is a no-op
+    zeroState.vm.$emit("handleImportRequestAlertVisibilityChange", "unknown-id", false);
+    await nextTick();
+    expect(zeroState.props("experimentImportRequests")["unknown-id"]).toBeUndefined();
+
+    zeroState.vm.$emit("handleImportRequestAlertVisibilityChange", "import-vis", false);
+    await nextTick();
+    expect(zeroState.props("experimentImportRequests")["import-vis"].showAlert).toBe(false);
+  });
+
+  it("does not dismiss a still-processing zero-state import alert", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({
+      configurations: { experimentExportEnabled: true }
+    });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    // wait for onMounted (including its trailing pollImports() call) to fully settle
+    // before importing, so it can't race with - and wipe out - the import request
+    // this test is about to create
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    const importButton = () => wrapper.findAll("button")
+      .find(button => button.text() === "OR IMPORT AN EXPERIMENT");
+    const zeroState = () => wrapper.findComponent({ name: "ZeroState" });
+
+    swalFire.mockResolvedValueOnce({ value: new File(["z"], "p.zip") });
+    experimentService.import.mockResolvedValueOnce({ id: "imp-processing", status: "PROCESSING" });
+    await importButton().trigger("click");
+    await vi.waitFor(() => {
+      expect(zeroState().props("experimentImportRequests")["imp-processing"]).toBeDefined();
+    });
+
+    zeroState().vm.$emit("handleImportRequestAlertDismiss", "imp-processing");
+    await flushPromises();
+    // still-processing requests can't be dismissed yet
+    expect(experimentService.acknowledgeImport).not.toHaveBeenCalled();
+    expect(zeroState().props("experimentImportRequests")["imp-processing"]).toBeDefined();
+  });
+
+  it("acknowledges and clears completed and errored zero-state import alerts when dismissed", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({
+      configurations: { experimentExportEnabled: true }
+    });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    const importButton = () => wrapper.findAll("button")
+      .find(button => button.text() === "OR IMPORT AN EXPERIMENT");
+    const zeroState = () => wrapper.findComponent({ name: "ZeroState" });
+
+    swalFire.mockResolvedValueOnce({ value: new File(["z"], "c.zip") });
+    experimentService.import.mockResolvedValueOnce({
+      id: "imp-complete",
+      status: "COMPLETE",
+      sourceTitle: "A",
+      importedTitle: "B"
+    });
+    await importButton().trigger("click");
+    await vi.waitFor(() => {
+      expect(zeroState().props("experimentImportRequests")["imp-complete"]).toBeDefined();
+    });
+
+    zeroState().vm.$emit("handleImportRequestAlertDismiss", "imp-complete");
+    // wait for the whole dismiss handler (acknowledge, then local removal) to finish -
+    // checking "acknowledge was called" alone can resolve before the removal has happened
+    await vi.waitFor(() => {
+      expect(zeroState().props("experimentImportRequests")["imp-complete"]).toBeUndefined();
+    });
+    expect(experimentService.acknowledgeImport).toHaveBeenCalledWith("imp-complete", "COMPLETE_ACKNOWLEDGED");
+
+    swalFire.mockResolvedValueOnce({ value: new File(["z"], "e.zip") });
+    experimentService.import.mockResolvedValueOnce({
+      id: "imp-error",
+      status: "ERROR",
+      sourceTitle: "C"
+    });
+    await importButton().trigger("click");
+    await vi.waitFor(() => {
+      expect(zeroState().props("experimentImportRequests")["imp-error"]).toBeDefined();
+    });
+
+    zeroState().vm.$emit("handleImportRequestAlertDismiss", "imp-error");
+    await vi.waitFor(() => {
+      expect(zeroState().props("experimentImportRequests")["imp-error"]).toBeUndefined();
+    });
+    expect(experimentService.acknowledgeImport).toHaveBeenCalledWith("imp-error", "ERROR_ACKNOWLEDGED");
+  });
+
+  it("polls a processing import request on an interval and refetches experiments once it completes", async () => {
+    const setIntervalSpy = vi.spyOn(window, "setInterval").mockReturnValue(4242);
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval").mockImplementation(() => {});
+
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({
+      configurations: { experimentExportEnabled: true }
+    });
+
+    swalFire.mockResolvedValue({ value: new File(["z"], "a.zip") });
+    experimentService.import.mockResolvedValue({ id: "imp-poll", status: "PROCESSING" });
+    experimentService.pollImport.mockResolvedValue({ data: { id: "imp-poll", status: "COMPLETE" } });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    const importButton = wrapper.findAll("button").find(button => button.text() === "OR IMPORT AN EXPERIMENT");
+    await importButton.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(setIntervalSpy).toHaveBeenCalled();
+    });
+
+    const pollCallback = setIntervalSpy.mock.calls.at(-1)[0];
+    await pollCallback();
+    await flushPromises();
+
+    expect(experimentService.pollImport).toHaveBeenCalledWith(["imp-poll"]);
+    // completing the import refetches the experiment list
+    expect(experimentService.getAll).toHaveBeenCalledTimes(2);
+
+    setIntervalSpy.mockRestore();
+    clearIntervalSpy.mockRestore();
+  });
+
+  it("clears active polling intervals for in-flight import requests when navigating away", async () => {
+    const setIntervalSpy = vi.spyOn(window, "setInterval").mockReturnValue(5151);
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval").mockImplementation(() => {});
+
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({
+      configurations: { experimentExportEnabled: true }
+    });
+
+    swalFire.mockResolvedValue({ value: new File(["z"], "a.zip") });
+    experimentService.import.mockResolvedValue({ id: "imp-leave", status: "PROCESSING" });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+
+    const importButton = wrapper.findAll("button").find(button => button.text() === "OR IMPORT AN EXPERIMENT");
+    await importButton.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(setIntervalSpy).toHaveBeenCalled();
+    });
+
+    const routeLeaveCallback = onBeforeRouteLeave.mock.calls.at(-1)[0];
+    const next = vi.fn();
+    routeLeaveCallback(null, null, next);
+
+    expect(clearIntervalSpy).toHaveBeenCalledWith(5151);
+    expect(next).toHaveBeenCalled();
+
+    setIntervalSpy.mockRestore();
+    clearIntervalSpy.mockRestore();
+  });
+
+  it("skips resolved copy-candidate imports that have no id", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = experimentModule();
+    const upsertSpy = vi.spyOn(store, "upsertImportRequest");
+
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+    experimentCopyCandidateService.resolve.mockResolvedValue({
+      data: { imports: [{ status: "PROCESSING" }], declinedCandidateIds: [] }
+    });
+    mountCopyCandidatesDialog();
+
+    mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(document.querySelector(".copy-candidate-option")).not.toBeNull();
+    });
+
+    await clickCandidateOption(0);
+    await clickCopyCandidatesAction("Create selected");
+    await clickCopyCandidatesOverlayButton("Got it!");
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.resolve).toHaveBeenCalledWith(["c1"]);
+    });
+    await flushPromises();
+
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows an error and does not navigate when creating a new experiment fails without an experiment id", async () => {
+    experimentService.create.mockResolvedValue({ status: 500, data: {} });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("New Experiment");
+    });
+
+    const newExperimentButton = wrapper.findAll("button").find(button => button.text() === "New Experiment");
+    await newExperimentButton.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({
+        icon: "error",
+        text: expect.stringContaining("Error Status: 500")
+      }));
+    });
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("logs and recovers when creating a new experiment throws", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = experimentModule();
+    vi.spyOn(store, "createExperiment").mockRejectedValue(new Error("boom"));
+    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("New Experiment");
+    });
+
+    const newExperimentButton = wrapper.findAll("button").find(button => button.text() === "New Experiment");
+    await newExperimentButton.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        "startExperiment -> createExperiment | catch",
+        expect.objectContaining({ error: expect.any(Error) })
+      );
+    });
+    expect(push).not.toHaveBeenCalled();
+
+    consoleLogSpy.mockRestore();
+  });
+
+  it("shows an error message when deleting an experiment fails", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = experimentModule();
+    vi.spyOn(store, "deleteExperiment").mockRejectedValue(new Error("boom"));
+
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [experiment]
+    });
+    swalFire.mockResolvedValue({ isConfirmed: true });
+
+    const wrapper = mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".mdi-dots-horizontal").exists()).toBe(true);
+    });
+
+    const deleteItem = await openRowAction(wrapper, "Delete");
+    await deleteItem.trigger("click");
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({
+        text: "Could not delete experiment.",
+        icon: "error"
+      }));
+    });
+  });
+
+  it("makes sortable experiment table column headers keyboard-activatable", async () => {
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [experiment]
+    });
+
+    const wrapper = mountComponent(Home, { attachTo: document.body });
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("My Experiment");
+    });
+    await flushPromises();
+    await nextTick();
+
+    const sortableHeaderSpan = document.querySelector(
+      ".table-experiments th.v-data-table__th--sortable .v-data-table-header__content > span:not(.v-icon)"
+    );
+
+    expect(sortableHeaderSpan).not.toBeNull();
+    expect(sortableHeaderSpan.getAttribute("tabindex")).toBe("0");
+
+    const clickSpy = vi.spyOn(sortableHeaderSpan, "click");
+
+    sortableHeaderSpan.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", bubbles: true }));
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    // non-Enter keys are ignored
+    sortableHeaderSpan.dispatchEvent(new KeyboardEvent("keyup", { key: "a", bubbles: true }));
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    wrapper.unmount();
   });
 });

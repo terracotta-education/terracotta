@@ -372,7 +372,10 @@ const dataExportRequestAlerts = computed(() => {
       continue;
     }
 
-    const request = dataExportRequest(experimentId);
+    // object keys (from for..in) are always strings, but experimentId is numeric
+    // everywhere else in this store/component - without this conversion, the lookup
+    // below never matches and no data-export alert can ever be shown
+    const request = dataExportRequest(Number(experimentId));
 
     if (request?.ready) {
       experimentsToShow.push({
@@ -941,7 +944,13 @@ watch(
       return;
     }
 
-    const sortableColumns = table.querySelectorAll("th.sortable > span:not(.v-icon)");
+    // Vuetify 3 marks a sortable header with the "v-data-table__th--sortable" class
+    // (not the older "sortable" class this selector was written for) and nests its
+    // label in a ".v-data-table-header__content" wrapper - the old selector never
+    // matched anything, silently disabling this keyboard-accessibility behavior
+    const sortableColumns = table.querySelectorAll(
+      "th.v-data-table__th--sortable .v-data-table-header__content > span:not(.v-icon)"
+    );
 
     sortableColumns.forEach(column => {
       column.setAttribute("tabindex", "0");
@@ -967,8 +976,11 @@ watch(
       }
 
       if (request.polling.active && !request.polling.id) {
+        // for..in keys are always strings, but experimentId is numeric everywhere
+        // else in this store/component - handleDataExportRequestPolling looks the
+        // request back up by strict equality, so this needs to be a number too
         request.polling.id = window.setInterval(() => {
-          handleDataExportRequestPolling(experimentId);
+          handleDataExportRequestPolling(Number(experimentId));
         }, 5000);
       } else if (!request.polling.active && request.polling.id) {
         request.polling.id = window.clearInterval(request.polling.id);
