@@ -130,7 +130,6 @@ public class ParticipantController {
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating Participant with id {}", participantId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
@@ -144,6 +143,8 @@ public class ParticipantController {
                 experimentId,
                 securedInfo
             );
+
+            log.debug("Updated participant ID: [{}]", participantId);
 
             return new ResponseEntity<>(participantService.toDto(participants.get(0), securedInfo), HttpStatus.OK);
         }
@@ -164,7 +165,10 @@ public class ParticipantController {
             }
 
             try {
-                return new ResponseEntity<>(participantService.toDto(participantService.changeConsent(participantDto, securedInfo, experimentId), securedInfo), HttpStatus.OK);
+                Participant updatedParticipant = participantService.changeConsent(participantDto, securedInfo, experimentId);
+                log.debug("Updated participant ID: [{}]", participantId);
+
+                return new ResponseEntity<>(participantService.toDto(updatedParticipant, securedInfo), HttpStatus.OK);
             } catch (ParticipantAlreadyStartedException e) {
                 log.debug("Participant {} has already started: {}", participantId, e.getMessage());
                 return new ResponseEntity(
