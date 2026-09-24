@@ -392,6 +392,39 @@ const handleSubmit = async () => {
   });
 };
 
+// The store actions return null when the request itself failed (e.g. no connection).
+// For an HTTP error, the services' handleResponse puts the body in different fields
+// depending on the service ({ status, error } for submissions, { data, status, error }
+// for reportStep, { message, status } for a 409), so reading only `data` turned every
+// answer-save failure into "Error submitting quiz: undefined".
+const submitErrorMessage = result => {
+  if (!result) {
+    return "We couldn't reach the server. Please check your internet connection and try again.";
+  }
+
+  if (result.status === 401) {
+    return "Your session has expired. Please close this window, open the assignment again from your course, and submit again.";
+  }
+
+  const detail = [result.error, result.data, result.message]
+    .map(value => (value instanceof Error ? value.message : value))
+    .find(value => typeof value === "string" && value.trim());
+
+  if (result.status == null) {
+    return detail || "An unexpected error occurred.";
+  }
+
+  return detail
+    ? `${detail} (error ${result.status})`
+    : `The server returned error ${result.status}.`;
+};
+
+const assertSubmitStepSucceeded = result => {
+  if (![200, 201].includes(result?.status)) {
+    throw Error(submitErrorMessage(result));
+  }
+};
+
 const submitQuiz = async () => {
   try {
     selectedSubmissionId.value = submissionId.value;
@@ -401,8 +434,9 @@ const submitQuiz = async () => {
       submissions.value = questionSubmissions.value;
     }
     await saveAnswers();
-    const { data, status } = await apiStore.reportStep({ experimentId: props.experimentId, step: "student_submission", parameters });
-    if (!status || ![200, 201].includes(status)) throw Error(`Error submitting quiz: ${data}`);
+    assertSubmitStepSucceeded(
+      await apiStore.reportStep({ experimentId: props.experimentId, step: "student_submission", parameters })
+    );
     const view = await viewAssignment();
     if (view?.status === 200) {
       assignmentData.value = view.data;
@@ -411,6 +445,10 @@ const submitQuiz = async () => {
     }
   } catch (error) {
     submissions.value = null;
+    // keep a local copy so relaunching and resubmitting doesn't mean retyping everything -
+    // the session-expired watcher only saves one when the client itself noticed the
+    // expiry, which a server-side rejection doesn't guarantee
+    saveDraftAnswers();
     console.error({ error });
     throw error;
   }
@@ -435,18 +473,21 @@ const saveAnswers = async () => {
   const newAnswerSubmissions = answerSubmissions.filter(ans => !ans.answerSubmissionId);
 
   if (newAnswerSubmissions.length > 0) {
-    const { data, status } = await submissionsStore.createAnswerSubmissions([props.experimentId, conditionId.value, treatmentId.value, assessmentId.value, submissionId.value, newAnswerSubmissions]);
-    if (!status || ![200, 201].includes(status)) throw Error(`Error submitting quiz: ${data}`);
+    assertSubmitStepSucceeded(
+      await submissionsStore.createAnswerSubmissions([props.experimentId, conditionId.value, treatmentId.value, assessmentId.value, submissionId.value, newAnswerSubmissions])
+    );
   }
 
   for (const answerSubmission of existingAnswerSubmissions) {
-    const { data, status } = await submissionsStore.updateAnswerSubmission([props.experimentId, conditionId.value, treatmentId.value, assessmentId.value, submissionId.value, answerSubmission.questionSubmissionId, answerSubmission.answerSubmissionId, answerSubmission]);
-    if (!status || ![200, 201].includes(status)) throw Error(`Error submitting quiz: ${data}`);
+    assertSubmitStepSucceeded(
+      await submissionsStore.updateAnswerSubmission([props.experimentId, conditionId.value, treatmentId.value, assessmentId.value, submissionId.value, answerSubmission.questionSubmissionId, answerSubmission.answerSubmissionId, answerSubmission])
+    );
   }
 
   if (newQuestionSubmissions.length > 0) {
-    const { data, status } = await submissionsStore.createQuestionSubmissions([props.experimentId, conditionId.value, treatmentId.value, assessmentId.value, submissionId.value, newQuestionSubmissions]);
-    if (!status || ![200, 201].includes(status)) throw Error(`Error submitting quiz: ${data}`);
+    assertSubmitStepSucceeded(
+      await submissionsStore.createQuestionSubmissions([props.experimentId, conditionId.value, treatmentId.value, assessmentId.value, submissionId.value, newQuestionSubmissions])
+    );
   }
 };
 

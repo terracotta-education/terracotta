@@ -362,6 +362,86 @@ describe("StudentQuiz", () => {
     expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
   });
 
+  describe("submit failure messages", () => {
+    const answerAndSubmit = async () => {
+      const wrapper = mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      await wrapper.findComponent({ name: "StudentQuizQuestionCard" }).vm.$emit("update:question-values", [
+        { questionId: 10, answerId: 100, response: null }
+      ]);
+      await flushPromises();
+
+      await wrapper.find("form").trigger("submit");
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      return wrapper;
+    };
+
+    const errorAlertText = () => Swal.fire.mock.calls
+      .map(([options]) => options)
+      .find(options => options?.icon === "error")?.text;
+
+    it("tells the student their session expired when an answer save is rejected with a 401, and keeps a draft", async () => {
+      mockReportStepByStep();
+      // submission.service's handleResponse shape for an HTTP error - no `data` field,
+      // which is what used to render as "Error submitting quiz: undefined"
+      submissionService.createQuestionSubmissions.mockResolvedValue({ status: 401, error: "" });
+
+      await answerAndSubmit();
+
+      expect(errorAlertText()).toBe(
+        "Could not submit: Your session has expired. Please close this window, open the assignment again from your course, and submit again."
+      );
+      expect(apiService.reportStep).not.toHaveBeenCalledWith("1", "student_submission", expect.anything(), expect.anything());
+      expect(JSON.parse(localStorage.getItem("terracotta-quiz-draft-1-103")).questionValues).toEqual([
+        { questionId: 10, answerId: 100, response: null }
+      ]);
+    });
+
+    it("shows the server's error body and status instead of undefined", async () => {
+      mockReportStepByStep();
+      submissionService.createQuestionSubmissions.mockResolvedValue({
+        status: 500,
+        error: "Error 105: Unable to create question submissions"
+      });
+
+      await answerAndSubmit();
+
+      expect(errorAlertText()).toBe("Could not submit: Error 105: Unable to create question submissions (error 500)");
+    });
+
+    it("says the server couldn't be reached when the request itself fails", async () => {
+      mockReportStepByStep();
+      // the store action catches the thrown fetch error and returns null
+      submissionService.createQuestionSubmissions.mockRejectedValue(new TypeError("Failed to fetch"));
+
+      await answerAndSubmit();
+
+      expect(errorAlertText()).toBe(
+        "Could not submit: We couldn't reach the server. Please check your internet connection and try again."
+      );
+    });
+
+    it("uses a 409's message when the final submission step is rejected", async () => {
+      mockReportStepByStep({
+        student_submission: { status: 409, message: "This assignment has already been submitted." }
+      });
+      submissionService.createQuestionSubmissions.mockResolvedValue({ status: 201, data: {} });
+
+      await answerAndSubmit();
+
+      expect(errorAlertText()).toBe("Could not submit: This assignment has already been submitted. (error 409)");
+    });
+  });
+
   describe("data-loss safety net: draft answers", () => {
     it("saves the current answers to localStorage when the session expires", async () => {
       mockReportStepByStep();
