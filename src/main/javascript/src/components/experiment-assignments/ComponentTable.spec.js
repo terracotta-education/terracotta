@@ -127,6 +127,25 @@ describe("ComponentTable", () => {
     expect(wrapper.text()).toContain("Only One Version");
   });
 
+  it("measures the treatment actions column even when no add-treatment placeholder row exists", async () => {
+    // every treatment already built, so no .treatment-add-row renders anywhere - the
+    // measurement used to require that placeholder, so it never ran and the button fell
+    // back to sitting right next to the row's label
+    mountTable([
+      assignmentRow({ treatments: [completeTreatment(10)] })
+    ]);
+
+    expect(wrapper.find(".treatment-add-row").exists()).toBe(false);
+
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const treatmentRow = wrapper.findComponent({ name: "TreatmentRow" });
+
+    expect(treatmentRow.exists()).toBe(true);
+    expect(treatmentRow.props("actionsOffset")).not.toBeNull();
+  });
+
   it("does not show the 'Only One Version' chip when there is more than one treatment", () => {
     mountTable([assignmentRow()]);
 
