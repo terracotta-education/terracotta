@@ -32,7 +32,9 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.util.ListUtils;
@@ -195,7 +197,7 @@ public class Lti3Request {
         try {
             ltiRequest = getInstanceOrDie(linkId);
         } catch (Exception e) {
-            log.debug("The method getInstanceOrDie... died", e);
+            log.debug("The method getInstanceOrDie... died: [{}]", e.getMessage());
         }
 
         return ltiRequest;
@@ -232,7 +234,7 @@ public class Lti3Request {
                     throw new IllegalStateException(String.format("Error internal, no Dataservice available: [%s]", req));
                 }
             } catch (Exception e) {
-                log.warn("Failure trying to create the LTIRequest: ", e);
+                log.warn("Failure trying to create the LTIRequest: [{}], root cause: [{}]", e.getMessage(), ExceptionUtils.getRootCauseMessage(e));
             }
         }
 
@@ -363,10 +365,16 @@ public class Lti3Request {
 
         // loads and upserts in a single transaction, so the entities the load resolves stay
         // managed/attached for the upsert instead of needing to be re-merged
-        if (Strings.CI.equals(isLti3Request, LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK)) {
-            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, linkId);
-        } else {
-            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, null);
+        String link = Strings.CI.equals(isLti3Request, LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) ? linkId : null;
+
+        try {
+            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, link);
+        } catch (DataIntegrityViolationException e) {
+            // two concurrent first launches for the same user/context both miss the lookup and both
+            // insert; the loser hits a unique constraint. Its transaction is rollback-only by now, so
+            // retry in a fresh one: the load step re-reads the rows the winner committed.
+            log.warn("Concurrent LTI launch inserted the same LTI data first for sub: [{}], retrying: [{}]", sub, ExceptionUtils.getRootCauseMessage(e));
+            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, link);
         }
     }
 
