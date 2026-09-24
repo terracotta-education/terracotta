@@ -32,6 +32,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -195,7 +196,7 @@ public class Lti3Request {
         try {
             ltiRequest = getInstanceOrDie(linkId);
         } catch (Exception e) {
-            log.debug("The method getInstanceOrDie... died", e);
+            log.debug("The method getInstanceOrDie... died: [{}]", e.getMessage());
         }
 
         return ltiRequest;
@@ -232,7 +233,7 @@ public class Lti3Request {
                     throw new IllegalStateException(String.format("Error internal, no Dataservice available: [%s]", req));
                 }
             } catch (Exception e) {
-                log.warn("Failure trying to create the LTIRequest: ", e);
+                log.warn("Failure trying to create the LTIRequest: [{}], root cause: [{}]", e.getMessage(), ExceptionUtils.getRootCauseMessage(e));
             }
         }
 
