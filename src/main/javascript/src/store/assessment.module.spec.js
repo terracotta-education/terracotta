@@ -460,6 +460,28 @@ describe("assessment store", () => {
       expect(result).toBeNull();
     });
 
+    it("returns null and leaves local state alone when the request failed", async () => {
+      store.setAssessment({ questions: [{ questionId: 1, html: "saved" }] });
+      // handleResponse's shape for a failed request: truthy, but not a success
+      assessmentService.updateQuestions.mockResolvedValue({ status: 500, data: "Error 105", error: "Error 105" });
+
+      const result = await store.updateQuestionsBatch([1, 2, 3, 4, [{ questionId: 1, html: "unsaved" }]]);
+
+      expect(result).toBeNull();
+      expect(store.assessment.questions[0].html).toBe("saved");
+      expect(consoleSpy).toHaveBeenCalled();
+    });
+
+    it("treats a 204 (handleResponse returns []) as success", async () => {
+      store.setAssessment({ questions: [{ questionId: 1 }] });
+      assessmentService.updateQuestions.mockResolvedValue([]);
+
+      const result = await store.updateQuestionsBatch([1, 2, 3, 4, [{ questionId: 1, html: "a" }]]);
+
+      expect(result).not.toBeNull();
+      expect(store.assessment.questions[0].html).toBe("a");
+    });
+
     it("returns null and logs on rejection", async () => {
       assessmentService.updateQuestions.mockRejectedValue(new Error("fail"));
 
@@ -616,6 +638,16 @@ describe("assessment store", () => {
       const result = await store.updateAnswersBatch([1, 2, 3, 4, 1, []]);
 
       expect(result).toBeNull();
+    });
+
+    it("returns null and leaves local state alone when the request failed", async () => {
+      store.setAssessment({ questions: [{ questionId: 1, answers: [] }] });
+      assessmentService.updateAnswers.mockResolvedValue({ status: 500, data: "boom", error: "boom" });
+
+      const result = await store.updateAnswersBatch([1, 2, 3, 4, 1, [{ answerId: 1, questionId: 1 }]]);
+
+      expect(result).toBeNull();
+      expect(store.assessment.questions[0].answers).toHaveLength(0);
     });
 
     it("returns null and logs on rejection", async () => {

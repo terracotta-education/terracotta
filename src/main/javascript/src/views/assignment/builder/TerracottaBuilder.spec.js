@@ -361,6 +361,57 @@ describe("TerracottaBuilder", () => {
     });
   });
 
+  it("saveAll reports an error and stays on the page when the question save is rejected", async () => {
+    const { assessmentService } = await import("@/services");
+    assessmentService.fetchAssessment.mockResolvedValue({
+      data: baseAssessment({
+        questions: [{
+          questionId: 1,
+          questionOrder: 0,
+          questionType: "ESSAY",
+          html: "Filled in",
+          answers: []
+        }]
+      })
+    });
+    // what handleResponse hands back for a failed request - truthy, so it used to
+    // read as success
+    assessmentService.updateQuestions.mockResolvedValueOnce({ status: 500, data: "Error 105", error: "Error 105" });
+
+    const wrapper = await mountBuilder();
+
+    const result = await wrapper.vm.saveAll("ExperimentSummary");
+
+    expect(result).toBe(false);
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(alertStore.type).toBe("error");
+    expect(alertStore.message).toContain("Your changes were not saved");
+  });
+
+  it("saveAll reports an error and stays on the page when an answer save is rejected", async () => {
+    const { assessmentService } = await import("@/services");
+    assessmentService.fetchAssessment.mockResolvedValue({
+      data: baseAssessment({
+        questions: [{
+          questionId: 1,
+          questionOrder: 0,
+          questionType: "MC",
+          html: "Pick one",
+          answers: [{ answerId: 10, html: "A" }]
+        }]
+      })
+    });
+    assessmentService.updateAnswers.mockResolvedValueOnce({ status: 500, data: "boom", error: "boom" });
+
+    const wrapper = await mountBuilder();
+
+    const result = await wrapper.vm.saveAll("ExperimentSummary");
+
+    expect(result).toBe(false);
+    expect(routerPush).not.toHaveBeenCalled();
+    expect(alertStore.type).toBe("error");
+  });
+
   it("saveExit saves and navigates to ExperimentSummary when no URL validation is in progress", async () => {
     const { assessmentService } = await import("@/services");
     assessmentService.fetchAssessment.mockResolvedValue({ data: baseAssessment({ questions: [] }) });

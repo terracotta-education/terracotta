@@ -397,9 +397,14 @@ const getAncestorScaleX = element => {
 
 const measureColumnOffsets = () => {
   const table = tableRoot.value?.querySelector(".data-table-assignments");
-  const placeholderRow = tableRoot.value?.querySelector(".treatment-add-row");
+  // any nested row works as the reference: TreatmentRow's root and the add-treatment
+  // placeholder both carry .treatment-row-content and sit in the same cell of the same
+  // nested table, so their left edges match. Requiring the placeholder specifically meant
+  // nothing was ever measured when every treatment already existed, leaving every row's
+  // actions button stuck next to its label.
+  const referenceRow = tableRoot.value?.querySelector(".treatment-row-content");
 
-  if (!table || !placeholderRow) {
+  if (!table || !referenceRow) {
     return;
   }
 
@@ -433,8 +438,8 @@ const measureColumnOffsets = () => {
   // row and the outer table - no need to separately account for any of it. The scale
   // division compensates for .v-data-table-alt's transform (see above) - it's applied
   // once here rather than at every call site that reads columnOffsets.
-  const rowLeft = placeholderRow.getBoundingClientRect().left;
-  const scaleX = getAncestorScaleX(placeholderRow);
+  const rowLeft = referenceRow.getBoundingClientRect().left;
+  const scaleX = getAncestorScaleX(referenceRow);
 
   columnOffsets.value = {
     status: (statusPill.getBoundingClientRect().left - rowLeft) / scaleX,

@@ -12,6 +12,17 @@ import { assessmentService } from "@/services";
 // submissions, or a slow fetch clobbering an assessment createAssessment just made.
 let assessmentRequestId = 0;
 
+// handleResponse returns [] for a 204, the raw Response or { data, status } for any
+// other 2xx, and { data, status, error } for a failure - all truthy, so callers have
+// to look at the status to tell success from failure
+function isSuccessfulResponse(response) {
+  if (Array.isArray(response)) {
+    return true;
+  }
+
+  return response?.status >= 200 && response?.status < 300;
+}
+
 function buildQuestionFromPayload(payload) {
   const [
     ,
@@ -308,7 +319,9 @@ export const assessment = defineStore("assessment", {
         const response =
           await assessmentService.updateQuestions(...payload);
 
-        if (response) {
+        // handleResponse hands back an { status, error } object (truthy) for a failed
+        // request, so a plain truthiness check here reported failures as success
+        if (isSuccessfulResponse(response)) {
           questionList.forEach(question => this.upsertQuestion(question));
 
           return {
@@ -316,6 +329,8 @@ export const assessment = defineStore("assessment", {
             data: null
           };
         }
+
+        console.error("assessment/updateQuestionsBatch | failed", response);
 
         return null;
       } catch (error) {
@@ -444,7 +459,7 @@ export const assessment = defineStore("assessment", {
         const response =
           await assessmentService.updateAnswers(...payload);
 
-        if (response) {
+        if (isSuccessfulResponse(response)) {
           answerList.forEach(answer => this.upsertAnswer(answer));
 
           return {
@@ -452,6 +467,8 @@ export const assessment = defineStore("assessment", {
             data: null
           };
         }
+
+        console.error("assessment/updateAnswersBatch | failed", response);
 
         return null;
       } catch (error) {
