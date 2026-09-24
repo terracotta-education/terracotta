@@ -14,6 +14,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -403,6 +405,45 @@ public class Lti3RequestTest extends BaseTest {
         // link argument is null for deep linking, NOT linkId
         verify(ltiDataService).loadAndUpsertLTIDataInDB(eq(result), eq(toolDeployment), isNull());
         verify(ltiDataService, never()).loadLTIDataFromDB(any(), any());
+    }
+
+    @Test
+    void testConstructorRetriesUpsertOnceWhenAConcurrentLaunchInsertedFirst() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        String jwksEndpoint = writeJwksFile("rl-concurrent-retry", KID, (RSAPublicKey) keyPair.getPublic());
+        String jwt = buildJwt(keyPair.getPrivate(), KID, ISS, AUD, "sub-1", now(), inOneHour(), "nonce-1", resourceLinkClaims());
+
+        when(httpServletRequest.getParameter("id_token")).thenReturn(jwt);
+        stubJwksLookup(ISS, AUD, jwksEndpoint);
+        stubToolDeploymentFound();
+        stubNonceFound("nonce-1");
+        when(ltiDataService.loadAndUpsertLTIDataInDB(any(), eq(toolDeployment), eq("link1")))
+            .thenThrow(new DataIntegrityViolationException("Duplicate entry for key 'lti_user.UK_LTI_USER_ON_USER_KEY_AND_KEY_ID'"))
+            .thenReturn(0);
+
+        new Lti3Request(httpServletRequest, ltiDataService, true, "link1");
+
+        verify(ltiDataService, times(2)).loadAndUpsertLTIDataInDB(any(), eq(toolDeployment), eq("link1"));
+    }
+
+    @Test
+    void testConstructorPropagatesWhenTheUpsertRetryAlsoFails() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        String jwksEndpoint = writeJwksFile("rl-concurrent-retry-fails", KID, (RSAPublicKey) keyPair.getPublic());
+        String jwt = buildJwt(keyPair.getPrivate(), KID, ISS, AUD, "sub-1", now(), inOneHour(), "nonce-1", resourceLinkClaims());
+
+        when(httpServletRequest.getParameter("id_token")).thenReturn(jwt);
+        stubJwksLookup(ISS, AUD, jwksEndpoint);
+        stubToolDeploymentFound();
+        stubNonceFound("nonce-1");
+        when(ltiDataService.loadAndUpsertLTIDataInDB(any(), eq(toolDeployment), eq("link1")))
+            .thenThrow(new DataIntegrityViolationException("first"))
+            .thenThrow(new DataIntegrityViolationException("second"));
+
+        DataIntegrityViolationException ex = assertThrows(DataIntegrityViolationException.class, () -> new Lti3Request(httpServletRequest, ltiDataService, true, "link1"));
+
+        assertEquals("second", ex.getMessage());
+        verify(ltiDataService, times(2)).loadAndUpsertLTIDataInDB(any(), eq(toolDeployment), eq("link1"));
     }
 
     // ------------------------------------------------------------------
