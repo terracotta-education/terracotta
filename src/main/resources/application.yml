@@ -39,7 +39,7 @@ lti13:
 spring:
   ## thymeleaf base settings
   thymeleaf:
-    mode: HTML5
+    mode: HTML
     # spring.thymeleaf.encoding=UTF-8
     cache: false
   ## Database connection
