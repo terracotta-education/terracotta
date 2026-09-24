@@ -47,7 +47,7 @@ class ExperimentDataExportSchedulerRunnerTest extends BaseTest {
 
     @Test
     void testResetTaskSucceeds() throws ScheduledTaskNotFound {
-        ReflectionTestUtils.setField(experimentDataExportSchedulerRunner, "enabled", false);
+        ReflectionTestUtils.setField(experimentDataExportSchedulerRunner, "enabled", true);
 
         Task<Void> task = experimentDataExportSchedulerRunner.experimentDataExportDeleteSchedulerTask(experimentDataExportSchedulerService);
 
@@ -58,7 +58,7 @@ class ExperimentDataExportSchedulerRunnerTest extends BaseTest {
 
     @Test
     void testResetTaskNotFoundIsSwallowed() throws ScheduledTaskNotFound {
-        ReflectionTestUtils.setField(experimentDataExportSchedulerRunner, "enabled", false);
+        ReflectionTestUtils.setField(experimentDataExportSchedulerRunner, "enabled", true);
         doThrow(new ScheduledTaskNotFound("task not found")).when(scheduledTaskService).resetTask(ExperimentDataExportSchedulerRunner.TASK_NAME);
 
         Task<Void> task = assertDoesNotThrow(
@@ -78,6 +78,9 @@ class ExperimentDataExportSchedulerRunnerTest extends BaseTest {
         executeTask(task);
 
         verifyNoInteractions(experimentDataExportSchedulerService);
+        // a disabled task was never scheduled, so there's nothing to reset - resetTask would
+        // otherwise always throw ScheduledTaskNotFound on every startup where this is disabled
+        verifyNoInteractions(scheduledTaskService);
     }
 
     @Test

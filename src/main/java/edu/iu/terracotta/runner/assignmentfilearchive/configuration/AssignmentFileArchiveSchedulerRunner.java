@@ -42,13 +42,6 @@ public class AssignmentFileArchiveSchedulerRunner {
 
     @Bean
     Task<Void> assignmentFileArchiveDeleteSchedulerTask(AssignmentFileArchiveSchedulerService assignmentFileArchiveSchedulerService) {
-        try {
-            // reset task in case of dirty server shutdown
-            scheduledTaskService.resetTask(TASK_NAME);
-        } catch (ScheduledTaskNotFound e) {
-            log.error(e.getMessage());
-        }
-
         if (!enabled) {
             // not enabled; create one-time task to log message
             return Tasks.oneTime(ASSIGNMENT_FILE_DELETE_TASK)
@@ -57,6 +50,13 @@ public class AssignmentFileArchiveSchedulerRunner {
                         log.info("Assignment file archive delete task [{}] is not enabled.", ASSIGNMENT_FILE_DELETE_TASK);
                     }
                 );
+        }
+
+        try {
+            // reset task in case of dirty server shutdown
+            scheduledTaskService.resetTask(TASK_NAME);
+        } catch (ScheduledTaskNotFound e) {
+            log.error(e.getMessage());
         }
 
         log.info("Creating assignment file archive delete task [{}]", ASSIGNMENT_FILE_DELETE_TASK);
