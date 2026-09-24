@@ -969,7 +969,7 @@ describe("StudentQuiz", () => {
     await flushPromises();
 
     expect(Swal.fire).toHaveBeenCalledWith(
-      expect.objectContaining({ icon: "error", text: expect.stringContaining("Error submitting quiz") })
+      expect.objectContaining({ icon: "error", text: "Could not submit: boom (error 500)" })
     );
     expect(wrapper.text()).not.toContain("Your answers have been submitted.");
   });
