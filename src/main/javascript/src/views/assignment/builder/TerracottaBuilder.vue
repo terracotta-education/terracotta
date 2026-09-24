@@ -632,8 +632,23 @@ const saveAll = async routeName => {
     return false;
   }
 
-  await handleSaveQuestions(questions.value);
-  await handleSaveAnswers();
+  // the batch actions return null on failure - without these checks a rejected save
+  // (e.g. an integration's launch URL the backend refused) still showed "Assignment
+  // saved successfully." and navigated away, silently dropping the edits
+  const savedQuestions = await handleSaveQuestions(questions.value);
+  const savedAnswers = await handleSaveAnswers();
+
+  if (!savedQuestions || savedAnswers.some(result => !result)) {
+    createStatusAlert(
+      statusAlert(
+        alertStatuses.value.error,
+        "An error occurred while saving the assignment. Your changes were not saved. Please try again."
+      )
+    );
+
+    return false;
+  }
+
   await handleRegradeQuestions();
 
   createStatusAlert(
