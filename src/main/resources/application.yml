@@ -322,6 +322,7 @@ upload:
 # db-scheduler properties
 db-scheduler:
   enabled: true
+  always-persist-timestamp-in-utc: true
   immediate-execution-enabled: false
   scheduler-name: ""
   threads: 10
