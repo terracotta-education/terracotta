@@ -80,7 +80,7 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
 
         if (integrationToken.getLastLaunchedAt() == null) {
             log.info(
-                "Token [{}] launched at: [{}].",
+                "Token [{}] launched at: [{}]",
                 integrationToken.getToken(),
                 launchedAt
             );
