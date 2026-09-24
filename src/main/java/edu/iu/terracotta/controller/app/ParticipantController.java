@@ -130,7 +130,7 @@ public class ParticipantController {
                                                   @RequestBody ParticipantDto participantDto,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ParticipantNotMatchingException, DataServiceException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating Participant with id {}", participantId);
+        log.debug("Updated participant ID: [{}]", participantId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
