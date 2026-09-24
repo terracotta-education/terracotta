@@ -80,7 +80,7 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
                         calculatedScore = null;
                     } else {
                         log.info(
-                            "No score returned for launch token: [{}] - defaulting to the question's full point value [{}] as the score",
+                            "No score returned for token: [{}] - using question's value: [{}]",
                             launchToken,
                             integrationToken.getIntegration().getQuestion().getPoints()
                         );

@@ -73,7 +73,6 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
             String link = httpServletRequest.getParameter("link");
 
             if (!StringUtils.hasText(state)) {
-                log.error("LTI request doesn't contain the expected state");
                 return;
             }
 
