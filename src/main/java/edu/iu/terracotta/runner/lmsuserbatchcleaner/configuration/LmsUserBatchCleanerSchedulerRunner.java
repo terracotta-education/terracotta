@@ -43,13 +43,6 @@ public class LmsUserBatchCleanerSchedulerRunner {
 
     @Bean
     Task<Void> lmsUserBatchCleanerTask(LmsUserBatchCleanerSchedulerService lmsUserBatchCleanerSchedulerService) {
-        try {
-            // reset task in case of dirty server shutdown
-            scheduledTaskService.resetTask(TASK_NAME);
-        } catch (ScheduledTaskNotFound e) {
-            log.error(e.getMessage());
-        }
-
         if (!enabled) {
             // not enabled; create one-time task to log message
             return Tasks.oneTime(LMS_USER_BATCH_CLEANER_TASK)
@@ -58,6 +51,13 @@ public class LmsUserBatchCleanerSchedulerRunner {
                         log.info("LMS user batch cleaner task [{}] is not enabled.", LMS_USER_BATCH_CLEANER_TASK.getTaskName());
                     }
                 );
+        }
+
+        try {
+            // reset task in case of dirty server shutdown
+            scheduledTaskService.resetTask(TASK_NAME);
+        } catch (ScheduledTaskNotFound e) {
+            log.error(e.getMessage());
         }
 
         log.info("Creating LMS user batch cleaner task [{}]", LMS_USER_BATCH_CLEANER_TASK.getTaskName());

@@ -40,13 +40,6 @@ public class ExperimentDataExportSchedulerRunner {
 
     @Bean
     Task<Void> experimentDataExportDeleteSchedulerTask(ExperimentDataExportSchedulerService experimentDataExportSchedulerService) {
-        try {
-            // reset task in case of dirty server shutdown
-            scheduledTaskService.resetTask(TASK_NAME);
-        } catch (ScheduledTaskNotFound e) {
-            log.error(e.getMessage());
-        }
-
         if (!enabled) {
             // not enabled; create one-time task to log message
             return Tasks.oneTime(EXPERIMENT_DATA_EXPORT_DELETE_TASK)
@@ -55,6 +48,13 @@ public class ExperimentDataExportSchedulerRunner {
                         log.info("Experiment data export delete task [{}] is not enabled.", EXPERIMENT_DATA_EXPORT_DELETE_TASK);
                     }
                 );
+        }
+
+        try {
+            // reset task in case of dirty server shutdown
+            scheduledTaskService.resetTask(TASK_NAME);
+        } catch (ScheduledTaskNotFound e) {
+            log.error(e.getMessage());
         }
 
         log.info("Creating experiment data export delete task [{}]", EXPERIMENT_DATA_EXPORT_DELETE_TASK);

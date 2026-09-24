@@ -43,6 +43,8 @@ public class MessagingSchedulerRunnerTest extends BaseTest {
 
     @Test
     public void testMessagingSchedulerSendTaskResetTaskSucceeds() throws ScheduledTaskNotFound {
+        ReflectionTestUtils.setField(messagingSchedulerRunner, "enabled", true);
+
         Task<Void> task = messagingSchedulerRunner.messagingSchedulerSendTask(messagingSchedulerService);
 
         assertNotNull(task);
@@ -51,6 +53,7 @@ public class MessagingSchedulerRunnerTest extends BaseTest {
 
     @Test
     public void testMessagingSchedulerSendTaskResetTaskNotFoundIsSwallowed() throws ScheduledTaskNotFound {
+        ReflectionTestUtils.setField(messagingSchedulerRunner, "enabled", true);
         doThrow(new ScheduledTaskNotFound("not found")).when(scheduledTaskService).resetTask(MessagingSchedulerRunner.TASK_NAME);
 
         Task<Void> task = assertDoesNotThrow(() -> messagingSchedulerRunner.messagingSchedulerSendTask(messagingSchedulerService));
@@ -68,6 +71,9 @@ public class MessagingSchedulerRunnerTest extends BaseTest {
         task.execute(new TaskInstance<Void>(MessagingSchedulerRunner.TASK_NAME, "test-id"), null);
 
         verifyNoInteractions(messagingSchedulerService);
+        // a disabled task was never scheduled, so there's nothing to reset - resetTask would
+        // otherwise always throw ScheduledTaskNotFound on every startup where this is disabled
+        verifyNoInteractions(scheduledTaskService);
     }
 
     @Test
