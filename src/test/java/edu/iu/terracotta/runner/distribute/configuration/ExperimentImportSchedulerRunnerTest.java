@@ -42,7 +42,7 @@ public class ExperimentImportSchedulerRunnerTest extends BaseTest {
 
     @Test
     void testResetTaskCalledSuccessfully() throws ScheduledTaskNotFound {
-        ReflectionTestUtils.setField(experimentImportSchedulerRunner, "enabled", false);
+        ReflectionTestUtils.setField(experimentImportSchedulerRunner, "enabled", true);
 
         assertDoesNotThrow(() -> experimentImportSchedulerRunner.experimentImportDeleteSchedulerTask(experimentImportSchedulerService));
 
@@ -52,7 +52,7 @@ public class ExperimentImportSchedulerRunnerTest extends BaseTest {
     @Test
     void testResetTaskNotFoundExceptionDoesNotPropagate() throws ScheduledTaskNotFound {
         doThrow(new ScheduledTaskNotFound("not found")).when(scheduledTaskService).resetTask(ExperimentImportSchedulerRunner.TASK_NAME);
-        ReflectionTestUtils.setField(experimentImportSchedulerRunner, "enabled", false);
+        ReflectionTestUtils.setField(experimentImportSchedulerRunner, "enabled", true);
 
         assertDoesNotThrow(() -> experimentImportSchedulerRunner.experimentImportDeleteSchedulerTask(experimentImportSchedulerService));
     }
@@ -65,6 +65,9 @@ public class ExperimentImportSchedulerRunnerTest extends BaseTest {
 
         assertDoesNotThrow(() -> task.execute(new TaskInstance<>(ExperimentImportSchedulerRunner.TASK_NAME, "test-id"), null));
         verifyNoInteractions(experimentImportSchedulerService);
+        // a disabled task was never scheduled, so there's nothing to reset - resetTask would
+        // otherwise always throw ScheduledTaskNotFound on every startup where this is disabled
+        verifyNoInteractions(scheduledTaskService);
     }
 
     @Test

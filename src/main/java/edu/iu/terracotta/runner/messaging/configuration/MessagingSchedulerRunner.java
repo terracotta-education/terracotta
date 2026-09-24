@@ -42,13 +42,6 @@ public class MessagingSchedulerRunner {
 
     @Bean
     Task<Void> messagingSchedulerSendTask(MessagingSchedulerService messagingSchedulerService) {
-        try {
-            // reset task in case of dirty server shutdown
-            scheduledTaskService.resetTask(TASK_NAME);
-        } catch (ScheduledTaskNotFound e) {
-            log.error(e.getMessage());
-        }
-
         if (!enabled) {
             // not enabled; create one-time task to log message
             return Tasks.oneTime(MESSAGING_SEND_TASK)
@@ -57,6 +50,13 @@ public class MessagingSchedulerRunner {
                         log.info("Messaging send task [{}] in not enabled.", MESSAGING_SEND_TASK);
                     }
                 );
+        }
+
+        try {
+            // reset task in case of dirty server shutdown
+            scheduledTaskService.resetTask(TASK_NAME);
+        } catch (ScheduledTaskNotFound e) {
+            log.error(e.getMessage());
         }
 
         log.info("Creating messaging send task [{}]", MESSAGING_SEND_TASK);

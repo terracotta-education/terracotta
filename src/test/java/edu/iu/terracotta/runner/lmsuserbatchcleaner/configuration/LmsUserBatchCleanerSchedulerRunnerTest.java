@@ -42,6 +42,8 @@ public class LmsUserBatchCleanerSchedulerRunnerTest {
 
     @Test
     public void testLmsUserBatchCleanerTaskResetTaskSucceeds() throws ScheduledTaskNotFound {
+        ReflectionTestUtils.setField(lmsUserBatchCleanerSchedulerRunner, "enabled", true);
+
         Task<Void> task = lmsUserBatchCleanerSchedulerRunner.lmsUserBatchCleanerTask(lmsUserBatchCleanerSchedulerService);
 
         assertNotNull(task);
@@ -50,6 +52,7 @@ public class LmsUserBatchCleanerSchedulerRunnerTest {
 
     @Test
     public void testLmsUserBatchCleanerTaskResetTaskNotFoundIsSwallowed() throws ScheduledTaskNotFound {
+        ReflectionTestUtils.setField(lmsUserBatchCleanerSchedulerRunner, "enabled", true);
         doThrow(new ScheduledTaskNotFound("not found")).when(scheduledTaskService).resetTask(LmsUserBatchCleanerSchedulerRunner.TASK_NAME);
 
         Task<Void> task = assertDoesNotThrow(() -> lmsUserBatchCleanerSchedulerRunner.lmsUserBatchCleanerTask(lmsUserBatchCleanerSchedulerService));
@@ -67,6 +70,9 @@ public class LmsUserBatchCleanerSchedulerRunnerTest {
         task.execute(new TaskInstance<Void>(LmsUserBatchCleanerSchedulerRunner.TASK_NAME, "test-id"), null);
 
         verifyNoInteractions(lmsUserBatchCleanerSchedulerService);
+        // a disabled task was never scheduled, so there's nothing to reset - resetTask would
+        // otherwise always throw ScheduledTaskNotFound on every startup where this is disabled
+        verifyNoInteractions(scheduledTaskService);
     }
 
     @Test

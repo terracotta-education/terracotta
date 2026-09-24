@@ -45,6 +45,8 @@ public class ApiTokenCleanerSchedulerRunnerTest extends BaseTest {
 
     @Test
     public void testApiTokenCleanerTaskResetTaskSucceeds() throws ScheduledTaskNotFound {
+        ReflectionTestUtils.setField(apiTokenCleanerSchedulerRunner, "enabled", true);
+
         Task<Void> task = apiTokenCleanerSchedulerRunner.apiTokenCleanerTask(apiTokenCleanerSchedulerService);
 
         assertNotNull(task);
@@ -53,6 +55,7 @@ public class ApiTokenCleanerSchedulerRunnerTest extends BaseTest {
 
     @Test
     public void testApiTokenCleanerTaskResetTaskNotFoundIsSwallowed() throws ScheduledTaskNotFound {
+        ReflectionTestUtils.setField(apiTokenCleanerSchedulerRunner, "enabled", true);
         doThrow(new ScheduledTaskNotFound("not found")).when(scheduledTaskService).resetTask(ApiTokenCleanerSchedulerRunner.TASK_NAME);
 
         Task<Void> task = assertDoesNotThrow(() -> apiTokenCleanerSchedulerRunner.apiTokenCleanerTask(apiTokenCleanerSchedulerService));
@@ -70,6 +73,9 @@ public class ApiTokenCleanerSchedulerRunnerTest extends BaseTest {
         task.execute(new TaskInstance<Void>(ApiTokenCleanerSchedulerRunner.TASK_NAME, "test-id"), null);
 
         verifyNoInteractions(apiTokenCleanerSchedulerService);
+        // a disabled task was never scheduled, so there's nothing to reset - resetTask would
+        // otherwise always throw ScheduledTaskNotFound on every startup where this is disabled
+        verifyNoInteractions(scheduledTaskService);
     }
 
     @Test

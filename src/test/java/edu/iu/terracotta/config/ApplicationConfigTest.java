@@ -2,7 +2,6 @@ package edu.iu.terracotta.config;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +53,6 @@ public class ApplicationConfigTest {
     void testInit() {
         applicationConfig.init();
 
-        verify(environment).setActiveProfiles("dev", "test");
         assertSame(applicationConfig, ApplicationConfig.getInstance());
     }
 

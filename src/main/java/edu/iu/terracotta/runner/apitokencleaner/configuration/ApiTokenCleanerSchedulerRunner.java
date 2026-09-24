@@ -43,13 +43,6 @@ public class ApiTokenCleanerSchedulerRunner {
 
     @Bean
     Task<Void> apiTokenCleanerTask(ApiTokenCleanerSchedulerService apiTokenCleanerSchedulerService) {
-        try {
-            // reset task in case of dirty server shutdown
-            scheduledTaskService.resetTask(TASK_NAME);
-        } catch (ScheduledTaskNotFound e) {
-            log.error(e.getMessage());
-        }
-
         if (!enabled) {
             // not enabled; create one-time task to log message
             return Tasks.oneTime(API_TOKEN_CLEANER_TASK)
@@ -58,6 +51,13 @@ public class ApiTokenCleanerSchedulerRunner {
                         log.info("API token cleaner task [{}] is not enabled.", API_TOKEN_CLEANER_TASK.getTaskName());
                     }
                 );
+        }
+
+        try {
+            // reset task in case of dirty server shutdown
+            scheduledTaskService.resetTask(TASK_NAME);
+        } catch (ScheduledTaskNotFound e) {
+            log.error(e.getMessage());
         }
 
         log.info("Creating API token cleaner task [{}]", API_TOKEN_CLEANER_TASK.getTaskName());

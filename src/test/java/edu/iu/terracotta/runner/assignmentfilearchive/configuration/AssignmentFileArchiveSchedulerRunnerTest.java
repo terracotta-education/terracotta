@@ -46,6 +46,8 @@ public class AssignmentFileArchiveSchedulerRunnerTest extends BaseTest {
 
     @Test
     public void testAssignmentFileArchiveDeleteSchedulerTaskResetTaskSucceeds() throws Exception {
+        ReflectionTestUtils.setField(assignmentFileArchiveSchedulerRunner, "enabled", true);
+
         Task<Void> task = assignmentFileArchiveSchedulerRunner.assignmentFileArchiveDeleteSchedulerTask(assignmentFileArchiveSchedulerService);
 
         assertNotNull(task);
@@ -54,6 +56,7 @@ public class AssignmentFileArchiveSchedulerRunnerTest extends BaseTest {
 
     @Test
     public void testAssignmentFileArchiveDeleteSchedulerTaskResetTaskNotFoundIsSwallowed() throws Exception {
+        ReflectionTestUtils.setField(assignmentFileArchiveSchedulerRunner, "enabled", true);
         doThrow(new ScheduledTaskNotFound("not found")).when(scheduledTaskService).resetTask(AssignmentFileArchiveSchedulerRunner.TASK_NAME);
 
         Task<Void> task = assertDoesNotThrow(() -> assignmentFileArchiveSchedulerRunner.assignmentFileArchiveDeleteSchedulerTask(assignmentFileArchiveSchedulerService));
@@ -71,6 +74,9 @@ public class AssignmentFileArchiveSchedulerRunnerTest extends BaseTest {
         task.execute(new TaskInstance<Void>(AssignmentFileArchiveSchedulerRunner.TASK_NAME, "test-id"), null);
 
         verifyNoInteractions(assignmentFileArchiveSchedulerService);
+        // a disabled task was never scheduled, so there's nothing to reset - resetTask would
+        // otherwise always throw ScheduledTaskNotFound on every startup where this is disabled
+        verifyNoInteractions(scheduledTaskService);
     }
 
     @Test

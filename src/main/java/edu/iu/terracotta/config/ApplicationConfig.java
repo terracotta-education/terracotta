@@ -1,6 +1,5 @@
 package edu.iu.terracotta.config;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -32,12 +31,9 @@ public class ApplicationConfig implements ApplicationContextAware {
 
     @PostConstruct
     public void init() {
-        log.info("INIT");
-        environment.setActiveProfiles("dev", "test");
         synchronized (configLock) {
             config = this;
         }
-        log.info("Config INIT: profiles active: {}.", ArrayUtils.toString(environment.getActiveProfiles()));
     }
 
     @PreDestroy
