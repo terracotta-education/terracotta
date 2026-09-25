@@ -359,12 +359,12 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     @Test
     void testProcessRepointsMappedAssignmentInsteadOfCreating() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
         writeExportJson(fullExport());
-        when(assignmentService.repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString(), eq(lmsAssignment))).thenReturn(assignment);
+        when(assignmentService.repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyString(), eq(lmsAssignment))).thenReturn(assignment);
 
         // 700L is the old (source) assignment ID from fullExport()'s AssignmentExport
         experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(700L, lmsAssignment), false, false);
 
-        verify(assignmentService).repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString(), eq(lmsAssignment));
+        verify(assignmentService).repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyString(), eq(lmsAssignment));
         verify(assignmentService, never()).createAssignmentInLms(any(), any(), anyLong(), anyString());
         verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
     }
@@ -386,7 +386,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         when(lmsAssignment.getLmsExternalToolFields()).thenReturn(
             edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields.builder().url("https://original.example.com/lti3?experiment=1&assignment=700").build()
         );
-        when(assignmentService.repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString(), eq(lmsAssignment))).thenReturn(assignment);
+        when(assignmentService.repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyString(), eq(lmsAssignment))).thenReturn(assignment);
         when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
             .thenThrow(new AssignmentNotCreatedException("boom"));
 

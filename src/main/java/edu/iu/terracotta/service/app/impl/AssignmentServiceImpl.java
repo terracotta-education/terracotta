@@ -690,14 +690,14 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException {
+    public Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException {
         try {
             existingLmsAssignment.getLmsExternalToolFields().setUrl(
                 String.format(
                     "%s/lti3?experiment=%s&assignment=%s",
                     instructorUser.getPlatformDeployment().getLocalUrl(),
-                    experimentId,
-                    assignment.getAssignmentId()
+                    assignment.getExposure().getExperiment().getUuid(),
+                    assignment.getUuid()
                 )
             );
 

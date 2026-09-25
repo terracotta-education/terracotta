@@ -734,7 +734,6 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
                             assignmentService.repointAssignmentInLms(
                                 experimentImport.getOwner(),
                                 assignment,
-                                newExperimentId,
                                 securedInfo.getLmsCourseId(),
                                 existingLmsAssignment
                             );

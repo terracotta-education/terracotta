@@ -843,14 +843,18 @@ public class AssignmentServiceImplTest extends BaseTest {
     public void testRepointAssignmentInLmsSuccess() throws AssignmentNotCreatedException, TerracottaConnectorException, ApiException {
         when(instructorUser.getPlatformDeployment()).thenReturn(platformDeployment);
         when(platformDeployment.getLocalUrl()).thenReturn(LTI_URL);
-        when(assignment.getAssignmentId()).thenReturn(5L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID assignmentUuid = UUID.randomUUID();
+        when(experiment.getUuid()).thenReturn(experimentUuid);
+        when(assignment.getUuid()).thenReturn(assignmentUuid);
         when(lmsExternalToolFields.getResourceLinkId()).thenReturn(RESOURCE_LINK_ID);
         when(apiClient.editAssignment(instructorUser, lmsAssignment, "course-1")).thenReturn(Optional.of(lmsAssignment));
 
-        Assignment retVal = assignmentService.repointAssignmentInLms(instructorUser, assignment, 1L, "course-1", lmsAssignment);
+        Assignment retVal = assignmentService.repointAssignmentInLms(instructorUser, assignment, "course-1", lmsAssignment);
 
         assertEquals(assignment, retVal);
-        verify(lmsExternalToolFields).setUrl(LTI_URL + "/lti3?experiment=1&assignment=5");
+        // uuids, matching the launch URL of a newly-created LMS assignment
+        verify(lmsExternalToolFields).setUrl(String.format("%s/lti3?experiment=%s&assignment=%s", LTI_URL, experimentUuid, assignmentUuid));
         verify(assignment).setLmsAssignmentId("1");
         verify(assignment).setResourceLinkId(RESOURCE_LINK_ID);
         verify(apiClient, never()).createLmsAssignment(any(), any(), anyString());
@@ -862,7 +866,7 @@ public class AssignmentServiceImplTest extends BaseTest {
         when(platformDeployment.getLocalUrl()).thenReturn(LTI_URL);
         when(apiClient.editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString())).thenThrow(new ApiException("failed"));
 
-        assertThrows(AssignmentNotCreatedException.class, () -> assignmentService.repointAssignmentInLms(instructorUser, assignment, 1L, "course-1", lmsAssignment));
+        assertThrows(AssignmentNotCreatedException.class, () -> assignmentService.repointAssignmentInLms(instructorUser, assignment, "course-1", lmsAssignment));
     }
 
     @Test

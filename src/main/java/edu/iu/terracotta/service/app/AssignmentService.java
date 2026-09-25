@@ -114,9 +114,10 @@ public interface AssignmentService {
      * assignment - preserving whatever due dates/points/rubrics/customization the instructor
      * already has on it. existingLmsAssignment is mutated in place (its external-tool URL
      * rewritten) and PUT back via the same connector-agnostic edit path the obsolete-assignment
-     * process already uses.
+     * process already uses. The new URL identifies the recreated experiment/assignment by uuid,
+     * the same way createAssignmentInLms's does.
      */
-    Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, long experimentId, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException;
+    Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException;
 
     /**
      * Best-effort restore of a repointAssignmentInLms() call's URL mutation - used when the rest
