@@ -1,5 +1,6 @@
 package edu.iu.terracotta.dao.repository.distribute;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,5 +17,7 @@ public interface ExperimentCopyCandidateRepository extends JpaRepository<Experim
     boolean existsByDestinationContext_ContextIdAndStatusIn(long destinationContextId, List<ExperimentCopyCandidateStatus> statuses);
     List<ExperimentCopyCandidate> findAllByDestinationContext_ContextIdAndStatusIn(long destinationContextId, List<ExperimentCopyCandidateStatus> statuses);
     List<ExperimentCopyCandidate> findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(long destinationContextId, List<ExperimentCopyCandidateStatus> statuses);
+    List<ExperimentCopyCandidate> findAllByStatusInAndUpdatedAtBefore(List<ExperimentCopyCandidateStatus> statuses, Timestamp updatedAt);
+    List<ExperimentCopyCandidate> findAllByStatusAndAcknowledgedAtIsNullAndUpdatedAtBefore(ExperimentCopyCandidateStatus status, Timestamp updatedAt);
 
 }

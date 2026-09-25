@@ -18,9 +18,11 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +47,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCandidate;
+import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCreatedAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
@@ -57,6 +60,7 @@ import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyCandidateStatu
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyStatus;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
 import edu.iu.terracotta.dao.repository.distribute.ExperimentCopyCandidateRepository;
+import edu.iu.terracotta.dao.repository.distribute.ExperimentCopyCreatedAssignmentRepository;
 import edu.iu.terracotta.exceptions.ExperimentExportException;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
@@ -71,6 +75,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
     @Mock private ExperimentExportService experimentExportService;
     @Mock private AssignmentAsyncService assignmentAsyncService;
     @Mock private ExperimentCopyNotificationService experimentCopyNotificationService;
+    @Mock private ExperimentCopyCreatedAssignmentRepository experimentCopyCreatedAssignmentRepository;
     @Mock private Claims noticeClaims;
     @Mock private ExperimentCopyCandidate copyCandidate;
 
@@ -100,7 +105,8 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
             assignmentAsyncService,
             experimentExportService,
             experimentImportService,
-            experimentCopyNotificationService
+            experimentCopyNotificationService,
+            experimentCopyCreatedAssignmentRepository
         );
 
         when(featureService.isFeatureEnabled(eq(FeatureType.PLATFORM_NOTIFICATIONS), anyLong())).thenReturn(true);
@@ -528,6 +534,162 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         verify(experimentCopyCandidateRepository, never()).save(any());
     }
 
+    // shared setup for recreating one candidate with a working LMS session
+    private void stubWorkingRecreation(ExperimentCopyCandidate candidate, List<LmsAssignment> lmsAssignments) throws Exception {
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
+            .thenReturn(List.of(candidate));
+        when(apiClient.getLmsCourseId(ltiUserEntity, ltiContextEntity)).thenReturn(Optional.of("123"));
+        when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(lmsAssignments);
+        when(experimentExportService.export(experiment)).thenReturn(ExportDto.builder().file(mock(File.class)).filename("export.zip").build());
+        when(experimentImportService.preprocessFromFile(any(), any(), any(), any(LmsRepointTargets.class), eq(true))).thenReturn(importDto);
+    }
+
+    private LmsRepointTargets capturedRepointTargets() throws Exception {
+        ArgumentCaptor<LmsRepointTargets> captor = ArgumentCaptor.forClass(LmsRepointTargets.class);
+        verify(experimentImportService).preprocessFromFile(any(), any(), any(), captor.capture(), eq(true));
+
+        return captor.getValue();
+    }
+
+    @Test
+    void testRecreateCountsTheAttemptAndPassesTheCandidateToTheImport() throws Exception {
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        when(candidate.getId()).thenReturn(5L);
+        when(candidate.getAttempts()).thenReturn(1);
+        stubWorkingRecreation(candidate, List.of());
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        verify(candidate).setAttempts(2);
+        assertEquals(5L, capturedRepointTargets().getCopyCandidateId());
+    }
+
+    // the first attempt matches by launch URL and saves what it found, for any retry to reuse
+    @Test
+    void testRecreateFirstAttemptSavesItsRepointPlan() throws Exception {
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        LmsAssignment copied = LmsAssignment.builder()
+            .id("999")
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?experiment=55&assignment=1").build())
+            .build();
+        stubWorkingRecreation(candidate, List.of(copied));
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        verify(candidate).setRepointPlan("{\"assignments\":{\"1\":\"999\"},\"consentAssignment\":null}");
+        assertEquals(Map.of(1L, copied), capturedRepointTargets().getAssignments());
+    }
+
+    // an interrupted attempt already changed the copied assignment's URL to point at an
+    // assignment it then rolled back - so a retry can't match it by URL, only by the saved plan
+    @Test
+    void testRecreateRetryUsesTheSavedRepointPlan() throws Exception {
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        when(candidate.getRepointPlan()).thenReturn("{\"assignments\":{\"1\":\"999\"},\"consentAssignment\":\"888\"}");
+        LmsAssignment alreadyRepointed = LmsAssignment.builder()
+            .id("999")
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?experiment=77&assignment=12345").build())
+            .build();
+        LmsAssignment consent = LmsAssignment.builder()
+            .id("888")
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?consent=true&experiment=77").build())
+            .build();
+        stubWorkingRecreation(candidate, List.of(alreadyRepointed, consent));
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        LmsRepointTargets repointTargets = capturedRepointTargets();
+        assertEquals(Map.of(1L, alreadyRepointed), repointTargets.getAssignments());
+        assertEquals(consent, repointTargets.getConsentAssignment());
+        verify(candidate, never()).setRepointPlan(any());
+    }
+
+    @Test
+    void testRecreateRetrySkipsPlannedAssignmentsDeletedFromTheLms() throws Exception {
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        when(candidate.getRepointPlan()).thenReturn("{\"assignments\":{\"1\":\"999\"},\"consentAssignment\":null}");
+        stubWorkingRecreation(candidate, List.of());
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        assertTrue(capturedRepointTargets().getAssignments().isEmpty());
+    }
+
+    // an interrupted attempt's LMS assignments survive its rollback - removed first, or the
+    // retry would leave duplicates
+    @Test
+    void testRecreateRemovesLmsAssignmentsLeftByAnEarlierAttempt() throws Exception {
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        when(candidate.getId()).thenReturn(5L);
+        ExperimentCopyCreatedAssignment leftOver = mock(ExperimentCopyCreatedAssignment.class);
+        when(leftOver.getLmsAssignmentId()).thenReturn("444");
+        ExperimentCopyCreatedAssignment alreadyGone = mock(ExperimentCopyCreatedAssignment.class);
+        when(alreadyGone.getLmsAssignmentId()).thenReturn("445");
+        List<ExperimentCopyCreatedAssignment> created = List.of(leftOver, alreadyGone);
+        when(experimentCopyCreatedAssignmentRepository.findAllByCopyCandidate_Id(5L)).thenReturn(created);
+        doThrow(new ApiException("not found")).when(apiClient).deleteAssignmentInLms(org.mockito.ArgumentMatchers.argThat((LmsAssignment a) -> a != null && "445".equals(a.getId())), eq("123"), any());
+        stubWorkingRecreation(candidate, List.of());
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        verify(apiClient).deleteAssignmentInLms(org.mockito.ArgumentMatchers.argThat((LmsAssignment a) -> a != null && "444".equals(a.getId())), eq("123"), eq(ltiUserEntity));
+        verify(experimentCopyCreatedAssignmentRepository).deleteAll(created);
+        verify(candidate).setStatus(ExperimentCopyCandidateStatus.IMPORTED);
+    }
+
+    @Test
+    void testResetStalledForRecoveryRestartsStalledCandidates() {
+        ExperimentCopyCandidate stalledPending = pendingCandidate();
+        when(stalledPending.getDestinationContext()).thenReturn(ltiContextEntity);
+        when(experimentCopyCandidateRepository.findAllByStatusInAndUpdatedAtBefore(eq(UNFINISHED), any(Timestamp.class))).thenReturn(List.of(stalledPending));
+
+        ExperimentCopyCandidate deadImport = importedCandidate();
+        when(deadImport.getDestinationContext()).thenReturn(ltiContextEntity);
+        when(experimentImport.getStatus()).thenReturn(ExperimentImportStatus.PROCESSING);
+        when(experimentImport.getUpdatedAt()).thenReturn(new Timestamp(0));
+        when(experimentCopyCandidateRepository.findAllByStatusAndAcknowledgedAtIsNullAndUpdatedAtBefore(eq(ExperimentCopyCandidateStatus.IMPORTED), any(Timestamp.class)))
+            .thenReturn(List.of(deadImport));
+
+        Set<Long> contextIds = experimentCopyCandidateService.resetStalledForRecovery(Duration.ofMinutes(15), Duration.ofMinutes(60), 3);
+
+        assertEquals(Set.of(1L), contextIds);
+        verify(stalledPending).setStatus(ExperimentCopyCandidateStatus.PENDING);
+        verify(deadImport).setStatus(ExperimentCopyCandidateStatus.PENDING);
+        verify(deadImport).setResultingImportUuid(null);
+        // abandoned, so it skips itself if it ever does start
+        verify(experimentImport).setStatus(ExperimentImportStatus.ERROR_ACKNOWLEDGED);
+        verify(experimentCopyNotificationService, never()).notifyLmsFailure(any());
+    }
+
+    @Test
+    void testResetStalledForRecoveryLeavesImportsThatAreStillRunningOrDone() {
+        ExperimentCopyCandidate done = importedCandidate();
+        when(experimentImport.getStatus()).thenReturn(ExperimentImportStatus.COMPLETE);
+        when(experimentCopyCandidateRepository.findAllByStatusAndAcknowledgedAtIsNullAndUpdatedAtBefore(eq(ExperimentCopyCandidateStatus.IMPORTED), any(Timestamp.class)))
+            .thenReturn(List.of(done));
+
+        assertTrue(experimentCopyCandidateService.resetStalledForRecovery(Duration.ofMinutes(15), Duration.ofMinutes(60), 3).isEmpty());
+
+        verify(done, never()).setStatus(any());
+        verify(experimentImport, never()).setStatus(any());
+    }
+
+    @Test
+    void testResetStalledForRecoveryGivesUpAfterMaxAttemptsAndEmailsOncePerInstructor() {
+        ExperimentCopyCandidate first = pendingCandidate();
+        when(first.getAttempts()).thenReturn(3);
+        ExperimentCopyCandidate second = pendingCandidate();
+        when(second.getAttempts()).thenReturn(3);
+        when(experimentCopyCandidateRepository.findAllByStatusInAndUpdatedAtBefore(eq(UNFINISHED), any(Timestamp.class))).thenReturn(List.of(first, second));
+
+        assertTrue(experimentCopyCandidateService.resetStalledForRecovery(Duration.ofMinutes(15), Duration.ofMinutes(60), 3).isEmpty());
+
+        verify(first).setStatus(ExperimentCopyCandidateStatus.ERROR);
+        verify(second).setStatus(ExperimentCopyCandidateStatus.ERROR);
+        verify(first).setErrorMessage("Recreation stopped part-way through and was already retried [3] time(s)");
+        verify(experimentCopyNotificationService, times(1)).notifyLmsFailure(ltiUserEntity);
+    }
+
     @Test
     void testHasUnfinishedForContextWhenPendingOrImporting() {
         when(experimentCopyCandidateRepository.existsByDestinationContext_ContextIdAndStatusIn(1L, UNFINISHED)).thenReturn(true);
@@ -784,12 +946,13 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
 
         experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
+        Long candidateId = selected.getId();
 
         verify(experimentImportService).preprocessFromFile(
             eq(exportFile),
             eq("export.zip"),
             eq(securedInfo),
-            eq(LmsRepointTargets.ofAssignments(Map.of(1L, matchingLmsAssignment))),
+            eq(LmsRepointTargets.ofAssignments(Map.of(1L, matchingLmsAssignment)).toBuilder().copyCandidateId(candidateId).build()),
             eq(false)
         );
     }
@@ -886,7 +1049,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
 
         experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
 
-        verify(experimentImportService).preprocessFromFile(exportFile, "export.zip", securedInfo, LmsRepointTargets.none(), false);
+        verify(experimentImportService).preprocessFromFile(exportFile, "export.zip", securedInfo, LmsRepointTargets.none().toBuilder().copyCandidateId(selected.getId()).build(), false);
     }
 
 }

@@ -1,7 +1,9 @@
 package edu.iu.terracotta.service.app.distribute;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import io.jsonwebtoken.Claims;
@@ -53,6 +55,16 @@ public interface ExperimentCopyCandidateService {
      * Returns whether there was anything to retry.
      */
     boolean resetFailedForRetry(long contextId);
+
+    /**
+     * Finds recreations that stopped part-way - e.g. the server was restarted while they ran -
+     * and puts them back to PENDING so they can run again: candidates still PENDING or IMPORTING
+     * after stalledAfter, and ones whose import has been processing for longer than
+     * importStalledAfter (that import is abandoned). A candidate that has already been started
+     * maxAttempts times is marked as failed instead, and its instructor emailed. Returns the
+     * destination contexts that have something to recreate again.
+     */
+    Set<Long> resetStalledForRecovery(Duration stalledAfter, Duration importStalledAfter, int maxAttempts);
 
     /**
      * Whether recreation is still underway for the given context: any candidate still PENDING or

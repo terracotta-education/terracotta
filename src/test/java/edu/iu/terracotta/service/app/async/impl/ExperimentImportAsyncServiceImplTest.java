@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -70,6 +71,7 @@ import edu.iu.terracotta.dao.model.enums.ExposureTypes;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCreatedAssignmentService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyNotificationService;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -77,6 +79,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
     @Mock private ExperimentCopyNotificationService experimentCopyNotificationService;
     @Mock private PlatformTransactionManager transactionManager;
+    @Mock private ExperimentCopyCreatedAssignmentService experimentCopyCreatedAssignmentService;
 
     @InjectMocks private ExperimentImportAsyncServiceImpl experimentImportAsyncServiceImpl;
 
@@ -422,6 +425,58 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
         verify(transactionManager, never()).rollback(any());
         verify(experimentImportRepository, never()).findById(anyLong());
+    }
+
+    // recovery gave up on this copy recreation's import and started another - running this one
+    // as well would recreate the experiment twice
+    @Test
+    void testProcessSkipsACopyImportRecoveryAbandoned() throws IOException {
+        writeExportJson(fullExport());
+        ExperimentImport current = mock(ExperimentImport.class);
+        when(current.getStatus()).thenReturn(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR_ACKNOWLEDGED);
+        when(experimentImportRepository.findById(1L)).thenReturn(Optional.of(current));
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.builder().copyCandidateId(5L).build(), true, true);
+
+        verify(experimentRepository, never()).save(any(Experiment.class));
+        verify(transactionManager, never()).getTransaction(any());
+    }
+
+    @Test
+    void testProcessRecordsCreatedLmsAssignmentsForACopyAndClearsThemOnSuccess() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        ExperimentImport current = mock(ExperimentImport.class);
+        when(current.getStatus()).thenReturn(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.PROCESSING);
+        when(experimentImportRepository.findById(1L)).thenReturn(Optional.of(current));
+        when(assignment.getLmsAssignmentId()).thenReturn("444");
+        when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.builder().copyCandidateId(5L).build(), true, true);
+
+        verify(experimentCopyCreatedAssignmentService).recordCreated(5L, "444");
+        verify(experimentCopyCreatedAssignmentService).clear(5L);
+    }
+
+    @Test
+    void testProcessKeepsCreatedLmsAssignmentRecordsWhenACopyImportFails() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(experimentImport.getStatus()).thenReturn(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.PROCESSING);
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString())).thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.builder().copyCandidateId(5L).build(), false, true));
+
+        verify(experimentCopyCreatedAssignmentService, never()).clear(anyLong());
+    }
+
+    @Test
+    void testProcessManualImportRecordsNothing() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
+
+        verify(experimentCopyCreatedAssignmentService, never()).recordCreated(anyLong(), any());
+        verify(experimentCopyCreatedAssignmentService, never()).clear(anyLong());
     }
 
     // a background course-copy recreation has nobody watching - its owner gets an email instead

@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.distribute.impl;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -15,6 +16,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -39,12 +41,14 @@ import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCandidate;
+import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCreatedAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
 import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
+import edu.iu.terracotta.dao.model.distribute.RepointPlan;
 import edu.iu.terracotta.dao.model.dto.distribute.ImportDto;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
@@ -56,6 +60,7 @@ import edu.iu.terracotta.dao.repository.ConditionRepository;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ObsoleteAssignmentRepository;
 import edu.iu.terracotta.dao.repository.distribute.ExperimentCopyCandidateRepository;
+import edu.iu.terracotta.dao.repository.distribute.ExperimentCopyCreatedAssignmentRepository;
 import edu.iu.terracotta.dao.repository.distribute.ExperimentImportRepository;
 import edu.iu.terracotta.exceptions.ExperimentCopyCandidateNotFoundException;
 import edu.iu.terracotta.exceptions.ExperimentExportException;
@@ -70,6 +75,7 @@ import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
 import edu.iu.terracotta.utils.LmsExternalToolUrlUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Service
@@ -81,6 +87,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     // 1 = instructor, 2 = admin
     private static final int INSTRUCTOR_ROLE = 1;
     private static final int ERROR_MESSAGE_MAX_LENGTH = 1024;
+    private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
     private static final List<ExperimentCopyCandidateStatus> UNFINISHED_STATUSES = List.of(
         ExperimentCopyCandidateStatus.PENDING,
@@ -118,6 +125,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     private final ExperimentExportService experimentExportService;
     private final ExperimentImportService experimentImportService;
     private final ExperimentCopyNotificationService experimentCopyNotificationService;
+    private final ExperimentCopyCreatedAssignmentRepository experimentCopyCreatedAssignmentRepository;
 
     @Override
     public Optional<Long> stageFromNotice(Claims noticeClaims) {
@@ -560,10 +568,12 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         }
 
         candidate.setStatus(ExperimentCopyCandidateStatus.IMPORTING);
+        candidate.setAttempts(candidate.getAttempts() + 1);
         experimentCopyCandidateRepository.save(candidate);
 
         try {
-            LmsRepointTargets repointTargets = buildRepointTargets(sourceExperiment, lmsAssignments, securedInfo);
+            removeLmsAssignmentsFromEarlierAttempt(candidate, securedInfo);
+            LmsRepointTargets repointTargets = repointTargets(candidate, sourceExperiment, lmsAssignments, securedInfo);
             ExportDto exportDto = experimentExportService.export(sourceExperiment);
             ImportDto importDto = experimentImportService.preprocessFromFile(exportDto.getFile(), exportDto.getFilename(), securedInfo, repointTargets, notifyOwnerOnLmsFailure);
 
@@ -586,6 +596,169 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     // query parameter the obsolete-assignment check already parses (see LmsExternalToolUrlUtils)
     // - Canvas course-copy duplicates external_tool_tag_attributes.url verbatim, so a copied
     // assignment's URL still carries the source course's old assignment ID.
+    // an earlier attempt that was interrupted (or failed without cleaning up) may have created LMS
+    // assignments whose Terracotta side was then rolled back - remove them, or this attempt would
+    // leave the course with duplicates
+    private void removeLmsAssignmentsFromEarlierAttempt(ExperimentCopyCandidate candidate, SecuredInfo securedInfo) {
+        if (candidate.getId() == null) {
+            return;
+        }
+
+        List<ExperimentCopyCreatedAssignment> created = experimentCopyCreatedAssignmentRepository.findAllByCopyCandidate_Id(candidate.getId());
+
+        if (created.isEmpty()) {
+            return;
+        }
+
+        LtiUserEntity apiUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+
+        for (ExperimentCopyCreatedAssignment createdAssignment : created) {
+            try {
+                apiClient.deleteAssignmentInLms(LmsAssignment.builder().id(createdAssignment.getLmsAssignmentId()).build(), securedInfo.getLmsCourseId(), apiUser);
+            } catch (Exception e) {
+                // most likely already gone - the failed attempt's own rollback deletes what it
+                // created when it gets the chance to
+                log.warn(
+                    "Could not remove LMS assignment ID: [{}] left by an earlier attempt of copy candidate ID: [{}]: {}",
+                    createdAssignment.getLmsAssignmentId(),
+                    candidate.getUuid(),
+                    ExceptionUtils.getRootCauseMessage(e)
+                );
+            }
+        }
+
+        experimentCopyCreatedAssignmentRepository.deleteAll(created);
+        log.info("Removed [{}] LMS assignment(s) left by an earlier attempt of copy candidate ID: [{}]", created.size(), candidate.getUuid());
+    }
+
+    // the first attempt matches copied LMS assignments by launch URL and saves the result; later
+    // attempts reuse it, since an interrupted attempt may already have changed those URLs to
+    // point at assignments it then rolled back
+    private LmsRepointTargets repointTargets(ExperimentCopyCandidate candidate, Experiment sourceExperiment, List<LmsAssignment> lmsAssignments, SecuredInfo securedInfo) {
+        RepointPlan plan = readRepointPlan(candidate);
+        LmsRepointTargets repointTargets;
+
+        if (plan != null) {
+            repointTargets = fromRepointPlan(plan, lmsAssignments, candidate);
+        } else {
+            repointTargets = buildRepointTargets(sourceExperiment, lmsAssignments, securedInfo);
+            candidate.setRepointPlan(writeRepointPlan(repointTargets));
+            experimentCopyCandidateRepository.save(candidate);
+        }
+
+        return repointTargets.toBuilder()
+            .copyCandidateId(candidate.getId())
+            .build();
+    }
+
+    private RepointPlan readRepointPlan(ExperimentCopyCandidate candidate) {
+        if (StringUtils.isBlank(candidate.getRepointPlan())) {
+            return null;
+        }
+
+        try {
+            return JSON_MAPPER.readValue(candidate.getRepointPlan(), RepointPlan.class);
+        } catch (Exception e) {
+            log.warn("Could not read the saved repoint plan for copy candidate ID: [{}] - matching by URL instead", candidate.getUuid(), e);
+
+            return null;
+        }
+    }
+
+    private String writeRepointPlan(LmsRepointTargets repointTargets) {
+        Map<Long, String> assignments = new HashMap<>();
+        repointTargets.getAssignments().forEach((sourceAssignmentId, lmsAssignment) -> assignments.put(sourceAssignmentId, lmsAssignment.getId()));
+
+        RepointPlan plan = RepointPlan.builder()
+            .assignments(assignments)
+            .consentAssignment(repointTargets.getConsentAssignment() != null ? repointTargets.getConsentAssignment().getId() : null)
+            .build();
+
+        try {
+            return JSON_MAPPER.writeValueAsString(plan);
+        } catch (Exception e) {
+            log.warn("Could not save the repoint plan", e);
+
+            return null;
+        }
+    }
+
+    private LmsRepointTargets fromRepointPlan(RepointPlan plan, List<LmsAssignment> lmsAssignments, ExperimentCopyCandidate candidate) {
+        Map<String, LmsAssignment> lmsAssignmentsById = new HashMap<>();
+        CollectionUtils.emptyIfNull(lmsAssignments).forEach(lmsAssignment -> lmsAssignmentsById.put(lmsAssignment.getId(), lmsAssignment));
+
+        Map<Long, LmsAssignment> assignments = new HashMap<>();
+        MapUtils.emptyIfNull(plan.getAssignments()).forEach((sourceAssignmentId, lmsAssignmentId) -> {
+            LmsAssignment lmsAssignment = lmsAssignmentsById.get(lmsAssignmentId);
+
+            if (lmsAssignment == null) {
+                // deleted from the LMS since - the retry creates a new one instead
+                log.info("Copied LMS assignment ID: [{}] from copy candidate ID: [{}]'s repoint plan no longer exists", lmsAssignmentId, candidate.getUuid());
+                return;
+            }
+
+            assignments.put(sourceAssignmentId, lmsAssignment);
+        });
+
+        return LmsRepointTargets.builder()
+            .assignments(assignments)
+            .consentAssignment(plan.getConsentAssignment() != null ? lmsAssignmentsById.get(plan.getConsentAssignment()) : null)
+            .build();
+    }
+
+    @Override
+    public Set<Long> resetStalledForRecovery(Duration stalledAfter, Duration importStalledAfter, int maxAttempts) {
+        Instant now = Instant.now();
+        Timestamp stalledBefore = Timestamp.from(now.minus(stalledAfter));
+        Timestamp importStalledBefore = Timestamp.from(now.minus(importStalledAfter));
+
+        List<ExperimentCopyCandidate> stalled = new ArrayList<>(experimentCopyCandidateRepository.findAllByStatusInAndUpdatedAtBefore(UNFINISHED_STATUSES, stalledBefore));
+
+        for (ExperimentCopyCandidate candidate : experimentCopyCandidateRepository
+            .findAllByStatusAndAcknowledgedAtIsNullAndUpdatedAtBefore(ExperimentCopyCandidateStatus.IMPORTED, importStalledBefore)) {
+            Optional<ExperimentImport> experimentImport = findResultingImport(candidate)
+                .filter(existing -> existing.getStatus() == ExperimentImportStatus.PROCESSING)
+                .filter(existing -> existing.getUpdatedAt() == null || existing.getUpdatedAt().before(importStalledBefore));
+
+            if (experimentImport.isEmpty()) {
+                continue;
+            }
+
+            // abandoned - if it's somehow still queued, it skips itself when it finally starts
+            // (see ExperimentImportAsyncServiceImpl), rather than recreating this experiment twice
+            experimentImport.get().setStatus(ExperimentImportStatus.ERROR_ACKNOWLEDGED);
+            experimentImportRepository.save(experimentImport.get());
+            stalled.add(candidate);
+        }
+
+        Set<Long> contextIds = new HashSet<>();
+        Map<Long, LtiUserEntity> instructorsToNotify = new HashMap<>();
+
+        for (ExperimentCopyCandidate candidate : stalled) {
+            if (candidate.getAttempts() >= maxAttempts) {
+                markError(candidate, String.format("Recreation stopped part-way through and was already retried [%s] time(s)", candidate.getAttempts()));
+                resolveInstructor(candidate.getSourceExperiment()).ifPresent(instructor -> instructorsToNotify.putIfAbsent(instructor.getUserId(), instructor));
+                continue;
+            }
+
+            log.info(
+                "Recreation of copy candidate ID: [{}] stopped part-way through (status: [{}], attempts: [{}]) - retrying",
+                candidate.getUuid(),
+                candidate.getStatus(),
+                candidate.getAttempts()
+            );
+            candidate.setStatus(ExperimentCopyCandidateStatus.PENDING);
+            candidate.setResultingImportUuid(null);
+            candidate.setErrorMessage(null);
+            experimentCopyCandidateRepository.save(candidate);
+            contextIds.add(candidate.getDestinationContext().getContextId());
+        }
+
+        instructorsToNotify.values().forEach(experimentCopyNotificationService::notifyLmsFailure);
+
+        return contextIds;
+    }
+
     private LmsRepointTargets buildRepointTargets(Experiment sourceExperiment, List<LmsAssignment> lmsAssignments, SecuredInfo securedInfo) {
         if (CollectionUtils.isEmpty(lmsAssignments)) {
             return LmsRepointTargets.none();

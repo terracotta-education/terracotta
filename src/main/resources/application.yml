@@ -378,6 +378,26 @@ experiment:
       enabled: true
     ttl:
       days: 7
+  # restarts copied-course experiment recreations that stopped part-way through (e.g. the
+  # server was restarted mid-recreation)
+  copy:
+    recovery:
+      scheduler:
+        enabled: true
+        check:
+          interval:
+            minutes: 10
+      # a recreation still pending/starting after this long is treated as stopped
+      stalled:
+        minutes: 15
+      # an experiment import still processing after this long is treated as stopped
+      import:
+        stalled:
+          minutes: 60
+      # how many times recreation is started for one experiment before giving up (the
+      # instructor is then emailed, and can retry by re-launching Terracotta in the course)
+      max:
+        attempts: 3
 
 # D2L Brightspace configuration
 brightspace:

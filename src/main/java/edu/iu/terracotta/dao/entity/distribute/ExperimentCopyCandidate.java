@@ -14,6 +14,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -46,6 +47,10 @@ public class ExperimentCopyCandidate extends BaseUuidEntity {
     @Enumerated(EnumType.STRING)
     private ExperimentCopyCandidateStatus status;
 
+    // how many times recreation has been started for this candidate - automatic recovery of a
+    // recreation interrupted by a server restart gives up after a configured number
+    private int attempts;
+
     // set once importCandidate() has kicked off the real (async) import, so the UI can map this
     // candidate to that import request's own progress/poll if it wants to later - the import's
     // own success/failure is tracked entirely by the existing ExperimentImport row, not here
@@ -59,6 +64,13 @@ public class ExperimentCopyCandidate extends BaseUuidEntity {
     // set once an instructor has been shown the result of this recreation on their first launch
     // into the destination course, so it's only shown once
     private Timestamp acknowledgedAt;
+
+    // which of the course's copied LMS assignments this candidate's recreation re-points, found
+    // (by launch URL) the first time it runs and saved as JSON (see RepointPlan). A retry reuses
+    // it instead of matching by URL again, since a re-point that already happened left the
+    // assignment's URL pointing at an assignment the failed attempt rolled back.
+    @Lob
+    private String repointPlan;
 
     @ManyToOne
     @JoinColumn(
