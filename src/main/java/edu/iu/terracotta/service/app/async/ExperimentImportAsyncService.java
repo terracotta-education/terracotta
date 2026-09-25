@@ -17,7 +17,11 @@ public interface ExperimentImportAsyncService {
      * notifyOwnerOnLmsFailure: email the import's owner if creating or re-pointing its LMS
      * assignments fails - for an import nobody is watching, i.e. one recreating a copied course's
      * experiments in the background (see ExperimentCopyNotificationService).
+     *
+     * keepSourceTitle: give the new experiment the source experiment's own title, rather than
+     * labelling it "(Imported)" - for recreating a copied course's experiments, which should look
+     * just as they did in the original course. A manual import is always labelled.
      */
-    void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException;
+    void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure, boolean keepSourceTitle) throws ExperimentImportException;
 
 }

@@ -23,6 +23,8 @@ public interface ExperimentImportService {
      * ExperimentCopyCandidateServiceImpl) into the same import pipeline a manual zip upload uses,
      * without fabricating a fake MultipartFile (its test double isn't available to main code).
      * assignmentRepointMap, notifyOwnerOnLmsFailure: see ExperimentImportAsyncService.process.
+     * Only used to recreate a copied course's experiments, so the new experiment always keeps
+     * its source title (see keepSourceTitle there).
      */
     ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException;
     ImportDto preprocessError(MultipartFile file, String errorMessage, SecuredInfo securedInfo);

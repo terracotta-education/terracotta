@@ -131,7 +131,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
         }
 
         verify(fileStorageService).saveExperimentImportFile(eq(multipartFile), any(ExperimentImport.class));
-        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(Map.of()), eq(false));
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(Map.of()), eq(false), eq(false));
     }
 
     // used by ExperimentCopyCandidateServiceImpl to feed an in-process export straight into this
@@ -155,7 +155,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
         }
 
         verify(fileStorageService).saveExperimentImportFile(eq(file), any(ExperimentImport.class));
-        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(Map.of()), eq(true));
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(Map.of()), eq(true), eq(true));
     }
 
     // validate(...) saves the entity again partway through (to persist the source title),
@@ -187,8 +187,8 @@ class ExperimentImportServiceImplTest extends BaseTest {
             experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, Map.of(), true);
         }
 
-        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(Map.of()), eq(true));
-        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), anyMap(), anyBoolean());
+        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(Map.of()), eq(true), eq(true));
+        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), anyMap(), anyBoolean(), anyBoolean());
     }
 
     // the map is forwarded unchanged, all the way through to the async import step - this is
@@ -213,7 +213,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
             experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, assignmentRepointMap, true);
         }
 
-        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(assignmentRepointMap), eq(true));
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(assignmentRepointMap), eq(true), eq(true));
     }
 
     @Test
@@ -258,8 +258,8 @@ class ExperimentImportServiceImplTest extends BaseTest {
             experimentImportService.preprocess(multipartFile, securedInfo);
         }
 
-        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(Map.of()), eq(false));
-        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), any(), anyBoolean());
+        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(Map.of()), eq(false), eq(false));
+        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), any(), anyBoolean(), anyBoolean());
     }
 
     @Test
@@ -297,7 +297,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
             assertEquals(ExperimentImportStatus.ERROR, result.getStatus());
         }
 
-        verify(experimentImportAsyncService, never()).process(any(ExperimentImport.class), eq(securedInfo), anyMap(), anyBoolean());
+        verify(experimentImportAsyncService, never()).process(any(ExperimentImport.class), eq(securedInfo), anyMap(), anyBoolean(), anyBoolean());
         verify(experimentImportErrorRepository).save(any(ExperimentImportError.class));
     }
 

@@ -108,14 +108,14 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
 
     @Async
     @Override
-    public void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException {
+    public void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure, boolean keepSourceTitle) throws ExperimentImportException {
         // the import runs in one transaction so a failure part-way through rolls back everything
         // it created - but that rollback would also discard the ERROR status recording why, so
         // that's saved separately, afterwards, in a transaction of its own
         try {
             new TransactionTemplate(transactionManager).executeWithoutResult(transactionStatus -> {
                 try {
-                    processInTransaction(experimentImport, securedInfo, assignmentRepointMap, notifyOwnerOnLmsFailure);
+                    processInTransaction(experimentImport, securedInfo, assignmentRepointMap, notifyOwnerOnLmsFailure, keepSourceTitle);
                 } catch (ExperimentImportException e) {
                     throw new ImportRolledBackException(e);
                 }
@@ -161,7 +161,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
     }
 
-    private void processInTransaction(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException {
+    private void processInTransaction(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure, boolean keepSourceTitle) throws ExperimentImportException {
         log.info("Processing experiment import with ID: [{}]", experimentImport.getId());
         Optional<Export> export = prepare(experimentImport);
 
@@ -189,7 +189,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
          */
 
         consentDocument(export.get(), experimentImport, export.get().getImportDirectory(), idMap);
-        experiment(export.get(), experimentImport, idMap);
+        experiment(export.get(), experimentImport, idMap, keepSourceTitle);
         conditions(export.get(), idMap);
         exposures(export.get(), idMap);
         groups(export.get(), idMap);
@@ -305,15 +305,8 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
     }
 
-    private void experiment(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
-        String title = String.format("%s %s", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle());
-        int index = 1;
-
-        // ensure experiment title does not exist already
-        while (experimentRepository.existsByTitle(title)) {
-            title = String.format("%s %s (%s)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle(), index);
-            index++;
-        }
+    private void experiment(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, boolean keepSourceTitle) {
+        String title = keepSourceTitle ? sourceTitle(export, experimentImport) : importedTitle(export);
 
         Experiment experiment = experimentRepository.save(
             Experiment.builder()
@@ -335,6 +328,33 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         );
         idMap.put(Experiment.class, Collections.singletonMap(export.getExperiment().getId(), experiment));
         experimentImport.setImportedTitle(title);
+    }
+
+    private String importedTitle(Export export) {
+        String title = String.format("%s %s", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle());
+        int index = 1;
+
+        // ensure experiment title does not exist already
+        while (experimentRepository.existsByTitle(title)) {
+            title = String.format("%s %s (%s)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle(), index);
+            index++;
+        }
+
+        return title;
+    }
+
+    // a recreated experiment keeps its own title - only made unique within its new course, since
+    // the source experiment it was copied from, in the original course, always has the same one
+    private String sourceTitle(Export export, ExperimentImport experimentImport) {
+        String title = export.getExperiment().getTitle();
+        int index = 1;
+
+        while (experimentRepository.existsByTitleAndLtiContextEntity_ContextId(title, experimentImport.getContext().getContextId())) {
+            title = String.format("%s (%s)", export.getExperiment().getTitle(), index);
+            index++;
+        }
+
+        return title;
     }
 
     private void conditions(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
