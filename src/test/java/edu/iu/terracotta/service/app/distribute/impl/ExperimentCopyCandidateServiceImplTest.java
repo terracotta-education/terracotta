@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.distribute.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -45,11 +46,13 @@ import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCandidate;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
+import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
+import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyCandidateStatus;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyStatus;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
@@ -289,12 +292,12 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
 
         File exportFile = mock(File.class);
         when(experimentExportService.export(experiment)).thenReturn(ExportDto.builder().file(exportFile).filename("export.zip").build());
-        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), any(SecuredInfo.class), anyMap(), eq(true))).thenReturn(importDto);
+        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), any(SecuredInfo.class), any(LmsRepointTargets.class), eq(true))).thenReturn(importDto);
 
         experimentCopyCandidateService.recreateForContext(1L, null);
 
         ArgumentCaptor<SecuredInfo> securedInfoCaptor = ArgumentCaptor.forClass(SecuredInfo.class);
-        verify(experimentImportService, times(2)).preprocessFromFile(eq(exportFile), eq("export.zip"), securedInfoCaptor.capture(), anyMap(), eq(true));
+        verify(experimentImportService, times(2)).preprocessFromFile(eq(exportFile), eq("export.zip"), securedInfoCaptor.capture(), any(LmsRepointTargets.class), eq(true));
         SecuredInfo actingAs = securedInfoCaptor.getValue();
         assertEquals(1L, actingAs.getContextId());
         assertEquals(USER_ID, actingAs.getUserId());
@@ -321,7 +324,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         when(apiClient.getLmsCourseId(ltiUserEntity, ltiContextEntity)).thenReturn(Optional.of("123"));
         when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(List.of());
         when(experimentExportService.export(experiment)).thenReturn(ExportDto.builder().file(mock(File.class)).filename("export.zip").build());
-        when(experimentImportService.preprocessFromFile(any(), any(), any(), anyMap(), eq(true))).thenReturn(importDto);
+        when(experimentImportService.preprocessFromFile(any(), any(), any(), any(LmsRepointTargets.class), eq(true))).thenReturn(importDto);
 
         experimentCopyCandidateService.recreateForContext(1L, null);
 
@@ -419,7 +422,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(List.of());
         doThrow(new ExperimentExportException("export failed")).when(experimentExportService).export(experiment);
         when(experimentExportService.export(otherExperiment)).thenReturn(ExportDto.builder().file(mock(File.class)).filename("export.zip").build());
-        when(experimentImportService.preprocessFromFile(any(), any(), any(), anyMap(), eq(true))).thenReturn(importDto);
+        when(experimentImportService.preprocessFromFile(any(), any(), any(), any(LmsRepointTargets.class), eq(true))).thenReturn(importDto);
 
         experimentCopyCandidateService.recreateForContext(1L, null);
 
@@ -460,12 +463,12 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         when(apiClient.getLmsCourseId(retryingInstructor, ltiContextEntity)).thenReturn(Optional.of("123"));
         when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(List.of());
         when(experimentExportService.export(experiment)).thenReturn(ExportDto.builder().file(mock(File.class)).filename("export.zip").build());
-        when(experimentImportService.preprocessFromFile(any(), any(), any(), anyMap(), eq(false))).thenReturn(importDto);
+        when(experimentImportService.preprocessFromFile(any(), any(), any(), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
 
         experimentCopyCandidateService.recreateForContext(1L, "retrying-user");
 
         ArgumentCaptor<SecuredInfo> securedInfoCaptor = ArgumentCaptor.forClass(SecuredInfo.class);
-        verify(experimentImportService).preprocessFromFile(any(), any(), securedInfoCaptor.capture(), anyMap(), eq(false));
+        verify(experimentImportService).preprocessFromFile(any(), any(), securedInfoCaptor.capture(), any(LmsRepointTargets.class), eq(false));
         assertEquals("retrying-user", securedInfoCaptor.getValue().getUserId());
         verify(candidate).setStatus(ExperimentCopyCandidateStatus.IMPORTED);
     }
@@ -698,7 +701,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         ExportDto exportDto = ExportDto.builder().file(exportFile).filename("export.zip").build();
         when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of());
         when(experimentExportService.export(experiment)).thenReturn(exportDto);
-        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), anyMap(), eq(false))).thenReturn(importDto);
+        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
 
         CopyCandidateResolutionDto result = experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
 
@@ -778,7 +781,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         File exportFile = mock(File.class);
         ExportDto exportDto = ExportDto.builder().file(exportFile).filename("export.zip").build();
         when(experimentExportService.export(experiment)).thenReturn(exportDto);
-        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), anyMap(), eq(false))).thenReturn(importDto);
+        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
 
         experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
 
@@ -786,9 +789,71 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
             eq(exportFile),
             eq("export.zip"),
             eq(securedInfo),
-            eq(Map.of(1L, matchingLmsAssignment)),
+            eq(LmsRepointTargets.ofAssignments(Map.of(1L, matchingLmsAssignment))),
             eq(false)
         );
+    }
+
+    // the copied consent assignment has no assignment id of its own - matched by its experiment,
+    // which can be the numeric id or the uuid depending on when the URL was written
+    @Test
+    void testResolveMatchesCopiedConsentAssignmentByNumericOrUuidExperimentId() throws Exception {
+        UUID experimentUuid = UUID.randomUUID();
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
+        when(experiment.getUuid()).thenReturn(experimentUuid);
+
+        for (String experimentParam : List.of("1", experimentUuid.toString())) {
+            UUID selectedId = UUID.randomUUID();
+            ExperimentCopyCandidate selected = mock(ExperimentCopyCandidate.class);
+            when(selected.getUuid()).thenReturn(selectedId);
+            when(selected.getSourceExperiment()).thenReturn(experiment);
+            when(securedInfo.getContextId()).thenReturn(1L);
+            when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
+                .thenReturn(List.of(selected));
+
+            LmsAssignment copiedConsent = LmsAssignment.builder()
+                .id("888")
+                .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?consent=true&experiment=" + experimentParam).build())
+                .build();
+            when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of(copiedConsent));
+
+            File exportFile = mock(File.class);
+            when(experimentExportService.export(experiment)).thenReturn(ExportDto.builder().file(exportFile).filename("export.zip").build());
+            when(experimentImportService.preprocessFromFile(any(), any(), any(), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
+
+            experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
+
+            ArgumentCaptor<LmsRepointTargets> captor = ArgumentCaptor.forClass(LmsRepointTargets.class);
+            verify(experimentImportService, org.mockito.Mockito.atLeastOnce()).preprocessFromFile(any(), any(), any(), captor.capture(), eq(false));
+            assertEquals(copiedConsent, captor.getValue().getConsentAssignment(), experimentParam);
+            assertTrue(captor.getValue().getAssignments().isEmpty());
+        }
+    }
+
+    @Test
+    void testResolveIgnoresConsentAssignmentForAnotherExperiment() throws Exception {
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
+        when(experiment.getUuid()).thenReturn(UUID.randomUUID());
+        UUID selectedId = UUID.randomUUID();
+        ExperimentCopyCandidate selected = mock(ExperimentCopyCandidate.class);
+        when(selected.getUuid()).thenReturn(selectedId);
+        when(selected.getSourceExperiment()).thenReturn(experiment);
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
+            .thenReturn(List.of(selected));
+        LmsAssignment otherConsent = LmsAssignment.builder()
+            .id("889")
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?consent=true&experiment=999").build())
+            .build();
+        when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of(otherConsent));
+        when(experimentExportService.export(experiment)).thenReturn(ExportDto.builder().file(mock(File.class)).filename("export.zip").build());
+        when(experimentImportService.preprocessFromFile(any(), any(), any(), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
+
+        experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
+
+        ArgumentCaptor<LmsRepointTargets> captor = ArgumentCaptor.forClass(LmsRepointTargets.class);
+        verify(experimentImportService).preprocessFromFile(any(), any(), any(), captor.capture(), eq(false));
+        assertNull(captor.getValue().getConsentAssignment());
     }
 
     @Test
@@ -817,11 +882,11 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         File exportFile = mock(File.class);
         ExportDto exportDto = ExportDto.builder().file(exportFile).filename("export.zip").build();
         when(experimentExportService.export(experiment)).thenReturn(exportDto);
-        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), anyMap(), eq(false))).thenReturn(importDto);
+        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
 
         experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
 
-        verify(experimentImportService).preprocessFromFile(exportFile, "export.zip", securedInfo, Map.of(), false);
+        verify(experimentImportService).preprocessFromFile(exportFile, "export.zip", securedInfo, LmsRepointTargets.none(), false);
     }
 
 }

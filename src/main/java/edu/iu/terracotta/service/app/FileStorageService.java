@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
@@ -33,6 +34,12 @@ public interface FileStorageService {
     FileSubmissionLocal saveConsentFile(InputStream inputStream, String filename);
     FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo) throws AssignmentNotCreatedException, AssignmentNotEditedException, AssignmentNotMatchingException, ApiException, IOException, TerracottaConnectorException;
     void sendConsentFileToLms(ConsentDocument consentDocument, Experiment experiment, LtiUserEntity instructorUser) throws AssignmentNotCreatedException, IOException, TerracottaConnectorException;
+
+    /**
+     * Instead of creating the consent LMS assignment (sendConsentFileToLms), points an existing
+     * one - copied along with a course - at the given (recreated) experiment's consent document.
+     */
+    void repointConsentFileInLms(ConsentDocument consentDocument, Experiment experiment, LtiUserEntity instructorUser, LmsAssignment existingLmsAssignment, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException;
     void deleteConsentAssignment(long experimentId, SecuredInfo securedInfo) throws AssignmentNotEditedException, ApiException, IOException, NumberFormatException, TerracottaConnectorException;
     String parseHTMLFiles (String html, String localUrl);
     FileSubmissionLocal saveFileSubmissionLocal(MultipartFile file);

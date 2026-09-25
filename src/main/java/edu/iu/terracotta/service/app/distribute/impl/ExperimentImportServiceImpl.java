@@ -17,7 +17,6 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
-import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.dao.entity.AnswerMc;
@@ -34,6 +33,7 @@ import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImportError;
+import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
@@ -77,7 +77,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         try {
             fileStorageService.saveExperimentImportFile(file, experimentImport);
 
-            return finishPreprocess(experimentImport, securedInfo, Map.of(), false, false);
+            return finishPreprocess(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
         } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
@@ -86,13 +86,13 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
     }
 
     @Override
-    public ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException {
+    public ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, LmsRepointTargets repointTargets, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException {
         ExperimentImport experimentImport = buildExperimentImport(originalFilename, securedInfo);
 
         try {
             fileStorageService.saveExperimentImportFile(file, experimentImport);
 
-            return finishPreprocess(experimentImport, securedInfo, assignmentRepointMap, notifyOwnerOnLmsFailure, true);
+            return finishPreprocess(experimentImport, securedInfo, repointTargets, notifyOwnerOnLmsFailure, true);
         } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
@@ -113,7 +113,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             .build();
     }
 
-    private ImportDto finishPreprocess(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure, boolean keepSourceTitle) {
+    private ImportDto finishPreprocess(ExperimentImport experimentImport, SecuredInfo securedInfo, LmsRepointTargets repointTargets, boolean notifyOwnerOnLmsFailure, boolean keepSourceTitle) {
         experimentImport = experimentImportRepository.save(experimentImport);
 
         // validate(...) saves the entity again partway through (to persist the source title) -
@@ -147,7 +147,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         entityManager.detach(experimentImport);
 
         // start async import processing
-        experimentImportAsyncService.process(experimentImport, securedInfo, assignmentRepointMap, notifyOwnerOnLmsFailure, keepSourceTitle);
+        experimentImportAsyncService.process(experimentImport, securedInfo, repointTargets, notifyOwnerOnLmsFailure, keepSourceTitle);
 
         return importDto;
     }

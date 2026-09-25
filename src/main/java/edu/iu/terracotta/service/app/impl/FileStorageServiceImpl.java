@@ -336,6 +336,30 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
+    public void repointConsentFileInLms(ConsentDocument consentDocument, Experiment experiment, LtiUserEntity instructorUser, LmsAssignment existingLmsAssignment, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException {
+        try {
+            existingLmsAssignment.getLmsExternalToolFields().setUrl(
+                String.format(
+                    "%s/lti3?consent=true&experiment=%s",
+                    instructorUser.getPlatformDeployment().getLocalUrl(),
+                    experiment.getUuid()
+                )
+            );
+
+            LmsAssignment lmsAssignment = apiClient.editAssignment(instructorUser, existingLmsAssignment, lmsCourseId).orElse(existingLmsAssignment);
+
+            consentDocument.setLmsAssignmentId(lmsAssignment.getId());
+            consentDocument.setMetadata(lmsAssignment.getMetadata());
+            // an edit response carries no secure_params JWT to read this from, the way a create's
+            // does (see sendConsentFileToLms) - but the copied assignment already has its own real
+            // resource_link_id from the LMS, which a URL-only edit doesn't change
+            consentDocument.setResourceLinkId(existingLmsAssignment.getLmsExternalToolFields().getResourceLinkId());
+        } catch (ApiException e) {
+            throw new AssignmentNotCreatedException("Error 137: The consent document assignment was not re-pointed.", e);
+        }
+    }
+
+    @Override
     public void deleteConsentFile(long experimentId) {
         Optional<ConsentDocument> consentDocument = consentDocumentRepository.findByExperiment_ExperimentId(experimentId);
 

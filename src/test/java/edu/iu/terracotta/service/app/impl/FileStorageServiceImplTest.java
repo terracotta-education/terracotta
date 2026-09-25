@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
@@ -286,6 +289,34 @@ public class FileStorageServiceImplTest extends BaseTest {
         when(apiClient.uploadConsentFile(any(), any(), any())).thenThrow(new ApiException("boom"));
 
         assertThrows(AssignmentNotCreatedException.class, () -> fileStorageService.sendConsentFileToLms(doc, experiment, ltiUserEntity));
+    }
+
+    @Test
+    public void testRepointConsentFileInLmsPointsTheCopiedAssignmentAtTheExperiment() throws Exception {
+        ConsentDocument doc = new ConsentDocument();
+        UUID experimentUuid = UUID.randomUUID();
+        when(experiment.getUuid()).thenReturn(experimentUuid);
+        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getLocalUrl()).thenReturn("https://terracotta.example.com");
+        LmsExternalToolFields toolFields = LmsExternalToolFields.builder().url("https://terracotta.example.com/lti3?consent=true&experiment=1").resourceLinkId("copied-link").build();
+        LmsAssignment copied = LmsAssignment.builder().id("77").lmsExternalToolFields(toolFields).build();
+        when(apiClient.editAssignment(ltiUserEntity, copied, "course-1")).thenReturn(Optional.of(copied));
+
+        fileStorageService.repointConsentFileInLms(doc, experiment, ltiUserEntity, copied, "course-1");
+
+        assertEquals(String.format("https://terracotta.example.com/lti3?consent=true&experiment=%s", experimentUuid), toolFields.getUrl());
+        assertEquals("77", doc.getLmsAssignmentId());
+        assertEquals("copied-link", doc.getResourceLinkId());
+        verify(apiClient, never()).uploadConsentFile(any(), any(), any());
+    }
+
+    @Test
+    public void testRepointConsentFileInLmsApiExceptionThrowsAssignmentNotCreated() throws Exception {
+        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
+        LmsAssignment copied = LmsAssignment.builder().id("77").lmsExternalToolFields(LmsExternalToolFields.builder().url("x").build()).build();
+        when(apiClient.editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString())).thenThrow(new ApiException("boom"));
+
+        assertThrows(AssignmentNotCreatedException.class, () -> fileStorageService.repointConsentFileInLms(new ConsentDocument(), experiment, ltiUserEntity, copied, "course-1"));
     }
 
     @Test
