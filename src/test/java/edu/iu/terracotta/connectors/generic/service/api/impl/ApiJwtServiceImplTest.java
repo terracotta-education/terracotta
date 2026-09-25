@@ -1261,7 +1261,7 @@ public class ApiJwtServiceImplTest extends BaseTest {
         when(experimentRepository.findByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(5L, 1L, 1L)).thenReturn(Optional.empty());
 
         ExperimentNotMatchingException ex = assertThrows(ExperimentNotMatchingException.class, () -> apiJwtServiceImpl.experimentAllowed(securedInfo, 5L));
-        assertEquals(TextConstants.EXPERIMENT_NOT_MATCHING, ex.getMessage());
+        assertEquals("Error 108: The experiment ID: [5] does not belong to the course ID: [1] defined in the JWT token.", ex.getMessage());
     }
 
 }

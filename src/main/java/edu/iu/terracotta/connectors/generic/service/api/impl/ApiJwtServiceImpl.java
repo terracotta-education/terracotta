@@ -491,7 +491,7 @@ public class ApiJwtServiceImpl implements ApiJwtService {
         }
 
         return experimentRepository.findByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(experimentId, securedInfo.getPlatformDeploymentId(), securedInfo.getContextId())
-            .orElseThrow(() -> new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING));
+            .orElseThrow(() -> new ExperimentNotMatchingException(String.format(TextConstants.EXPERIMENT_NOT_MATCHING_IDS, experimentId, securedInfo.getContextId())));
     }
 
     @Override
