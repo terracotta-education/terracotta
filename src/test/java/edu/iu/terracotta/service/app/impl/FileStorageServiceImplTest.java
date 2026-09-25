@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -298,15 +299,17 @@ public class FileStorageServiceImplTest extends BaseTest {
         when(experiment.getUuid()).thenReturn(experimentUuid);
         when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
         when(platformDeployment.getLocalUrl()).thenReturn("https://terracotta.example.com");
-        LmsExternalToolFields toolFields = LmsExternalToolFields.builder().url("https://terracotta.example.com/lti3?consent=true&experiment=1").resourceLinkId("copied-link").build();
-        LmsAssignment copied = LmsAssignment.builder().id("77").lmsExternalToolFields(toolFields).build();
+        LmsExternalToolFields toolFields = LmsExternalToolFields.builder().url("https://terracotta.example.com/lti3?consent=true&experiment=1").resourceLinkId("lti-1.1-link-id").build();
+        LmsAssignment copied = LmsAssignment.builder().id("77").lmsExternalToolFields(toolFields).secureParams("secure-params-jwt").build();
+        when(apijwtService.unsecureToken(eq("secure-params-jwt"), any())).thenReturn(Map.of("lti_assignment_id", "lti-1.3-link-id"));
         when(apiClient.editAssignment(ltiUserEntity, copied, "course-1")).thenReturn(Optional.of(copied));
 
         fileStorageService.repointConsentFileInLms(doc, experiment, ltiUserEntity, copied, "course-1");
 
         assertEquals(String.format("https://terracotta.example.com/lti3?consent=true&experiment=%s", experimentUuid), toolFields.getUrl());
         assertEquals("77", doc.getLmsAssignmentId());
-        assertEquals("copied-link", doc.getResourceLinkId());
+        // the LTI 1.3 resource link ID, not Canvas's LTI 1.1 resource_link_id
+        assertEquals("lti-1.3-link-id", doc.getResourceLinkId());
         verify(apiClient, never()).uploadConsentFile(any(), any(), any());
     }
 

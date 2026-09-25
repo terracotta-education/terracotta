@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -350,13 +351,28 @@ public class FileStorageServiceImpl implements FileStorageService {
 
             consentDocument.setLmsAssignmentId(lmsAssignment.getId());
             consentDocument.setMetadata(lmsAssignment.getMetadata());
-            // an edit response carries no secure_params JWT to read this from, the way a create's
-            // does (see sendConsentFileToLms) - but the copied assignment already has its own real
-            // resource_link_id from the LMS, which a URL-only edit doesn't change
-            consentDocument.setResourceLinkId(existingLmsAssignment.getLmsExternalToolFields().getResourceLinkId());
+            // the copied assignment keeps the resource link the LMS gave it when it copied the
+            // course - a URL-only edit doesn't change it
+            consentDocument.setResourceLinkId(ltiResourceLinkId(lmsAssignment, existingLmsAssignment, experiment.getPlatformDeployment()));
         } catch (ApiException e) {
             throw new AssignmentNotCreatedException("Error 137: The consent document assignment was not re-pointed.", e);
         }
+    }
+
+    // the LTI 1.3 resource link ID the LMS's line items carry, which is what grade sync matches an
+    // assignment on - read from secure_params, the same way createAssignmentInLms does. Not the
+    // external tool attributes' resource_link_id: that's Canvas's LTI 1.1 identifier, and never
+    // matches a line item. The edit response and the earlier listing both carry secure_params.
+    private String ltiResourceLinkId(LmsAssignment lmsAssignmentReturned, LmsAssignment existingLmsAssignment, PlatformDeployment platformDeployment) throws TerracottaConnectorException {
+        String secureParams = StringUtils.hasText(lmsAssignmentReturned.getSecureParams()) ? lmsAssignmentReturned.getSecureParams() : existingLmsAssignment.getSecureParams();
+
+        if (!StringUtils.hasText(secureParams)) {
+            return null;
+        }
+
+        Object resourceLinkId = apijwtService.unsecureToken(secureParams, platformDeployment).get("lti_assignment_id");
+
+        return resourceLinkId != null ? resourceLinkId.toString() : null;
     }
 
     @Override

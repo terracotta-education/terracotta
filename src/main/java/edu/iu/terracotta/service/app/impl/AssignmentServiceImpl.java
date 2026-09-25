@@ -705,20 +705,31 @@ public class AssignmentServiceImpl implements AssignmentService {
             assignment.setLmsAssignmentId(lmsAssignmentReturned.getId());
             assignment.setMetadata(lmsAssignmentReturned.getMetadata());
 
-            // not derived from a secure_params JWT the way createAssignmentInLms does it above -
-            // an edit response carries no such JWT. The copied assignment already has its own
-            // real resource_link_id, assigned by the LMS when it copied the course; that's
-            // already sitting on existingLmsAssignment from the earlier listing call this method
-            // was handed, and a URL-only edit doesn't disturb it.
-            assignment.setResourceLinkId(
-                existingLmsAssignment.getLmsExternalToolFields() != null ? existingLmsAssignment.getLmsExternalToolFields().getResourceLinkId() : null
-            );
+            // the copied assignment keeps the resource link the LMS gave it when it copied the
+            // course - a URL-only edit doesn't change it
+            assignment.setResourceLinkId(ltiResourceLinkId(lmsAssignmentReturned, existingLmsAssignment, instructorUser.getPlatformDeployment()));
         } catch (ApiException e) {
             log.error("Repointing existing LMS assignment ID: [{}] failed", existingLmsAssignment.getId(), e);
             throw new AssignmentNotCreatedException("Error: The assignment was not repointed in the LMS.");
         }
 
         return assignment;
+    }
+
+    // the LTI 1.3 resource link ID the LMS's line items carry, which is what grade sync matches an
+    // assignment on - read from secure_params, the same way createAssignmentInLms does. Not the
+    // external tool attributes' resource_link_id: that's Canvas's LTI 1.1 identifier, and never
+    // matches a line item. The edit response and the earlier listing both carry secure_params.
+    private String ltiResourceLinkId(LmsAssignment lmsAssignmentReturned, LmsAssignment existingLmsAssignment, PlatformDeployment platformDeployment) throws TerracottaConnectorException {
+        String secureParams = StringUtils.isNotBlank(lmsAssignmentReturned.getSecureParams()) ? lmsAssignmentReturned.getSecureParams() : existingLmsAssignment.getSecureParams();
+
+        if (StringUtils.isBlank(secureParams)) {
+            return null;
+        }
+
+        Object resourceLinkId = apiJwtService.unsecureToken(secureParams, platformDeployment).get("lti_assignment_id");
+
+        return resourceLinkId != null ? resourceLinkId.toString() : null;
     }
 
     @Override
