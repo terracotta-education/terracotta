@@ -9,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,22 +66,6 @@ public class CourseExtendedImplTest {
         assertEquals("2", courses.get(1).getId());
         assertEquals(Course.class, courses.get(0).getType());
         assertEquals(Course.class, courses.get(1).getType());
-    }
-
-    @Test
-    public void testGetSingleCourseByLtiContextIdAlias() throws Exception {
-        Response response = buildResponse(false, 200, "{\"id\":99,\"name\":\"Copied Course\"}", null);
-
-        when(restClient.sendApiGet(eq(oauthToken), anyString(), anyInt(), anyInt())).thenReturn(response);
-
-        Optional<CourseExtended> course = courseExtended.getSingleCourse("lti_context_id:abc123");
-
-        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
-        verify(restClient).sendApiGet(eq(oauthToken), urlCaptor.capture(), anyInt(), anyInt());
-        assertTrue(urlCaptor.getValue().contains("/courses/lti_context_id:abc123"));
-        assertTrue(course.isPresent());
-        assertEquals("99", course.get().getId());
-        assertEquals(Course.class, course.get().getType());
     }
 
     @Test

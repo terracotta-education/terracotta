@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mockConstruction;
@@ -34,7 +33,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.ConversationExtended;
-import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FileExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FolderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
@@ -63,7 +61,6 @@ import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
-import edu.ksu.canvas.model.Course;
 import edu.ksu.canvas.model.assignment.Assignment;
 import edu.ksu.canvas.oauth.OauthToken;
 import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
@@ -213,54 +210,18 @@ public class CanvasApiClientImplTest extends BaseTest {
     // getLmsCourseId
 
     @Test
-    void testGetLmsCourseIdReadsNrpsUrlWithoutCallingCanvas() throws Exception {
-        Optional<String> result;
-
-        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
-            result = canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity);
-        }
-
-        assertEquals(Optional.of("1"), result);
-        verify(courseReaderExtended, never()).getSingleCourse(anyString());
+    void testGetLmsCourseIdReadsNrpsUrl() throws Exception {
+        assertEquals(Optional.of("1"), canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity));
     }
 
+    // no API lookup: GET /api/v1/courses/:id isn't one of Terracotta's token scopes
     @Test
-    void testGetLmsCourseIdWithoutNrpsUrlLooksUpCourseByLtiContextId() throws Exception {
+    void testGetLmsCourseIdWithoutNrpsUrlIsTheLtiContextIdAlias() throws Exception {
         when(ltiContextEntity.getContext_memberships_url()).thenReturn(null);
-        Course course = new Course();
-        course.setId(99L);
-        when(courseReaderExtended.getSingleCourse("lti_context_id:context_key")).thenReturn(Optional.of(CourseExtended.builder().course(course).build()));
 
-        Optional<String> result;
-
-        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
-            result = canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity);
-        }
-
-        assertEquals(Optional.of("99"), result);
-    }
-
-    @Test
-    void testGetLmsCourseIdCourseNotFoundIsEmpty() throws Exception {
-        when(ltiContextEntity.getContext_memberships_url()).thenReturn(null);
-        when(courseReaderExtended.getSingleCourse(anyString())).thenReturn(Optional.empty());
-
-        Optional<String> result;
-
-        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
-            result = canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity);
-        }
-
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void testGetLmsCourseIdLookupFailureWrapsException() throws Exception {
-        when(ltiContextEntity.getContext_memberships_url()).thenReturn(null);
-        when(courseReaderExtended.getSingleCourse(anyString())).thenThrow(new IOException("fail"));
-
-        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
-            assertThrows(ApiException.class, () -> canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity));
+        try (MockedConstruction<CanvasApiFactoryExtended> factories = mockApiFactory()) {
+            assertEquals(Optional.of("lti_context_id:context_key"), canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity));
+            assertTrue(factories.constructed().isEmpty());
         }
     }
 
@@ -655,6 +616,18 @@ public class CanvasApiClientImplTest extends BaseTest {
         assertEquals(Double.valueOf(1.0), sent.getPointsPossible());
         assertEquals(List.of("external_tool"), sent.getSubmissionTypes());
         assertTrue(sent.getExternalToolTagAttributes().getUrl().contains(String.format("consent=true&experiment=%s", experiment.getUuid())));
+    }
+
+    // recreating a copied course's consent experiment happens before anyone launches that course
+    @Test
+    void testUploadConsentFileWithoutNrpsUrlUsesLtiContextIdAlias() throws Exception {
+        when(consentDocument.getTitle()).thenReturn("Consent Title");
+        when(ltiContextEntity.getContext_memberships_url()).thenReturn(null);
+        when(assignmentWriterExtended.createAssignment(eq("lti_context_id:context_key"), any())).thenReturn(Optional.of(canvasAssignmentExtended));
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            assertEquals(canvasAssignmentExtended, canvasApiClientService.uploadConsentFile(experiment, consentDocument, ltiUserEntity));
+        }
     }
 
     @Test

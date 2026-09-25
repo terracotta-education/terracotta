@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import com.google.common.reflect.TypeToken;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
@@ -15,7 +14,6 @@ import edu.ksu.canvas.impl.CourseImpl;
 import edu.ksu.canvas.model.Course;
 import edu.ksu.canvas.net.RestClient;
 import edu.ksu.canvas.oauth.OauthToken;
-import edu.ksu.canvas.requestOptions.GetSingleCourseOptions;
 import edu.ksu.canvas.requestOptions.ListUserCoursesOptions;
 
 public class CourseExtendedImpl extends BaseImpl<CourseExtended, CourseReaderExtended, CourseWriterExtended> implements CourseReaderExtended, CourseWriterExtended {
@@ -30,17 +28,6 @@ public class CourseExtendedImpl extends BaseImpl<CourseExtended, CourseReaderExt
     @Override
     public List<CourseExtended> listCoursesForUser(ListUserCoursesOptions options) throws IOException {
         return parseList(courseImpl.listUserCourses(options));
-    }
-
-    @Override
-    public Optional<CourseExtended> getSingleCourse(String courseId) throws IOException {
-        return courseImpl.getSingleCourse(new GetSingleCourseOptions(courseId))
-            .map(
-                course -> CourseExtended.builder()
-                    .course(course)
-                    .type(Course.class)
-                    .build()
-            );
     }
 
     @Override

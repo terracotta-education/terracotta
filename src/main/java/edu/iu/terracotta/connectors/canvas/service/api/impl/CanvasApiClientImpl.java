@@ -1,7 +1,6 @@
 package edu.iu.terracotta.connectors.canvas.service.api.impl;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended;
-import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FolderExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.options.GetSubmissionsOptionsExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
@@ -128,10 +127,7 @@ public class CanvasApiClientImpl implements ApiClient {
     @Override
     public AssignmentExtended restoreAssignment(Assignment assignment) throws ApiException, IOException, TerracottaConnectorException {
         // create the new Assignment in Canvas
-        String canvasCourseId = canvasLmsUtils.parseCourseId(
-            assignment.getExposure().getExperiment().getPlatformDeployment(),
-            assignment.getExposure().getExperiment().getLtiContextEntity().getContext_memberships_url()
-        );
+        String canvasCourseId = canvasCourseIdOrAlias(assignment.getExposure().getExperiment().getLtiContextEntity());
 
         return createLmsAssignment(assignment.getExposure().getExperiment().getCreatedBy(), assignment, canvasCourseId);
     }
@@ -152,10 +148,7 @@ public class CanvasApiClientImpl implements ApiClient {
 
     @Override
     public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, Experiment experiment) throws ApiException, TerracottaConnectorException {
-        String canvasCourseId = canvasLmsUtils.parseCourseId(
-            experiment.getPlatformDeployment(),
-            experiment.getLtiContextEntity().getContext_memberships_url()
-        );
+        String canvasCourseId = canvasCourseIdOrAlias(experiment.getLtiContextEntity());
 
         try {
             return castList(
@@ -298,10 +291,7 @@ public class CanvasApiClientImpl implements ApiClient {
         assignmentExtended.getAssignment().setSubmissionTypes(Collections.singletonList("external_tool"));
 
         try {
-            String canvasCourseId = canvasLmsUtils.parseCourseId(
-                experiment.getPlatformDeployment(),
-                experiment.getLtiContextEntity().getContext_memberships_url()
-            );
+            String canvasCourseId = canvasCourseIdOrAlias(experiment.getLtiContextEntity());
 
             return getWriter(instructorUser, AssignmentWriterExtended.class)
                 .createAssignment(canvasCourseId, assignmentExtended.getAssignment())
@@ -386,30 +376,13 @@ public class CanvasApiClientImpl implements ApiClient {
 
     @Override
     public Optional<String> getLmsCourseId(LtiUserEntity apiUser, LtiContextEntity ltiContext) throws ApiException, TerracottaConnectorException {
-        String canvasCourseId = canvasLmsUtils.parseCourseId(
-            ltiContext.getToolDeployment().getPlatformDeployment(),
-            ltiContext.getContext_memberships_url()
-        );
-
-        if (StringUtils.isNotBlank(canvasCourseId)) {
-            return Optional.of(canvasCourseId);
-        }
-
-        // no launch has happened in this course yet (e.g. a course copy notice created the
-        // context), so there's no NRPS URL to read the course ID from - ask Canvas instead
-        String alias = canvasCourseIdOrAlias(ltiContext);
-
-        try {
-            return getReader(apiUser, CourseReaderExtended.class)
-                .getSingleCourse(alias)
-                .map(CourseExtended::getId);
-        } catch (Exception e) {
-            throw new ApiException(String.format("Failed to look up Canvas course [%s]", alias), e);
-        }
+        return Optional.of(canvasCourseIdOrAlias(ltiContext));
     }
 
     // Canvas accepts "lti_context_id:<LTI context ID>" anywhere its API takes a course ID, which
-    // covers a context that hasn't had a launch yet and so has no NRPS URL to parse
+    // covers a context that hasn't had a launch yet (e.g. one a course copy notice created) and so
+    // has no NRPS URL to parse. Deliberately used as-is rather than looked up as a numeric ID:
+    // that would need GET /api/v1/courses/:id, which isn't one of Terracotta's API token scopes.
     private String canvasCourseIdOrAlias(LtiContextEntity ltiContext) throws TerracottaConnectorException {
         String canvasCourseId = canvasLmsUtils.parseCourseId(
             ltiContext.getToolDeployment().getPlatformDeployment(),
