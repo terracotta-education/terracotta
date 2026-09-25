@@ -20,7 +20,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -42,6 +43,7 @@ import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.QuestionMc;
 import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
+import edu.iu.terracotta.dao.entity.distribute.ExperimentImportError;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
@@ -72,6 +74,7 @@ import edu.iu.terracotta.exceptions.ExperimentImportException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
@@ -100,11 +103,65 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
     private final TreatmentRepository treatmentRepository;
     private final AssignmentService assignmentService;
     private final FileStorageService fileStorageService;
+    private final ExperimentCopyNotificationService experimentCopyNotificationService;
+    private final PlatformTransactionManager transactionManager;
 
     @Async
     @Override
-    @Transactional(rollbackFor = { Exception.class, ExperimentImportException.class })
-    public void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) throws ExperimentImportException {
+    public void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException {
+        // the import runs in one transaction so a failure part-way through rolls back everything
+        // it created - but that rollback would also discard the ERROR status recording why, so
+        // that's saved separately, afterwards, in a transaction of its own
+        try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(transactionStatus -> {
+                try {
+                    processInTransaction(experimentImport, securedInfo, assignmentRepointMap, notifyOwnerOnLmsFailure);
+                } catch (ExperimentImportException e) {
+                    throw new ImportRolledBackException(e);
+                }
+            });
+        } catch (ImportRolledBackException e) {
+            recordFailure(experimentImport);
+            throw (ExperimentImportException) e.getCause();
+        } catch (RuntimeException e) {
+            experimentImport.addErrorMessage("Unexpected error processing the import");
+            recordFailure(experimentImport);
+            throw e;
+        }
+
+        if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
+            // failed before creating anything (e.g. no import file), so nothing was rolled back
+            recordFailure(experimentImport);
+        }
+    }
+
+    private static class ImportRolledBackException extends RuntimeException {
+
+        ImportRolledBackException(ExperimentImportException cause) {
+            super(cause);
+        }
+
+    }
+
+    private void recordFailure(ExperimentImport experimentImport) {
+        List<String> errorMessages = CollectionUtils.emptyIfNull(experimentImport.getErrors()).stream()
+            .map(ExperimentImportError::getText)
+            .toList();
+
+        try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(transactionStatus ->
+                experimentImportRepository.findById(experimentImport.getId()).ifPresent(persisted -> {
+                    persisted.setStatus(ExperimentImportStatus.ERROR);
+                    errorMessages.forEach(persisted::addErrorMessage);
+                    experimentImportRepository.save(persisted);
+                })
+            );
+        } catch (Exception e) {
+            log.error("Error recording the failure of experiment import with ID: [{}]", experimentImport.getId(), e);
+        }
+    }
+
+    private void processInTransaction(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException {
         log.info("Processing experiment import with ID: [{}]", experimentImport.getId());
         Optional<Export> export = prepare(experimentImport);
 
@@ -149,7 +206,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
             // no errors occurred yet; create assignments in LMS
-            sendAssignmentsToLms(export.get(), experimentImport, idMap, securedInfo, assignmentRepointMap);
+            sendAssignmentsToLms(export.get(), experimentImport, idMap, securedInfo, assignmentRepointMap, notifyOwnerOnLmsFailure);
         }
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
@@ -157,7 +214,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             experimentImport.setStatus(ExperimentImportStatus.COMPLETE);
 
             // deliberately no retry if this save hits an optimistic-locking failure: this method
-            // is itself @Transactional, so by the time save() has thrown, the repository proxy
+            // runs inside process()'s transaction, so by the time save() has thrown, the repository proxy
             // has already marked the transaction rollback-only and any re-fetch/re-save here
             // would be silently discarded at commit along with the rest of the import. Letting
             // it propagate rolls the import back loudly instead. Preventing the conflict is
@@ -627,7 +684,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
     }
 
-    private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) {
+    private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) {
         if (MapUtils.isEmpty(idMap.get(Assignment.class))) {
             // no assignments to process
             return;
@@ -721,6 +778,12 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
                     handleError(experimentImport, "Consent assignment creation in LMS failed");
                 }
             }
+        }
+
+        // this method only runs when there were no errors beforehand, so any error now means an
+        // LMS assignment couldn't be created or re-pointed
+        if (notifyOwnerOnLmsFailure && CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
+            experimentCopyNotificationService.notifyLmsFailure(experimentImport.getOwner());
         }
     }
 

@@ -21,7 +21,10 @@ vi.mock("@/services", () => ({
   },
   experimentCopyCandidateService: {
     getAll: vi.fn(),
-    resolve: vi.fn()
+    resolve: vi.fn(),
+    getCopyStatus: vi.fn(),
+    acknowledgeCopyStatus: vi.fn(),
+    retryCopy: vi.fn()
   }
 }));
 
@@ -130,6 +133,9 @@ describe("Home", () => {
     experimentService.pollImports.mockResolvedValue({ data: [] });
     experimentDataExportService.pollList.mockResolvedValue([]);
     experimentCopyCandidateService.getAll.mockResolvedValue({ data: [] });
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "NONE", importIds: [] } });
+    experimentCopyCandidateService.acknowledgeCopyStatus.mockResolvedValue({});
+    experimentCopyCandidateService.retryCopy.mockResolvedValue({ data: { status: "ERROR", importIds: [] } });
   });
 
   // some copy-candidates tests leave the popup open (e.g. deferring, which just leaves it
@@ -140,7 +146,9 @@ describe("Home", () => {
     document.body.innerHTML = "";
   });
 
-  it("fetches copy candidates when there are no experiments and automatically opens the dialog", async () => {
+  // the copy-candidates selection dialog is switched off (COPY_CANDIDATE_SELECTION_ENABLED in
+  // Home.vue) - kept, along with its tests, in case it's wanted again
+  it.skip("fetches copy candidates when there are no experiments and automatically opens the dialog", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
@@ -156,6 +164,146 @@ describe("Home", () => {
     await vi.waitFor(() => {
       expect(swalFire).toHaveBeenCalled();
     });
+  });
+
+  it("never asks for copy candidates now that copied experiments are recreated automatically", async () => {
+    experimentCopyCandidateService.getAll.mockResolvedValue({
+      data: [{ id: "c1", experimentTitle: "Reading Study" }]
+    });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+    await flushPromises();
+
+    expect(experimentCopyCandidateService.getAll).not.toHaveBeenCalled();
+    expect(swalFire).not.toHaveBeenCalled();
+  });
+
+  it("tells the instructor once their experiments have been copied, then acknowledges it", async () => {
+    experimentService.getAll.mockResolvedValue({ status: 200, data: [experiment] });
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "COMPLETE", importIds: ["i1"] } });
+    swalFire.mockResolvedValue({});
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.acknowledgeCopyStatus).toHaveBeenCalled();
+    });
+    expect(swalFire).toHaveBeenCalledWith({
+      text: "Your experiments and assignments have been copied from your previous course and are ready to use.",
+      icon: "success"
+    });
+  });
+
+  it("tells the instructor when their experiments could not all be copied, once a retry also fails, then acknowledges it", async () => {
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "ERROR", importIds: [] } });
+    swalFire.mockResolvedValue({});
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.acknowledgeCopyStatus).toHaveBeenCalled();
+    });
+    expect(experimentCopyCandidateService.retryCopy).toHaveBeenCalledTimes(1);
+    expect(swalFire).toHaveBeenCalledWith({
+      text: "We couldn't copy all of your experiments and assignments from your previous course. Please contact Terracotta support for help.",
+      icon: "error"
+    });
+  });
+
+  it("retries a failed copy as the launching instructor and waits for it instead of reporting the failure", async () => {
+    const setIntervalSpy = vi.spyOn(window, "setInterval");
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "ERROR", importIds: [] } });
+    experimentCopyCandidateService.retryCopy.mockResolvedValue({ data: { status: "IN_PROGRESS", importIds: [] } });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(true);
+    });
+    expect(experimentCopyCandidateService.retryCopy).toHaveBeenCalledTimes(1);
+    expect(swalFire).not.toHaveBeenCalled();
+    expect(experimentCopyCandidateService.acknowledgeCopyStatus).not.toHaveBeenCalled();
+
+    // the retry succeeds
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "COMPLETE", importIds: [] } });
+    swalFire.mockResolvedValue({});
+    const pollCall = setIntervalSpy.mock.calls.find(([, delay]) => delay === 5000);
+
+    await pollCall[0]();
+    await flushPromises();
+
+    expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({ icon: "success" }));
+    expect(experimentCopyCandidateService.retryCopy).toHaveBeenCalledTimes(1);
+
+    setIntervalSpy.mockRestore();
+  });
+
+  it("shows nothing and acknowledges nothing when there was no course copy", async () => {
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "PageLoading" }).props("display")).toBe(false);
+    });
+    await flushPromises();
+
+    expect(swalFire).not.toHaveBeenCalled();
+    expect(experimentCopyCandidateService.acknowledgeCopyStatus).not.toHaveBeenCalled();
+    expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(false);
+  });
+
+  it("shows a notice and disables the zero-state actions while experiments are still being copied, then reports the result once finished", async () => {
+    const setIntervalSpy = vi.spyOn(window, "setInterval");
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "IN_PROGRESS", importIds: [] } });
+    swalFire.mockResolvedValue({});
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(true);
+    });
+    expect(wrapper.find(".copy-in-progress-alert").text()).toContain(
+      "Your experiments and assignments are being copied from your previous course."
+    );
+    expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(true);
+    expect(swalFire).not.toHaveBeenCalled();
+
+    const pollCall = setIntervalSpy.mock.calls.find(([, delay]) => delay === 5000);
+    expect(pollCall).toBeDefined();
+
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "COMPLETE", importIds: [] } });
+    experimentService.getAll.mockResolvedValue({ status: 200, data: [experiment] });
+    const fetchesBefore = experimentService.getAll.mock.calls.length;
+
+    await pollCall[0]();
+    await flushPromises();
+
+    expect(experimentService.getAll.mock.calls.length).toBeGreaterThan(fetchesBefore);
+    expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({ icon: "success" }));
+    expect(experimentCopyCandidateService.acknowledgeCopyStatus).toHaveBeenCalled();
+    expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(false);
+
+    setIntervalSpy.mockRestore();
+  });
+
+  it("leaves imports created by a course copy out of the ordinary import alerts", async () => {
+    experimentService.pollImports.mockResolvedValue({
+      data: [
+        { id: "from-copy", status: "PROCESSING" },
+        { id: "manual", status: "PROCESSING" }
+      ]
+    });
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "IN_PROGRESS", importIds: ["from-copy"] } });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "ZeroState" }).props("experimentImportRequests")["manual"]).toBeDefined();
+    });
+    expect(wrapper.findComponent({ name: "ZeroState" }).props("experimentImportRequests")["from-copy"]).toBeUndefined();
   });
 
   it("goes straight to the experiment listing, without ever showing the copy-candidates dialog, when the course already has experiments", async () => {
@@ -178,7 +326,9 @@ describe("Home", () => {
     expect(wrapper.findComponent({ name: "ZeroState" }).isVisible()).toBe(false);
   });
 
-  it("automatically opens the copy-candidates dialog when candidates exist, resolving selected candidates on confirm and registering the resulting imports as import requests", async () => {
+  // the copy-candidates selection dialog is switched off (COPY_CANDIDATE_SELECTION_ENABLED in
+  // Home.vue) - kept, along with its tests, in case it's wanted again
+  it.skip("automatically opens the copy-candidates dialog when candidates exist, resolving selected candidates on confirm and registering the resulting imports as import requests", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
@@ -210,7 +360,9 @@ describe("Home", () => {
     });
   });
 
-  it("shows a preparing-imports loading screen and disables the zero-state action buttons while resolving a 'Create selected' outcome", async () => {
+  // the copy-candidates selection dialog is switched off (COPY_CANDIDATE_SELECTION_ENABLED in
+  // Home.vue) - kept, along with its tests, in case it's wanted again
+  it.skip("shows a preparing-imports loading screen and disables the zero-state action buttons while resolving a 'Create selected' outcome", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
@@ -249,7 +401,9 @@ describe("Home", () => {
     expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(false);
   });
 
-  it("does not resolve anything when 'I'll decide later' is chosen and confirmed", async () => {
+  // the copy-candidates selection dialog is switched off (COPY_CANDIDATE_SELECTION_ENABLED in
+  // Home.vue) - kept, along with its tests, in case it's wanted again
+  it.skip("does not resolve anything when 'I'll decide later' is chosen and confirmed", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
@@ -271,7 +425,9 @@ describe("Home", () => {
     expect(swalFire).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the dialog open, without emitting anything, when 'Go back to selection' is chosen from an action's confirmation overlay", async () => {
+  // the copy-candidates selection dialog is switched off (COPY_CANDIDATE_SELECTION_ENABLED in
+  // Home.vue) - kept, along with its tests, in case it's wanted again
+  it.skip("keeps the dialog open, without emitting anything, when 'Go back to selection' is chosen from an action's confirmation overlay", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
@@ -302,7 +458,9 @@ describe("Home", () => {
     expect(swalFire).toHaveBeenCalledTimes(1);
   });
 
-  it("resolves with an empty selection when 'No thank you' is chosen and confirmed", async () => {
+  // the copy-candidates selection dialog is switched off (COPY_CANDIDATE_SELECTION_ENABLED in
+  // Home.vue) - kept, along with its tests, in case it's wanted again
+  it.skip("resolves with an empty selection when 'No thank you' is chosen and confirmed", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [
         { id: "c1", experimentTitle: "Reading Study" },
@@ -328,7 +486,9 @@ describe("Home", () => {
     });
   });
 
-  it("does not decline anything when 'No thank you' is chosen but then 'Go back to selection' is picked, and creates the eventual selection instead", async () => {
+  // the copy-candidates selection dialog is switched off (COPY_CANDIDATE_SELECTION_ENABLED in
+  // Home.vue) - kept, along with its tests, in case it's wanted again
+  it.skip("does not decline anything when 'No thank you' is chosen but then 'Go back to selection' is picked, and creates the eventual selection instead", async () => {
     experimentCopyCandidateService.getAll.mockResolvedValue({
       data: [{ id: "c1", experimentTitle: "Reading Study" }]
     });
@@ -1194,7 +1354,9 @@ describe("Home", () => {
     clearIntervalSpy.mockRestore();
   });
 
-  it("skips resolved copy-candidate imports that have no id", async () => {
+  // the copy-candidates selection dialog is switched off (COPY_CANDIDATE_SELECTION_ENABLED in
+  // Home.vue) - kept, along with its tests, in case it's wanted again
+  it.skip("skips resolved copy-candidate imports that have no id", async () => {
     const pinia = createPinia();
     setActivePinia(pinia);
     const store = experimentModule();

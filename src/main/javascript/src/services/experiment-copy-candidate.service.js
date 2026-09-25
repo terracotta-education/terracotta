@@ -7,7 +7,10 @@ import { api } from "@/store/api.module";
 
 export const experimentCopyCandidateService = {
   getAll,
-  resolve
+  resolve,
+  getCopyStatus,
+  acknowledgeCopyStatus,
+  retryCopy
 };
 
 async function getAll() {
@@ -27,6 +30,30 @@ async function resolve(importCandidateIds) {
     {
       method: "POST",
       body: { importCandidateIds }
+    }
+  );
+}
+
+async function getCopyStatus() {
+  return request(
+    "/api/experiments/copy-status"
+  );
+}
+
+async function acknowledgeCopyStatus() {
+  return request(
+    "/api/experiments/copy-status/acknowledge",
+    {
+      method: "POST"
+    }
+  );
+}
+
+async function retryCopy() {
+  return request(
+    "/api/experiments/copy-status/retry",
+    {
+      method: "POST"
     }
   );
 }

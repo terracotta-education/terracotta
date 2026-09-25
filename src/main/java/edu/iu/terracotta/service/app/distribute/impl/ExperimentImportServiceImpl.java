@@ -77,7 +77,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         try {
             fileStorageService.saveExperimentImportFile(file, experimentImport);
 
-            return finishPreprocess(experimentImport, securedInfo, Map.of());
+            return finishPreprocess(experimentImport, securedInfo, Map.of(), false);
         } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
@@ -86,13 +86,13 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
     }
 
     @Override
-    public ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) throws ExperimentImportException {
+    public ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException {
         ExperimentImport experimentImport = buildExperimentImport(originalFilename, securedInfo);
 
         try {
             fileStorageService.saveExperimentImportFile(file, experimentImport);
 
-            return finishPreprocess(experimentImport, securedInfo, assignmentRepointMap);
+            return finishPreprocess(experimentImport, securedInfo, assignmentRepointMap, notifyOwnerOnLmsFailure);
         } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
@@ -113,7 +113,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             .build();
     }
 
-    private ImportDto finishPreprocess(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) {
+    private ImportDto finishPreprocess(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) {
         experimentImport = experimentImportRepository.save(experimentImport);
 
         // validate(...) saves the entity again partway through (to persist the source title) -
@@ -147,7 +147,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         entityManager.detach(experimentImport);
 
         // start async import processing
-        experimentImportAsyncService.process(experimentImport, securedInfo, assignmentRepointMap);
+        experimentImportAsyncService.process(experimentImport, securedInfo, assignmentRepointMap, notifyOwnerOnLmsFailure);
 
         return importDto;
     }

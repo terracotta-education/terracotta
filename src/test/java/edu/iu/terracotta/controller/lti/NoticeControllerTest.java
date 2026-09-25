@@ -2,6 +2,7 @@ package edu.iu.terracotta.controller.lti;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -29,6 +30,7 @@ import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.async.ExperimentCopyRecreationAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.utils.LtiStrings;
 
@@ -38,6 +40,7 @@ public class NoticeControllerTest {
     @Mock private LtiNoticeService ltiNoticeService;
     @Mock private AssignmentAsyncService assignmentAsyncService;
     @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
+    @Mock private ExperimentCopyRecreationAsyncService experimentCopyRecreationAsyncService;
 
     private NoticeController noticeController;
 
@@ -45,7 +48,7 @@ public class NoticeControllerTest {
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
-        noticeController = new NoticeController(ltiJwtService, ltiNoticeService, assignmentAsyncService, experimentCopyCandidateService);
+        noticeController = new NoticeController(ltiJwtService, ltiNoticeService, assignmentAsyncService, experimentCopyCandidateService, experimentCopyRecreationAsyncService);
     }
 
     @SuppressWarnings("unchecked")
@@ -152,17 +155,42 @@ public class NoticeControllerTest {
         verify(assignmentAsyncService).handleAssignmentTasksInLmsByContext(securedInfo);
     }
 
-    // the whole point of this feature: while a candidate is still PENDING for this context, the
-    // obsolete-assignment check must not run - it would immediately mark the copied assignment
-    // obsolete before the instructor ever gets a chance to import the matching experiment.
     @Test
-    public void testReceiveNoticesSuppressesObsoleteAssignmentCheckWhilePendingCandidatesExist() throws Exception {
+    public void testReceiveNoticesCourseCopyStartsRecreationForTheStagedDestination() {
+        Claims claims = claimsWithNoticeType(LtiStrings.LTI_NOTICE_TYPE_COURSE_COPY);
+        Jws<Claims> jws = jwsOf(claims);
+        when(ltiJwtService.validateJWT("jwt-1")).thenReturn(jws);
+        when(experimentCopyCandidateService.stageFromNotice(claims)).thenReturn(Optional.of(7L));
+        when(ltiNoticeService.resolveSecuredInfo(claims)).thenReturn(Optional.empty());
+
+        noticeController.receiveNotices(requestWith("jwt-1"));
+
+        verify(experimentCopyRecreationAsyncService).recreate(7L);
+    }
+
+    @Test
+    public void testReceiveNoticesCourseCopyNothingStagedDoesNotStartRecreation() {
+        Claims claims = claimsWithNoticeType(LtiStrings.LTI_NOTICE_TYPE_COURSE_COPY);
+        Jws<Claims> jws = jwsOf(claims);
+        when(ltiJwtService.validateJWT("jwt-1")).thenReturn(jws);
+        when(experimentCopyCandidateService.stageFromNotice(claims)).thenReturn(Optional.empty());
+
+        noticeController.receiveNotices(requestWith("jwt-1"));
+
+        verify(experimentCopyRecreationAsyncService, never()).recreate(anyLong());
+    }
+
+    // while copied experiments are still being recreated for this context, the
+    // obsolete-assignment check must not run - it would immediately mark the copied assignment
+    // obsolete before recreation re-points it at the recreated experiment.
+    @Test
+    public void testReceiveNoticesSuppressesObsoleteAssignmentCheckWhileRecreationIsUnfinished() throws Exception {
         Claims claims = claimsWithNoticeType(LtiStrings.LTI_NOTICE_TYPE_COURSE_COPY);
         SecuredInfo securedInfo = SecuredInfo.builder().contextId(42L).build();
         Jws<Claims> jws = jwsOf(claims);
         when(ltiJwtService.validateJWT("jwt-1")).thenReturn(jws);
         when(ltiNoticeService.resolveSecuredInfo(claims)).thenReturn(Optional.of(securedInfo));
-        when(experimentCopyCandidateService.hasPendingForContext(42L)).thenReturn(true);
+        when(experimentCopyCandidateService.hasUnfinishedForContext(42L)).thenReturn(true);
 
         assertEquals(200, noticeController.receiveNotices(requestWith("jwt-1")).getStatusCode().value());
 

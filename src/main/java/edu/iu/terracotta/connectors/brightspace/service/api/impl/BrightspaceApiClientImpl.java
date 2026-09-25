@@ -707,6 +707,12 @@ public class BrightspaceApiClientImpl implements ApiClient {
     }
 
     @Override
+    public Optional<String> getLmsCourseId(LtiUserEntity apiUser, LtiContextEntity ltiContext) {
+        // Brightspace addresses a course by its orgUnitId, which is the LTI context key itself
+        return Optional.ofNullable(ltiContext.getContextKey());
+    }
+
+    @Override
     public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, Outcome outcome, String orgUnitId) throws ApiException, IOException, TerracottaConnectorException {
         return listSubmissions(apiUser, outcome.getLmsOutcomeId(), orgUnitId);
     }

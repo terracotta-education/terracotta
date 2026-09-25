@@ -22,9 +22,9 @@ public interface ExperimentImportService {
      * instead of an uploaded MultipartFile - used to feed an in-process export (see
      * ExperimentCopyCandidateServiceImpl) into the same import pipeline a manual zip upload uses,
      * without fabricating a fake MultipartFile (its test double isn't available to main code).
-     * assignmentRepointMap: see ExperimentImportAsyncService.process - empty for a normal import.
+     * assignmentRepointMap, notifyOwnerOnLmsFailure: see ExperimentImportAsyncService.process.
      */
-    ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) throws ExperimentImportException;
+    ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException;
     ImportDto preprocessError(MultipartFile file, String errorMessage, SecuredInfo securedInfo);
     ExperimentImport validate(ExperimentImport experimentImport);
     ImportDto acknowledge(ExperimentImport experimentImport, ExperimentImportStatus experimentImportStatus);

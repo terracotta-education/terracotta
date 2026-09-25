@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mockConstruction;
@@ -33,6 +34,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.ConversationExtended;
+import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FileExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FolderExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
@@ -61,8 +63,10 @@ import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.ksu.canvas.exception.CanvasException;
 import edu.ksu.canvas.exception.ObjectNotFoundException;
+import edu.ksu.canvas.model.Course;
 import edu.ksu.canvas.model.assignment.Assignment;
 import edu.ksu.canvas.oauth.OauthToken;
+import edu.ksu.canvas.requestOptions.ListCourseAssignmentsOptions;
 
 public class CanvasApiClientImplTest extends BaseTest {
 
@@ -189,6 +193,74 @@ public class CanvasApiClientImplTest extends BaseTest {
 
         try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
             assertThrows(ApiException.class, () -> canvasApiClientService.listAssignments(ltiUserEntity, ltiContextEntity));
+        }
+    }
+
+    // a context created by a course copy notice has had no launch yet, so no NRPS URL to parse
+    @Test
+    void testListAssignmentsByLtiContextWithoutNrpsUrlUsesLtiContextIdAlias() throws Exception {
+        when(ltiContextEntity.getContext_memberships_url()).thenReturn(null);
+        ArgumentCaptor<ListCourseAssignmentsOptions> captor = ArgumentCaptor.forClass(ListCourseAssignmentsOptions.class);
+        when(assignmentReaderExtended.listCourseAssignments(captor.capture())).thenReturn(List.of());
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            canvasApiClientService.listAssignments(ltiUserEntity, ltiContextEntity);
+        }
+
+        assertEquals("lti_context_id:context_key", captor.getValue().getCourseId());
+    }
+
+    // getLmsCourseId
+
+    @Test
+    void testGetLmsCourseIdReadsNrpsUrlWithoutCallingCanvas() throws Exception {
+        Optional<String> result;
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            result = canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity);
+        }
+
+        assertEquals(Optional.of("1"), result);
+        verify(courseReaderExtended, never()).getSingleCourse(anyString());
+    }
+
+    @Test
+    void testGetLmsCourseIdWithoutNrpsUrlLooksUpCourseByLtiContextId() throws Exception {
+        when(ltiContextEntity.getContext_memberships_url()).thenReturn(null);
+        Course course = new Course();
+        course.setId(99L);
+        when(courseReaderExtended.getSingleCourse("lti_context_id:context_key")).thenReturn(Optional.of(CourseExtended.builder().course(course).build()));
+
+        Optional<String> result;
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            result = canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity);
+        }
+
+        assertEquals(Optional.of("99"), result);
+    }
+
+    @Test
+    void testGetLmsCourseIdCourseNotFoundIsEmpty() throws Exception {
+        when(ltiContextEntity.getContext_memberships_url()).thenReturn(null);
+        when(courseReaderExtended.getSingleCourse(anyString())).thenReturn(Optional.empty());
+
+        Optional<String> result;
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            result = canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity);
+        }
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetLmsCourseIdLookupFailureWrapsException() throws Exception {
+        when(ltiContextEntity.getContext_memberships_url()).thenReturn(null);
+        when(courseReaderExtended.getSingleCourse(anyString())).thenThrow(new IOException("fail"));
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            assertThrows(ApiException.class, () -> canvasApiClientService.getLmsCourseId(ltiUserEntity, ltiContextEntity));
         }
     }
 

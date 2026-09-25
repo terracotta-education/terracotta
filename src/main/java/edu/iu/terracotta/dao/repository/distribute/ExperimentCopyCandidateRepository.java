@@ -13,5 +13,8 @@ public interface ExperimentCopyCandidateRepository extends JpaRepository<Experim
     List<ExperimentCopyCandidate> findAllByDestinationContext_ContextIdAndStatus(long destinationContextId, ExperimentCopyCandidateStatus status);
     boolean existsBySourceExperiment_ExperimentIdAndDestinationContext_ContextId(long sourceExperimentId, long destinationContextId);
     boolean existsByDestinationContext_ContextIdAndStatus(long destinationContextId, ExperimentCopyCandidateStatus status);
+    boolean existsByDestinationContext_ContextIdAndStatusIn(long destinationContextId, List<ExperimentCopyCandidateStatus> statuses);
+    List<ExperimentCopyCandidate> findAllByDestinationContext_ContextIdAndStatusIn(long destinationContextId, List<ExperimentCopyCandidateStatus> statuses);
+    List<ExperimentCopyCandidate> findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(long destinationContextId, List<ExperimentCopyCandidateStatus> statuses);
 
 }

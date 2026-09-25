@@ -1,6 +1,7 @@
 package edu.iu.terracotta.connectors.canvas.service.api.impl;
 
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.AssignmentExtended;
+import edu.iu.terracotta.connectors.canvas.dao.model.extended.CourseExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.FolderExtended;
 import edu.iu.terracotta.connectors.canvas.dao.model.extended.options.GetSubmissionsOptionsExtended;
 import edu.iu.terracotta.connectors.canvas.service.extended.AssignmentReaderExtended;
@@ -137,10 +138,7 @@ public class CanvasApiClientImpl implements ApiClient {
 
     @Override
     public List<LmsAssignment> listAssignments(LtiUserEntity apiUser, LtiContextEntity ltiContext) throws ApiException, TerracottaConnectorException {
-        String canvasCourseId = canvasLmsUtils.parseCourseId(
-            ltiContext.getToolDeployment().getPlatformDeployment(),
-            ltiContext.getContext_memberships_url()
-        );
+        String canvasCourseId = canvasCourseIdOrAlias(ltiContext);
 
         try {
             return castList(
@@ -384,6 +382,45 @@ public class CanvasApiClientImpl implements ApiClient {
     @Override
     public void updateAssignmentMetadata(Assignment assignment, LmsAssignment lmsAssignment) throws TerracottaConnectorException {
         // unused by Canvas
+    }
+
+    @Override
+    public Optional<String> getLmsCourseId(LtiUserEntity apiUser, LtiContextEntity ltiContext) throws ApiException, TerracottaConnectorException {
+        String canvasCourseId = canvasLmsUtils.parseCourseId(
+            ltiContext.getToolDeployment().getPlatformDeployment(),
+            ltiContext.getContext_memberships_url()
+        );
+
+        if (StringUtils.isNotBlank(canvasCourseId)) {
+            return Optional.of(canvasCourseId);
+        }
+
+        // no launch has happened in this course yet (e.g. a course copy notice created the
+        // context), so there's no NRPS URL to read the course ID from - ask Canvas instead
+        String alias = canvasCourseIdOrAlias(ltiContext);
+
+        try {
+            return getReader(apiUser, CourseReaderExtended.class)
+                .getSingleCourse(alias)
+                .map(CourseExtended::getId);
+        } catch (Exception e) {
+            throw new ApiException(String.format("Failed to look up Canvas course [%s]", alias), e);
+        }
+    }
+
+    // Canvas accepts "lti_context_id:<LTI context ID>" anywhere its API takes a course ID, which
+    // covers a context that hasn't had a launch yet and so has no NRPS URL to parse
+    private String canvasCourseIdOrAlias(LtiContextEntity ltiContext) throws TerracottaConnectorException {
+        String canvasCourseId = canvasLmsUtils.parseCourseId(
+            ltiContext.getToolDeployment().getPlatformDeployment(),
+            ltiContext.getContext_memberships_url()
+        );
+
+        if (StringUtils.isNotBlank(canvasCourseId)) {
+            return canvasCourseId;
+        }
+
+        return String.format("lti_context_id:%s", ltiContext.getContextKey());
     }
 
     @Override

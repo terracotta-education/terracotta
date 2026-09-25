@@ -108,12 +108,11 @@ public class ExperimentServiceImpl implements ExperimentService {
         // sync data with LMS, if configured
         if (syncWithLms) {
             try {
-                // deferred while any candidate for this context is still PENDING - see
-                // NoticeController's identical guard and ExperimentCopyCandidateService.resolve()
-                // for the full reasoning (a copied assignment's URL still carries the source
-                // course's old IDs, so this would mark it obsolete before the instructor gets a
-                // chance to import the matching experiment and re-point it)
-                if (!experimentCopyCandidateService.hasPendingForContext(securedInfo.getContextId())) {
+                // deferred while copied experiments are still being recreated in this context -
+                // see NoticeController's identical guard (a copied assignment's URL still carries
+                // the source course's old IDs until recreation re-points it, so this would mark
+                // it obsolete)
+                if (!experimentCopyCandidateService.hasUnfinishedForContext(securedInfo.getContextId())) {
                     assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
                 }
 

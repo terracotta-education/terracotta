@@ -8,6 +8,8 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -30,11 +32,14 @@ import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionRequestDto;
+import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
+import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyStatus;
 import edu.iu.terracotta.dao.model.dto.distribute.ImportDto;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
 import edu.iu.terracotta.exceptions.ExperimentExportException;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
+import edu.iu.terracotta.service.app.async.ExperimentCopyRecreationAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
 
@@ -44,6 +49,7 @@ public class DistributeControllerTest extends BaseTest {
     // the BaseTest hierarchy, so they are declared here.
     @Mock private ExperimentExportService exportService;
     @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
+    @Mock private ExperimentCopyRecreationAsyncService experimentCopyRecreationAsyncService;
 
     // the uuid path variable for the one experiment under test; experiment.getExperimentId() (the
     // mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
@@ -61,7 +67,7 @@ public class DistributeControllerTest extends BaseTest {
 
         // ApiJwtService has two matching mocks in BaseServiceTest (apiJwtService and canvasApiJwtService),
         // so the controller is constructed manually rather than relying on @InjectMocks to avoid ambiguous wiring.
-        distributeController = new DistributeController(apiJwtService, exportService, experimentImportService, experimentService, experimentCopyCandidateService);
+        distributeController = new DistributeController(apiJwtService, exportService, experimentImportService, experimentService, experimentCopyCandidateService, experimentCopyRecreationAsyncService);
 
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
@@ -321,6 +327,76 @@ public class DistributeControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(List.of(candidateDto), ret.getBody());
+    }
+
+    @Test
+    void copyStatusUnauthorizedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.copyStatus(httpServletRequest).getStatusCode());
+        verify(experimentCopyCandidateService, never()).getCopyStatus(any());
+    }
+
+    @Test
+    void copyStatusSuccessTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        CopyStatusDto copyStatus = CopyStatusDto.builder().status(ExperimentCopyStatus.COMPLETE).build();
+        when(experimentCopyCandidateService.getCopyStatus(securedInfo)).thenReturn(copyStatus);
+
+        ResponseEntity<CopyStatusDto> ret = distributeController.copyStatus(httpServletRequest);
+
+        assertEquals(HttpStatus.OK, ret.getStatusCode());
+        assertEquals(copyStatus, ret.getBody());
+    }
+
+    @Test
+    void acknowledgeCopyStatusUnauthorizedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.acknowledgeCopyStatus(httpServletRequest).getStatusCode());
+        verify(experimentCopyCandidateService, never()).acknowledgeCopyStatus(any());
+    }
+
+    @Test
+    void acknowledgeCopyStatusSuccessTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+
+        assertEquals(HttpStatus.OK, distributeController.acknowledgeCopyStatus(httpServletRequest).getStatusCode());
+        verify(experimentCopyCandidateService).acknowledgeCopyStatus(securedInfo);
+    }
+
+    @Test
+    void retryCopyUnauthorizedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.retryCopy(httpServletRequest).getStatusCode());
+        verify(experimentCopyCandidateService, never()).resetFailedForRetry(anyLong());
+    }
+
+    @Test
+    void retryCopyRecreatesAsTheLaunchingInstructorWhenSomethingFailed() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(securedInfo.getContextId()).thenReturn(5L);
+        when(securedInfo.getUserId()).thenReturn("launching-user");
+        when(experimentCopyCandidateService.resetFailedForRetry(5L)).thenReturn(true);
+        CopyStatusDto copyStatus = CopyStatusDto.builder().status(ExperimentCopyStatus.IN_PROGRESS).build();
+        when(experimentCopyCandidateService.getCopyStatus(securedInfo)).thenReturn(copyStatus);
+
+        ResponseEntity<CopyStatusDto> ret = distributeController.retryCopy(httpServletRequest);
+
+        assertEquals(HttpStatus.OK, ret.getStatusCode());
+        assertEquals(copyStatus, ret.getBody());
+        verify(experimentCopyRecreationAsyncService).recreate(5L, "launching-user");
+    }
+
+    @Test
+    void retryCopyNothingFailedDoesNotRecreate() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(experimentCopyCandidateService.resetFailedForRetry(anyLong())).thenReturn(false);
+
+        distributeController.retryCopy(httpServletRequest);
+
+        verify(experimentCopyRecreationAsyncService, never()).recreate(anyLong(), any());
     }
 
     @Test

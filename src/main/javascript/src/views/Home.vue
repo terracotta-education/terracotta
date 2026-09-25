@@ -12,12 +12,20 @@
       :display="isPreparingCopyCandidateImports"
       message="We are preparing to import the selected experiments. Please wait."
     />
+    <v-alert
+      v-if="isLoaded && isCopyInProgress"
+      class="copy-in-progress-alert mx-12 mt-6"
+      type="info"
+      variant="tonal"
+    >
+      Your experiments and assignments are being copied from your previous course. This page will update when they're ready.
+    </v-alert>
     <zero-state
       v-show="isLoaded && !hasExperiments"
       :experimentExportEnabled="experimentExportEnabled"
       :experimentImportRequests="experimentImportRequests"
       :importRequestAlerts="importRequestAlerts"
-      :disableActions="isPreparingCopyCandidateImports || isExperimentImporting"
+      :disableActions="isPreparingCopyCandidateImports || isExperimentImporting || isCopyInProgress"
       @handleImportExperiment="handleImportExperiment"
       @handleImportRequestAlertDismiss="handleImportRequestAlertDismiss"
       @handleImportRequestAlertVisibilityChange="handleImportRequestAlertVisibilityChange"
@@ -46,7 +54,7 @@
         >
           <v-btn
             v-if="experimentExportEnabled"
-            :disabled="isExperimentImporting"
+            :disabled="isExperimentImporting || isCopyInProgress"
             @click="handleImportExperiment"
             color="primary"
             elevation="0"
@@ -55,7 +63,7 @@
             Import Experiment
           </v-btn>
           <v-btn
-            :disabled="isExperimentImporting"
+            :disabled="isExperimentImporting || isCopyInProgress"
             @click="startExperiment"
             color="primary"
             elevation="0"
@@ -338,6 +346,21 @@ const isExportingExperiment = ref(false);
 const isDeletingExperiment = ref(false);
 const isPreparingCopyCandidateImports = ref(false);
 
+// the earlier course-copy flow, where the instructor picked which experiments to recreate from a
+// dialog on first launch. Experiments are now recreated automatically when the course is copied
+// (see ExperimentCopyCandidateService.recreateForContext), so the dialog is switched off here
+// but kept in case it's wanted again.
+const COPY_CANDIDATE_SELECTION_ENABLED = false;
+const COPY_MESSAGES = {
+  COMPLETE: "Your experiments and assignments have been copied from your previous course and are ready to use.",
+  ERROR: "We couldn't copy all of your experiments and assignments from your previous course. Please contact Terracotta support for help."
+};
+const copyStatusPollingId = ref(null);
+// a failed copy is retried once per visit, as whoever is launching now, before its failure is
+// reported - so an instructor who re-approved LMS access after the failure email isn't told it
+// failed again without it being tried again
+const copyRetryAttempted = ref(false);
+
 const experimentDataExportRequests = ref({
   downloadLinkClicked: false
 });
@@ -346,6 +369,8 @@ const experimentImportRequests = ref({});
 
 const experiments = computed(() => experimentStore.experiments);
 const copyCandidates = computed(() => experimentCopyCandidateStore.copyCandidates);
+const copyStatus = computed(() => experimentCopyCandidateStore.copyStatus);
+const isCopyInProgress = computed(() => copyStatus.value?.status === "IN_PROGRESS");
 const dataExportRequests = computed(() => dataExportRequestStore.dataExportRequests);
 const importRequests = computed(() => experimentStore.importRequests);
 const configurations = computed(() => configurationStore.get);
@@ -673,6 +698,50 @@ const handleShowCopyCandidates = async () => {
       }
     };
   }
+};
+
+// shows the result of recreating this course's experiments after a course copy once, then
+// acknowledges it so it isn't shown again. While still underway, checks back until it finishes.
+const handleCopyStatus = async () => {
+  const status = copyStatus.value?.status;
+
+  if (status === "IN_PROGRESS") {
+    if (!copyStatusPollingId.value) {
+      copyStatusPollingId.value = window.setInterval(handleCopyStatusPolling, 5000);
+    }
+
+    return;
+  }
+
+  if (status === "ERROR" && !copyRetryAttempted.value) {
+    copyRetryAttempted.value = true;
+    await experimentCopyCandidateStore.retryCopy();
+
+    return handleCopyStatus();
+  }
+
+  if (!COPY_MESSAGES[status]) {
+    return;
+  }
+
+  await Swal.fire({
+    text: COPY_MESSAGES[status],
+    icon: status === "COMPLETE" ? "success" : "error"
+  });
+
+  await experimentCopyCandidateStore.acknowledgeCopyStatus();
+};
+
+const handleCopyStatusPolling = async () => {
+  await experimentCopyCandidateStore.fetchCopyStatus();
+
+  if (isCopyInProgress.value) {
+    return;
+  }
+
+  copyStatusPollingId.value = window.clearInterval(copyStatusPollingId.value);
+  await experimentStore.fetchExperiments();
+  await handleCopyStatus();
 };
 
 const handleDelete = async experiment => {
@@ -1055,8 +1124,9 @@ onMounted(async () => {
   messagingConditionalTextStore.reset();
 
   await experimentStore.fetchExperiments();
+  await experimentCopyCandidateStore.fetchCopyStatus();
 
-  if (!experiments.value || experiments.value.length === 0) {
+  if (COPY_CANDIDATE_SELECTION_ENABLED && (!experiments.value || experiments.value.length === 0)) {
     await experimentCopyCandidateStore.fetchAll();
 
     if (copyCandidates.value.length > 0) {
@@ -1095,7 +1165,15 @@ onMounted(async () => {
 
   await experimentStore.pollImports();
 
+  // imports created by recreating a copied course are reported by one combined message
+  // (see handleCopyStatus) instead of each import's own alert
+  const copyImportIds = copyStatus.value?.importIds ?? [];
+
   importRequests.value.forEach(request => {
+    if (copyImportIds.includes(request.id)) {
+      return;
+    }
+
     experimentImportRequests.value = {
       ...experimentImportRequests.value,
       [request.id]: {
@@ -1109,9 +1187,15 @@ onMounted(async () => {
   });
 
   isLoaded.value = true;
+
+  handleCopyStatus();
 });
 
 onBeforeUnmount(() => {
+  if (copyStatusPollingId.value) {
+    window.clearInterval(copyStatusPollingId.value);
+  }
+
   for (const experimentId in experimentDataExportRequests.value) {
     const request = experimentDataExportRequests.value[experimentId];
 
@@ -1122,6 +1206,10 @@ onBeforeUnmount(() => {
 });
 
 onBeforeRouteLeave((to, from, next) => {
+  if (copyStatusPollingId.value) {
+    copyStatusPollingId.value = window.clearInterval(copyStatusPollingId.value);
+  }
+
   for (const id in experimentImportRequests.value) {
     const request = experimentImportRequests.value[id];
 

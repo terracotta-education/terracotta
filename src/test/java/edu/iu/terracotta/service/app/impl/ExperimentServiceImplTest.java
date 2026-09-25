@@ -111,14 +111,14 @@ public class ExperimentServiceImplTest extends BaseTest {
         assertEquals(1, retVal.size());
     }
 
-    // while a candidate is still PENDING for this context (e.g. the instructor's very first
-    // launch into a freshly copied course), the obsolete-assignment check must not run - it would
-    // mark the copied assignment obsolete before the instructor gets a chance to import the
-    // matching experiment and re-point it. See NoticeController's identical guard.
+    // while copied experiments are still being recreated in this context (e.g. the instructor
+    // launches a freshly copied course before recreation finishes), the obsolete-assignment check
+    // must not run - it would mark the copied assignment obsolete before recreation re-points it.
+    // See NoticeController's identical guard.
     @Test
-    public void testGetExperimentsSuppressesObsoleteAssignmentCheckWhilePendingCandidatesExist() throws Exception {
+    public void testGetExperimentsSuppressesObsoleteAssignmentCheckWhileRecreationIsUnfinished() throws Exception {
         when(experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(anyLong(), anyLong())).thenReturn(List.of(experiment));
-        when(experimentCopyCandidateService.hasPendingForContext(securedInfo.getContextId())).thenReturn(true);
+        when(experimentCopyCandidateService.hasUnfinishedForContext(securedInfo.getContextId())).thenReturn(true);
 
         List<ExperimentDto> retVal = experimentService.getExperiments(securedInfo, true);
 

@@ -770,6 +770,13 @@ public class BrightspaceApiClientImplTest extends BaseTest {
         assertTrue(result.isEmpty());
     }
 
+    /* getLmsCourseId */
+
+    @Test
+    public void testGetLmsCourseIdIsTheContextKey() {
+        assertEquals(Optional.of("context_key"), brightspaceApiClient.getLmsCourseId(ltiUserEntity, ltiContextEntity));
+    }
+
     /* listSubmissions overloads */
 
     @Test

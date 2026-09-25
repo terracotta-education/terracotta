@@ -40,6 +40,7 @@ import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionRequestDto;
+import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ImportDto;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
@@ -47,6 +48,7 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.ExperimentExportException;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
 import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.async.ExperimentCopyRecreationAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
@@ -69,6 +71,7 @@ public class DistributeController {
     private final ExperimentImportService importService;
     private final ExperimentService experimentService;
     private final ExperimentCopyCandidateService experimentCopyCandidateService;
+    private final ExperimentCopyRecreationAsyncService experimentCopyRecreationAsyncService;
 
     @GetMapping("/{id}/export")
     public ResponseEntity<Resource> export(@PathVariable("id") UUID uuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
@@ -184,6 +187,47 @@ public class DistributeController {
         }
 
         return new ResponseEntity<>(experimentCopyCandidateService.getPendingForContext(securedInfo), HttpStatus.OK);
+    }
+
+    @GetMapping("/copy-status")
+    public ResponseEntity<CopyStatusDto> copyStatus(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        return new ResponseEntity<>(experimentCopyCandidateService.getCopyStatus(securedInfo), HttpStatus.OK);
+    }
+
+    @PostMapping("/copy-status/acknowledge")
+    public ResponseEntity<Void> acknowledgeCopyStatus(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        experimentCopyCandidateService.acknowledgeCopyStatus(securedInfo);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    // an instructor launching into a course whose copied experiments failed to recreate (e.g. after
+    // following the failure email's instructions to re-approve LMS access) tries again as themselves
+    @PostMapping("/copy-status/retry")
+    public ResponseEntity<CopyStatusDto> retryCopy(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+
+        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        if (experimentCopyCandidateService.resetFailedForRetry(securedInfo.getContextId())) {
+            experimentCopyRecreationAsyncService.recreate(securedInfo.getContextId(), securedInfo.getUserId());
+        }
+
+        return new ResponseEntity<>(experimentCopyCandidateService.getCopyStatus(securedInfo), HttpStatus.OK);
     }
 
     // resolves EVERY PENDING candidate for this context in one action - candidates named in the

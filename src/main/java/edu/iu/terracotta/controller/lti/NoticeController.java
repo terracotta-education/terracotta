@@ -20,6 +20,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.dto.NoticeRequestDto;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.async.ExperimentCopyRecreationAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.utils.LtiStrings;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Receives LTI Advantage Platform Notification Service (PNS) notices - currently just Canvas's
  * "LtiContextCopyNotice" (course copy) - and reacts by (a) staging any experiment(s) from the
- * notice's origin course(s) as pending copy candidates for the receiving (destination) course,
- * and (b) re-running the obsolete-assignment check for the affected course immediately, instead
- * of waiting for the next time someone happens to launch the tool there.
+ * notice's origin course(s) as copy candidates for the receiving (destination) course and
+ * recreating them there in the background, and (b) re-running the obsolete-assignment check for
+ * the affected course immediately, instead of waiting for the next time someone happens to
+ * launch the tool there.
  *
  * Per the PNS spec, this endpoint must be public with no session/authentication of its own - the
  * notice's own signed JWT (verified below against the issuing platform's JWKS) is the only proof
@@ -48,6 +50,7 @@ public class NoticeController {
     private final LtiNoticeService ltiNoticeService;
     private final AssignmentAsyncService assignmentAsyncService;
     private final ExperimentCopyCandidateService experimentCopyCandidateService;
+    private final ExperimentCopyRecreationAsyncService experimentCopyRecreationAsyncService;
 
     @PostMapping
     public ResponseEntity<Void> receiveNotices(@RequestBody NoticeRequestDto noticeRequestDto) {
@@ -79,14 +82,19 @@ public class NoticeController {
             return;
         }
 
+        Optional<Long> destinationContextId = Optional.empty();
+
         try {
             // runs regardless of whether a live acting user can be resolved below - a brand-new
             // copied course has no LtiContextEntity/membership at all yet, which is exactly the
             // case this is for (see ExperimentCopyCandidateService.stageFromNotice).
-            experimentCopyCandidateService.stageFromNotice(claims);
+            destinationContextId = experimentCopyCandidateService.stageFromNotice(claims);
         } catch (Exception e) {
             log.error("Error staging experiment copy candidates for an LTI notice from issuer: [{}]", claims.getIssuer(), e);
         }
+
+        // recreate the staged experiments in the background - the notice response doesn't wait
+        destinationContextId.ifPresent(experimentCopyRecreationAsyncService::recreate);
 
         Optional<SecuredInfo> securedInfo = ltiNoticeService.resolveSecuredInfo(claims);
 
@@ -96,12 +104,11 @@ public class NoticeController {
         }
 
         try {
-            // deferred while any candidate for this context is still PENDING - a copied
-            // assignment's URL still carries the source course's old IDs, so running this now
-            // would mark it obsolete before the instructor gets a chance to import the matching
-            // experiment and re-point it. ExperimentCopyCandidateService.resolve() runs this same
-            // check itself, exactly once, after the instructor decides.
-            if (!experimentCopyCandidateService.hasPendingForContext(securedInfo.get().getContextId())) {
+            // deferred while recreation is still underway for this context - a copied
+            // assignment's URL still carries the source course's old IDs until recreation
+            // re-points it, so running this now would mark it obsolete. The next launch into
+            // the course after recreation finishes runs it instead (see ExperimentServiceImpl).
+            if (!experimentCopyCandidateService.hasUnfinishedForContext(securedInfo.get().getContextId())) {
                 assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo.get());
             }
         } catch (Exception e) {

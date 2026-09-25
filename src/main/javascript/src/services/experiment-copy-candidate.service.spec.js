@@ -153,6 +153,56 @@ describe("experiment-copy-candidate.service", () => {
     });
   });
 
+  describe("getCopyStatus", () => {
+    it("issues a GET for the copy status and returns parsed data", async () => {
+      const data = { status: "COMPLETE", importIds: ["i1"] };
+
+      global.fetch.mockResolvedValue(
+        mockResponse({ ok: true, status: 200, text: JSON.stringify(data) })
+      );
+
+      const result = await experimentCopyCandidateService.getCopyStatus();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://example.com/api/experiments/copy-status",
+        expect.objectContaining({ method: "GET" })
+      );
+      expect(result).toEqual({ data, status: 200 });
+    });
+  });
+
+  describe("acknowledgeCopyStatus", () => {
+    it("issues a POST with no body", async () => {
+      const response = mockResponse({ ok: true, status: 200, text: "" });
+      global.fetch.mockResolvedValue(response);
+
+      const result = await experimentCopyCandidateService.acknowledgeCopyStatus();
+
+      const [url, options] = global.fetch.mock.calls[0];
+      expect(url).toBe("https://example.com/api/experiments/copy-status/acknowledge");
+      expect(options.method).toBe("POST");
+      expect(options.body).toBeUndefined();
+      expect(result).toBe(response);
+    });
+  });
+
+  describe("retryCopy", () => {
+    it("issues a POST to retry and returns the parsed copy status", async () => {
+      const data = { status: "IN_PROGRESS", importIds: [] };
+
+      global.fetch.mockResolvedValue(
+        mockResponse({ ok: true, status: 200, text: JSON.stringify(data) })
+      );
+
+      const result = await experimentCopyCandidateService.retryCopy();
+
+      const [url, options] = global.fetch.mock.calls[0];
+      expect(url).toBe("https://example.com/api/experiments/copy-status/retry");
+      expect(options.method).toBe("POST");
+      expect(result).toEqual({ data, status: 200 });
+    });
+  });
+
   it("omits the Authorization header when there is no api token", async () => {
     api().apiToken = "";
 

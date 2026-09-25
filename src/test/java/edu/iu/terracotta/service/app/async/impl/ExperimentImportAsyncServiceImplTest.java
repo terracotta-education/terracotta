@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -27,7 +28,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
@@ -65,9 +68,13 @@ import edu.iu.terracotta.dao.model.enums.ExposureTypes;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyNotificationService;
 import tools.jackson.databind.json.JsonMapper;
 
 class ExperimentImportAsyncServiceImplTest extends BaseTest {
+
+    @Mock private ExperimentCopyNotificationService experimentCopyNotificationService;
+    @Mock private PlatformTransactionManager transactionManager;
 
     @InjectMocks private ExperimentImportAsyncServiceImpl experimentImportAsyncServiceImpl;
 
@@ -147,10 +154,11 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessNoImportDirectory() {
         when(fileStorageService.getExperimentImportFile(anyLong())).thenReturn(null);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
-        // prepare() records the specific error, then process() itself records a second, generic one
-        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        // prepare() records the specific error, then process() itself records a second, generic one, and
+        // the failure is then saved (a third) since nothing else persists it
+        verify(experimentImport, times(3)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage("No import .zip file found.");
         verify(experimentImport).addErrorMessage("No import file found.");
         verify(experimentRepository, never()).save(any(Experiment.class));
@@ -158,9 +166,9 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
     @Test
     void testProcessNoJsonFile() {
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
-        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        verify(experimentImport, times(3)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage(String.format("No JSON file [%s] found in imported .zip file.", ExperimentImport.JSON_FILE_NAME));
         verify(experimentImport).addErrorMessage("No import file found.");
         verify(experimentRepository, never()).save(any(Experiment.class));
@@ -170,9 +178,9 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessMalformedJsonFile() throws IOException {
         Files.writeString(importDirectory.resolve(ExperimentImport.JSON_FILE_NAME), "not valid json");
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
-        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        verify(experimentImport, times(3)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage(String.format("Error reading JSON file: [%s]", ExperimentImport.JSON_FILE_NAME));
         verify(experimentImport).addErrorMessage("No import file found.");
         verify(experimentRepository, never()).save(any(Experiment.class));
@@ -184,10 +192,11 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         errors.add(mock(ExperimentImportError.class));
 
         // validation errors already present when process() is invoked; it records the error and
-        // returns immediately, never reaching the final rollback check that throws the exception
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        // returns immediately, never reaching the final rollback check that throws the exception -
+        // the ERROR status is then saved on its own, since nothing in the import did
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
-        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage(org.mockito.ArgumentMatchers.startsWith("Validation errors:"));
         verify(experimentRepository, never()).save(any(Experiment.class));
     }
@@ -208,7 +217,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
             throw new RuntimeException(e);
         }
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
         verify(experimentRepository).save(any(Experiment.class));
         verify(experimentImportRepository).save(experimentImport);
@@ -244,11 +253,13 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
         assertThrows(
             org.springframework.orm.ObjectOptimisticLockingFailureException.class,
-            () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of())
+            () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false)
         );
 
-        verify(experimentImportRepository, never()).findById(anyLong());
-        verify(experimentImportRepository).save(experimentImport);
+        // no retry of the save inside the rolled-back transaction; the failure is recorded afterwards,
+        // separately (that save fails here too, and is logged rather than masking the original error)
+        verify(experimentImportRepository).findById(1L);
+        verify(experimentImportRepository, times(2)).save(experimentImport);
     }
 
     @Test
@@ -256,7 +267,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         writeExportJson(fullExport());
         when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
         verify(conditionRepository).save(any(Condition.class));
         verify(exposureRepository).save(any(Exposure.class));
@@ -326,7 +337,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         writeExportJson(export);
         when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
         verify(conditionRepository).save(any(Condition.class));
         verify(exposureRepository).save(any(Exposure.class));
@@ -351,7 +362,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         when(assignmentService.repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString(), eq(lmsAssignment))).thenReturn(assignment);
 
         // 700L is the old (source) assignment ID from fullExport()'s AssignmentExport
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(700L, lmsAssignment));
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(700L, lmsAssignment), false);
 
         verify(assignmentService).repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString(), eq(lmsAssignment));
         verify(assignmentService, never()).createAssignmentInLms(any(), any(), anyLong(), anyString());
@@ -379,10 +390,68 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
             .thenThrow(new AssignmentNotCreatedException("boom"));
 
-        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(700L, lmsAssignment)));
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(700L, lmsAssignment), false));
 
         verify(assignmentService, never()).deleteAssignmentInLms(any(), anyString(), any());
         verify(assignmentService).restoreRepointedAssignmentUrlInLms(eq(ltiUserEntity), eq(lmsAssignment), eq("https://original.example.com/lti3?experiment=1&assignment=700"), anyString());
+    }
+
+    // the import's own transaction rolls back on failure - the ERROR status must be saved
+    // separately afterwards, or the import would look like it's still processing forever
+    @Test
+    void testProcessLmsFailureRollsBackThenRecordsErrorStatus() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
+            .thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false));
+
+        verify(transactionManager).rollback(any());
+        verify(experimentImport, atLeastOnce()).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        verify(experimentImportRepository).findById(experimentImport.getId());
+        verify(experimentImportRepository).save(experimentImport);
+    }
+
+    @Test
+    void testProcessSuccessDoesNotRecordAnError() throws IOException {
+        writeExportJson(fullExport());
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
+
+        verify(transactionManager, never()).rollback(any());
+        verify(experimentImportRepository, never()).findById(anyLong());
+    }
+
+    // a background course-copy recreation has nobody watching - its owner gets an email instead
+    @Test
+    void testProcessEmailsOwnerWhenLmsAssignmentFailsAndNotificationRequested() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
+            .thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), true));
+
+        verify(experimentCopyNotificationService).notifyLmsFailure(ltiUserEntity);
+    }
+
+    @Test
+    void testProcessDoesNotEmailOwnerWhenLmsAssignmentFailsWithoutNotificationRequested() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
+            .thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false));
+
+        verify(experimentCopyNotificationService, never()).notifyLmsFailure(any());
+    }
+
+    @Test
+    void testProcessDoesNotEmailOwnerWhenLmsAssignmentsSucceed() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), true);
+
+        verify(experimentCopyNotificationService, never()).notifyLmsFailure(any());
     }
 
     @Test
@@ -400,7 +469,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         export.setAnswersMc(Collections.emptyList());
         writeExportJson(export);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
         verify(integrationClientRepository, never()).save(any(IntegrationClient.class));
     }
@@ -425,7 +494,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         );
         when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString())).thenReturn(assignment);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
         verify(consentDocumentRepository).save(any(ConsentDocument.class));
         verify(fileStorageService).sendConsentFileToLms(any(ConsentDocument.class), any(Experiment.class), eq(ltiUserEntity));
@@ -441,9 +510,10 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
         // the missing consent file only aborts the consentDocument() step; process() continues
         // importing every other component and only rolls back once it reaches the final error check
-        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of()));
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false));
 
-        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        // once when the error happens, once more when it's saved after the rollback
+        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage(String.format("No consent PDF file [%s] found for experiment with consent participation type.", ExperimentImport.CONSENT_FILE_NAME));
         verify(consentDocumentRepository, never()).save(any(ConsentDocument.class));
         verify(conditionRepository).save(any(Condition.class));
@@ -462,7 +532,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
         when(fileStorageService.saveConsentFile(any(), anyString())).thenThrow(new RuntimeException("disk full"));
 
-        assertThrows(RuntimeException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of()));
+        assertThrows(RuntimeException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false));
     }
 
     @Test
@@ -479,7 +549,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         String collidingTitle = String.format("%s %s", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle());
         when(experimentRepository.existsByTitle(collidingTitle)).thenReturn(true);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of());
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false);
 
         verify(experimentImport).setImportedTitle(String.format("%s %s (1)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle()));
     }
@@ -504,12 +574,14 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
             .thenReturn(assignment)
             .thenThrow(new AssignmentNotCreatedException("failed to create assignment"));
 
-        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of()));
+        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false));
 
         assertEquals(String.format("Errors occurred processing experiment import with ID: [%s]. Rolling back transactions.", experimentImport.getId()), exception.getMessage());
         verify(experimentImport).addErrorMessage("Assignment creation in LMS failed");
         verify(assignmentService).deleteAssignmentInLms(eq(assignment), anyString(), eq(ltiUserEntity));
-        verify(experimentImportRepository, never()).save(experimentImport);
+        // never saved as COMPLETE inside the rolled-back transaction - only as ERROR, afterwards
+        verify(experimentImport, never()).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
+        verify(experimentImportRepository).save(experimentImport);
     }
 
     @Test
@@ -533,7 +605,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
             .thenThrow(new TerracottaConnectorException("connector failed"));
         doThrow(new AssignmentNotEditedException("could not delete")).when(assignmentService).deleteAssignmentInLms(any(Assignment.class), anyString(), any());
 
-        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of()));
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false));
 
         verify(assignmentService).deleteAssignmentInLms(eq(assignment), anyString(), eq(ltiUserEntity));
     }
@@ -559,7 +631,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString())).thenReturn(assignment);
         doThrow(new IOException("io error")).when(fileStorageService).sendConsentFileToLms(any(ConsentDocument.class), any(Experiment.class), any());
 
-        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of()));
+        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, Map.of(), false));
 
         assertEquals(String.format("Errors occurred processing experiment import with ID: [%s]. Rolling back transactions.", experimentImport.getId()), exception.getMessage());
         verify(experimentImport).addErrorMessage("Consent assignment creation in LMS failed");

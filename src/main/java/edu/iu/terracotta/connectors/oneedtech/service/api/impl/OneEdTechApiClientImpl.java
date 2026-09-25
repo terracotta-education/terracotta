@@ -150,6 +150,11 @@ public class OneEdTechApiClientImpl implements ApiClient {
     }
 
     @Override
+    public Optional<String> getLmsCourseId(LtiUserEntity apiUser, LtiContextEntity ltiContext) throws ApiException, TerracottaConnectorException {
+        return Optional.empty();
+    }
+
+    @Override
     public List<LmsSubmission> listSubmissions(LtiUserEntity apiUser, Outcome outcome, String lmsCourseId) throws ApiException, IOException, TerracottaConnectorException {
         return List.of(SubmissionExtended.builder().build());
     }

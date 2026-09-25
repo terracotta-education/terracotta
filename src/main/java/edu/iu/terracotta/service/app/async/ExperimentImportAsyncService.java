@@ -13,7 +13,11 @@ public interface ExperimentImportAsyncService {
      * assignmentRepointMap: source (old) Assignment ID -> an already-existing LMS assignment to
      * re-point at the newly-created Assignment for that source ID, instead of creating a new one.
      * Empty for a normal (manual zip upload) import.
+     *
+     * notifyOwnerOnLmsFailure: email the import's owner if creating or re-pointing its LMS
+     * assignments fails - for an import nobody is watching, i.e. one recreating a copied course's
+     * experiments in the background (see ExperimentCopyNotificationService).
      */
-    void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap) throws ExperimentImportException;
+    void process(ExperimentImport experimentImport, SecuredInfo securedInfo, Map<Long, LmsAssignment> assignmentRepointMap, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException;
 
 }
