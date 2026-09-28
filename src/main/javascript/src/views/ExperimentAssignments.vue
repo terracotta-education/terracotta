@@ -959,7 +959,7 @@ onMounted(async () => {
   // fill the card instead, so the heading wraps and the stacked buttons fit within it
   @media (max-width: 636px) {
     width: 100%;
-    padding: 0 16px;
+    padding: 16px;
 
     > h4 {
       width: auto;
