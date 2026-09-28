@@ -437,6 +437,27 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         verify(next).setStatus(ExperimentCopyCandidateStatus.IMPORTED);
     }
 
+    // a candidate left in IMPORTING (instead of ERROR) after a failed attempt is stuck there
+    // forever, since getCopyStatus treats IMPORTING as still IN_PROGRESS - the frontend's "your
+    // experiments are being copied" alert would never clear. This must hold for ANY unexpected
+    // failure in the export/import pipeline, not just the two checked exception types the
+    // surrounding try/catch was originally written for (a real incident: a NullPointerException
+    // deep in ExperimentExportServiceImpl went uncaught here and left a candidate stuck).
+    @Test
+    void testRecreateForContextUnexpectedExceptionStillRecordsError() throws Exception {
+        ExperimentCopyCandidate failing = pendingCandidate();
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
+            .thenReturn(List.of(failing));
+        when(apiClient.getLmsCourseId(ltiUserEntity, ltiContextEntity)).thenReturn(Optional.of("123"));
+        when(assignmentService.getAllAssignmentsForLmsCourse(any(SecuredInfo.class))).thenReturn(List.of());
+        doThrow(new NullPointerException("assessment is null")).when(experimentExportService).export(experiment);
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        verify(failing).setStatus(ExperimentCopyCandidateStatus.ERROR);
+        verify(failing).setErrorMessage("NullPointerException: assessment is null");
+    }
+
     // a redelivered notice can start a second recreation for the same course - whichever one
     // claims a candidate second loses the optimistic lock and must leave it alone
     @Test

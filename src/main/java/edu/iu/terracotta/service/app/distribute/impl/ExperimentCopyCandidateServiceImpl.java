@@ -63,7 +63,6 @@ import edu.iu.terracotta.dao.repository.distribute.ExperimentCopyCandidateReposi
 import edu.iu.terracotta.dao.repository.distribute.ExperimentCopyCreatedAssignmentRepository;
 import edu.iu.terracotta.dao.repository.distribute.ExperimentImportRepository;
 import edu.iu.terracotta.exceptions.ExperimentCopyCandidateNotFoundException;
-import edu.iu.terracotta.exceptions.ExperimentExportException;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FeatureService;
@@ -588,7 +587,17 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
             experimentCopyCandidateRepository.save(candidate);
 
             return importDto;
-        } catch (ExperimentExportException | ExperimentImportException e) {
+        } catch (ObjectOptimisticLockingFailureException e) {
+            // another thread already claimed this candidate concurrently - let recreateCandidate's
+            // own catch for this handle it; this isn't a real recreation failure to record
+            throw e;
+        } catch (Exception e) {
+            // catch broadly, not just ExperimentExportException/ExperimentImportException - any
+            // unexpected failure here (e.g. a NullPointerException deep in the export/import
+            // pipeline) must still mark this candidate ERROR. Without that, the candidate is left
+            // sitting in IMPORTING forever, which getCopyStatus treats as still IN_PROGRESS -
+            // the "your experiments are being copied" alert would never clear, with no visible
+            // error beyond a raw stack trace in the logs.
             candidate.setStatus(ExperimentCopyCandidateStatus.ERROR);
             candidate.setErrorMessage(StringUtils.abbreviate(ExceptionUtils.getRootCauseMessage(e), ERROR_MESSAGE_MAX_LENGTH));
             experimentCopyCandidateRepository.save(candidate);
