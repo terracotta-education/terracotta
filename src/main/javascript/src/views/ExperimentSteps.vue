@@ -55,10 +55,14 @@
         </nav>
 
         <article class="experiment-steps__body">
-          <v-container fluid>
-            <v-row>
+          <v-container
+            :fluid="!narrowColumn"
+            :class="{ 'steps-container--narrow': narrowColumn }"
+          >
+            <v-row :justify="narrowColumn ? 'center' : undefined">
               <v-col
                 cols="12"
+                :md="narrowColumn ? 6 : undefined"
                 class="steps-container-col"
               >
                 <router-view
@@ -137,6 +141,10 @@ const currentSection = computed(() => {
 const currentStep = computed(() => {
   return route.meta.currentStep;
 });
+
+// design and participation steps keep the centered, half-width column they had before the
+// Vue 3 upgrade (TCOTA-1017); assignment steps, the builder and the editors use the full width
+const narrowColumn = computed(() => ["design", "participation"].includes(currentSection.value));
 
 const noSidebar = [
   "TerracottaBuilder",
@@ -296,6 +304,27 @@ onBeforeRouteUpdate(async (to, from, next) => {
   > article {
     grid-area: article;
     padding: 0;
+  }
+
+  // the Vuetify 2 container sizes the design and participation steps were laid out in before
+  // the Vue 3 upgrade - Vuetify 3's own container padding and breakpoints differ slightly (16px
+  // padding, 1200px at 1280px and up). Below 960px the column is full width. !important only to
+  // outrank _global.scss's blanket `.v-container { max-width: 100% !important }`.
+  .steps-container--narrow {
+    padding: 12px;
+    max-width: 100% !important;
+
+    @media (min-width: 960px) {
+      max-width: 900px !important;
+    }
+
+    @media (min-width: 1264px) {
+      max-width: 1185px !important;
+    }
+
+    @media (min-width: 1904px) {
+      max-width: 1785px !important;
+    }
   }
 
   &__sidebar {
