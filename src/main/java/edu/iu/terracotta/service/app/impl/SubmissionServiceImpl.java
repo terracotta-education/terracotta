@@ -76,6 +76,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -121,6 +123,8 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final ApiJwtService apiJwtService;
     private final IntegrationTokenService integrationTokenService;
     private final ApiClient apiClient;
+
+    @PersistenceContext private EntityManager entityManager;
 
     @Value("${app.integrations.token.ttl:43200}")
     private long integrationTokenTtl;
@@ -886,8 +890,18 @@ public class SubmissionServiceImpl implements SubmissionService {
             return;
         }
 
-        assignment.setStarted(Timestamp.valueOf(LocalDateTime.now()));
-        assignmentRepository.save(assignment);
+        // not a load-modify-save: every student's launch loads the assignment before any of them
+        // has marked it started, so when several first launches overlap, all but one of those
+        // saves would fail their version check and fail the student's launch with it
+        if (assignmentRepository.markStarted(assignment.getAssignmentId(), Timestamp.valueOf(LocalDateTime.now())) == 0) {
+            log.debug("Assignment ID: [{}] was already started by a concurrent launch", assignment.getAssignmentId());
+        }
+
+        // pick up the new started time and version, so nothing later in this session saves the
+        // stale copy over them
+        if (entityManager.contains(assignment)) {
+            entityManager.refresh(assignment);
+        }
     }
 
     private String lineItemId(Assignment assignment) throws ConnectionException, TerracottaConnectorException {

@@ -476,9 +476,12 @@ public class AssignmentServiceImpl implements AssignmentService {
             assessmentService.verifySubmissionWaitTime(assessment.getHoursBetweenSubmissions(), submissionList);
 
             // if it is the first non-test student submission in the experiment mark it as started.
+            // an atomic update rather than a load-modify-save, for the same reason as the
+            // assignment's own start (see SubmissionServiceImpl.setAssignmentStart): overlapping
+            // first launches would otherwise fail each other's version checks
             if (!participant.isTestStudent() && !experiment.get().isStarted()) {
-                experiment.get().setStarted(Timestamp.valueOf(LocalDateTime.now()));
-                experimentRepository.save(experiment.get());
+                experimentRepository.markStarted(experiment.get().getExperimentId(), Timestamp.valueOf(LocalDateTime.now()));
+                entityManager.refresh(experiment.get());
             }
 
             return createSubmission(experimentId, assessment, participant, securedInfo);

@@ -7,9 +7,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Experiment;
 
-import java.util.UUID;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
@@ -39,5 +40,12 @@ public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
     @Transactional
     @Query("delete from Experiment e where e.experimentId = ?1")
     void deleteByExperimentId(Long experimentId);
+
+
+    // one atomic statement, so concurrent first launches can't race each other to set it -
+    // returns 1 for the launch that actually started the experiment, 0 for any other
+    @Modifying
+    @Query("UPDATE Experiment e SET e.started = ?2, e.updatedAt = ?2, e.version = e.version + 1 WHERE e.experimentId = ?1 AND e.started IS NULL")
+    int markStarted(long experimentId, Timestamp started);
 
 }

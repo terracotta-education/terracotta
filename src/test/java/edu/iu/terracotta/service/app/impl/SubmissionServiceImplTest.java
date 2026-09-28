@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -115,6 +116,8 @@ public class SubmissionServiceImplTest extends BaseTest {
             integrationTokenService,
             apiClient
         );
+        ReflectionTestUtils.setField(submissionService, "entityManager", entityManager);
+        when(entityManager.contains(assignment)).thenReturn(true);
 
         when(answerMcRepository.findByQuestion_QuestionId(anyLong())).thenReturn(Collections.singletonList(answerMc));
         when(answerMcSubmissionOptionRepository.save(any(AnswerMcSubmissionOption.class))).thenReturn(null);
@@ -166,7 +169,9 @@ public class SubmissionServiceImplTest extends BaseTest {
     public void testPostSubmissionNotStarted() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         submissionService.postSubmission(SubmissionDto.builder().build(), 0l, securedInfo, 0l, false);
 
-        verify(assignmentRepository).save(assignment);
+        verify(assignmentRepository).markStarted(anyLong(), any(Timestamp.class));
+        verify(assignmentRepository, never()).save(assignment);
+        verify(entityManager).refresh(assignment);
     }
 
     @Test
@@ -174,6 +179,7 @@ public class SubmissionServiceImplTest extends BaseTest {
         when(assignment.isStarted()).thenReturn(true);
         submissionService.postSubmission(SubmissionDto.builder().build(), 0l, securedInfo, 0l, false);
 
+        verify(assignmentRepository, never()).markStarted(anyLong(), any(Timestamp.class));
         verify(assignmentRepository, never()).save(assignment);
     }
 
@@ -183,7 +189,21 @@ public class SubmissionServiceImplTest extends BaseTest {
 
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 
-        verify(assignmentRepository).save(assignment);
+        // an atomic update, not a load-modify-save that concurrent first launches could race on
+        verify(assignmentRepository).markStarted(anyLong(), any(Timestamp.class));
+        verify(assignmentRepository, never()).save(assignment);
+        verify(entityManager).refresh(assignment);
+    }
+
+    // another launch started it first - nothing to do, and no failure
+    @Test
+    public void testCreateNewSubmissionStartedConcurrentlyElsewhere() throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
+        when(assignmentRepository.markStarted(anyLong(), any(Timestamp.class))).thenReturn(0);
+
+        assertDoesNotThrow(() -> submissionService.createNewSubmission(assessment, participant, securedInfo));
+
+        verify(entityManager).refresh(assignment);
     }
 
     @Test
@@ -192,6 +212,7 @@ public class SubmissionServiceImplTest extends BaseTest {
         when(assignment.isStarted()).thenReturn(true);
         submissionService.createNewSubmission(assessment, participant, securedInfo);
 
+        verify(assignmentRepository, never()).markStarted(anyLong(), any(Timestamp.class));
         verify(assignmentRepository, never()).save(assignment);
     }
 
