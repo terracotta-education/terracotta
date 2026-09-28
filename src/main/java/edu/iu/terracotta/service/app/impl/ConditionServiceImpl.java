@@ -194,47 +194,60 @@ public class ConditionServiceImpl implements ConditionService {
     @Override
     public void validateConditionNames(List<ConditionDto> conditionDtoList, Long experimentId, boolean required) throws TitleValidationException, ConditionNotMatchingException {
         if (required) {
-            for (ConditionDto conditionDto : conditionDtoList) {
-                if (StringUtils.isBlank(conditionDto.getName())) {
-                    throw new TitleValidationException("Error 100: Please give the condition a name.");
-                }
-
-                if (StringUtils.isNotBlank(conditionDto.getName())) {
-                    if (conditionDto.getName().length() > 255) {
-                        throw new TitleValidationException("Error 101: Condition name must be 255 characters or less.");
-                    }
-                }
-            }
+            validateNamesProvided(conditionDtoList);
         }
 
         // conditionDto.getConditionId() is now a uuid (the DTO's wire id), but the duplicate-name
         // lookup and comparison below need each condition's numeric id, so resolve them all up
         // front (identity-keyed, since ConditionDto has no field-based equals/hashCode).
+        Map<ConditionDto, Long> conditionIdsByDto = resolveConditionIdsByDto(conditionDtoList);
+
+        ensureNoDuplicateNames(conditionDtoList, experimentId, conditionIdsByDto);
+    }
+
+    private void validateNamesProvided(List<ConditionDto> conditionDtoList) throws TitleValidationException {
+        for (ConditionDto conditionDto : conditionDtoList) {
+            if (StringUtils.isBlank(conditionDto.getName())) {
+                throw new TitleValidationException("Error 100: Please give the condition a name.");
+            }
+
+            if (conditionDto.getName().length() > 255) {
+                throw new TitleValidationException("Error 101: Condition name must be 255 characters or less.");
+            }
+        }
+    }
+
+    private Map<ConditionDto, Long> resolveConditionIdsByDto(List<ConditionDto> conditionDtoList) throws ConditionNotMatchingException {
         Map<ConditionDto, Long> conditionIdsByDto = new IdentityHashMap<>();
 
         for (ConditionDto conditionDto : conditionDtoList) {
             conditionIdsByDto.put(conditionDto, getConditionByUuid(conditionDto.getConditionId()).getConditionId());
         }
 
+        return conditionIdsByDto;
+    }
+
+    private void ensureNoDuplicateNames(List<ConditionDto> conditionDtoList, Long experimentId, Map<ConditionDto, Long> conditionIdsByDto) throws TitleValidationException {
         for (ConditionDto condto : conditionDtoList) {
-            List<Condition> conditions = conditionRepository.findByNameAndExperiment_ExperimentIdAndConditionIdIsNotOrderByConditionIdAsc(condto.getName(), experimentId, conditionIdsByDto.get(condto));
+            checkForDuplicateName(condto, conditionDtoList, experimentId, conditionIdsByDto);
+        }
+    }
 
-            if (CollectionUtils.isEmpty(conditions)) {
-                continue;
-            }
+    private void checkForDuplicateName(ConditionDto condto, List<ConditionDto> conditionDtoList, Long experimentId, Map<ConditionDto, Long> conditionIdsByDto) throws TitleValidationException {
+        List<Condition> conditions = conditionRepository.findByNameAndExperiment_ExperimentIdAndConditionIdIsNotOrderByConditionIdAsc(condto.getName(), experimentId, conditionIdsByDto.get(condto));
 
-            for (Condition con : conditions) {
-                List<ConditionDto> duplicates = conditionDtoList.stream()
-                    .filter(co -> {
-                        return conditionIdsByDto.get(co).equals(con.getConditionId()) && co.getName().equals(con.getName());
-                    })
-                    .toList();
+        if (CollectionUtils.isEmpty(conditions)) {
+            return;
+        }
 
-                if (!duplicates.isEmpty()) {
-                    throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + condto.getName() + "\" already exists in this experiment. It is possible " +
-                            "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
-                            "please change that condition's name first, then try again.");
-                }
+        for (Condition con : conditions) {
+            boolean duplicateExists = conditionDtoList.stream()
+                .anyMatch(co -> conditionIdsByDto.get(co).equals(con.getConditionId()) && co.getName().equals(con.getName()));
+
+            if (duplicateExists) {
+                throw new TitleValidationException("Error 102: Unable to create the condition. A condition with title \"" + condto.getName() + "\" already exists in this experiment. It is possible " +
+                        "that one of the other conditions has that name and has not been updated with a new one yet. If that is the case and you wish to use this name, " +
+                        "please change that condition's name first, then try again.");
             }
         }
     }

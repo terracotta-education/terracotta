@@ -755,107 +755,121 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         List<RepointedAssignment> repointedAssignments = new ArrayList<>();
         AtomicBoolean errorOccurred = new AtomicBoolean(false);
 
-        idMap.get(Assignment.class).entrySet().stream()
-            .forEach(
-                entry -> {
-                    if (errorOccurred.get()) {
-                        // an error has already occurred; skip processing remaining assignments
-                        return;
-                    }
-
-                    Long oldAssignmentId = resolveOldAssignmentId(entry.getKey());
-                    Assignment assignment = (Assignment) entry.getValue();
-                    long newExperimentId = ((Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId())).getExperimentId();
-                    LmsAssignment existingLmsAssignment = oldAssignmentId != null ? MapUtils.emptyIfNull(repointTargets.getAssignments()).get(oldAssignmentId) : null;
-
-                    try {
-                        if (existingLmsAssignment != null) {
-                            String originalUrl = existingLmsAssignment.getLmsExternalToolFields() != null ? existingLmsAssignment.getLmsExternalToolFields().getUrl() : null;
-
-                            assignmentService.repointAssignmentInLms(
-                                experimentImport.getOwner(),
-                                assignment,
-                                securedInfo.getLmsCourseId(),
-                                existingLmsAssignment
-                            );
-
-                            repointedAssignments.add(new RepointedAssignment(existingLmsAssignment, originalUrl));
-                        } else {
-                            Assignment newAssignment = assignmentService.createAssignmentInLms(
-                                experimentImport.getOwner(),
-                                assignment,
-                                newExperimentId,
-                                securedInfo.getLmsCourseId()
-                            );
-
-                            createdAssignments.add(newAssignment);
-
-                            if (repointTargets.getCopyCandidateId() != null) {
-                                recordCreated(repointTargets, newAssignment.getLmsAssignmentId());
-                            }
-                        }
-                    } catch (AssignmentNotCreatedException | TerracottaConnectorException e) {
-                        log.error("Error processing experiment import with ID: [{}]. Assignment creation in LMS failed.", experimentImport.getUuid(), e);
-                        handleError(experimentImport, "Assignment creation in LMS failed");
-                        errorOccurred.set(true);
-                    }
-                }
-            );
+        idMap.get(Assignment.class).entrySet()
+            .forEach(entry -> processAssignmentForLms(entry, export, experimentImport, idMap, securedInfo, repointTargets, createdAssignments, repointedAssignments, errorOccurred));
 
         if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
-            // an error occurred; delete any newly-created assignments in LMS
-            log.warn("An error occurred creating an assignment in the LMS. Removing all newly-created assignments from the LMS course ID: [{}].", securedInfo.getLmsCourseId());
-            createdAssignments.stream()
-                .forEach(
-                    assignment -> {
-                        try {
-                            assignmentService.deleteAssignmentInLms(assignment, securedInfo.getLmsCourseId(), experimentImport.getOwner());
-                        } catch (AssignmentNotEditedException | ApiException | TerracottaConnectorException e) {
-                            log.warn("Error occurred while deleting an assignment LMS ID: [{}] from LMS Course ID: [{}]", assignment.getLmsAssignmentId(), securedInfo.getLmsCourseId());
-                        }
-                    }
-                );
-
-            // a repointed assignment is never deleted (see the RepointedAssignment comment
-            // above) - only its URL mutation gets best-effort restored, since that Canvas-side
-            // PUT isn't covered by this method's own DB transaction rollback
-            repointedAssignments
-                .forEach(
-                    repointed -> assignmentService.restoreRepointedAssignmentUrlInLms(
-                        experimentImport.getOwner(),
-                        repointed.lmsAssignment(),
-                        repointed.originalUrl(),
-                        securedInfo.getLmsCourseId()
-                    )
-                );
+            rollBackLmsAssignments(createdAssignments, repointedAssignments, experimentImport, securedInfo);
         }
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
-            if (MapUtils.isNotEmpty(idMap.get(ConsentDocument.class))) {
-                ConsentDocument consentDocument = (ConsentDocument) idMap.get(ConsentDocument.class).get(export.getConsentDocument().getId());
-                Experiment experiment = (Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId());
-
-                try {
-                    if (repointTargets.getConsentAssignment() != null) {
-                        // the course copy already brought the consent assignment along - point it at
-                        // the recreated experiment, keeping its publish state and settings, rather
-                        // than creating a second, unpublished one
-                        fileStorageService.repointConsentFileInLms(consentDocument, experiment, experimentImport.getOwner(), repointTargets.getConsentAssignment(), securedInfo.getLmsCourseId());
-                    } else {
-                        fileStorageService.sendConsentFileToLms(consentDocument, experiment, experimentImport.getOwner());
-                        recordCreated(repointTargets, consentDocument.getLmsAssignmentId());
-                    }
-                } catch (AssignmentNotCreatedException | IOException | TerracottaConnectorException e) {
-                    log.error("Error processing experiment import with ID: [{}]. Consent assignment creation in LMS failed.", experimentImport.getUuid(), e);
-                    handleError(experimentImport, "Consent assignment creation in LMS failed");
-                }
-            }
+            sendConsentAssignmentToLms(export, experimentImport, idMap, securedInfo, repointTargets);
         }
 
         // this method only runs when there were no errors beforehand, so any error now means an
         // LMS assignment couldn't be created or re-pointed
         if (notifyOwnerOnLmsFailure && CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
             experimentCopyNotificationService.notifyLmsFailure(experimentImport.getOwner());
+        }
+    }
+
+    // one entry from idMap's Assignment map - pulled out of sendAssignmentsToLms's forEach so
+    // its create-vs-repoint branching isn't nested inside a lambda inside that method
+    private void processAssignmentForLms(Map.Entry<String, BaseEntity> entry, Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, LmsRepointTargets repointTargets, List<Assignment> createdAssignments, List<RepointedAssignment> repointedAssignments, AtomicBoolean errorOccurred) {
+        if (errorOccurred.get()) {
+            // an error has already occurred; skip processing remaining assignments
+            return;
+        }
+
+        Long oldAssignmentId = resolveOldAssignmentId(entry.getKey());
+        Assignment assignment = (Assignment) entry.getValue();
+        long newExperimentId = ((Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId())).getExperimentId();
+        LmsAssignment existingLmsAssignment = oldAssignmentId != null ? MapUtils.emptyIfNull(repointTargets.getAssignments()).get(oldAssignmentId) : null;
+
+        try {
+            if (existingLmsAssignment != null) {
+                String originalUrl = existingLmsAssignment.getLmsExternalToolFields() != null ? existingLmsAssignment.getLmsExternalToolFields().getUrl() : null;
+
+                assignmentService.repointAssignmentInLms(
+                    experimentImport.getOwner(),
+                    assignment,
+                    securedInfo.getLmsCourseId(),
+                    existingLmsAssignment
+                );
+
+                repointedAssignments.add(new RepointedAssignment(existingLmsAssignment, originalUrl));
+            } else {
+                Assignment newAssignment = assignmentService.createAssignmentInLms(
+                    experimentImport.getOwner(),
+                    assignment,
+                    newExperimentId,
+                    securedInfo.getLmsCourseId()
+                );
+
+                createdAssignments.add(newAssignment);
+
+                if (repointTargets.getCopyCandidateId() != null) {
+                    recordCreated(repointTargets, newAssignment.getLmsAssignmentId());
+                }
+            }
+        } catch (AssignmentNotCreatedException | TerracottaConnectorException e) {
+            log.error("Error processing experiment import with ID: [{}]. Assignment creation in LMS failed.", experimentImport.getUuid(), e);
+            handleError(experimentImport, "Assignment creation in LMS failed");
+            errorOccurred.set(true);
+        }
+    }
+
+    // an error occurred creating/repointing at least one assignment above - undo whatever this
+    // import already did in the LMS, since the DB transaction wrapping it will roll back but has
+    // no way to undo LMS-side effects on its own
+    private void rollBackLmsAssignments(List<Assignment> createdAssignments, List<RepointedAssignment> repointedAssignments, ExperimentImport experimentImport, SecuredInfo securedInfo) {
+        log.warn("An error occurred creating an assignment in the LMS. Removing all newly-created assignments from the LMS course ID: [{}].", securedInfo.getLmsCourseId());
+        createdAssignments
+            .forEach(
+                assignment -> {
+                    try {
+                        assignmentService.deleteAssignmentInLms(assignment, securedInfo.getLmsCourseId(), experimentImport.getOwner());
+                    } catch (AssignmentNotEditedException | ApiException | TerracottaConnectorException e) {
+                        log.warn("Error occurred while deleting an assignment LMS ID: [{}] from LMS Course ID: [{}]", assignment.getLmsAssignmentId(), securedInfo.getLmsCourseId());
+                    }
+                }
+            );
+
+        // a repointed assignment is never deleted (see the RepointedAssignment comment
+        // above) - only its URL mutation gets best-effort restored, since that Canvas-side
+        // PUT isn't covered by this method's own DB transaction rollback
+        repointedAssignments
+            .forEach(
+                repointed -> assignmentService.restoreRepointedAssignmentUrlInLms(
+                    experimentImport.getOwner(),
+                    repointed.lmsAssignment(),
+                    repointed.originalUrl(),
+                    securedInfo.getLmsCourseId()
+                )
+            );
+    }
+
+    private void sendConsentAssignmentToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, LmsRepointTargets repointTargets) {
+        if (MapUtils.isEmpty(idMap.get(ConsentDocument.class))) {
+            return;
+        }
+
+        ConsentDocument consentDocument = (ConsentDocument) idMap.get(ConsentDocument.class).get(export.getConsentDocument().getId());
+        Experiment experiment = (Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId());
+
+        try {
+            if (repointTargets.getConsentAssignment() != null) {
+                // the course copy already brought the consent assignment along - point it at
+                // the recreated experiment, keeping its publish state and settings, rather
+                // than creating a second, unpublished one
+                fileStorageService.repointConsentFileInLms(consentDocument, experiment, experimentImport.getOwner(), repointTargets.getConsentAssignment(), securedInfo.getLmsCourseId());
+            } else {
+                fileStorageService.sendConsentFileToLms(consentDocument, experiment, experimentImport.getOwner());
+                recordCreated(repointTargets, consentDocument.getLmsAssignmentId());
+            }
+        } catch (AssignmentNotCreatedException | IOException | TerracottaConnectorException e) {
+            log.error("Error processing experiment import with ID: [{}]. Consent assignment creation in LMS failed.", experimentImport.getUuid(), e);
+            handleError(experimentImport, "Consent assignment creation in LMS failed");
         }
     }
 
