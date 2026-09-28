@@ -35,19 +35,27 @@
         </div>
 
         <div class="copy-candidates-grid">
-          <div
+          <label
             v-for="candidate in candidates"
             :key="candidate.id"
             class="copy-candidate-option"
             :class="{ 'copy-candidate-option--selected': isSelected(candidate.id) }"
-            role="checkbox"
-            :aria-checked="isSelected(candidate.id)"
-            :aria-label="candidate.experimentTitle || '(untitled experiment)'"
-            tabindex="0"
-            @click="toggleSelected(candidate.id)"
-            @keydown.space.prevent="toggleSelected(candidate.id)"
-            @keydown.enter.prevent="toggleSelected(candidate.id)"
           >
+            <!-- a real checkbox (visually hidden, see the style block below) instead of a
+                 role="checkbox" div - gets native keyboard/focus handling, forced-colors mode,
+                 and screen-reader semantics for free instead of reimplementing them. An explicit
+                 aria-label keeps its accessible name to just the title, since the <label> would
+                 otherwise also pull in the meta line's text. Enter isn't a native activation key
+                 for checkboxes (only Space is), so it's still handled explicitly here. -->
+            <input
+              type="checkbox"
+              class="copy-candidate-checkbox"
+              :checked="isSelected(candidate.id)"
+              :aria-label="candidate.experimentTitle || '(untitled experiment)'"
+              @change="toggleSelected(candidate.id)"
+              @keydown.enter.prevent="toggleSelected(candidate.id)"
+            />
+
             <div class="copy-candidate-title">
               <!-- selection is also shown via border/background color below, but that alone
                    shouldn't be the only signal (WCAG 1.4.1) - this icon gives a non-color one -->
@@ -67,7 +75,7 @@
               &middot;
               {{ candidate.assignmentCount }} assignment{{ candidate.assignmentCount === 1 ? "" : "s" }}
             </div>
-          </div>
+          </label>
         </div>
 
         <div class="copy-candidates-actions">
@@ -291,8 +299,9 @@ const confirmPendingAction = () => {
   }
 
   // a visible focus ring is the one part of this that must never depend on color alone
-  // being enough - this is a custom (div-based) checkbox, so it gets no native outline
-  &:focus-visible {
+  // being enough - the checkbox itself is visually hidden, so its own focus ring (which
+  // :focus-visible would otherwise draw around a 1x1px element) is redirected to the card
+  &:has(:focus-visible) {
     outline: 2px solid map.get($blue, "base");
     outline-offset: 2px;
   }
@@ -316,6 +325,21 @@ const confirmPendingAction = () => {
 
 .copy-candidate-check {
   flex: none;
+}
+
+// visually hidden but still focusable/announced - the standard clip technique, not
+// display: none or visibility: hidden, either of which would also remove it from the
+// accessibility tree and the tab order
+.copy-candidate-checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .copy-candidate-meta {
@@ -351,8 +375,12 @@ const confirmPendingAction = () => {
     color: #fff;
 
     &:disabled {
-      background-color: rgba(0, 0, 0, 0.12);
-      color: rgba(0, 0, 0, 0.38);
+      // solid colors, not the previous semi-transparent black-on-white: that combination's
+      // effective contrast (rendered against this popup's own light background) fell below
+      // WCAG's 4.5:1 minimum for text; these two hit ~4.6:1 against each other directly,
+      // independent of whatever's behind the button
+      background-color: #e0e0e0;
+      color: #5f6368;
       cursor: default;
     }
   }

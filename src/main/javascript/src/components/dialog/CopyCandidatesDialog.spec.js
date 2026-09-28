@@ -45,45 +45,52 @@ describe("CopyCandidatesDialog", () => {
     expect(JSON.parse(hiddenInput.element.value)).toEqual([]);
   });
 
-  it("updates the hidden input when a candidate option is clicked", async () => {
+  it("updates the hidden input when a candidate's checkbox is checked", async () => {
     const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
 
-    const options = wrapper.findAll(".copy-candidate-option");
-    await options[0].trigger("click");
+    // jsdom doesn't fire a "change" event as a side effect of a synthetic click on a checkbox
+    // (confirmed: neither trigger("click") nor calling .click() on the element triggers it,
+    // only setValue() does), so these tests drive the checkbox via setValue() rather than
+    // clicking it - a real browser fires "change" on click, which is what the component relies on
+    const checkboxes = wrapper.findAll(".copy-candidate-checkbox");
+    await checkboxes[0].setValue(true);
 
     const hiddenInput = wrapper.find("#copy-candidates-selected");
     expect(JSON.parse(hiddenInput.element.value)).toEqual(["c1"]);
   });
 
-  it("toggles a candidate via the keyboard (Space or Enter), matching a native checkbox", async () => {
+  // Space is now a real <input type="checkbox">'s native activation key (the browser toggles
+  // it and fires "change" - nothing in this component needs to implement that itself, so
+  // there's nothing here to unit test beyond trusting the platform). Enter still needs an
+  // explicit handler, since it isn't a native checkbox activation key.
+  it("also toggles a candidate on Enter, since a native checkbox alone wouldn't", async () => {
     const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
 
-    const options = wrapper.findAll(".copy-candidate-option");
-    await options[0].trigger("keydown.space");
+    const checkbox = wrapper.findAll(".copy-candidate-checkbox")[0];
+    await checkbox.trigger("keydown.enter");
+
     expect(JSON.parse(wrapper.find("#copy-candidates-selected").element.value)).toEqual(["c1"]);
-
-    await options[0].trigger("keydown.enter");
-    expect(JSON.parse(wrapper.find("#copy-candidates-selected").element.value)).toEqual([]);
   });
 
-  it("exposes each option as an accessible checkbox with the experiment title as its name", () => {
+  it("exposes each option as a real checkbox with the experiment title as its accessible name", () => {
     const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
 
-    const options = wrapper.findAll(".copy-candidate-option");
-    expect(options[0].attributes("role")).toBe("checkbox");
-    expect(options[0].attributes("aria-checked")).toBe("false");
-    expect(options[0].attributes("aria-label")).toBe("Reading Study");
-    expect(options[0].attributes("tabindex")).toBe("0");
+    const checkbox = wrapper.findAll(".copy-candidate-checkbox")[0];
+    expect(checkbox.element.type).toBe("checkbox");
+    expect(checkbox.element.checked).toBe(false);
+    // an explicit aria-label, not just the wrapping <label>'s own text, so the name stays just
+    // the title instead of picking up the meta line ("2 conditions · 3 assignments") too
+    expect(checkbox.attributes("aria-label")).toBe("Reading Study");
   });
 
-  it("marks a selected option both visually (a class hook for the selected color treatment) and via aria-checked - not by color alone", async () => {
+  it("marks a selected option both visually (a class hook for the selected color treatment) and via the checkbox's checked state - not by color alone", async () => {
     const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
 
     const option = wrapper.findAll(".copy-candidate-option")[0];
-    await option.trigger("click");
+    await wrapper.findAll(".copy-candidate-checkbox")[0].setValue(true);
 
     expect(option.classes()).toContain("copy-candidate-option--selected");
-    expect(option.attributes("aria-checked")).toBe("true");
+    expect(wrapper.findAll(".copy-candidate-checkbox")[0].element.checked).toBe(true);
     // the checkmark icon is the non-color signal alongside the border/background change
     expect(option.findComponent({ name: "VIcon" }).exists()).toBe(true);
   });
@@ -128,7 +135,7 @@ describe("CopyCandidatesDialog", () => {
     const createButton = wrapper.findAll(".copy-candidates-btn--primary")[0];
     expect(createButton.attributes("disabled")).toBeDefined();
 
-    await wrapper.findAll(".copy-candidate-option")[0].trigger("click");
+    await wrapper.findAll(".copy-candidate-checkbox")[0].setValue(true);
 
     expect(createButton.attributes("disabled")).toBeUndefined();
   });
@@ -137,7 +144,7 @@ describe("CopyCandidatesDialog", () => {
     it("shows a confirmation overlay over the (still-visible) grid instead of hiding it, for each of the three actions", async () => {
       const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
 
-      await wrapper.findAll(".copy-candidate-option")[0].trigger("click");
+      await wrapper.findAll(".copy-candidate-checkbox")[0].setValue(true);
 
       expect(wrapper.find(".copy-candidates-confirm-overlay").exists()).toBe(false);
       expect(wrapper.find(".copy-candidates-content").attributes("inert")).toBeUndefined();
@@ -193,7 +200,7 @@ describe("CopyCandidatesDialog", () => {
     it("emits 'create' with the current selection only once the overlay confirmation is accepted", async () => {
       const wrapper = mountComponent(CopyCandidatesDialog, { props: { candidates } });
 
-      await wrapper.findAll(".copy-candidate-option")[0].trigger("click");
+      await wrapper.findAll(".copy-candidate-checkbox")[0].setValue(true);
 
       const [, , createButton] = wrapper.findAll(".copy-candidates-btn");
       await createButton.trigger("click");
@@ -212,7 +219,7 @@ describe("CopyCandidatesDialog", () => {
       expect(wrapper.emitted("defer")).toBeUndefined();
       expect(wrapper.find(".copy-candidates-confirm-overlay").exists()).toBe(false);
 
-      await wrapper.findAll(".copy-candidate-option")[0].trigger("click");
+      await wrapper.findAll(".copy-candidate-checkbox")[0].setValue(true);
       const hiddenInput = wrapper.find("#copy-candidates-selected");
       expect(JSON.parse(hiddenInput.element.value)).toEqual(["c1"]);
     });
