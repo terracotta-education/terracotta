@@ -43,7 +43,7 @@
         <v-btn
           v-else
           v-bind="menuProps"
-          class="btn-create-first-message ml-4"
+          class="btn-create-first-message"
           elevation="0"
         >
           Create Message

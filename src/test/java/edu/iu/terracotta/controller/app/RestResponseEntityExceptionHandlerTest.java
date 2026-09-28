@@ -83,6 +83,18 @@ public class RestResponseEntityExceptionHandlerTest {
         assertEquals(TextConstants.EXPERIMENT_NOT_MATCHING, response.getBody());
     }
 
+    // the IDs in the exception's message are for the log only - the response keeps the generic text
+    @Test
+    void handleExperimentNotMatchingExceptionWithIdsKeepsTheGenericResponseTest() {
+        ResponseEntity<Object> response = handler.handleExperimentNotMatchingException(
+            new ExperimentNotMatchingException(String.format(TextConstants.EXPERIMENT_NOT_MATCHING_IDS, 5L, 1L)),
+            webRequest
+        );
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals(TextConstants.EXPERIMENT_NOT_MATCHING, response.getBody());
+    }
+
     @Test
     void handleConditionNotMatchingExceptionTest() {
         ResponseEntity<Object> response = handler.handleConditionNotMatchingException(new ConditionNotMatchingException("msg"), webRequest);

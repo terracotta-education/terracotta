@@ -146,4 +146,37 @@ defineExpose({
 :deep(.v-card-text) {
   max-width: 90%;
 }
+
+// the arrows straddle the card's edges, as they did before the Vue 3 upgrade, instead of
+// sitting over its text - Vuetify's own controls are 48px buttons inset 16px from the edges
+.v-carousel {
+  overflow: visible;
+
+  :deep(.v-window__controls) {
+    padding: 0;
+    left: -32px;
+    width: calc(100% + 64px);
+  }
+
+  :deep(.v-window__left),
+  :deep(.v-window__right) {
+    width: 40px;
+    height: 40px;
+    background: white;
+    color: black;
+
+    .v-icon {
+      font-size: 20px;
+    }
+  }
+
+  // below 960px the steps column is full width, leaving only 12px between the card and the
+  // screen edge - pull the arrows in so they stay on screen
+  @media (max-width: 959.98px) {
+    :deep(.v-window__controls) {
+      left: -8px;
+      width: calc(100% + 16px);
+    }
+  }
+}
 </style>

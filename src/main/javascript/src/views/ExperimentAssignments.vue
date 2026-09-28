@@ -59,7 +59,7 @@
                   <div class="no-assignments-yet-container">
                     <h4>You don't have any components yet</h4>
 
-                    <div class="no-components-yet-buttons d-flex flex-row justify-space-between mx-auto">
+                    <div class="no-components-yet-buttons d-flex mx-auto">
                       <AddAssignmentDialog
                         :has-existing="false"
                         :is-single-condition-experiment="singleConditionExperiment"
@@ -71,7 +71,6 @@
                         v-if="isMessagingEnabled"
                         :is-single-condition-experiment="singleConditionExperiment"
                         :has-existing="false"
-                        class="ml-3"
                         @add="handleAddMessage($event, exposure)"
                       />
                     </div>
@@ -926,20 +925,46 @@ onMounted(async () => {
   border-color: #ffe0b2 !important;
 
   & .no-components-yet-buttons {
-    min-width: fit-content;
-    max-width: fit-content;
-    min-height: fit-content;
-    max-height: fit-content;
+    width: fit-content;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  // stacked, full-width buttons on narrow screens, instead of a row running off the card
+  @media (max-width: 636px) {
+    & .no-components-yet-buttons {
+      width: 100%;
+      max-width: 360px;
+      flex-direction: column;
+
+      .v-btn {
+        width: 100%;
+      }
+    }
   }
 }
 
 .no-assignments-yet-container {
   width: fit-content;
+  max-width: 100%;
   margin: 0 auto;
 
   > h4 {
     width: fit-content;
     margin: 0 auto;
+  }
+
+  // fill the card instead, so the heading wraps and the stacked buttons fit within it
+  @media (max-width: 636px) {
+    width: 100%;
+    padding: 16px;
+
+    > h4 {
+      width: auto;
+      text-align: center;
+    }
   }
 }
 

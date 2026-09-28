@@ -48,6 +48,7 @@ import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -73,7 +74,9 @@ public class RestResponseEntityExceptionHandler
     @ExceptionHandler({ ExperimentNotMatchingException.class})
     protected ResponseEntity<Object> handleExperimentNotMatchingException(ExperimentNotMatchingException ex, WebRequest request) {
         String bodyOfResponse = TextConstants.EXPERIMENT_NOT_MATCHING;
-        log.warn(bodyOfResponse);
+        // the exception's own message can name the experiment and course (see
+        // ApiJwtServiceImpl.experimentAllowed) - logged, but not sent back in the response
+        log.warn(StringUtils.defaultIfBlank(ex.getMessage(), bodyOfResponse));
 
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
     }
