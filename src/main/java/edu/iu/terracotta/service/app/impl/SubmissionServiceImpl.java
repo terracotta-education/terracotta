@@ -84,6 +84,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -893,7 +894,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         // not a load-modify-save: every student's launch loads the assignment before any of them
         // has marked it started, so when several first launches overlap, all but one of those
         // saves would fail their version check and fail the student's launch with it
-        if (assignmentRepository.markStarted(assignment.getAssignmentId(), Timestamp.valueOf(LocalDateTime.now())) == 0) {
+        if (assignmentRepository.markStarted(assignment.getAssignmentId(), Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC))) == 0) {
             log.debug("Assignment ID: [{}] was already started by a concurrent launch", assignment.getAssignmentId());
         }
 

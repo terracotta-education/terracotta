@@ -84,6 +84,7 @@ import jakarta.persistence.PersistenceContext;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -480,7 +481,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             // assignment's own start (see SubmissionServiceImpl.setAssignmentStart): overlapping
             // first launches would otherwise fail each other's version checks
             if (!participant.isTestStudent() && !experiment.get().isStarted()) {
-                experimentRepository.markStarted(experiment.get().getExperimentId(), Timestamp.valueOf(LocalDateTime.now()));
+                experimentRepository.markStarted(experiment.get().getExperimentId(), Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC)));
                 entityManager.refresh(experiment.get());
             }
 

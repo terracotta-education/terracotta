@@ -203,40 +203,46 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         Map<Long, RecreationSession> sessions = new HashMap<>();
 
         for (ExperimentCopyCandidate candidate : pending) {
-            try {
-                Optional<LtiUserEntity> instructor = actingUser != null ? Optional.of(actingUser) : resolveInstructor(candidate.getSourceExperiment());
+            recreateCandidate(candidate, sessions, destination, actingUser, notifyOnLmsFailure, destinationContextId);
+        }
+    }
 
-                if (instructor.isEmpty()) {
-                    markError(candidate, "No instructor found in the source course to recreate this experiment as");
-                    continue;
-                }
+    // one candidate's worth of recreateForContext's per-candidate work, pulled out so its several
+    // early-exit cases are separate returns instead of continues cluttering the loop above
+    private void recreateCandidate(ExperimentCopyCandidate candidate, Map<Long, RecreationSession> sessions, LtiContextEntity destination, LtiUserEntity actingUser, boolean notifyOnLmsFailure, long destinationContextId) {
+        try {
+            Optional<LtiUserEntity> instructor = actingUser != null ? Optional.of(actingUser) : resolveInstructor(candidate.getSourceExperiment());
 
-                RecreationSession session = sessions.get(instructor.get().getUserId());
-
-                if (session == null) {
-                    session = startSession(instructor.get(), destination);
-                    sessions.put(instructor.get().getUserId(), session);
-
-                    if (session.errorMessage() != null && notifyOnLmsFailure) {
-                        // nothing can be created or re-pointed in the LMS as this instructor
-                        experimentCopyNotificationService.notifyLmsFailure(instructor.get());
-                    }
-                }
-
-                if (session.errorMessage() != null) {
-                    markError(candidate, session.errorMessage());
-                    continue;
-                }
-
-                importCandidate(candidate, session.securedInfo(), session.lmsAssignments(), notifyOnLmsFailure);
-                log.info("Recreated copy candidate ID: [{}] in destination context ID: [{}]", candidate.getUuid(), destinationContextId);
-            } catch (ObjectOptimisticLockingFailureException _) {
-                // a redelivered notice already claimed this candidate on another thread
-                log.info("Copy candidate ID: [{}] is already being recreated - skipping", candidate.getUuid());
-            } catch (Exception e) {
-                // importCandidate already recorded the failure on the candidate
-                log.error("Error recreating copy candidate ID: [{}] in destination context ID: [{}]", candidate.getUuid(), destinationContextId, e);
+            if (instructor.isEmpty()) {
+                markError(candidate, "No instructor found in the source course to recreate this experiment as");
+                return;
             }
+
+            RecreationSession session = sessions.get(instructor.get().getUserId());
+
+            if (session == null) {
+                session = startSession(instructor.get(), destination);
+                sessions.put(instructor.get().getUserId(), session);
+
+                if (session.errorMessage() != null && notifyOnLmsFailure) {
+                    // nothing can be created or re-pointed in the LMS as this instructor
+                    experimentCopyNotificationService.notifyLmsFailure(instructor.get());
+                }
+            }
+
+            if (session.errorMessage() != null) {
+                markError(candidate, session.errorMessage());
+                return;
+            }
+
+            importCandidate(candidate, session.securedInfo(), session.lmsAssignments(), notifyOnLmsFailure);
+            log.info("Recreated copy candidate ID: [{}] in destination context ID: [{}]", candidate.getUuid(), destinationContextId);
+        } catch (ObjectOptimisticLockingFailureException _) {
+            // a redelivered notice already claimed this candidate on another thread
+            log.info("Copy candidate ID: [{}] is already being recreated - skipping", candidate.getUuid());
+        } catch (Exception e) {
+            // importCandidate already recorded the failure on the candidate
+            log.error("Error recreating copy candidate ID: [{}] in destination context ID: [{}]", candidate.getUuid(), destinationContextId, e);
         }
     }
 
@@ -794,13 +800,12 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
 
             if (consent && consentAssignment == null && isConsentAssignmentFor(url, sourceExperiment)) {
                 consentAssignment = lmsAssignment;
-                continue;
+            } else {
+                LmsExternalToolUrlUtils.extractQueryParam(url, "assignment")
+                    .flatMap(this::resolveAssignmentId)
+                    .filter(sourceAssignmentIds::contains)
+                    .ifPresent(oldAssignmentId -> repointMap.put(oldAssignmentId, lmsAssignment));
             }
-
-            LmsExternalToolUrlUtils.extractQueryParam(url, "assignment")
-                .flatMap(this::resolveAssignmentId)
-                .filter(sourceAssignmentIds::contains)
-                .ifPresent(oldAssignmentId -> repointMap.put(oldAssignmentId, lmsAssignment));
         }
 
         return LmsRepointTargets.builder()

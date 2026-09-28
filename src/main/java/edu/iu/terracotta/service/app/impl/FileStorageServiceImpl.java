@@ -66,6 +66,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -824,7 +825,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void saveExperimentImportFile(MultipartFile file, ExperimentImport experimentImport) throws IOException {
-        String path = String.format("%s/%s", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH")), UUID.randomUUID().toString());
+        String path = String.format("%s/%s", LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH")), UUID.randomUUID().toString());
         Path parentPath = Files.createDirectories(Paths.get(String.format("%s/%s", experimentExportLocalPathRoot, path)));
         String filename = String.format("%s.zip", UUID.randomUUID().toString());
         File storedFile = FileUtils.getFile(parentPath.toFile(), filename);
