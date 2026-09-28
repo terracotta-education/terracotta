@@ -9,6 +9,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -122,6 +123,7 @@ public class AssignmentServiceImplTest extends BaseTest {
                 apiClient
             )
         );
+        ReflectionTestUtils.setField(assignmentService, "entityManager", entityManager);
         clearInvocations(assignmentRepository, apiClient);
 
         when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(Collections.singletonList(assessment));
@@ -618,7 +620,22 @@ public class AssignmentServiceImplTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, retVal.getStatusCode());
         assertEquals(submissionDto, retVal.getBody());
-        verify(experimentRepository).save(experiment);
+        // an atomic update, not a load-modify-save that concurrent first launches could race on
+        verify(experimentRepository).markStarted(anyLong(), any(Timestamp.class));
+        verify(experimentRepository, never()).save(experiment);
+        verify(entityManager).refresh(experiment);
+    }
+
+    @Test
+    public void testLaunchAssignmentAlreadyStartedExperimentIsLeftAlone() throws Exception {
+        when(experiment.isStarted()).thenReturn(true);
+        when(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(submissionService.datesAllowed(anyLong(), anyLong(), any(SecuredInfo.class))).thenReturn(true);
+        when(submissionService.createNewSubmission(any(Assessment.class), any(Participant.class), any(SecuredInfo.class))).thenReturn(submission);
+
+        assignmentService.launchAssignment(1L, securedInfo, false);
+
+        verify(experimentRepository, never()).markStarted(anyLong(), any(Timestamp.class));
     }
 
     @Test
