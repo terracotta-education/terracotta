@@ -745,21 +745,35 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
     }
 
+    // the state threaded through the assignment-by-assignment LMS sync below, bundled into one
+    // record so passing it between the per-entry/rollback helper methods doesn't itself trip the
+    // too-many-parameters rule those helpers were extracted to fix
+    private record LmsAssignmentSyncContext(
+        Export export,
+        ExperimentImport experimentImport,
+        Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap,
+        SecuredInfo securedInfo,
+        LmsRepointTargets repointTargets,
+        List<Assignment> createdAssignments,
+        List<RepointedAssignment> repointedAssignments,
+        AtomicBoolean errorOccurred
+    ) { }
+
     private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, LmsRepointTargets repointTargets, boolean notifyOwnerOnLmsFailure) {
         if (MapUtils.isEmpty(idMap.get(Assignment.class))) {
             // no assignments to process
             return;
         }
 
-        List<Assignment> createdAssignments = new ArrayList<>();
-        List<RepointedAssignment> repointedAssignments = new ArrayList<>();
-        AtomicBoolean errorOccurred = new AtomicBoolean(false);
+        LmsAssignmentSyncContext context = new LmsAssignmentSyncContext(
+            export, experimentImport, idMap, securedInfo, repointTargets, new ArrayList<>(), new ArrayList<>(), new AtomicBoolean(false)
+        );
 
         idMap.get(Assignment.class).entrySet()
-            .forEach(entry -> processAssignmentForLms(entry, export, experimentImport, idMap, securedInfo, repointTargets, createdAssignments, repointedAssignments, errorOccurred));
+            .forEach(entry -> processAssignmentForLms(entry, context));
 
         if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
-            rollBackLmsAssignments(createdAssignments, repointedAssignments, experimentImport, securedInfo);
+            rollBackLmsAssignments(context);
         }
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
@@ -775,62 +789,62 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
 
     // one entry from idMap's Assignment map - pulled out of sendAssignmentsToLms's forEach so
     // its create-vs-repoint branching isn't nested inside a lambda inside that method
-    private void processAssignmentForLms(Map.Entry<String, BaseEntity> entry, Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, LmsRepointTargets repointTargets, List<Assignment> createdAssignments, List<RepointedAssignment> repointedAssignments, AtomicBoolean errorOccurred) {
-        if (errorOccurred.get()) {
+    private void processAssignmentForLms(Map.Entry<String, BaseEntity> entry, LmsAssignmentSyncContext context) {
+        if (context.errorOccurred().get()) {
             // an error has already occurred; skip processing remaining assignments
             return;
         }
 
         Long oldAssignmentId = resolveOldAssignmentId(entry.getKey());
         Assignment assignment = (Assignment) entry.getValue();
-        long newExperimentId = ((Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId())).getExperimentId();
-        LmsAssignment existingLmsAssignment = oldAssignmentId != null ? MapUtils.emptyIfNull(repointTargets.getAssignments()).get(oldAssignmentId) : null;
+        long newExperimentId = ((Experiment) context.idMap().get(Experiment.class).get(context.export().getExperiment().getId())).getExperimentId();
+        LmsAssignment existingLmsAssignment = oldAssignmentId != null ? MapUtils.emptyIfNull(context.repointTargets().getAssignments()).get(oldAssignmentId) : null;
 
         try {
             if (existingLmsAssignment != null) {
                 String originalUrl = existingLmsAssignment.getLmsExternalToolFields() != null ? existingLmsAssignment.getLmsExternalToolFields().getUrl() : null;
 
                 assignmentService.repointAssignmentInLms(
-                    experimentImport.getOwner(),
+                    context.experimentImport().getOwner(),
                     assignment,
-                    securedInfo.getLmsCourseId(),
+                    context.securedInfo().getLmsCourseId(),
                     existingLmsAssignment
                 );
 
-                repointedAssignments.add(new RepointedAssignment(existingLmsAssignment, originalUrl));
+                context.repointedAssignments().add(new RepointedAssignment(existingLmsAssignment, originalUrl));
             } else {
                 Assignment newAssignment = assignmentService.createAssignmentInLms(
-                    experimentImport.getOwner(),
+                    context.experimentImport().getOwner(),
                     assignment,
                     newExperimentId,
-                    securedInfo.getLmsCourseId()
+                    context.securedInfo().getLmsCourseId()
                 );
 
-                createdAssignments.add(newAssignment);
+                context.createdAssignments().add(newAssignment);
 
-                if (repointTargets.getCopyCandidateId() != null) {
-                    recordCreated(repointTargets, newAssignment.getLmsAssignmentId());
+                if (context.repointTargets().getCopyCandidateId() != null) {
+                    recordCreated(context.repointTargets(), newAssignment.getLmsAssignmentId());
                 }
             }
         } catch (AssignmentNotCreatedException | TerracottaConnectorException e) {
-            log.error("Error processing experiment import with ID: [{}]. Assignment creation in LMS failed.", experimentImport.getUuid(), e);
-            handleError(experimentImport, "Assignment creation in LMS failed");
-            errorOccurred.set(true);
+            log.error("Error processing experiment import with ID: [{}]. Assignment creation in LMS failed.", context.experimentImport().getUuid(), e);
+            handleError(context.experimentImport(), "Assignment creation in LMS failed");
+            context.errorOccurred().set(true);
         }
     }
 
     // an error occurred creating/repointing at least one assignment above - undo whatever this
     // import already did in the LMS, since the DB transaction wrapping it will roll back but has
     // no way to undo LMS-side effects on its own
-    private void rollBackLmsAssignments(List<Assignment> createdAssignments, List<RepointedAssignment> repointedAssignments, ExperimentImport experimentImport, SecuredInfo securedInfo) {
-        log.warn("An error occurred creating an assignment in the LMS. Removing all newly-created assignments from the LMS course ID: [{}].", securedInfo.getLmsCourseId());
-        createdAssignments
+    private void rollBackLmsAssignments(LmsAssignmentSyncContext context) {
+        log.warn("An error occurred creating an assignment in the LMS. Removing all newly-created assignments from the LMS course ID: [{}].", context.securedInfo().getLmsCourseId());
+        context.createdAssignments()
             .forEach(
                 assignment -> {
                     try {
-                        assignmentService.deleteAssignmentInLms(assignment, securedInfo.getLmsCourseId(), experimentImport.getOwner());
+                        assignmentService.deleteAssignmentInLms(assignment, context.securedInfo().getLmsCourseId(), context.experimentImport().getOwner());
                     } catch (AssignmentNotEditedException | ApiException | TerracottaConnectorException e) {
-                        log.warn("Error occurred while deleting an assignment LMS ID: [{}] from LMS Course ID: [{}]", assignment.getLmsAssignmentId(), securedInfo.getLmsCourseId());
+                        log.warn("Error occurred while deleting an assignment LMS ID: [{}] from LMS Course ID: [{}]", assignment.getLmsAssignmentId(), context.securedInfo().getLmsCourseId());
                     }
                 }
             );
@@ -838,13 +852,13 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         // a repointed assignment is never deleted (see the RepointedAssignment comment
         // above) - only its URL mutation gets best-effort restored, since that Canvas-side
         // PUT isn't covered by this method's own DB transaction rollback
-        repointedAssignments
+        context.repointedAssignments()
             .forEach(
                 repointed -> assignmentService.restoreRepointedAssignmentUrlInLms(
-                    experimentImport.getOwner(),
+                    context.experimentImport().getOwner(),
                     repointed.lmsAssignment(),
                     repointed.originalUrl(),
-                    securedInfo.getLmsCourseId()
+                    context.securedInfo().getLmsCourseId()
                 )
             );
     }

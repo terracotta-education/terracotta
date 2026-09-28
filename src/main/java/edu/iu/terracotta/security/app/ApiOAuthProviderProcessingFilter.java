@@ -131,7 +131,7 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
 
         // TODO add here any other checks we want to perform.
 
-        if ((Boolean) tokenClaims.getPayload().get("oneUse") && !apiDataService.findAndDeleteOneUseToken(token)) {
+        if (Boolean.TRUE.equals(tokenClaims.getPayload().get("oneUse")) && !apiDataService.findAndDeleteOneUseToken(token)) {
             throw new IllegalStateException("OneUse token does not exist or has been already used");
         }
 
