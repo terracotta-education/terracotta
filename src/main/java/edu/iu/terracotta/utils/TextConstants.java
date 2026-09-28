@@ -22,6 +22,7 @@ public class TextConstants {
     public static final String BAD_TOKEN = "The token does not contain the expected information";
     public static final String ID_IN_POST_ERROR = "Error 107: Unable to create. The POST endpoint does not accept objects with id";
     public static final String EXPERIMENT_NOT_MATCHING = "Error 108: The experiment does not belong to the course defined in the JWT token.";
+    public static final String EXPERIMENT_NOT_MATCHING_IDS = "Error 108: The experiment ID: [%s] does not belong to the course ID: [%s] defined in the JWT token.";
     public static final String CONDITION_NOT_MATCHING = "Error 108: The condition does not belong to experiment defined in the path.";
     public static final String EXPOSURE_NOT_MATCHING = "Error 108: The exposure does not belong to experiment defined in the path.";
     public static final String PARTICIPANT_NOT_MATCHING = "Error 108: The participant does not belong to experiment defined in the path.";
