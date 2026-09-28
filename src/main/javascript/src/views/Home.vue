@@ -353,7 +353,7 @@ const isPreparingCopyCandidateImports = ref(false);
 const COPY_CANDIDATE_SELECTION_ENABLED = false;
 const COPY_MESSAGES = {
   COMPLETE: "Your experiments and assignments have been copied from your previous course and are ready to use.",
-  ERROR: "We couldn't copy all of your experiments and assignments from your previous course. Please contact Terracotta support for help."
+  ERROR: "We couldn't copy all of the experiments and assignments from your previous course. Please contact info@terracotta.education for help."
 };
 const copyStatusPollingId = ref(null);
 // a failed copy is retried once per visit, as whoever is launching now, before its failure is

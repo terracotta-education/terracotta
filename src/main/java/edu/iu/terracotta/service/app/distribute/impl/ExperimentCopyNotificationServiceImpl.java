@@ -26,13 +26,13 @@ import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 public class ExperimentCopyNotificationServiceImpl implements ExperimentCopyNotificationService {
 
     static final String SUBJECT = "Terracotta experiment copy notification";
+    static final String SUPPORT_EMAIL = "info@terracotta.education";
     static final String BODY = """
-        Dear %s,
-
-        There was an error recreating the Terracotta assignments in your newly-copied Canvas course. Please Login to the new Canvas course, re-launch Terracotta, and re-approve permissions.
-
-        Thank you,
-        Terracotta Support
+        <p>Dear %s,</p>
+        <p>There was an error recreating the Terracotta assignments in your newly copied Canvas course. Please login to the new Canvas course, relaunch Terracotta, and reauthorize Terracotta to function in the LMS.</p>
+        <p>If you have further questions, please send them to <a href="mailto:%s">%s</a>.</p>
+        <p>Thank you,<br>
+        Terracotta Support</p>
         """;
 
     private final JavaMailSender javaMailSender;
@@ -58,7 +58,7 @@ public class ExperimentCopyNotificationServiceImpl implements ExperimentCopyNoti
             emailMessage.setFrom(sender);
             emailMessage.setTo(instructor.getEmail());
             emailMessage.setSubject(SUBJECT);
-            emailMessage.setText(String.format(BODY, displayName), false);
+            emailMessage.setText(String.format(BODY, displayName, SUPPORT_EMAIL, SUPPORT_EMAIL), true);
             emailMessage.getMimeMessage().saveChanges();
 
             ByteArrayOutputStream messageOutputStream = new ByteArrayOutputStream();

@@ -78,10 +78,12 @@ public class ExperimentCopyNotificationServiceImplTest {
         assertEquals("Terracotta <no-reply@mail.terracotta.education>", captor.getValue().source());
 
         assertEquals("Terracotta experiment copy notification", mimeMessage.getSubject());
+        assertTrue(mimeMessage.getContentType().startsWith("text/html"));
         String body = (String) mimeMessage.getContent();
-        assertTrue(body.startsWith("Dear Pat Instructor,"));
-        assertTrue(body.contains("There was an error recreating the Terracotta assignments in your newly-copied Canvas course. Please Login to the new Canvas course, re-launch Terracotta, and re-approve permissions."));
-        assertTrue(body.trim().endsWith("Thank you,\nTerracotta Support"));
+        assertTrue(body.contains("<p>Dear Pat Instructor,</p>"));
+        assertTrue(body.contains("There was an error recreating the Terracotta assignments in your newly copied Canvas course. Please login to the new Canvas course, relaunch Terracotta, and reauthorize Terracotta to function in the LMS."));
+        assertTrue(body.contains("<a href=\"mailto:info@terracotta.education\">info@terracotta.education</a>"));
+        assertTrue(body.trim().endsWith("Thank you,<br>\nTerracotta Support</p>"));
     }
 
     @Test
@@ -90,7 +92,7 @@ public class ExperimentCopyNotificationServiceImplTest {
 
         experimentCopyNotificationService.notifyLmsFailure(instructor);
 
-        assertTrue(((String) mimeMessage.getContent()).startsWith("Dear Instructor,"));
+        assertTrue(((String) mimeMessage.getContent()).contains("<p>Dear Instructor,</p>"));
     }
 
     @Test

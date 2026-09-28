@@ -209,7 +209,7 @@ describe("Home", () => {
     });
     expect(experimentCopyCandidateService.retryCopy).toHaveBeenCalledTimes(1);
     expect(swalFire).toHaveBeenCalledWith({
-      text: "We couldn't copy all of your experiments and assignments from your previous course. Please contact Terracotta support for help.",
+      text: "We couldn't copy all of the experiments and assignments from your previous course. Please contact info@terracotta.education for help.",
       icon: "error"
     });
   });
