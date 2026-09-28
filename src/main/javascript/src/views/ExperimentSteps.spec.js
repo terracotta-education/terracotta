@@ -148,6 +148,41 @@ describe("ExperimentSteps", () => {
     expect(steps.props("participationType")).toBe("CONSENT");
   });
 
+  // TCOTA-1017: design and participation keep their pre-Vue 3 centered, half-width column;
+  // assignments (and the builder/editors) stay full width
+  it.each(["design", "participation"])("lays out %s steps in a centered, half-width column", async currentSection => {
+    routeRef.meta.currentSection = currentSection;
+
+    const wrapper = mountSteps();
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".child-stub").exists()).toBe(true);
+    });
+
+    const container = wrapper.findComponent({ name: "VContainer" });
+    expect(container.props("fluid")).toBe(false);
+    expect(container.classes()).toContain("steps-container--narrow");
+    expect(wrapper.findComponent({ name: "VRow" }).props("justify")).toBe("center");
+    const col = wrapper.findComponent({ name: "VCol" });
+    expect(col.props("cols")).toBe("12");
+    expect(col.props("md")).toBe(6);
+  });
+
+  it("lays out assignment steps full width", async () => {
+    routeRef.meta.currentSection = "assignments";
+
+    const wrapper = mountSteps();
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".child-stub").exists()).toBe(true);
+    });
+
+    const container = wrapper.findComponent({ name: "VContainer" });
+    expect(container.props("fluid")).toBe(true);
+    expect(container.classes()).not.toContain("steps-container--narrow");
+    expect(wrapper.findComponent({ name: "VCol" }).props("md")).toBeFalsy();
+  });
+
   it("hides the sidebar for no-sidebar routes like TerracottaBuilder", async () => {
     routeRef.name = "TerracottaBuilder";
 
