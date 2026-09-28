@@ -3,11 +3,13 @@ package edu.iu.terracotta.dao.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Assignment;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,5 +36,12 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     @Query("SELECT a FROM Assignment a WHERE a.exposure.experiment.ltiContextEntity.contextId = ?1 AND a.exposure.experiment.closed IS NULL AND a.assignmentId NOT IN (SELECT a2.assignmentId FROM Assignment a2 WHERE a2.softDeleted = true)")
     List<Assignment> findAssignmentsToCheckByContext(long contextId);
+
+
+    // one atomic statement, so concurrent first launches can't race each other to set it -
+    // returns 1 for the launch that actually started the assignment, 0 for any other
+    @Modifying
+    @Query("UPDATE Assignment a SET a.started = ?2, a.updatedAt = ?2, a.version = a.version + 1 WHERE a.assignmentId = ?1 AND a.started IS NULL")
+    int markStarted(long assignmentId, Timestamp started);
 
 }
