@@ -200,7 +200,7 @@ public class CanvasApiClientImplTest extends BaseTest {
         ArgumentCaptor<ListCourseAssignmentsOptions> captor = ArgumentCaptor.forClass(ListCourseAssignmentsOptions.class);
         when(assignmentReaderExtended.listCourseAssignments(captor.capture())).thenReturn(List.of());
 
-        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+        try (var _ = mockApiFactory()) {
             canvasApiClientService.listAssignments(ltiUserEntity, ltiContextEntity);
         }
 

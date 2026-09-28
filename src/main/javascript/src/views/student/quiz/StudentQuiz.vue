@@ -421,7 +421,7 @@ const submitErrorMessage = result => {
 
 const assertSubmitStepSucceeded = result => {
   if (![200, 201].includes(result?.status)) {
-    throw Error(submitErrorMessage(result));
+    throw new Error(submitErrorMessage(result));
   }
 };
 

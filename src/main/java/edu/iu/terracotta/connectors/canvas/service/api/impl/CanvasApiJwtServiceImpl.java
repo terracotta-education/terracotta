@@ -689,7 +689,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
         try {
             return UUID.fromString(experimentIdText);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             // legacy numeric id, already persisted in an existing LMS course's launch URL -
             // resolve to the entity's uuid so the JWT claim (and everything downstream that
             // reads it) always sees a uuid regardless of which URL format the LMS happens to
@@ -718,7 +718,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
         try {
             return UUID.fromString(assignmentIdText);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             Assignment assignment = assignmentRepository.findByAssignmentId(parseLegacyId("assignment", assignmentIdText));
 
             if (assignment == null) {

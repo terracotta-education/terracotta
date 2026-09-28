@@ -87,7 +87,7 @@ public class NoticeController {
         try {
             // runs regardless of whether a live acting user can be resolved below - a brand-new
             // copied course has no LtiContextEntity/membership at all yet, which is exactly the
-            // case this is for (see ExperimentCopyCandidateService.stageFromNotice).
+            // case this is for - see ExperimentCopyCandidateService's stageFromNotice method.
             destinationContextId = experimentCopyCandidateService.stageFromNotice(claims);
         } catch (Exception e) {
             log.error("Error staging experiment copy candidates for an LTI notice from issuer: [{}]", claims.getIssuer(), e);

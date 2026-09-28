@@ -110,7 +110,7 @@ public class MessageController {
             experimentService.getExperimentIdByUuid(experimentUuid);
 
             return new ResponseEntity<>(messageService.getAssignments(securedInfo), HttpStatus.OK);
-        } catch (ExperimentNotMatchingException e) {
+        } catch (ExperimentNotMatchingException _) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         } catch (ApiException | TerracottaConnectorException | DataServiceException e) {
             log.error(e.getMessage(), e);

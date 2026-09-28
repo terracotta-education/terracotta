@@ -339,7 +339,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     private boolean isStillLive(String idText, List<Long> liveIds, List<UUID> liveUuids) {
         try {
             return liveUuids.contains(UUID.fromString(idText));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             // legacy numeric id, already persisted in an existing LMS course's launch URL
             return liveIds.contains(Long.parseLong(idText));
         }

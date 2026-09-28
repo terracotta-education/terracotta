@@ -728,10 +728,10 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
     private Long resolveOldAssignmentId(String idText) {
         try {
             return assignmentRepository.findIdByUuid(UUID.fromString(idText)).orElse(null);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             try {
                 return Long.parseLong(idText);
-            } catch (NumberFormatException nfe) {
+            } catch (NumberFormatException _) {
                 return null;
             }
         }
@@ -819,7 +819,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             // a repointed assignment is never deleted (see the RepointedAssignment comment
             // above) - only its URL mutation gets best-effort restored, since that Canvas-side
             // PUT isn't covered by this method's own DB transaction rollback
-            repointedAssignments.stream()
+            repointedAssignments
                 .forEach(
                     repointed -> assignmentService.restoreRepointedAssignmentUrlInLms(
                         experimentImport.getOwner(),

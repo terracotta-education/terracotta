@@ -127,7 +127,7 @@ public class LtiNoticeServiceImpl implements LtiNoticeService {
     private String getContextTitle(Claims noticeClaims) {
         Object title = getContextClaim(noticeClaims, LtiStrings.LTI_CONTEXT_TITLE);
 
-        return title instanceof String ? (String) title : null;
+        return title instanceof String contextTitle ? contextTitle : null;
     }
 
     private Object getContextClaim(Claims noticeClaims, String key) {

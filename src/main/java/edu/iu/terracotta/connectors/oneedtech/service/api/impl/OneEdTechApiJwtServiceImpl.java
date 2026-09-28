@@ -124,6 +124,8 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
+    private static final String CLAIM_ASSIGNMENT_ID = "assignmentId";
+    private static final String CLAIM_EXPERIMENT_ID = "experimentId";
 
     // JsonMapper is thread-safe once built; reuse one shared instance instead of building a
     // fresh mapper on every unsecureToken() call.
@@ -214,8 +216,8 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
         // on a type mismatch rather than converting. Resolving through the same dual-format
         // helpers the launch path uses lets a session that was open across the deploy refresh
         // normally instead of failing on its first refresh.
-        UUID assignmentId = resolveAssignmentUuid(Objects.toString(claims.get("assignmentId"), null));
-        UUID experimentId = resolveExperimentUuid(Objects.toString(claims.get("experimentId"), null));
+        UUID assignmentId = resolveAssignmentUuid(Objects.toString(claims.get(CLAIM_ASSIGNMENT_ID), null));
+        UUID experimentId = resolveExperimentUuid(Objects.toString(claims.get(CLAIM_EXPERIMENT_ID), null));
 
         return buildJwt(
             true,
@@ -319,9 +321,9 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
             .claim("platformDeploymentId", platformDeploymentId) // This is an specific claim to ask for tokens.
             .claim("userId", userId) // This is an specific claim to ask for tokens.
             .claim("roles", roles)
-            .claim("assignmentId", assignmentId)
+            .claim(CLAIM_ASSIGNMENT_ID, assignmentId)
             .claim("consent", consent)
-            .claim("experimentId", experimentId)
+            .claim(CLAIM_EXPERIMENT_ID, experimentId)
             .claim("oneUse", oneUse) // This is an specific claim to ask for tokens.
             .claim("oneEdTechUserId", oneEdTechUserId)
             .claim("oneEdTechUserGlobalId", oneEdTechUserGlobalId)
@@ -473,9 +475,9 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
             .claim("platformDeploymentId", tokenClaims.getPayload().get("platformDeploymentId"))
             .claim("userId", tokenClaims.getPayload().get("userId"))
             .claim("roles", tokenClaims.getPayload().get("roles"))
-            .claim("assignmentId", tokenClaims.getPayload().get("assignmentId"))
+            .claim(CLAIM_ASSIGNMENT_ID, tokenClaims.getPayload().get(CLAIM_ASSIGNMENT_ID))
             .claim("consent", tokenClaims.getPayload().get("consent"))
-            .claim("experimentId", tokenClaims.getPayload().get("experimentId"))
+            .claim(CLAIM_EXPERIMENT_ID, tokenClaims.getPayload().get(CLAIM_EXPERIMENT_ID))
             .claim("oneUse", false)
             .claim("oneEdTechUserId", tokenClaims.getPayload().get("oneEdTechUserId"))
             .claim("oneEdTechUserGlobalId", tokenClaims.getPayload().get("oneEdTechUserGlobalId"))
@@ -592,14 +594,14 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
                 // also covers a token minted just before a deploy of the uuid migration.
                 UUID assignmentId = null;
 
-                if (claims.getPayload().get("assignmentId") != null) {
-                    assignmentId = resolveAssignmentUuid(claims.getPayload().get("assignmentId").toString());
+                if (claims.getPayload().get(CLAIM_ASSIGNMENT_ID) != null) {
+                    assignmentId = resolveAssignmentUuid(claims.getPayload().get(CLAIM_ASSIGNMENT_ID).toString());
                 }
 
                 UUID experimentId = null;
 
-                if (claims.getPayload().get("experimentId") != null) {
-                    experimentId = resolveExperimentUuid(claims.getPayload().get("experimentId").toString());
+                if (claims.getPayload().get(CLAIM_EXPERIMENT_ID) != null) {
+                    experimentId = resolveExperimentUuid(claims.getPayload().get(CLAIM_EXPERIMENT_ID).toString());
                 }
 
                 return new ResponseEntity<>(
@@ -647,7 +649,7 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
         try {
             return UUID.fromString(experimentIdText);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             // legacy numeric id, already persisted in an existing LMS course's launch URL -
             // resolve to the entity's uuid so the JWT claim (and everything downstream that
             // reads it) always sees a uuid regardless of which URL format the LMS happens to
@@ -676,7 +678,7 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
         try {
             return UUID.fromString(assignmentIdText);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             Assignment assignment = assignmentRepository.findByAssignmentId(parseLegacyId("assignment", assignmentIdText));
 
             if (assignment == null) {

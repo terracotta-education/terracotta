@@ -230,7 +230,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
 
                 importCandidate(candidate, session.securedInfo(), session.lmsAssignments(), notifyOnLmsFailure);
                 log.info("Recreated copy candidate ID: [{}] in destination context ID: [{}]", candidate.getUuid(), destinationContextId);
-            } catch (ObjectOptimisticLockingFailureException e) {
+            } catch (ObjectOptimisticLockingFailureException _) {
                 // a redelivered notice already claimed this candidate on another thread
                 log.info("Copy candidate ID: [{}] is already being recreated - skipping", candidate.getUuid());
             } catch (Exception e) {
@@ -831,10 +831,10 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     private Optional<Long> resolveAssignmentId(String idText) {
         try {
             return assignmentRepository.findIdByUuid(UUID.fromString(idText));
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException _) {
             try {
                 return Optional.of(Long.parseLong(idText));
-            } catch (NumberFormatException nfe) {
+            } catch (NumberFormatException _) {
                 return Optional.empty();
             }
         }

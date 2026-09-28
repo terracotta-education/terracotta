@@ -44,9 +44,7 @@ public class ExperimentCopyRecoverySchedulerRunner {
             // not enabled; create one-time task to log message
             return Tasks.oneTime(EXPERIMENT_COPY_RECOVERY_TASK)
                 .execute(
-                    (instance, ctx) -> {
-                        log.info("Experiment copy recovery task [{}] in not enabled.", EXPERIMENT_COPY_RECOVERY_TASK);
-                    }
+                    (instance, ctx) -> log.info("Experiment copy recovery task [{}] in not enabled.", EXPERIMENT_COPY_RECOVERY_TASK)
                 );
         }
 

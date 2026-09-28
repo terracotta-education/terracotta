@@ -371,7 +371,7 @@ public class AnswerSubmissionController {
         // the resolved id here isn't otherwise consumed by this endpoint (mirrors the pre-existing
         // handling below, which never read the path's answerSubmissionId either), but resolving it
         // validates that the uuid corresponds to a real answer submission of this type.
-        long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
+        answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);

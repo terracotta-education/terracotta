@@ -687,7 +687,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         try {
             lmsAssignment.getLmsExternalToolFields().setUrl(originalUrl);
             apiClient.editAssignment(instructorUser, lmsAssignment, lmsCourseId);
-        } catch (ApiException | TerracottaConnectorException e) {
+        } catch (ApiException | TerracottaConnectorException _) {
             log.warn("Error occurred while restoring repointed LMS assignment ID: [{}] in LMS Course ID: [{}]", lmsAssignment.getId(), lmsCourseId);
         }
     }

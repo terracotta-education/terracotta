@@ -77,7 +77,9 @@ public class PreviewController {
     @GetMapping("/conditions/{conditionId}/treatments/{treatmentId}/complete")
     public String getTreatmentPreviewComplete(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("conditionId") UUID conditionUuid, @PathVariable("treatmentId") UUID treatmentUuid, @RequestParam String ownerId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, NumberFormatException, TerracottaConnectorException, ExposureNotMatchingException, ConditionNotMatchingException, TreatmentNotMatchingException {
-        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        // resolving experimentId isn't otherwise consumed by this redirect, but validates that
+        // the uuid corresponds to a real experiment
+        experimentService.getExperimentIdByUuid(experimentUuid);
         return "redirect:/app/app.html?treatmentPreview=true&complete=true";
     }
 
