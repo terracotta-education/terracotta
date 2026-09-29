@@ -49,6 +49,9 @@ public class NoticeControllerTest {
         MockitoAnnotations.openMocks(this);
 
         noticeController = new NoticeController(ltiJwtService, ltiNoticeService, assignmentAsyncService, experimentCopyCandidateService, experimentCopyRecreationAsyncService);
+        when(ltiNoticeService.describeCourseCopy(any())).thenReturn(
+            new LtiNoticeService.CourseCopyNoticeDescription("https://school.instructure.com", "Fall 2025 (source-key)", "Spring 2026 (dest-key)")
+        );
     }
 
     @SuppressWarnings("unchecked")

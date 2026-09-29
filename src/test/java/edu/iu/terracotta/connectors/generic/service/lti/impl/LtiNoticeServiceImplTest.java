@@ -32,6 +32,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiMembershipRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.utils.LtiStrings;
 
 public class LtiNoticeServiceImplTest {
@@ -299,6 +300,69 @@ public class LtiNoticeServiceImplTest {
         List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
 
         assertTrue(result.isEmpty());
+    }
+
+
+    private Claims courseCopyClaims(Map<String, Object> toolPlatform) {
+        ClaimsBuilder builder = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .add(LtiStrings.LTI_CONTEXT, Map.of(LtiStrings.LTI_CONTEXT_ID, CONTEXT_KEY, LtiStrings.LTI_CONTEXT_TITLE, "Spring 2026"))
+            .add(LtiStrings.LTI_ORIGIN_CONTEXTS, List.of("origin-1", "origin-2"));
+
+        if (toolPlatform != null) {
+            builder.add(LtiStrings.LTI_PLATFORM, toolPlatform);
+        }
+
+        return builder.build();
+    }
+
+    @Test
+    public void testDescribeCourseCopyUsesTheNoticesPlatformUrlAndContextTitles() {
+        LtiContextEntity origin = mock(LtiContextEntity.class);
+        when(origin.getTitle()).thenReturn("Fall 2025");
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment("origin-1", toolDeployment)).thenReturn(origin);
+
+        LtiNoticeService.CourseCopyNoticeDescription result = ltiNoticeService.describeCourseCopy(
+            courseCopyClaims(Map.of(LtiStrings.LTI_PLATFORM_URL, "https://school.instructure.com"))
+        );
+
+        assertEquals("https://school.instructure.com", result.platform());
+        // an origin Terracotta has never seen a launch for still shows its id
+        assertEquals("Fall 2025 (origin-1), origin-2", result.source());
+        assertEquals("Spring 2026 (" + CONTEXT_KEY + ")", result.destination());
+    }
+
+    // Canvas cloud sends the same issuer for every instance, so the matched deployment's own base
+    // URL identifies the instance better when the notice doesn't name its platform
+    @Test
+    public void testDescribeCourseCopyFallsBackToTheDeploymentsBaseUrl() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(toolDeployment.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getBaseUrl()).thenReturn("https://school.instructure.com");
+
+        assertEquals("https://school.instructure.com", ltiNoticeService.describeCourseCopy(courseCopyClaims(null)).platform());
+    }
+
+    @Test
+    public void testDescribeCourseCopyFallsBackToTheIssuerAndIdsWhenNothingResolves() {
+        LtiNoticeService.CourseCopyNoticeDescription result = ltiNoticeService.describeCourseCopy(courseCopyClaims(null));
+
+        assertEquals(ISS, result.platform());
+        assertEquals("origin-1, origin-2", result.source());
+        assertEquals("Spring 2026 (" + CONTEXT_KEY + ")", result.destination());
+    }
+
+    @Test
+    public void testDescribeCourseCopyShowsUnknownForMissingContexts() {
+        LtiNoticeService.CourseCopyNoticeDescription result = ltiNoticeService.describeCourseCopy(noticeClaims(ISS, null, null, null));
+
+        assertEquals("unknown", result.source());
+        assertEquals("unknown", result.destination());
     }
 
 }

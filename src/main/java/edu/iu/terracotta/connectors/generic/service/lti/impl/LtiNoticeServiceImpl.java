@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import io.jsonwebtoken.Claims;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
@@ -34,6 +36,7 @@ public class LtiNoticeServiceImpl implements LtiNoticeService {
     // role is an ordinal scale (see Lti3Request.makeUserRoleNum): 0 = general/learner,
     // 1 = instructor, 2 = admin
     private static final int INSTRUCTOR_ROLE = 1;
+    private static final String UNKNOWN = "unknown";
 
     private final ToolDeploymentRepository toolDeploymentRepository;
     private final LtiContextRepository ltiContextRepository;
@@ -93,6 +96,49 @@ public class LtiNoticeServiceImpl implements LtiNoticeService {
                     .toList()
             )
             .orElse(List.of());
+    }
+
+    @Override
+    public CourseCopyNoticeDescription describeCourseCopy(Claims noticeClaims) {
+        Optional<ToolDeployment> toolDeployment = resolveToolDeployment(noticeClaims);
+
+        String platform = getPlatformUrl(noticeClaims)
+            .or(() -> toolDeployment.map(ToolDeployment::getPlatformDeployment).map(PlatformDeployment::getBaseUrl).filter(StringUtils::isNotBlank))
+            .orElse(StringUtils.defaultIfBlank(noticeClaims.getIssuer(), UNKNOWN));
+
+        String source = getOriginContextKeys(noticeClaims).stream()
+            .map(originContextKey -> describeContext(
+                toolDeployment
+                    .map(deployment -> ltiContextRepository.findByContextKeyAndToolDeployment(originContextKey, deployment))
+                    .map(LtiContextEntity::getTitle)
+                    .orElse(null),
+                originContextKey
+            ))
+            .collect(Collectors.joining(", "));
+
+        return new CourseCopyNoticeDescription(
+            platform,
+            StringUtils.defaultIfBlank(source, UNKNOWN),
+            describeContext(getContextTitle(noticeClaims), getContextKey(noticeClaims))
+        );
+    }
+
+    private Optional<String> getPlatformUrl(Claims noticeClaims) {
+        if (!(noticeClaims.get(LtiStrings.LTI_PLATFORM) instanceof Map<?, ?> platform)) {
+            return Optional.empty();
+        }
+
+        return platform.get(LtiStrings.LTI_PLATFORM_URL) instanceof String url && StringUtils.isNotBlank(url)
+            ? Optional.of(url)
+            : Optional.empty();
+    }
+
+    private String describeContext(String title, String contextKey) {
+        if (StringUtils.isBlank(contextKey)) {
+            return StringUtils.defaultIfBlank(title, UNKNOWN);
+        }
+
+        return StringUtils.isBlank(title) ? contextKey : String.format("%s (%s)", title, contextKey);
     }
 
     private Optional<ToolDeployment> resolveToolDeployment(Claims noticeClaims) {

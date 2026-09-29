@@ -42,4 +42,19 @@ public interface LtiNoticeService {
      */
     List<LtiContextEntity> resolveOriginContexts(Claims noticeClaims);
 
+    /**
+     * Identifies a course-copy notice for logging: the LMS instance that sent it and its source and
+     * destination courses. Anything the notice doesn't carry is shown as "unknown" rather than
+     * failing.
+     */
+    CourseCopyNoticeDescription describeCourseCopy(Claims noticeClaims);
+
+    /**
+     * @param platform the sending LMS instance's URL - Canvas cloud uses the same issuer for every
+     *      instance, so the issuer is only the last resort
+     * @param source the course(s) copied from, as "title (context id)" when the title is known
+     * @param destination the course copied into, in the same form
+     */
+    record CourseCopyNoticeDescription(String platform, String source, String destination) { }
+
 }

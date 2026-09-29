@@ -99,7 +99,13 @@ public class NoticeController {
         Optional<SecuredInfo> securedInfo = ltiNoticeService.resolveSecuredInfo(claims);
 
         if (securedInfo.isEmpty()) {
-            log.warn("Could not resolve a course/acting-user for an LTI notice from issuer: [{}]", claims.getIssuer());
+            LtiNoticeService.CourseCopyNoticeDescription notice = ltiNoticeService.describeCourseCopy(claims);
+            log.warn(
+                "Received an unexpected course copy notification from: [{}] for source: [{}] and destination: [{}]",
+                notice.platform(),
+                notice.source(),
+                notice.destination()
+            );
             return;
         }
 
