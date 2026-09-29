@@ -496,12 +496,26 @@ public class BrightspaceLmsOAuthServiceImplTest {
         verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any());
     }
 
+    // this runs on every instructor launch: refreshing a still-valid token each time rotated
+    // Brightspace's refresh token and could hit its rate limit
+    @Test
+    public void testIsAccessTokenAvailableReturnsTrueWithoutRefreshingWhenTokenFresh() {
+        ApiTokenEntity token = freshToken();
+        token.setScopes("scope1 scope2");
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(token));
+        when(apiScopeService.getNecessaryScopes(1L)).thenReturn(Set.of("scope1", "scope2"));
+
+        assertTrue(brightspaceLmsOAuthService.isAccessTokenAvailable(user));
+        verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any());
+        verify(apiTokenRepository, never()).save(any(ApiTokenEntity.class));
+    }
+
     @Test
     public void testIsAccessTokenAvailableReturnsTrueWhenRefreshSucceeds() {
         ApiTokenEntity token = ApiTokenEntity.builder()
             .accessToken("stale-access-token")
             .refreshToken("refresh-token")
-            .expiresAt(Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)))
+            .expiresAt(Timestamp.from(Instant.now().minus(1, ChronoUnit.MINUTES)))
             .scopes("scope1 scope2")
             .user(user)
             .build();
@@ -511,6 +525,7 @@ public class BrightspaceLmsOAuthServiceImplTest {
         when(apiTokenRepository.save(any(ApiTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         assertTrue(brightspaceLmsOAuthService.isAccessTokenAvailable(user));
+        verify(apiTokenRepository, times(1)).save(any(ApiTokenEntity.class));
     }
 
     @Test
@@ -518,7 +533,7 @@ public class BrightspaceLmsOAuthServiceImplTest {
         ApiTokenEntity token = ApiTokenEntity.builder()
             .accessToken("stale-access-token")
             .refreshToken("refresh-token")
-            .expiresAt(Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)))
+            .expiresAt(Timestamp.from(Instant.now().minus(1, ChronoUnit.MINUTES)))
             .scopes("scope1 scope2")
             .user(user)
             .build();
