@@ -882,6 +882,52 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         verify(experimentCopyCandidateRepository, never()).save(any());
     }
 
+    // the instructor has just been shown the final outcome, so the obsolete-assignment check that
+    // hasUnfinishedForContext was holding back runs now instead of on their next launch
+    @Test
+    void testAcknowledgeCopyStatusRunsObsoleteCheckOnceNothingIsUnfinished() throws Exception {
+        ExperimentCopyCandidate failed = mock(ExperimentCopyCandidate.class);
+        when(failed.getStatus()).thenReturn(ExperimentCopyCandidateStatus.ERROR);
+        when(failed.getSourceExperiment()).thenReturn(experiment);
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(1L, RECREATION))
+            .thenReturn(List.of(failed));
+
+        experimentCopyCandidateService.acknowledgeCopyStatus(securedInfo);
+
+        verify(failed).setAcknowledgedAt(any(Timestamp.class));
+        verify(assignmentAsyncService).handleAssignmentTasksInLmsByContext(securedInfo);
+    }
+
+    @Test
+    void testAcknowledgeCopyStatusSkipsObsoleteCheckWhenNothingWasAcknowledged() throws Exception {
+        when(securedInfo.getContextId()).thenReturn(1L);
+
+        experimentCopyCandidateService.acknowledgeCopyStatus(securedInfo);
+
+        verify(assignmentAsyncService, never()).handleAssignmentTasksInLmsByContext(any());
+    }
+
+    @Test
+    void testHasFailedForContextTrueWithUnacknowledgedError() {
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(1L, List.of(ExperimentCopyCandidateStatus.ERROR)))
+            .thenReturn(List.of(mock(ExperimentCopyCandidate.class)));
+
+        assertTrue(experimentCopyCandidateService.hasFailedForContext(1L));
+    }
+
+    @Test
+    void testHasFailedForContextFalseWithoutUnacknowledgedError() {
+        assertFalse(experimentCopyCandidateService.hasFailedForContext(1L));
+    }
+
+    private static final List<ExperimentCopyCandidateStatus> RECREATION = List.of(
+        ExperimentCopyCandidateStatus.PENDING,
+        ExperimentCopyCandidateStatus.IMPORTING,
+        ExperimentCopyCandidateStatus.IMPORTED,
+        ExperimentCopyCandidateStatus.ERROR
+    );
+
     private static final List<ExperimentCopyCandidateStatus> UNFINISHED = List.of(
         ExperimentCopyCandidateStatus.PENDING,
         ExperimentCopyCandidateStatus.IMPORTING

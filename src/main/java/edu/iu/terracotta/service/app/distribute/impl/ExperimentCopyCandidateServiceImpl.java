@@ -391,6 +391,11 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     }
 
     @Override
+    public boolean hasFailedForContext(long contextId) {
+        return !experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(contextId, ERROR_STATUS).isEmpty();
+    }
+
+    @Override
     public CopyStatusDto getCopyStatus(SecuredInfo securedInfo) {
         List<ExperimentCopyCandidate> candidates = experimentCopyCandidateRepository
             .findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(securedInfo.getContextId(), RECREATION_STATUSES);
@@ -448,6 +453,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         }
 
         Timestamp now = Timestamp.from(Instant.now());
+        boolean acknowledgedAny = false;
 
         for (ExperimentCopyCandidate candidate : experimentCopyCandidateRepository
             .findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(securedInfo.getContextId(), RECREATION_STATUSES)) {
@@ -466,6 +472,18 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
 
             candidate.setAcknowledgedAt(now);
             experimentCopyCandidateRepository.save(candidate);
+            acknowledgedAny = true;
+        }
+
+        // the instructor has now seen the final outcome (success, or a failure that already had
+        // its one retry), so the obsolete-assignment check hasUnfinishedForContext was holding back
+        // can run right away instead of waiting for their next launch
+        if (acknowledgedAny && !hasUnfinishedForContext(securedInfo.getContextId())) {
+            try {
+                assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
+            } catch (Exception e) {
+                log.error("Error running obsolete-assignment check after acknowledging copy status for context ID: [{}]", securedInfo.getContextId(), e);
+            }
         }
     }
 

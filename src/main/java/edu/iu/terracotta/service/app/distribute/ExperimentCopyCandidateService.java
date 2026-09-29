@@ -81,6 +81,14 @@ public interface ExperimentCopyCandidateService {
     boolean hasUnfinishedForContext(long contextId);
 
     /**
+     * Whether the given context has a failed recreation the instructor hasn't been told about yet,
+     * i.e. one the next instructor launch will retry (see DistributeController's
+     * /copy-status/retry). Lti3Controller uses this to decide when an instructor's LMS token is
+     * worth verifying with the LMS before letting that retry run on it.
+     */
+    boolean hasFailedForContext(long contextId);
+
+    /**
      * The overall result of recreating copied experiments in the current (live-launch) context,
      * for the first-launch message. NONE once acknowledgeCopyStatus has been called.
      */
