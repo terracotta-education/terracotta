@@ -11,6 +11,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
@@ -29,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -37,6 +40,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -62,6 +67,7 @@ public class CanvasLmsOAuthServiceImplTest {
     @Mock private ApiOAuthSettingsRepository apiOAuthSettingsRepository;
     @Mock private ApiScopeService apiScopeService;
     @Mock private RestTemplate restTemplate;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private PlatformDeployment platformDeployment;
     private LtiUserEntity user;
@@ -73,7 +79,7 @@ public class CanvasLmsOAuthServiceImplTest {
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
-        canvasLmsOAuthService = Mockito.spy(new CanvasLmsOAuthServiceImpl(apiTokenRepository, apiOAuthSettingsRepository, apiScopeService));
+        canvasLmsOAuthService = Mockito.spy(new CanvasLmsOAuthServiceImpl(apiTokenRepository, apiOAuthSettingsRepository, apiScopeService, transactionManager));
         doReturn(restTemplate).when(canvasLmsOAuthService).createRestTemplate();
 
         platformDeployment = PlatformDeployment.builder()
@@ -147,6 +153,25 @@ public class CanvasLmsOAuthServiceImplTest {
         assertEquals("new-access-token", result.getAccessToken());
         verify(restTemplate, times(1)).postForEntity(anyString(), any(HttpEntity.class), any());
         verify(apiTokenRepository, times(1)).save(any(ApiTokenEntity.class));
+    }
+
+    // a refresh saves the token row, which stays locked until its transaction commits. It runs in
+    // its own short transaction so that lock isn't held for a caller's whole long transaction.
+    @Test
+    public void testGetAccessTokenRefreshesInItsOwnTransaction() throws LmsOAuthException {
+        ApiTokenEntity stale = staleToken();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(stale));
+        when(apiTokenRepository.save(any(ApiTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any())).thenReturn(
+            ResponseEntity.ok(CanvasApiToken.builder().accessToken("new-access-token").refreshToken("refresh-token").expiresIn(3600).build())
+        );
+
+        canvasLmsOAuthService.getAccessToken(user);
+
+        InOrder inOrder = inOrder(transactionManager, apiTokenRepository);
+        inOrder.verify(transactionManager).getTransaction(argThat(definition -> definition.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRES_NEW));
+        inOrder.verify(apiTokenRepository).save(stale);
+        inOrder.verify(transactionManager).commit(any());
     }
 
     @Test
@@ -439,6 +464,22 @@ public class CanvasLmsOAuthServiceImplTest {
         verify(apiTokenRepository).delete(stale);
     }
 
+    // the deletion happens inside the refresh's own transaction, and the refresh then fails - that
+    // transaction must still commit, or the dead token would come back and the user never be prompted
+    @Test
+    public void testRejectedRefreshTokenDeletionIsCommittedNotRolledBack() {
+        ApiTokenEntity stale = staleToken();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(stale));
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any())).thenThrow(invalidGrant());
+
+        assertThrows(LmsOAuthException.class, () -> canvasLmsOAuthService.getAccessToken(user));
+
+        InOrder inOrder = inOrder(apiTokenRepository, transactionManager);
+        inOrder.verify(apiTokenRepository).delete(stale);
+        inOrder.verify(transactionManager).commit(any());
+        verify(transactionManager, never()).rollback(any());
+    }
+
     // a transient Canvas failure says nothing about the token itself - keep it
     @Test
     public void testRefreshServerErrorKeepsToken() {
@@ -556,7 +597,7 @@ public class CanvasLmsOAuthServiceImplTest {
 
     @Test
     public void testCreateRestTemplateReturnsRestTemplateInstance() {
-        CanvasLmsOAuthServiceImpl realService = new CanvasLmsOAuthServiceImpl(apiTokenRepository, apiOAuthSettingsRepository, apiScopeService);
+        CanvasLmsOAuthServiceImpl realService = new CanvasLmsOAuthServiceImpl(apiTokenRepository, apiOAuthSettingsRepository, apiScopeService, transactionManager);
 
         RestTemplate result = realService.createRestTemplate();
 
