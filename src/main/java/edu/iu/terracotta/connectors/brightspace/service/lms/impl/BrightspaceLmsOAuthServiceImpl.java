@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -41,6 +42,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiTokenRepositor
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiScopeService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthService;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsTokenRefreshTransaction;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +57,7 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
     private final ApiTokenRepository apiTokenRepository;
     private final ApiOAuthSettingsRepository apiOAuthSettingsRepository;
     private final ApiScopeService apiScopeService;
+    private final PlatformTransactionManager transactionManager;
     private final Map<Long, Object> refreshLocks = new ConcurrentHashMap<>();
 
     // RestTemplate is thread-safe once constructed; reuse a shared instance instead of
@@ -139,14 +142,17 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
         Object lock = refreshLocks.computeIfAbsent(user.getUserId(), userId -> new Object());
 
         synchronized (lock) {
-            ApiTokenEntity current = apiTokenRepository.findByUser(user)
-                .orElseThrow(() -> new LmsOAuthException(MessageFormat.format("User {0} does not have a Brightspace API access token nor refresh token!", user.getUserKey())));
+            // in its own short transaction - see LmsTokenRefreshTransaction
+            return LmsTokenRefreshTransaction.run(transactionManager, () -> {
+                ApiTokenEntity current = apiTokenRepository.findByUser(user)
+                    .orElseThrow(() -> new LmsOAuthException(MessageFormat.format("User {0} does not have a Brightspace API access token nor refresh token!", user.getUserKey())));
 
-            if (isAccessTokenFresh(current)) {
-                return current;
-            }
+                if (isAccessTokenFresh(current)) {
+                    return current;
+                }
 
-            return refreshAccessToken(current);
+                return refreshAccessToken(current);
+            });
         }
     }
 
