@@ -175,15 +175,37 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
             return false; // need to get a new token with all necessary scopes
         }
 
-        // if exists, refresh and save the token, return true
-        try {
-            refreshAccessToken(brightspaceApiTokenEntity.get());
-
+        // trust a token that isn't near expiry: this runs on every instructor launch, and
+        // refreshing each time rotates Brightspace's refresh token and can hit its rate limit
+        if (isAccessTokenFresh(brightspaceApiTokenEntity.get())) {
             return true;
-        } catch (LmsOAuthException e) {
-            log.error(MessageFormat.format("Failed to refresh token {0}", brightspaceApiTokenEntity.get().getTokenId()), e);
+        }
 
-            return false;
+        // same per-user lock as getAccessToken: Brightspace rotates the refresh token on use, so a
+        // second concurrent refresh with the now-stale one would fail
+        Object lock = refreshLocks.computeIfAbsent(user.getUserId(), userId -> new Object());
+
+        synchronized (lock) {
+            try {
+                // in its own short transaction - see LmsTokenRefreshTransaction
+                return LmsTokenRefreshTransaction.run(transactionManager, () -> {
+                    Optional<ApiTokenEntity> current = apiTokenRepository.findByUser(user);
+
+                    if (current.isEmpty()) {
+                        return false;
+                    }
+
+                    if (!isAccessTokenFresh(current.get())) {
+                        refreshAccessToken(current.get());
+                    }
+
+                    return true;
+                });
+            } catch (LmsOAuthException e) {
+                log.error(MessageFormat.format("Failed to refresh the token for user ID {0}", user.getUserId()), e);
+
+                return false;
+            }
         }
     }
 
