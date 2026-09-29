@@ -369,6 +369,26 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         verify(experimentCopyNotificationService).notifyLmsFailure(ltiUserEntity);
     }
 
+    // a rejected refresh_token throws an LmsOAuthException that itself wraps the underlying HTTP
+    // failure as its cause (see CanvasLmsOAuthServiceImpl#postToTokenURL) - so it's not the
+    // deepest/"root" cause here. describeLmsFailure must still recognize it and produce the
+    // specific "not authorized" message, not fall back to the generic one.
+    @Test
+    void testRecreateForContextRejectedRefreshTokenMarksErrorAsAuthorizationFailure() throws Exception {
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
+            .thenReturn(List.of(candidate));
+        RuntimeException httpFailure = new RuntimeException("400 Bad Request");
+        LmsOAuthException oauthFailure = new LmsOAuthException("{\"error\":\"invalid_grant\"}", httpFailure);
+        when(apiClient.getLmsCourseId(ltiUserEntity, ltiContextEntity))
+            .thenThrow(new ApiException("lookup failed", oauthFailure));
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        verify(candidate).setStatus(ExperimentCopyCandidateStatus.ERROR);
+        verify(candidate).setErrorMessage("The source course's instructor has not authorized Terracotta to access the LMS");
+    }
+
     @Test
     void testRecreateForContextCourseNotFoundMarksError() throws Exception {
         ExperimentCopyCandidate candidate = pendingCandidate();

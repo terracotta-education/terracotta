@@ -107,13 +107,20 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         try {
             lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
         } catch (ApiException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof LmsOAuthException) {
+            if (ExceptionUtils.throwableOfType(e, LmsOAuthException.class) != null) {
                 // the instructor hasn't (yet) completed the Canvas API authorization prompt shown
-                // on launch (see Lti3Controller#getOAuth2APITokenRedirectURL) - an ordinary,
-                // expected state for a user who hasn't clicked through it, not an application
-                // failure. This method is @Async with a void return, so any exception escaping it
-                // is caught solely by Spring's default AsyncUncaughtExceptionHandler, which logs
-                // at ERROR with a full stack trace - needlessly alarming for this case.
+                // on launch (see Lti3Controller#getOAuth2APITokenRedirectURL), or their token's
+                // refresh_token was rejected (e.g. revoked, or expired past Canvas's refresh
+                // window) - an ordinary, expected state, not an application failure. Either way,
+                // isAccessTokenAvailable's own refresh attempt already independently detects this
+                // and re-prompts the instructor to authorize on their next launch; this is just
+                // this background sync skipping itself for now. Checked via throwableOfType, not
+                // getRootCause: LmsOAuthException wraps the underlying HTTP/IO failure as its own
+                // cause (see CanvasLmsOAuthServiceImpl#postToTokenURL), so it's rarely itself the
+                // deepest cause in the chain. This method is @Async with a void return, so any
+                // exception escaping it is caught solely by Spring's default
+                // AsyncUncaughtExceptionHandler, which logs at ERROR with a full stack trace -
+                // needlessly alarming for this case.
                 log.warn("Skipping LMS assignment sync for context ID: [{}] - user does not yet have a Canvas API token", securedInfo.getContextId());
                 return;
             }

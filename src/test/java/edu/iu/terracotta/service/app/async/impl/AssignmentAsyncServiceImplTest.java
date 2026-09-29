@@ -120,6 +120,25 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(assignmentRepository, never()).findAssignmentsToCheckByContext(anyLong());
     }
 
+    // a real incident: a rejected refresh_token (e.g. the instructor revoked API access, or it
+    // expired past Canvas's own refresh window) throws an LmsOAuthException that itself wraps the
+    // underlying HTTP failure as its cause (see CanvasLmsOAuthServiceImpl#postToTokenURL) - so
+    // LmsOAuthException is NOT the deepest/"root" cause here. A getRootCause()-based check would
+    // walk right past it to that HTTP exception and miss this case entirely, letting it escape as
+    // an "Unexpected exception" from Spring's async handler instead of being swallowed like any
+    // other not-yet-authorized case.
+    @Test
+    void testHandleAssignmentTasksInLmsByContextSwallowsRejectedRefreshTokenException() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        RuntimeException httpFailure = new RuntimeException("400 Bad Request");
+        LmsOAuthException oauthFailure = new LmsOAuthException("{\"error\":\"invalid_grant\",\"error_description\":\"refresh_token not found\"}", httpFailure);
+        IllegalStateException refreshFailure = new IllegalStateException("Failed to refresh Canvas API access token", new ApiException("Could not get a Canvas API token for user", oauthFailure));
+        when(assignmentService.getAllAssignmentsForLmsCourse(any())).thenThrow(new ApiException("Failed to get the list of assignments", refreshFailure));
+
+        assertDoesNotThrow(() -> assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo));
+
+        verify(assignmentRepository, never()).findAssignmentsToCheckByContext(anyLong());
+    }
+
     // checkAndRestoreAssignmentsInLmsByContext
 
     @Test

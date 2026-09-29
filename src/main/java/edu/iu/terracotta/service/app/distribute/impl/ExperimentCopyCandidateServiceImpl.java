@@ -302,7 +302,11 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     }
 
     private String describeLmsFailure(Exception e, String fallback) {
-        if (ExceptionUtils.getRootCause(e) instanceof LmsOAuthException) {
+        // checked via throwableOfType, not getRootCause: LmsOAuthException wraps the underlying
+        // HTTP/IO failure as its own cause (see CanvasLmsOAuthServiceImpl#postToTokenURL), so
+        // it's rarely itself the deepest cause in the chain - getRootCause would walk right past
+        // it and this check would never match a real authorization failure
+        if (ExceptionUtils.throwableOfType(e, LmsOAuthException.class) != null) {
             return "The source course's instructor has not authorized Terracotta to access the LMS";
         }
 
