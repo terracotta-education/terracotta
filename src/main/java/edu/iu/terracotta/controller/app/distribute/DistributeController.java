@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,9 +36,6 @@ import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentImportNotFoundException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionRequestDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyStatus;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
@@ -179,17 +175,6 @@ public class DistributeController {
         }
     }
 
-    @GetMapping("/copy-candidates")
-    public ResponseEntity<List<CopyCandidateDto>> copyCandidates(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
-        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
-        return new ResponseEntity<>(experimentCopyCandidateService.getPendingForContext(securedInfo), HttpStatus.OK);
-    }
-
     @GetMapping("/copy-status")
     public ResponseEntity<CopyStatusDto> copyStatus(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -239,22 +224,6 @@ public class DistributeController {
         }
 
         return new ResponseEntity<>(experimentCopyCandidateService.getCopyStatus(securedInfo), HttpStatus.OK);
-    }
-
-    // resolves EVERY PENDING candidate for this context in one action - candidates named in the
-    // request are imported (and their corresponding copied LMS assignment(s) re-pointed);
-    // everything else PENDING is declined and obsolete-processed. Replaces the old per-item
-    // import/dismiss endpoints entirely: keeping both around would let this atomicity guarantee
-    // be silently bypassed via a stray direct call to one of them.
-    @PostMapping("/copy-candidates/resolve")
-    public ResponseEntity<CopyCandidateResolutionDto> resolveCopyCandidates(@RequestBody CopyCandidateResolutionRequestDto request, HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
-        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
-        return new ResponseEntity<>(experimentCopyCandidateService.resolve(request.getImportCandidateIds(), securedInfo), HttpStatus.ACCEPTED);
     }
 
 }

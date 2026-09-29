@@ -1,16 +1,12 @@
 package edu.iu.terracotta.service.app.distribute;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import io.jsonwebtoken.Claims;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 
 /**
@@ -21,9 +17,6 @@ import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
  * the existing export/import pipeline, re-pointing each already-copied LMS assignment at its
  * recreated Assignment rather than creating a duplicate. The instructor is told how it went on
  * their first launch into the destination course.
- *
- * getPendingForContext/resolve drive the earlier flow where the instructor chose which
- * candidates to recreate at launch time. That UI is switched off (see Home.vue) but not removed.
  */
 public interface ExperimentCopyCandidateService {
 
@@ -106,22 +99,5 @@ public interface ExperimentCopyCandidateService {
      * ExperimentImports it created, so neither is shown again. Does nothing while still underway.
      */
     void acknowledgeCopyStatus(SecuredInfo securedInfo);
-
-    /**
-     * Pending candidates for the current (live-launch) context - always empty once that context
-     * already has any Experiment of its own, matching the same "is this course new" signal the
-     * rest of the app already uses to gate the first-launch/zero-state experience.
-     */
-    List<CopyCandidateDto> getPendingForContext(SecuredInfo securedInfo);
-
-    /**
-     * Resolves every PENDING candidate for the current context in one action: candidates named in
-     * importCandidateIds are imported (exported via ExperimentExportService, fed into the existing
-     * import pipeline, with any already-copied LMS assignment re-pointed rather than duplicated);
-     * every other PENDING candidate is declined. Once both are done, the existing obsolete-
-     * assignment check runs exactly once - now safe, since re-pointed assignments' URLs already
-     * match this context's new IDs and declined ones' stale URLs still don't.
-     */
-    CopyCandidateResolutionDto resolve(List<UUID> importCandidateIds, SecuredInfo securedInfo);
 
 }

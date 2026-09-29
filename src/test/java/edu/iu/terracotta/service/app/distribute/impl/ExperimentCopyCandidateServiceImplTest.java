@@ -53,8 +53,6 @@ import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCandidate;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCreatedAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
 import edu.iu.terracotta.dao.model.enums.FeatureType;
@@ -95,7 +93,6 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         experimentCopyCandidateService = new ExperimentCopyCandidateServiceImpl(
             experimentCopyCandidateRepository,
             experimentRepository,
-            conditionRepository,
             assignmentRepository,
             obsoleteAssignmentRepository,
             ltiUserRepository,
@@ -172,90 +169,10 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         verify(experimentCopyCandidateRepository, never()).save(any());
     }
 
-    @Test
-    void testGetPendingForContextEmptyWhenDestinationAlreadyHasExperiments() {
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentRepository.findAllByLtiContextEntity_ContextId(1L)).thenReturn(List.of(experiment));
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of());
-
-        List<CopyCandidateDto> result = experimentCopyCandidateService.getPendingForContext(securedInfo);
-
-        assertTrue(result.isEmpty());
-        verify(experimentCopyCandidateRepository, never()).save(any());
-    }
-
-    @Test
-    void testGetPendingForContextDismissesStalePendingCandidatesWhenDestinationAlreadyHasExperiments() {
-        ExperimentCopyCandidate stalePending = mock(ExperimentCopyCandidate.class);
-
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentRepository.findAllByLtiContextEntity_ContextId(1L)).thenReturn(List.of(experiment));
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(stalePending));
-
-        List<CopyCandidateDto> result = experimentCopyCandidateService.getPendingForContext(securedInfo);
-
-        assertTrue(result.isEmpty());
-        verify(stalePending).setStatus(ExperimentCopyCandidateStatus.DISMISSED);
-        verify(experimentCopyCandidateRepository).save(stalePending);
-    }
-
-    @Test
-    void testGetPendingForContextReturnsCandidates() {
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentRepository.findAllByLtiContextEntity_ContextId(1L)).thenReturn(List.of());
-        when(copyCandidate.getUuid()).thenReturn(UUID.randomUUID());
-        when(copyCandidate.getSourceExperiment()).thenReturn(experiment);
-        when(copyCandidate.getStatus()).thenReturn(ExperimentCopyCandidateStatus.PENDING);
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(copyCandidate));
-        when(conditionRepository.countByExperiment_ExperimentId(1L)).thenReturn(2L);
-        when(assignmentRepository.findByExposure_Experiment_ExperimentId(1L)).thenReturn(List.of());
-
-        List<CopyCandidateDto> result = experimentCopyCandidateService.getPendingForContext(securedInfo);
-
-        assertEquals(1, result.size());
-        assertEquals(2, result.get(0).getConditionCount());
-    }
-
     // a destination course re-copied from a different source before ever resolving the first
     // prompt could accumulate PENDING candidates from two different source courses - only the
     // most recently staged notice's source course should be surfaced, so the dialog's single
     // "copied from X" heading is never wrong for some of the candidates it lists
-    @Test
-    void testGetPendingForContextOnlySurfacesMostRecentSourceCourse() {
-        edu.iu.terracotta.dao.entity.Experiment olderExperiment = mock(edu.iu.terracotta.dao.entity.Experiment.class);
-        LtiContextEntity olderSourceContext = mock(LtiContextEntity.class);
-        when(olderSourceContext.getContextId()).thenReturn(10L);
-        when(olderExperiment.getLtiContextEntity()).thenReturn(olderSourceContext);
-        when(olderExperiment.getExperimentId()).thenReturn(2L);
-
-        LtiContextEntity newerSourceContext = mock(LtiContextEntity.class);
-        when(newerSourceContext.getContextId()).thenReturn(20L);
-        when(experiment.getLtiContextEntity()).thenReturn(newerSourceContext);
-
-        ExperimentCopyCandidate olderCandidate = mock(ExperimentCopyCandidate.class);
-        when(olderCandidate.getUuid()).thenReturn(UUID.randomUUID());
-        when(olderCandidate.getSourceExperiment()).thenReturn(olderExperiment);
-        when(olderCandidate.getCreatedAt()).thenReturn(new java.sql.Timestamp(1000L));
-
-        when(copyCandidate.getUuid()).thenReturn(UUID.randomUUID());
-        when(copyCandidate.getSourceExperiment()).thenReturn(experiment);
-        when(copyCandidate.getCreatedAt()).thenReturn(new java.sql.Timestamp(2000L));
-
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentRepository.findAllByLtiContextEntity_ContextId(1L)).thenReturn(List.of());
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(olderCandidate, copyCandidate));
-        when(conditionRepository.countByExperiment_ExperimentId(anyLong())).thenReturn(0L);
-        when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(List.of());
-
-        List<CopyCandidateDto> result = experimentCopyCandidateService.getPendingForContext(securedInfo);
-
-        assertEquals(1, result.size());
-        assertEquals(copyCandidate.getUuid(), result.get(0).getId());
-    }
 
     @Test
     void testStageFromNoticeReturnsDestinationContextId() {
@@ -661,6 +578,87 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         assertTrue(capturedRepointTargets().getAssignments().isEmpty());
     }
 
+    // copied launch URLs carry the source assignment's numeric id or its uuid, depending on when
+    // the URL was written
+    @Test
+    void testRecreateMatchesCopiedAssignmentByUuid() throws Exception {
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        UUID assignmentUuid = UUID.randomUUID();
+        when(assignmentRepository.findIdByUuid(assignmentUuid)).thenReturn(Optional.of(1L));
+        LmsAssignment copied = LmsAssignment.builder()
+            .id("999")
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?experiment=55&assignment=" + assignmentUuid).build())
+            .build();
+        stubWorkingRecreation(candidate, List.of(copied));
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        assertEquals(Map.of(1L, copied), capturedRepointTargets().getAssignments());
+    }
+
+    // id "1" matches the default-stubbed obsoleteAssignmentRepository entry (already converted to
+    // an OBSOLETE assignment) - must not be offered for re-pointing
+    @Test
+    void testRecreateSkipsRepointForAlreadyObsoletedLmsAssignment() throws Exception {
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        LmsAssignment alreadyObsoleted = LmsAssignment.builder()
+            .id("1")
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?experiment=55&assignment=1").build())
+            .build();
+        stubWorkingRecreation(candidate, List.of(alreadyObsoleted));
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        assertTrue(capturedRepointTargets().getAssignments().isEmpty());
+    }
+
+    // the copied consent assignment has no assignment id of its own - matched by its experiment,
+    // which can be the numeric id or the uuid depending on when the URL was written
+    @Test
+    void testRecreateMatchesCopiedConsentAssignmentByNumericExperimentId() throws Exception {
+        assertConsentMatched("1");
+    }
+
+    @Test
+    void testRecreateMatchesCopiedConsentAssignmentByUuidExperimentId() throws Exception {
+        UUID experimentUuid = UUID.randomUUID();
+        when(experiment.getUuid()).thenReturn(experimentUuid);
+
+        assertConsentMatched(experimentUuid.toString());
+    }
+
+    private void assertConsentMatched(String experimentParam) throws Exception {
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        LmsAssignment copiedConsent = LmsAssignment.builder()
+            .id("888")
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?consent=true&experiment=" + experimentParam).build())
+            .build();
+        stubWorkingRecreation(candidate, List.of(copiedConsent));
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        LmsRepointTargets repointTargets = capturedRepointTargets();
+        assertEquals(copiedConsent, repointTargets.getConsentAssignment());
+        assertTrue(repointTargets.getAssignments().isEmpty());
+    }
+
+    @Test
+    void testRecreateIgnoresConsentAssignmentForAnotherExperiment() throws Exception {
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
+        when(experiment.getUuid()).thenReturn(UUID.randomUUID());
+        ExperimentCopyCandidate candidate = pendingCandidate();
+        LmsAssignment otherConsent = LmsAssignment.builder()
+            .id("889")
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?consent=true&experiment=999").build())
+            .build();
+        stubWorkingRecreation(candidate, List.of(otherConsent));
+
+        experimentCopyCandidateService.recreateForContext(1L, null);
+
+        assertNull(capturedRepointTargets().getConsentAssignment());
+    }
+
     // an interrupted attempt's LMS assignments survive its rollback - removed first, or the
     // retry would leave duplicates
     @Test
@@ -997,213 +995,6 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         when(securedInfo.getContextId()).thenReturn(1L);
         when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(eq(1L), anyList()))
             .thenReturn(List.of(candidates));
-    }
-
-    @Test
-    void testResolveImportsSelectedAndDeclinesRestAndFiresObsoleteCheckOnce() throws Exception {
-        UUID selectedId = UUID.randomUUID();
-        UUID declinedId = UUID.randomUUID();
-        ExperimentCopyCandidate selected = mock(ExperimentCopyCandidate.class);
-        ExperimentCopyCandidate declined = mock(ExperimentCopyCandidate.class);
-        when(selected.getUuid()).thenReturn(selectedId);
-        when(selected.getSourceExperiment()).thenReturn(experiment);
-        when(declined.getUuid()).thenReturn(declinedId);
-
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(selected, declined));
-
-        File exportFile = mock(File.class);
-        ExportDto exportDto = ExportDto.builder().file(exportFile).filename("export.zip").build();
-        when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of());
-        when(experimentExportService.export(experiment)).thenReturn(exportDto);
-        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
-
-        CopyCandidateResolutionDto result = experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
-
-        assertEquals(1, result.getImports().size());
-        assertEquals(List.of(declinedId), result.getDeclinedCandidateIds());
-        verify(selected).setStatus(ExperimentCopyCandidateStatus.IMPORTING);
-        verify(selected).setStatus(ExperimentCopyCandidateStatus.IMPORTED);
-        verify(declined).setStatus(ExperimentCopyCandidateStatus.NOT_SELECTED);
-        verify(experimentCopyCandidateRepository).save(declined);
-        verify(assignmentAsyncService, times(1)).handleAssignmentTasksInLmsByContext(securedInfo);
-    }
-
-    @Test
-    void testResolveWithEmptySelectionDismissesEverythingAndStillFiresObsoleteCheck() throws Exception {
-        ExperimentCopyCandidate onlyCandidate = mock(ExperimentCopyCandidate.class);
-        when(onlyCandidate.getUuid()).thenReturn(UUID.randomUUID());
-
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(onlyCandidate));
-
-        CopyCandidateResolutionDto result = experimentCopyCandidateService.resolve(List.of(), securedInfo);
-
-        assertTrue(result.getImports().isEmpty());
-        assertEquals(1, result.getDeclinedCandidateIds().size());
-        // an empty selection ("No thank you") declines every pending candidate at once - that's
-        // DISMISSED, not NOT_SELECTED (which only applies to a candidate left out of an
-        // otherwise non-empty selection - see testResolveImportsSelectedAndDeclinesRestAndFiresObsoleteCheckOnce)
-        verify(onlyCandidate).setStatus(ExperimentCopyCandidateStatus.DISMISSED);
-        verify(assignmentService, never()).getAllAssignmentsForLmsCourse(any());
-        verify(assignmentAsyncService, times(1)).handleAssignmentTasksInLmsByContext(securedInfo);
-    }
-
-    @Test
-    void testResolveImportFailureIsLoggedAndDoesNotBlockDeclinesOrObsoleteCheck() throws Exception {
-        UUID selectedId = UUID.randomUUID();
-        ExperimentCopyCandidate selected = mock(ExperimentCopyCandidate.class);
-        when(selected.getUuid()).thenReturn(selectedId);
-        when(selected.getSourceExperiment()).thenReturn(experiment);
-
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(selected));
-        when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of());
-        doThrow(new ExperimentExportException("export failed")).when(experimentExportService).export(experiment);
-
-        CopyCandidateResolutionDto result = experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
-
-        assertTrue(result.getImports().isEmpty());
-        verify(selected).setStatus(ExperimentCopyCandidateStatus.ERROR);
-        verify(assignmentAsyncService, times(1)).handleAssignmentTasksInLmsByContext(securedInfo);
-    }
-
-    @Test
-    void testResolveBuildsRepointMapForMatchingLmsAssignmentAndPassesItToImport() throws Exception {
-        UUID selectedId = UUID.randomUUID();
-        ExperimentCopyCandidate selected = mock(ExperimentCopyCandidate.class);
-        when(selected.getUuid()).thenReturn(selectedId);
-        when(selected.getSourceExperiment()).thenReturn(experiment);
-
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(selected));
-
-        // matches: not already obsoleted (id "999", default obsoleted id is "1"), URL contains
-        // localUrl and carries assignment=1, which is the source experiment's own assignment id
-        LmsAssignment matchingLmsAssignment = LmsAssignment.builder()
-            .id("999")
-            .lmsExternalToolFields(
-                LmsExternalToolFields.builder()
-                    .url(LTI_URL + "/lti3?experiment=55&assignment=1")
-                    .build()
-            )
-            .build();
-        when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of(matchingLmsAssignment));
-
-        File exportFile = mock(File.class);
-        ExportDto exportDto = ExportDto.builder().file(exportFile).filename("export.zip").build();
-        when(experimentExportService.export(experiment)).thenReturn(exportDto);
-        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
-
-        experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
-        Long candidateId = selected.getId();
-
-        verify(experimentImportService).preprocessFromFile(
-            eq(exportFile),
-            eq("export.zip"),
-            eq(securedInfo),
-            eq(LmsRepointTargets.ofAssignments(Map.of(1L, matchingLmsAssignment)).toBuilder().copyCandidateId(candidateId).build()),
-            eq(false)
-        );
-    }
-
-    // the copied consent assignment has no assignment id of its own - matched by its experiment,
-    // which can be the numeric id or the uuid depending on when the URL was written
-    @Test
-    void testResolveMatchesCopiedConsentAssignmentByNumericOrUuidExperimentId() throws Exception {
-        UUID experimentUuid = UUID.randomUUID();
-        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
-        when(experiment.getUuid()).thenReturn(experimentUuid);
-
-        for (String experimentParam : List.of("1", experimentUuid.toString())) {
-            UUID selectedId = UUID.randomUUID();
-            ExperimentCopyCandidate selected = mock(ExperimentCopyCandidate.class);
-            when(selected.getUuid()).thenReturn(selectedId);
-            when(selected.getSourceExperiment()).thenReturn(experiment);
-            when(securedInfo.getContextId()).thenReturn(1L);
-            when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-                .thenReturn(List.of(selected));
-
-            LmsAssignment copiedConsent = LmsAssignment.builder()
-                .id("888")
-                .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?consent=true&experiment=" + experimentParam).build())
-                .build();
-            when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of(copiedConsent));
-
-            File exportFile = mock(File.class);
-            when(experimentExportService.export(experiment)).thenReturn(ExportDto.builder().file(exportFile).filename("export.zip").build());
-            when(experimentImportService.preprocessFromFile(any(), any(), any(), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
-
-            experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
-
-            ArgumentCaptor<LmsRepointTargets> captor = ArgumentCaptor.forClass(LmsRepointTargets.class);
-            verify(experimentImportService, org.mockito.Mockito.atLeastOnce()).preprocessFromFile(any(), any(), any(), captor.capture(), eq(false));
-            assertEquals(copiedConsent, captor.getValue().getConsentAssignment(), experimentParam);
-            assertTrue(captor.getValue().getAssignments().isEmpty());
-        }
-    }
-
-    @Test
-    void testResolveIgnoresConsentAssignmentForAnotherExperiment() throws Exception {
-        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
-        when(experiment.getUuid()).thenReturn(UUID.randomUUID());
-        UUID selectedId = UUID.randomUUID();
-        ExperimentCopyCandidate selected = mock(ExperimentCopyCandidate.class);
-        when(selected.getUuid()).thenReturn(selectedId);
-        when(selected.getSourceExperiment()).thenReturn(experiment);
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(selected));
-        LmsAssignment otherConsent = LmsAssignment.builder()
-            .id("889")
-            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?consent=true&experiment=999").build())
-            .build();
-        when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of(otherConsent));
-        when(experimentExportService.export(experiment)).thenReturn(ExportDto.builder().file(mock(File.class)).filename("export.zip").build());
-        when(experimentImportService.preprocessFromFile(any(), any(), any(), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
-
-        experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
-
-        ArgumentCaptor<LmsRepointTargets> captor = ArgumentCaptor.forClass(LmsRepointTargets.class);
-        verify(experimentImportService).preprocessFromFile(any(), any(), any(), captor.capture(), eq(false));
-        assertNull(captor.getValue().getConsentAssignment());
-    }
-
-    @Test
-    void testResolveSkipsRepointForAlreadyObsoletedLmsAssignment() throws Exception {
-        UUID selectedId = UUID.randomUUID();
-        ExperimentCopyCandidate selected = mock(ExperimentCopyCandidate.class);
-        when(selected.getUuid()).thenReturn(selectedId);
-        when(selected.getSourceExperiment()).thenReturn(experiment);
-
-        when(securedInfo.getContextId()).thenReturn(1L);
-        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(1L, ExperimentCopyCandidateStatus.PENDING))
-            .thenReturn(List.of(selected));
-
-        // id "1" matches the default-stubbed obsoleteAssignmentRepository entry (already
-        // converted to an OBSOLETE assignment) - must not be offered for re-pointing
-        LmsAssignment alreadyObsoletedLmsAssignment = LmsAssignment.builder()
-            .id("1")
-            .lmsExternalToolFields(
-                LmsExternalToolFields.builder()
-                    .url(LTI_URL + "/lti3?experiment=55&assignment=1")
-                    .build()
-            )
-            .build();
-        when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(List.of(alreadyObsoletedLmsAssignment));
-
-        File exportFile = mock(File.class);
-        ExportDto exportDto = ExportDto.builder().file(exportFile).filename("export.zip").build();
-        when(experimentExportService.export(experiment)).thenReturn(exportDto);
-        when(experimentImportService.preprocessFromFile(eq(exportFile), eq("export.zip"), eq(securedInfo), any(LmsRepointTargets.class), eq(false))).thenReturn(importDto);
-
-        experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo);
-
-        verify(experimentImportService).preprocessFromFile(exportFile, "export.zip", securedInfo, LmsRepointTargets.none().toBuilder().copyCandidateId(selected.getId()).build(), false);
     }
 
 }

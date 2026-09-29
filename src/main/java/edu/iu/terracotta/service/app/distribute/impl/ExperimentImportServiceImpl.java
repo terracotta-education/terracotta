@@ -137,9 +137,9 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
 
         ImportDto importDto = toDto(experimentImport);
 
-        // this request's Hibernate session stays open for its whole duration (open-in-view),
-        // tracking every candidate's experimentImport as managed the entire time - including
-        // while a resolve() call still has more candidates left to process after this one.
+        // the caller's Hibernate session can stay open well past this call (open-in-view, or a
+        // recreation still working through more copy candidates after this one), tracking this
+        // experimentImport as managed the entire time.
         // Detach this entity before handing it off to the async import, so nothing later in
         // this same request (e.g. processing the next candidate) can cause this session to
         // flush a change to this same row while process(...) is concurrently finalizing it on

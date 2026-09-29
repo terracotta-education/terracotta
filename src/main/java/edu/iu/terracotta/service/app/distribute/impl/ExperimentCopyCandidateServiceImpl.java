@@ -45,8 +45,6 @@ import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCandidate;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCreatedAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
 import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
@@ -58,7 +56,6 @@ import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyCandidateStatu
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyStatus;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
 import edu.iu.terracotta.dao.repository.AssignmentRepository;
-import edu.iu.terracotta.dao.repository.ConditionRepository;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ObsoleteAssignmentRepository;
 import edu.iu.terracotta.dao.repository.distribute.ExperimentCopyCandidateRepository;
@@ -120,7 +117,6 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
 
     private final ExperimentCopyCandidateRepository experimentCopyCandidateRepository;
     private final ExperimentRepository experimentRepository;
-    private final ConditionRepository conditionRepository;
     private final AssignmentRepository assignmentRepository;
     private final ObsoleteAssignmentRepository obsoleteAssignmentRepository;
     private final LtiUserRepository ltiUserRepository;
@@ -515,115 +511,6 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         return experimentImportRepository.findByUuid(candidate.getResultingImportUuid());
     }
 
-    @Override
-    public List<CopyCandidateDto> getPendingForContext(SecuredInfo securedInfo) {
-        if (!experimentRepository.findAllByLtiContextEntity_ContextId(securedInfo.getContextId()).isEmpty()) {
-            // this course already has at least one Experiment of its own by the time of this
-            // live launch - don't surface candidates, matching the same "is this course new"
-            // gating the rest of the app already applies to the zero-state experience. Any
-            // still-PENDING candidates for this context are now stale - they'd never be shown
-            // or resolved through the normal flow - so dismiss them instead of leaving them
-            // PENDING indefinitely.
-            List<ExperimentCopyCandidate> stalePending = experimentCopyCandidateRepository
-                .findAllByDestinationContext_ContextIdAndStatus(securedInfo.getContextId(), ExperimentCopyCandidateStatus.PENDING);
-
-            for (ExperimentCopyCandidate candidate : stalePending) {
-                candidate.setStatus(ExperimentCopyCandidateStatus.DISMISSED);
-                experimentCopyCandidateRepository.save(candidate);
-            }
-
-            return List.of();
-        }
-
-        List<ExperimentCopyCandidate> pending = experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(securedInfo.getContextId(), ExperimentCopyCandidateStatus.PENDING);
-
-        if (pending.isEmpty()) {
-            return List.of();
-        }
-
-        // a destination course could theoretically have pending candidates staged from more than
-        // one course-copy notice (e.g. copied again from a different course before ever resolving
-        // the first prompt) - only surface the most recently staged notice's source course, so the
-        // dialog's single "this course was copied from X" heading is never wrong for some of the
-        // candidates it lists
-        long mostRecentSourceContextId = pending.stream()
-            .max(Comparator.comparing(ExperimentCopyCandidate::getCreatedAt))
-            .map(candidate -> candidate.getSourceExperiment().getLtiContextEntity().getContextId())
-            .orElseThrow();
-
-        return pending.stream()
-            .filter(candidate -> candidate.getSourceExperiment().getLtiContextEntity().getContextId() == mostRecentSourceContextId)
-            .map(this::toDto)
-            .toList();
-    }
-
-    @Override
-    public CopyCandidateResolutionDto resolve(List<UUID> importCandidateIds, SecuredInfo securedInfo) {
-        List<ExperimentCopyCandidate> pending = experimentCopyCandidateRepository
-            .findAllByDestinationContext_ContextIdAndStatus(securedInfo.getContextId(), ExperimentCopyCandidateStatus.PENDING);
-
-        // "declined" is computed here, against the live PENDING set - not trusted from the
-        // caller's own idea of what was shown, which could theoretically be stale
-        Set<UUID> toImportIds = new HashSet<>(CollectionUtils.emptyIfNull(importCandidateIds));
-        List<ExperimentCopyCandidate> toImport = pending.stream().filter(candidate -> toImportIds.contains(candidate.getUuid())).toList();
-        List<ExperimentCopyCandidate> toDecline = pending.stream().filter(candidate -> !toImportIds.contains(candidate.getUuid())).toList();
-
-        List<LmsAssignment> lmsAssignments = List.of();
-
-        if (CollectionUtils.isNotEmpty(toImport)) {
-            try {
-                lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
-            } catch (Exception e) {
-                log.error(
-                    "Error listing LMS assignments for context ID: [{}] while resolving copy candidates - importing without re-pointing any existing assignments",
-                    securedInfo.getContextId(),
-                    e
-                );
-            }
-        }
-
-        List<ImportDto> imports = new ArrayList<>();
-
-        for (ExperimentCopyCandidate candidate : toImport) {
-            try {
-                imports.add(importCandidate(candidate, securedInfo, lmsAssignments, false));
-            } catch (ExperimentCopyCandidateNotFoundException | ExperimentImportException e) {
-                log.error("Error importing copy candidate ID: [{}] during bulk resolve", candidate.getUuid(), e);
-            }
-        }
-
-        List<UUID> declinedIds = new ArrayList<>();
-
-        // an empty selection means every pending candidate was declined at once (e.g. "No thank
-        // you"), not left out of some other choice - anything else is a candidate that simply
-        // wasn't part of an otherwise non-empty selection
-        ExperimentCopyCandidateStatus declineStatus = toImportIds.isEmpty()
-            ? ExperimentCopyCandidateStatus.DISMISSED
-            : ExperimentCopyCandidateStatus.NOT_SELECTED;
-
-        for (ExperimentCopyCandidate candidate : toDecline) {
-            candidate.setStatus(declineStatus);
-            experimentCopyCandidateRepository.save(candidate);
-            declinedIds.add(candidate.getUuid());
-        }
-
-        // safe now, regardless of import/decline outcomes above: repointed assignments' URLs
-        // already carry this context's new IDs (won't be flagged obsolete); declined candidates'
-        // stale copied-assignment URLs still carry the old (source) context's IDs and correctly
-        // WILL be flagged - see NoticeController/ExperimentServiceImpl for the other half of this
-        // (both suppress this same call while any candidate for this context is still PENDING).
-        try {
-            assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
-        } catch (Exception e) {
-            log.error("Error running obsolete-assignment check after resolving copy candidates for context ID: [{}]", securedInfo.getContextId(), e);
-        }
-
-        return CopyCandidateResolutionDto.builder()
-            .imports(imports)
-            .declinedCandidateIds(declinedIds)
-            .build();
-    }
-
     private ImportDto importCandidate(ExperimentCopyCandidate candidate, SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments, boolean notifyOwnerOnLmsFailure) throws ExperimentCopyCandidateNotFoundException, ExperimentImportException {
         Experiment sourceExperiment = experimentRepository.findByExperimentId(candidate.getSourceExperiment().getExperimentId());
 
@@ -915,20 +802,6 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
                 return Optional.empty();
             }
         }
-    }
-
-    private CopyCandidateDto toDto(ExperimentCopyCandidate candidate) {
-        Experiment experiment = candidate.getSourceExperiment();
-
-        return CopyCandidateDto.builder()
-            .id(candidate.getUuid())
-            .sourceExperimentId(experiment.getExperimentId())
-            .experimentTitle(experiment.getTitle())
-            .sourceCourseTitle(experiment.getLtiContextEntity().getTitle())
-            .conditionCount(Math.toIntExact(conditionRepository.countByExperiment_ExperimentId(experiment.getExperimentId())))
-            .assignmentCount(assignmentRepository.findByExposure_Experiment_ExperimentId(experiment.getExperimentId()).size())
-            .status(candidate.getStatus())
-            .build();
     }
 
 }

@@ -29,9 +29,6 @@ import org.springframework.http.ResponseEntity;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.exceptions.ExperimentImportNotFoundException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
-import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionRequestDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyStatus;
@@ -309,27 +306,6 @@ public class DistributeControllerTest extends BaseTest {
     }
 
     @Test
-    void copyCandidatesUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<CopyCandidateDto>> ret = distributeController.copyCandidates(httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
-    void copyCandidatesSuccessTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        CopyCandidateDto candidateDto = CopyCandidateDto.builder().id(UUID.randomUUID()).build();
-        when(experimentCopyCandidateService.getPendingForContext(securedInfo)).thenReturn(List.of(candidateDto));
-
-        ResponseEntity<List<CopyCandidateDto>> ret = distributeController.copyCandidates(httpServletRequest);
-
-        assertEquals(HttpStatus.OK, ret.getStatusCode());
-        assertEquals(List.of(candidateDto), ret.getBody());
-    }
-
-    @Test
     void copyStatusUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
@@ -430,54 +406,6 @@ public class DistributeControllerTest extends BaseTest {
         distributeController.retryCopy(httpServletRequest);
 
         verify(experimentCopyRecreationAsyncService, never()).recreate(anyLong(), any());
-    }
-
-    @Test
-    void resolveCopyCandidatesUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-        CopyCandidateResolutionRequestDto request = new CopyCandidateResolutionRequestDto();
-        request.setImportCandidateIds(List.of(UUID.randomUUID()));
-
-        ResponseEntity<CopyCandidateResolutionDto> ret = distributeController.resolveCopyCandidates(request, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
-    void resolveCopyCandidatesSuccessTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        UUID selectedId = UUID.randomUUID();
-        UUID declinedId = UUID.randomUUID();
-        CopyCandidateResolutionRequestDto request = new CopyCandidateResolutionRequestDto();
-        request.setImportCandidateIds(List.of(selectedId));
-        CopyCandidateResolutionDto resolution = CopyCandidateResolutionDto.builder()
-            .imports(List.of(importDto))
-            .declinedCandidateIds(List.of(declinedId))
-            .build();
-        when(experimentCopyCandidateService.resolve(List.of(selectedId), securedInfo)).thenReturn(resolution);
-
-        ResponseEntity<CopyCandidateResolutionDto> ret = distributeController.resolveCopyCandidates(request, httpServletRequest);
-
-        assertEquals(HttpStatus.ACCEPTED, ret.getStatusCode());
-        assertEquals(resolution, ret.getBody());
-    }
-
-    @Test
-    void resolveCopyCandidatesEmptySelectionDeclinesAllTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        UUID declinedId = UUID.randomUUID();
-        CopyCandidateResolutionRequestDto request = new CopyCandidateResolutionRequestDto();
-        request.setImportCandidateIds(List.of());
-        CopyCandidateResolutionDto resolution = CopyCandidateResolutionDto.builder()
-            .imports(List.of())
-            .declinedCandidateIds(List.of(declinedId))
-            .build();
-        when(experimentCopyCandidateService.resolve(List.of(), securedInfo)).thenReturn(resolution);
-
-        ResponseEntity<CopyCandidateResolutionDto> ret = distributeController.resolveCopyCandidates(request, httpServletRequest);
-
-        assertEquals(HttpStatus.ACCEPTED, ret.getStatusCode());
-        assertEquals(resolution, ret.getBody());
     }
 
 }
