@@ -89,6 +89,13 @@ public interface ExperimentCopyCandidateService {
     boolean hasFailedForContext(long contextId);
 
     /**
+     * Whether the instructor behind securedInfo currently holds a usable LMS API token to recreate
+     * experiments as. A retry run without one can only fail again, so the retry endpoint waits for
+     * the instructor to (re-)authorize instead.
+     */
+    boolean hasLmsAuthorization(SecuredInfo securedInfo);
+
+    /**
      * The overall result of recreating copied experiments in the current (live-launch) context,
      * for the first-launch message. NONE once acknowledgeCopyStatus has been called.
      */

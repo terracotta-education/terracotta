@@ -389,6 +389,39 @@ public class DistributeControllerTest extends BaseTest {
         verify(experimentCopyRecreationAsyncService).recreate(5L, "launching-user");
     }
 
+    // a retry without a usable LMS token can only fail again, and would show the failure alert
+    // before the instructor ever got to re-authorize - it waits for authorization instead, leaving
+    // the failed copy untouched so it's retried afterward
+    @Test
+    void retryCopyWaitsForLmsAuthorizationInsteadOfRunning() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(securedInfo.getContextId()).thenReturn(5L);
+        when(experimentCopyCandidateService.hasFailedForContext(5L)).thenReturn(true);
+        when(experimentCopyCandidateService.hasLmsAuthorization(securedInfo)).thenReturn(false);
+        when(experimentCopyCandidateService.getCopyStatus(securedInfo)).thenReturn(CopyStatusDto.builder().status(ExperimentCopyStatus.ERROR).build());
+
+        ResponseEntity<CopyStatusDto> ret = distributeController.retryCopy(httpServletRequest);
+
+        assertEquals(ExperimentCopyStatus.AUTHORIZATION_REQUIRED, ret.getBody().getStatus());
+        verify(experimentCopyCandidateService, never()).resetFailedForRetry(anyLong());
+        verify(experimentCopyRecreationAsyncService, never()).recreate(anyLong(), any());
+    }
+
+    @Test
+    void retryCopyRunsOnceTheInstructorIsAuthorized() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(securedInfo.getContextId()).thenReturn(5L);
+        when(securedInfo.getUserId()).thenReturn("launching-user");
+        when(experimentCopyCandidateService.hasFailedForContext(5L)).thenReturn(true);
+        when(experimentCopyCandidateService.hasLmsAuthorization(securedInfo)).thenReturn(true);
+        when(experimentCopyCandidateService.resetFailedForRetry(5L)).thenReturn(true);
+        when(experimentCopyCandidateService.getCopyStatus(securedInfo)).thenReturn(CopyStatusDto.builder().status(ExperimentCopyStatus.IN_PROGRESS).build());
+
+        distributeController.retryCopy(httpServletRequest);
+
+        verify(experimentCopyRecreationAsyncService).recreate(5L, "launching-user");
+    }
+
     @Test
     void retryCopyNothingFailedDoesNotRecreate() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);

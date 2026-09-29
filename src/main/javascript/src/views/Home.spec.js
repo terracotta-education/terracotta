@@ -214,6 +214,24 @@ describe("Home", () => {
     });
   });
 
+  // the server holds the retry until the instructor re-authorizes LMS access - it never ran, so
+  // there's no failure to report, and the copy must stay unacknowledged to be retried afterward
+  it("shows no failure alert and acknowledges nothing while the retry waits for re-authorization", async () => {
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "ERROR", importIds: [] } });
+    experimentCopyCandidateService.retryCopy.mockResolvedValue({ data: { status: "AUTHORIZATION_REQUIRED", importIds: [] } });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(experimentCopyCandidateService.retryCopy).toHaveBeenCalledTimes(1);
+    });
+    await flushPromises();
+
+    expect(swalFire).not.toHaveBeenCalled();
+    expect(experimentCopyCandidateService.acknowledgeCopyStatus).not.toHaveBeenCalled();
+    expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(false);
+  });
+
   it("retries a failed copy as the launching instructor and waits for it instead of reporting the failure", async () => {
     const setIntervalSpy = vi.spyOn(window, "setInterval");
     experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "ERROR", importIds: [] } });

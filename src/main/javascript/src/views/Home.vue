@@ -713,6 +713,13 @@ const handleCopyStatus = async () => {
     return;
   }
 
+  // the server is holding the retry until the instructor re-authorizes LMS access (see
+  // DistributeController#retryCopy). It hasn't run, so there's no failure to report yet, and the
+  // copy must stay unacknowledged so it's retried after authorization.
+  if (status === "AUTHORIZATION_REQUIRED") {
+    return;
+  }
+
   if (status === "ERROR" && !copyRetryAttempted.value) {
     copyRetryAttempted.value = true;
     await experimentCopyCandidateStore.retryCopy();

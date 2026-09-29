@@ -44,7 +44,8 @@ export const experimentCopyCandidate = defineStore("experimentCopyCandidate", {
     },
 
     // the result of automatically recreating this course's experiments after a course copy:
-    // NONE, IN_PROGRESS, COMPLETE or ERROR (see ExperimentCopyCandidateService.getCopyStatus)
+    // NONE, IN_PROGRESS, COMPLETE or ERROR (see ExperimentCopyCandidateService.getCopyStatus);
+    // retryCopy can also return AUTHORIZATION_REQUIRED (see DistributeController#retryCopy)
     async fetchCopyStatus() {
       try {
         const response = await experimentCopyCandidateService.getCopyStatus();

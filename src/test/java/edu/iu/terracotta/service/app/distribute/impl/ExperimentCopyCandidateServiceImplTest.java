@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -44,6 +45,8 @@ import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFi
 import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCandidate;
@@ -74,6 +77,7 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
     @Mock private FeatureService featureService;
     @Mock private ExperimentExportService experimentExportService;
     @Mock private AssignmentAsyncService assignmentAsyncService;
+    @Mock private LmsOAuthServiceManager lmsOAuthServiceManager;
     @Mock private ExperimentCopyNotificationService experimentCopyNotificationService;
     @Mock private ExperimentCopyCreatedAssignmentRepository experimentCopyCreatedAssignmentRepository;
     @Mock private Claims noticeClaims;
@@ -106,7 +110,8 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
             experimentExportService,
             experimentImportService,
             experimentCopyNotificationService,
-            experimentCopyCreatedAssignmentRepository
+            experimentCopyCreatedAssignmentRepository,
+            lmsOAuthServiceManager
         );
 
         when(featureService.isFeatureEnabled(eq(FeatureType.PLATFORM_NOTIFICATIONS), anyLong())).thenReturn(true);
@@ -919,6 +924,41 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
     @Test
     void testHasFailedForContextFalseWithoutUnacknowledgedError() {
         assertFalse(experimentCopyCandidateService.hasFailedForContext(1L));
+    }
+
+    private void stubLaunchingInstructor() throws TerracottaConnectorException {
+        when(securedInfo.getUserId()).thenReturn("user-key");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId("user-key", 1L)).thenReturn(ltiUserEntity);
+        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
+        doReturn(lmsOAuthService).when(lmsOAuthServiceManager).getLmsOAuthService(platformDeployment);
+        when(lmsOAuthService.isConfigured(platformDeployment)).thenReturn(true);
+    }
+
+    @Test
+    void testHasLmsAuthorizationTrueWithUsableToken() throws Exception {
+        stubLaunchingInstructor();
+        when(lmsOAuthService.isAccessTokenAvailable(ltiUserEntity)).thenReturn(true);
+
+        assertTrue(experimentCopyCandidateService.hasLmsAuthorization(securedInfo));
+    }
+
+    @Test
+    void testHasLmsAuthorizationFalseWithoutUsableToken() throws Exception {
+        stubLaunchingInstructor();
+        when(lmsOAuthService.isAccessTokenAvailable(ltiUserEntity)).thenReturn(false);
+
+        assertFalse(experimentCopyCandidateService.hasLmsAuthorization(securedInfo));
+    }
+
+    // no LMS OAuth configured means there's nothing to authorize - don't hold the retry forever
+    @Test
+    void testHasLmsAuthorizationTrueWhenLmsOAuthNotConfigured() throws Exception {
+        stubLaunchingInstructor();
+        when(lmsOAuthService.isConfigured(platformDeployment)).thenReturn(false);
+
+        assertTrue(experimentCopyCandidateService.hasLmsAuthorization(securedInfo));
+        verify(lmsOAuthService, never()).isAccessTokenAvailable(any());
     }
 
     private static final List<ExperimentCopyCandidateStatus> RECREATION = List.of(

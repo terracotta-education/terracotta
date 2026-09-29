@@ -41,6 +41,7 @@ import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyCandidateResolutionRequestDto;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
+import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyStatus;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ImportDto;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
@@ -221,6 +222,16 @@ public class DistributeController {
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        if (experimentCopyCandidateService.hasFailedForContext(securedInfo.getContextId()) && !experimentCopyCandidateService.hasLmsAuthorization(securedInfo)) {
+            // a retry now could only fail again on the missing token, and the failure alert would
+            // show before the instructor ever got to re-authorize. Wait: the next launch sends them
+            // through authorization, and the retry runs once they're back.
+            CopyStatusDto copyStatus = experimentCopyCandidateService.getCopyStatus(securedInfo);
+            copyStatus.setStatus(ExperimentCopyStatus.AUTHORIZATION_REQUIRED);
+
+            return new ResponseEntity<>(copyStatus, HttpStatus.OK);
         }
 
         if (experimentCopyCandidateService.resetFailedForRetry(securedInfo.getContextId())) {

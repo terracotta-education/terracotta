@@ -36,6 +36,9 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiMembershipRepo
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthService;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Experiment;
@@ -133,6 +136,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     private final ExperimentImportService experimentImportService;
     private final ExperimentCopyNotificationService experimentCopyNotificationService;
     private final ExperimentCopyCreatedAssignmentRepository experimentCopyCreatedAssignmentRepository;
+    private final LmsOAuthServiceManager lmsOAuthServiceManager;
 
     @Override
     public Optional<Long> stageFromNotice(Claims noticeClaims) {
@@ -393,6 +397,26 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     @Override
     public boolean hasFailedForContext(long contextId) {
         return !experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(contextId, ERROR_STATUS).isEmpty();
+    }
+
+    @Override
+    public boolean hasLmsAuthorization(SecuredInfo securedInfo) {
+        LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+
+        if (user == null) {
+            return false;
+        }
+
+        try {
+            LmsOAuthService<?> lmsOAuthService = lmsOAuthServiceManager.getLmsOAuthService(user.getPlatformDeployment());
+
+            // without LMS OAuth configured there's nothing to authorize, so don't hold the retry
+            return !lmsOAuthService.isConfigured(user.getPlatformDeployment()) || lmsOAuthService.isAccessTokenAvailable(user);
+        } catch (TerracottaConnectorException e) {
+            log.warn("Could not look up the LMS OAuth service for user ID: [{}] - not holding the copy retry for authorization", user.getUserId(), e);
+
+            return true;
+        }
     }
 
     @Override
