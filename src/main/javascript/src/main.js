@@ -5,6 +5,8 @@ import { experiment as experimentStore } from "@/store/experiment.module";
 import { consent as consentStore } from "@/store/consent.module";
 import { configuration as configurationStore } from "@/store/configuration.module";
 import { pinia } from "@/pinia";
+import { watchForLmsReauthorization } from "@/helpers/lms-reauthorization";
+import Swal from "sweetalert2";
 
 import App from "./App.vue";
 import router from "./router";
@@ -145,6 +147,24 @@ const startVue = () => {
   configureAppProps();
   cleanURL();
   registerRouteGuards();
+  watchForLmsReauthorization({
+    isInstructor: () => api(pinia).userInfo === "Instructor",
+    notify: async () => {
+      // the configuration loads alongside the app's first requests, so it may not be here yet
+      const configurations = configurationStore(pinia);
+
+      if (!configurations.hasConfigurations) {
+        await configurations.retrieve();
+      }
+
+      const lmsTitle = configurations.get?.lmsTitle || "LMS";
+
+      Swal.fire({
+        icon: "warning",
+        text: `Terracotta has lost its connection to your ${lmsTitle} account. Relaunch Terracotta from your course to reconnect it.`
+      });
+    }
+  });
 
   createApp(App, appProps)
     .use(pinia)

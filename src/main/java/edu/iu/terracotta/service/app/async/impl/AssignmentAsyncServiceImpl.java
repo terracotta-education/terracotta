@@ -22,7 +22,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -37,7 +36,6 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextReposit
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
-import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
@@ -61,6 +59,7 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.utils.LmsAuthorizationUtils;
 import edu.iu.terracotta.utils.LmsExternalToolUrlUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -107,18 +106,15 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         try {
             lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
         } catch (ApiException e) {
-            if (ExceptionUtils.throwableOfType(e, LmsOAuthException.class) != null) {
+            if (LmsAuthorizationUtils.isAuthorizationFailure(e)) {
                 // the instructor hasn't (yet) completed the Canvas API authorization prompt shown
                 // on launch (see Lti3Controller#getOAuth2APITokenRedirectURL), or their token's
                 // refresh_token was rejected (e.g. revoked, or expired past Canvas's refresh
                 // window) - an ordinary, expected state, not an application failure. Either way,
                 // isAccessTokenAvailable's own refresh attempt already independently detects this
                 // and re-prompts the instructor to authorize on their next launch; this is just
-                // this background sync skipping itself for now. Checked via throwableOfType, not
-                // getRootCause: LmsOAuthException wraps the underlying HTTP/IO failure as its own
-                // cause (see CanvasLmsOAuthServiceImpl#postToTokenURL), so it's rarely itself the
-                // deepest cause in the chain. This method is @Async with a void return, so any
-                // exception escaping it is caught solely by Spring's default
+                // this background sync skipping itself for now. This method is @Async with a void
+                // return, so any exception escaping it is caught solely by Spring's default
                 // AsyncUncaughtExceptionHandler, which logs at ERROR with a full stack trace -
                 // needlessly alarming for this case.
                 log.warn("Skipping LMS assignment sync for context ID: [{}] - user does not yet have a Canvas API token", securedInfo.getContextId());

@@ -34,7 +34,6 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiMembershipRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
-import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthService;
@@ -74,6 +73,7 @@ import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyNotificationService;
 import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
+import edu.iu.terracotta.utils.LmsAuthorizationUtils;
 import edu.iu.terracotta.utils.LmsExternalToolUrlUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -306,11 +306,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     }
 
     private String describeLmsFailure(Exception e, String fallback) {
-        // checked via throwableOfType, not getRootCause: LmsOAuthException wraps the underlying
-        // HTTP/IO failure as its own cause (see CanvasLmsOAuthServiceImpl#postToTokenURL), so
-        // it's rarely itself the deepest cause in the chain - getRootCause would walk right past
-        // it and this check would never match a real authorization failure
-        if (ExceptionUtils.throwableOfType(e, LmsOAuthException.class) != null) {
+        if (LmsAuthorizationUtils.isAuthorizationFailure(e)) {
             return "The source course's instructor has not authorized Terracotta to access the LMS";
         }
 

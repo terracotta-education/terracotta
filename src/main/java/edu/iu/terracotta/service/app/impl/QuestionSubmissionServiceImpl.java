@@ -50,6 +50,8 @@ import edu.iu.terracotta.service.app.AnswerSubmissionService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
+import edu.iu.terracotta.service.app.notification.LmsReauthorizationNotificationService;
+import edu.iu.terracotta.utils.LmsAuthorizationUtils;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +101,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
     private final FileStorageService fileStorageService;
     private final QuestionSubmissionCommentService questionSubmissionCommentService;
     private final ApiClient apiClient;
+    private final LmsReauthorizationNotificationService lmsReauthorizationNotificationService;
 
     private JsonMapper jsonMapper = JsonMapper.builder().build();
 
@@ -529,8 +532,26 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
         Optional<Assignment> assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getLmsAssignmentId());
         LtiUserEntity instructorUser = assignment.get().getExposure().getExperiment().getCreatedBy();
-        Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), securedInfo.getLmsAssignmentId());
-        List<LmsSubmission> submissionsList = apiClient.listSubmissions(instructorUser, securedInfo.getLmsAssignmentId(), securedInfo.getLmsCourseId());
+        Optional<LmsAssignment> lmsAssignment;
+        List<LmsSubmission> submissionsList;
+
+        try {
+            lmsAssignment = apiClient.listAssignment(instructorUser, securedInfo.getLmsCourseId(), securedInfo.getLmsAssignmentId());
+            submissionsList = apiClient.listSubmissions(instructorUser, securedInfo.getLmsAssignmentId(), securedInfo.getLmsCourseId());
+        } catch (ApiException | RuntimeException e) {
+            if (!LmsAuthorizationUtils.isAuthorizationFailure(e)) {
+                throw e;
+            }
+
+            // this check runs on the experiment creator's LMS token, which the student can't fix -
+            // tell the instructor, and tell the student it isn't something they did
+            lmsReauthorizationNotificationService.notifyReauthorizationNeeded(
+                instructorUser,
+                "a student could not start or submit an assignment, because Terracotta could not check their attempts"
+            );
+
+            throw new AssignmentAttemptException(TextConstants.ATTEMPTS_UNCHECKABLE_INSTRUCTOR_REAUTHORIZATION);
+        }
 
         Optional<LmsSubmission> submission = submissionsList.stream()
             .filter(sub -> sub.getUser() != null)

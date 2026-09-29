@@ -1,85 +1,48 @@
 package edu.iu.terracotta.service.app.distribute.impl;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-import java.util.Properties;
-
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
-import software.amazon.awssdk.services.ses.SesClient;
-import software.amazon.awssdk.services.ses.SesClientBuilder;
-import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
-import software.amazon.awssdk.services.ses.model.SendRawEmailResponse;
+import edu.iu.terracotta.service.app.notification.NotificationEmailSender;
 
 public class ExperimentCopyNotificationServiceImplTest {
 
-    @Mock private JavaMailSender javaMailSender;
+    @Mock private NotificationEmailSender notificationEmailSender;
     @Mock private LtiUserEntity instructor;
 
-    private MimeMessage mimeMessage;
-    private MockedStatic<SesClient> sesClientStatic;
-    private SesClient sesClient;
     private ExperimentCopyNotificationServiceImpl experimentCopyNotificationService;
 
     @BeforeEach
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
-        mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()));
-        when(javaMailSender.createMimeMessage()).thenReturn(mimeMessage);
-        when(instructor.getEmail()).thenReturn("instructor@example.edu");
         when(instructor.getDisplayName()).thenReturn("Pat Instructor");
 
-        sesClientStatic = mockStatic(SesClient.class);
-        SesClientBuilder sesClientBuilder = mock(SesClientBuilder.class);
-        sesClient = mock(SesClient.class);
-        sesClientStatic.when(SesClient::builder).thenReturn(sesClientBuilder);
-        when(sesClientBuilder.region(any())).thenReturn(sesClientBuilder);
-        when(sesClientBuilder.build()).thenReturn(sesClient);
-        when(sesClient.sendRawEmail(any(SendRawEmailRequest.class))).thenReturn(SendRawEmailResponse.builder().messageId("ses-id").build());
-
-        experimentCopyNotificationService = new ExperimentCopyNotificationServiceImpl(javaMailSender);
-        ReflectionTestUtils.setField(experimentCopyNotificationService, "from", "no-reply@mail.terracotta.education");
-        ReflectionTestUtils.setField(experimentCopyNotificationService, "awsRegion", "us-east-2");
+        experimentCopyNotificationService = new ExperimentCopyNotificationServiceImpl(notificationEmailSender);
     }
 
-    @AfterEach
-    public void afterEach() {
-        sesClientStatic.close();
+    private String sentBody() {
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(notificationEmailSender).sendHtml(eq(instructor), eq("Terracotta experiment copy notification"), body.capture(), anyString());
+
+        return body.getValue();
     }
 
     @Test
-    public void testNotifyLmsFailureSendsTheCopyNotificationEmail() throws Exception {
+    public void testNotifyLmsFailureSendsTheCopyNotificationEmail() {
         experimentCopyNotificationService.notifyLmsFailure(instructor);
 
-        ArgumentCaptor<SendRawEmailRequest> captor = ArgumentCaptor.forClass(SendRawEmailRequest.class);
-        verify(sesClient).sendRawEmail(captor.capture());
-        assertEquals(List.of("instructor@example.edu"), captor.getValue().destinations());
-        assertEquals("Terracotta <no-reply@mail.terracotta.education>", captor.getValue().source());
-
-        assertEquals("Terracotta experiment copy notification", mimeMessage.getSubject());
-        assertTrue(mimeMessage.getContentType().startsWith("text/html"));
-        String body = (String) mimeMessage.getContent();
+        String body = sentBody();
         assertTrue(body.contains("<p>Dear Pat Instructor,</p>"));
         assertTrue(body.contains("There was an error recreating the Terracotta assignments in your newly copied Canvas course. Please login to the new Canvas course, relaunch Terracotta, and reauthorize Terracotta to function in the LMS."));
         assertTrue(body.contains("<a href=\"mailto:info@terracotta.education\">info@terracotta.education</a>"));
@@ -87,35 +50,22 @@ public class ExperimentCopyNotificationServiceImplTest {
     }
 
     @Test
-    public void testNotifyLmsFailureWithoutDisplayNameUsesGenericGreeting() throws Exception {
+    public void testNotifyLmsFailureWithoutDisplayNameUsesGenericGreeting() {
         when(instructor.getDisplayName()).thenReturn(null);
 
         experimentCopyNotificationService.notifyLmsFailure(instructor);
 
-        assertTrue(((String) mimeMessage.getContent()).contains("<p>Dear Instructor,</p>"));
+        assertTrue(sentBody().contains("<p>Dear Instructor,</p>"));
     }
 
+    // the body is HTML, so a display name must not be able to inject markup
     @Test
-    public void testNotifyLmsFailureWithoutEmailSendsNothing() {
-        when(instructor.getEmail()).thenReturn(" ");
+    public void testNotifyLmsFailureEscapesTheDisplayName() {
+        when(instructor.getDisplayName()).thenReturn("<script>x</script>");
 
         experimentCopyNotificationService.notifyLmsFailure(instructor);
 
-        verify(sesClient, never()).sendRawEmail(any(SendRawEmailRequest.class));
-    }
-
-    @Test
-    public void testNotifyLmsFailureNullInstructorSendsNothing() {
-        assertDoesNotThrow(() -> experimentCopyNotificationService.notifyLmsFailure(null));
-
-        verify(sesClient, never()).sendRawEmail(any(SendRawEmailRequest.class));
-    }
-
-    @Test
-    public void testNotifyLmsFailureSendFailureIsLoggedNotThrown() {
-        when(sesClient.sendRawEmail(any(SendRawEmailRequest.class))).thenThrow(new RuntimeException("SES down"));
-
-        assertDoesNotThrow(() -> experimentCopyNotificationService.notifyLmsFailure(instructor));
+        assertTrue(sentBody().contains("<p>Dear &lt;script&gt;x&lt;/script&gt;,</p>"));
     }
 
 }

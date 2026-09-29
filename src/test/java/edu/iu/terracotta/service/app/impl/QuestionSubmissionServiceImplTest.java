@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -39,6 +40,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import org.mockito.Mock;
+import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
+import edu.iu.terracotta.service.app.notification.LmsReauthorizationNotificationService;
+import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.dao.entity.AnswerEssaySubmission;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
@@ -58,6 +63,8 @@ import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 
 public class QuestionSubmissionServiceImplTest extends BaseTest {
+
+    @Mock private LmsReauthorizationNotificationService lmsReauthorizationNotificationService;
 
     private QuestionSubmissionServiceImpl questionSubmissionService;
 
@@ -86,7 +93,8 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
             answerSubmissionService,
             fileStorageService,
             questionSubmissionCommentService,
-            apiClient
+            apiClient,
+            lmsReauthorizationNotificationService
         );
 
         when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.singletonList(answerEssaySubmission));
@@ -286,6 +294,27 @@ public class QuestionSubmissionServiceImplTest extends BaseTest {
         when(lmsAssignment.getAllowedAttempts()).thenReturn(5);
 
         assertDoesNotThrow(() -> questionSubmissionService.canSubmit(securedInfo, 1L, true));
+    }
+
+    // the check runs on the experiment creator's LMS token, which the student can't fix: the
+    // instructor is emailed, and the student is told it isn't something they did
+    @Test
+    public void testCanSubmitLmsCheckWithADeadInstructorTokenTellsTheInstructorAndTheStudent() throws Exception {
+        when(experiment.getCreatedBy()).thenReturn(ltiUserEntity);
+        when(apiClient.listAssignment(any(), any(), any(String.class))).thenThrow(new ApiException("Failed to get the assignment", new LmsOAuthException("invalid_grant")));
+
+        AssignmentAttemptException thrown = assertThrows(AssignmentAttemptException.class, () -> questionSubmissionService.canSubmit(securedInfo, 1L, true));
+
+        assertEquals(TextConstants.ATTEMPTS_UNCHECKABLE_INSTRUCTOR_REAUTHORIZATION, thrown.getMessage());
+        verify(lmsReauthorizationNotificationService).notifyReauthorizationNeeded(eq(ltiUserEntity), anyString());
+    }
+
+    @Test
+    public void testCanSubmitLmsCheckOtherLmsFailuresAreRethrownUnchanged() throws Exception {
+        when(apiClient.listAssignment(any(), any(), any(String.class))).thenThrow(new ApiException("Canvas returned 503"));
+
+        assertThrows(ApiException.class, () -> questionSubmissionService.canSubmit(securedInfo, 1L, true));
+        verifyNoInteractions(lmsReauthorizationNotificationService);
     }
 
     @Test
