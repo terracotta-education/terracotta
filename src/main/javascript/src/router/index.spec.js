@@ -6,7 +6,10 @@ vi.mock("@/store/experiment.module", () => ({
   experiment: () => ({ fetchExperimentById: fetchExperimentByIdMock })
 }));
 
-import router from "./index.js";
+import { createPinia, setActivePinia } from "pinia";
+
+import router, { requireLmsAuthorization } from "./index.js";
+import { api } from "@/store/api.module";
 
 describe("router scrollBehavior", () => {
   const originalTop = window.top;
@@ -251,5 +254,38 @@ describe("router route table", () => {
 
       expect(next).toHaveBeenCalledWith(error);
     });
+  });
+});
+
+// a launch that needs the instructor to (re-)authorize LMS access must show only the
+// authorization page. Redirecting after the initial navigation let Home mount first, and Home
+// retried a failed course copy on the dead token and showed its failure alert over this page.
+describe("requireLmsAuthorization", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it("sends every route to the authorization page while authorization is pending", () => {
+    api().setLmsApiOAuthURL("https://canvas.example.com/login/oauth2/auth");
+
+    expect(requireLmsAuthorization({ name: "Home" })).toEqual({ name: "oauth2-redirect", replace: true });
+  });
+
+  it("lets the authorization page itself through, so the redirect can't loop", () => {
+    api().setLmsApiOAuthURL("https://canvas.example.com/login/oauth2/auth");
+
+    expect(requireLmsAuthorization({ name: "oauth2-redirect" })).toBe(true);
+  });
+
+  it("leaves navigation alone when no authorization is pending", () => {
+    expect(requireLmsAuthorization({ name: "Home" })).toBe(true);
+  });
+
+  it("is registered on the router, so the very first navigation never reaches Home", async () => {
+    api().setLmsApiOAuthURL("https://canvas.example.com/login/oauth2/auth");
+
+    await router.push("/");
+
+    expect(router.currentRoute.value.name).toBe("oauth2-redirect");
   });
 });

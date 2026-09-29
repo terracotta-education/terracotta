@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Home from "../views/Home.vue";
 import OAuth2Redirect from "@/views/OAuth2Redirect.vue";
+import { api } from "@/store/api.module";
 import { experiment as useExperimentStore } from "@/store/experiment.module";
 import { isEmbeddedInAnIframe } from "@/helpers/ui-utils.js";
 
@@ -450,6 +451,19 @@ const router = createRouter({
     return savedPosition || { top: 0 };
   }
 })
+
+// while the launch says the instructor must (re-)authorize LMS access, nothing else may load
+// first. Redirecting after the initial navigation was too late: Home had already mounted and
+// retried a failed course copy on the dead token, showing its failure alert over this page.
+export const requireLmsAuthorization = to => {
+  if (api().lmsApiOAuthURL && to.name !== "oauth2-redirect") {
+    return { name: "oauth2-redirect", replace: true };
+  }
+
+  return true;
+};
+
+router.beforeEach(requireLmsAuthorization);
 
 export default router;
 

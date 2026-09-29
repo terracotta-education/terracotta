@@ -152,10 +152,10 @@ const startVue = () => {
     .use(vuetify)
     .mount("#app");
 
+  // a pending LMS authorization is routed to oauth2-redirect by the router's own guard, before
+  // anything else mounts - see requireLmsAuthorization
   router.isReady().then(() => {
-    if (lmsApiOAuthURL) {
-      router.replace({ name: "oauth2-redirect" });
-    } else if (Object.keys(router.currentRoute.value.query).length) {
+    if (Object.keys(router.currentRoute.value.query).length) {
       router.replace({ ...router.currentRoute.value, query: {} });
     }
   });
