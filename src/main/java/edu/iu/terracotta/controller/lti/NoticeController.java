@@ -100,8 +100,10 @@ public class NoticeController {
 
         if (securedInfo.isEmpty()) {
             LtiNoticeService.CourseCopyNoticeDescription notice = ltiNoticeService.describeCourseCopy(claims);
-            log.warn(
-                "Received an unexpected course copy notification from: [{}] for source: [{}] and destination: [{}]",
+            // the normal case for a copy into a brand-new course: nobody has launched Terracotta
+            // there yet, so there's no instructor to run the LMS assignment sync as
+            log.info(
+                "Received a course copy notification from: [{}] for source: [{}] and destination: [{}]. No instructor has launched Terracotta in the destination yet, so its LMS assignment sync will run on the first launch.",
                 notice.platform(),
                 notice.source(),
                 notice.destination()
