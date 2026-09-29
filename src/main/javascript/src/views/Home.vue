@@ -1270,6 +1270,15 @@ onBeforeRouteLeave((to, from, next) => {
     color: map.get($blue, "light");
   }
 }
+// while a copy runs the course has no experiments yet, so ZeroState's fixed, half-transparent
+// background image paints over this banner and washes it out. Lift the banner above it, and give
+// the tonal (see-through) variant a solid base so the image doesn't show through. On a plain
+// white page this looks the same as before.
+.copy-in-progress-alert {
+  position: relative;
+  z-index: 1;
+  background-color: #fff;
+}
 .alert-request {
   min-width: 100%;
   z-index: 1000;
