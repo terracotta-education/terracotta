@@ -21,18 +21,19 @@ describe("experiment-copy-candidate.service", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
-  describe("getAll", () => {
-    it("issues a GET with auth headers only (no Content-Type) and returns parsed data", async () => {
+  // the shared response handling, exercised through getCopyStatus
+  describe("response handling", () => {
+    it("issues a GET with auth headers and returns parsed data", async () => {
       const data = [{ id: 1, status: "PENDING" }];
 
       global.fetch.mockResolvedValue(
         mockResponse({ ok: true, status: 200, text: JSON.stringify(data) })
       );
 
-      const result = await experimentCopyCandidateService.getAll();
+      const result = await experimentCopyCandidateService.getCopyStatus();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "https://example.com/api/experiments/copy-candidates",
+        "https://example.com/api/experiments/copy-status",
         {
           method: "GET",
           headers: {
@@ -50,7 +51,7 @@ describe("experiment-copy-candidate.service", () => {
         mockResponse({ ok: true, status: 204, text: "" })
       );
 
-      const result = await experimentCopyCandidateService.getAll();
+      const result = await experimentCopyCandidateService.getCopyStatus();
 
       expect(result).toEqual([]);
     });
@@ -66,7 +67,7 @@ describe("experiment-copy-candidate.service", () => {
         })
       );
 
-      const result = await experimentCopyCandidateService.getAll();
+      const result = await experimentCopyCandidateService.getCopyStatus();
 
       expect(result).toEqual({
         data: errorBody,
@@ -81,7 +82,7 @@ describe("experiment-copy-candidate.service", () => {
 
       global.fetch.mockResolvedValue(response);
 
-      const result = await experimentCopyCandidateService.getAll();
+      const result = await experimentCopyCandidateService.getCopyStatus();
 
       expect(result).toBe(response);
     });
@@ -95,61 +96,11 @@ describe("experiment-copy-candidate.service", () => {
 
       global.fetch.mockResolvedValue(response);
 
-      const result = await experimentCopyCandidateService.getAll();
+      const result = await experimentCopyCandidateService.getCopyStatus();
 
       expect(result.status).toBe(200);
       expect(result.error).toBeInstanceOf(Error);
       expect(console.error).toHaveBeenCalled();
-    });
-  });
-
-  describe("resolve", () => {
-    it("issues a POST with a JSON body and Content-Type header, returning parsed data", async () => {
-      const responseData = { imported: [1, 2], declined: [3] };
-
-      global.fetch.mockResolvedValue(
-        mockResponse({
-          ok: true,
-          status: 200,
-          text: JSON.stringify(responseData)
-        })
-      );
-
-      const result = await experimentCopyCandidateService.resolve([1, 2]);
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        "https://example.com/api/experiments/copy-candidates/resolve",
-        {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer test-token",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ importCandidateIds: [1, 2] })
-        }
-      );
-
-      expect(result).toEqual({ data: responseData, status: 200 });
-    });
-
-    it("propagates a non-ok error response", async () => {
-      const errorBody = { error: "Conflict" };
-
-      global.fetch.mockResolvedValue(
-        mockResponse({
-          ok: false,
-          status: 409,
-          text: JSON.stringify(errorBody)
-        })
-      );
-
-      const result = await experimentCopyCandidateService.resolve([1]);
-
-      expect(result).toEqual({
-        data: errorBody,
-        status: 409,
-        error: errorBody
-      });
     });
   });
 
@@ -210,7 +161,7 @@ describe("experiment-copy-candidate.service", () => {
       mockResponse({ ok: true, status: 200, text: JSON.stringify({ a: 1 }) })
     );
 
-    await experimentCopyCandidateService.getAll();
+    await experimentCopyCandidateService.getCopyStatus();
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.any(String),

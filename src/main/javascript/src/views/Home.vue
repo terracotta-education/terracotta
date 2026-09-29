@@ -8,10 +8,6 @@
       :display="isDeletingExperiment"
       message="Please wait..."
     />
-    <page-loading
-      :display="isPreparingCopyCandidateImports"
-      message="We are preparing to import the selected experiments. Please wait."
-    />
     <v-alert
       v-if="isLoaded && isCopyInProgress"
       class="copy-in-progress-alert mx-12 mt-6"
@@ -25,7 +21,7 @@
       :experimentExportEnabled="experimentExportEnabled"
       :experimentImportRequests="experimentImportRequests"
       :importRequestAlerts="importRequestAlerts"
-      :disableActions="isPreparingCopyCandidateImports || isExperimentImporting || isCopyInProgress"
+      :disableActions="isExperimentImporting || isCopyInProgress"
       @handleImportExperiment="handleImportExperiment"
       @handleImportRequestAlertDismiss="handleImportRequestAlertDismiss"
       @handleImportRequestAlertVisibilityChange="handleImportRequestAlertVisibilityChange"
@@ -271,8 +267,7 @@ import {
   watch,
   onMounted,
   onBeforeUnmount,
-  nextTick,
-  createApp
+  nextTick
 } from "vue";
 
 import { useRouter, onBeforeRouteLeave } from "vue-router";
@@ -290,8 +285,6 @@ import {
 import Help from "@/components/Help.vue";
 import PageLoading from "@/components/PageLoading.vue";
 import ZeroState from "@/views/ZeroState.vue";
-import CopyCandidatesDialog from "@/components/dialog/CopyCandidatesDialog.vue";
-import vuetify from "@/plugins/vuetify";
 
 import { experiment as experimentModule } from "@/store/experiment.module";
 import { experimentCopyCandidate as experimentCopyCandidateModule } from "@/store/experiment-copy-candidate.module";
@@ -344,13 +337,7 @@ const headers = [
 const isLoaded = ref(false);
 const isExportingExperiment = ref(false);
 const isDeletingExperiment = ref(false);
-const isPreparingCopyCandidateImports = ref(false);
 
-// the earlier course-copy flow, where the instructor picked which experiments to recreate from a
-// dialog on first launch. Experiments are now recreated automatically when the course is copied
-// (see ExperimentCopyCandidateService.recreateForContext), so the dialog is switched off here
-// but kept in case it's wanted again.
-const COPY_CANDIDATE_SELECTION_ENABLED = false;
 const COPY_MESSAGES = {
   COMPLETE: "Your experiments and assignments have been copied from your previous course and are ready to use.",
   ERROR: "We couldn't copy all of the experiments and assignments from your previous course. Please contact info@terracotta.education for help."
@@ -368,7 +355,6 @@ const experimentDataExportRequests = ref({
 const experimentImportRequests = ref({});
 
 const experiments = computed(() => experimentStore.experiments);
-const copyCandidates = computed(() => experimentCopyCandidateStore.copyCandidates);
 const copyStatus = computed(() => experimentCopyCandidateStore.copyStatus);
 const isCopyInProgress = computed(() => copyStatus.value?.status === "IN_PROGRESS");
 const dataExportRequests = computed(() => dataExportRequestStore.dataExportRequests);
@@ -605,99 +591,6 @@ const handleImportExperiment = async () => {
       }
     }
   };
-};
-
-const handleShowCopyCandidates = async () => {
-  let dialogApp = null;
-  let outcome = null;
-
-  // the dialog owns its own three confirmations (create/decline/defer) as an overlay over
-  // its own checkbox grid, rather than as separate Swal.fire calls - SweetAlert2 has no
-  // native support for stacking a second popup on top of one that's already open, so a
-  // follow-up Swal.fire would just replace this dialog's content instead of appearing over
-  // it. This one popup stays open for the whole interaction; it's only closed (via
-  // Swal.close()) once the dialog reports a final, already-confirmed outcome.
-  await Swal.fire({
-    html: '<div id="dialog-copy-candidates"></div>',
-    showConfirmButton: false,
-    showDenyButton: false,
-    showCancelButton: false,
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    customClass: {
-      popup: "copy-candidates-popup"
-    },
-    didOpen: () => {
-      const mountTarget = document.getElementById("dialog-copy-candidates");
-      dialogApp = createApp(CopyCandidatesDialog, {
-        candidates: copyCandidates.value,
-        onCreate: selectedIds => {
-          outcome = { type: "create", selectedIds };
-          Swal.close();
-        },
-        onDecline: () => {
-          outcome = { type: "decline" };
-          Swal.close();
-        },
-        onDefer: () => {
-          outcome = { type: "defer" };
-          Swal.close();
-        }
-      });
-      dialogApp.use(vuetify);
-      dialogApp.mount(mountTarget);
-    },
-    willClose: () => {
-      dialogApp?.unmount();
-    }
-  });
-
-  // "I'll decide later" (or closing the dialog any other way) leaves everything PENDING,
-  // so the prompt simply asks again next visit.
-  if (!outcome || outcome.type === "defer") {
-    return;
-  }
-
-  // "No thank you" resolves with nothing selected - the backend declines (and
-  // obsolete-processes) every currently-PENDING candidate for this context, same as
-  // importing zero of them would.
-  const selectedIds = outcome.type === "create" ? outcome.selectedIds : [];
-
-  // shown only for "Create selected" - covers the gap between that confirmation and the
-  // "being processed" alerts appearing below, and keeps the zero-state's own action buttons
-  // disabled until the resulting imports are done (isExperimentImporting takes over from there)
-  if (outcome.type === "create") {
-    isPreparingCopyCandidateImports.value = true;
-  }
-
-  let resolution;
-
-  try {
-    resolution = await experimentCopyCandidateStore.resolve(selectedIds);
-  } finally {
-    isPreparingCopyCandidateImports.value = false;
-  }
-
-  for (const newImport of resolution?.imports ?? []) {
-    if (!newImport?.id) {
-      continue;
-    }
-
-    experimentStore.upsertImportRequest(newImport);
-
-    const request = importRequest(newImport.id);
-
-    experimentImportRequests.value = {
-      ...experimentImportRequests.value,
-      [newImport.id]: {
-        showAlert: true,
-        polling: {
-          active: request?.processing,
-          id: null
-        }
-      }
-    };
-  }
 };
 
 // shows the result of recreating this course's experiments after a course copy once, then
@@ -1133,14 +1026,6 @@ onMounted(async () => {
   await experimentStore.fetchExperiments();
   await experimentCopyCandidateStore.fetchCopyStatus();
 
-  if (COPY_CANDIDATE_SELECTION_ENABLED && (!experiments.value || experiments.value.length === 0)) {
-    await experimentCopyCandidateStore.fetchAll();
-
-    if (copyCandidates.value.length > 0) {
-      handleShowCopyCandidates();
-    }
-  }
-
   if (experiments.value && experiments.value.length > 0) {
     await dataExportRequestStore.pollList([
       experiments.value.map(experiment => experiment.experimentId),
@@ -1312,13 +1197,5 @@ a {
   justify-content: flex-end;
   align-items: center;
   row-gap: 16px;
-}
-// SweetAlert2 defaults to a narrow (32em) popup - wide enough for the
-// copy-candidates checkbox grid to actually lay out 3 columns rather than
-// wrapping to 1 immediately. CopyCandidatesDialog's own grid collapses
-// further as this shrinks on narrower viewports.
-.copy-candidates-popup.swal2-popup {
-  width: 90vw;
-  max-width: 960px;
 }
 </style>
