@@ -738,6 +738,33 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         assertFalse(experimentCopyCandidateService.hasUnfinishedForContext(1L));
     }
 
+    // an ERROR'd candidate still counts as "unfinished" until it's had its one launch-triggered
+    // retry (see DistributeController's /copy-status/retry) - otherwise the obsolete-assignment
+    // process could run, and the failure alert show, before that retry even had a chance to
+    // succeed
+    @Test
+    void testHasUnfinishedForContextTrueWhenErrorNotYetRetried() {
+        ExperimentCopyCandidate candidate = mock(ExperimentCopyCandidate.class);
+        when(candidate.getAttempts()).thenReturn(1);
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(1L, List.of(ExperimentCopyCandidateStatus.ERROR)))
+            .thenReturn(List.of(candidate));
+
+        assertTrue(experimentCopyCandidateService.hasUnfinishedForContext(1L));
+    }
+
+    // once the launch-triggered retry has also ended in ERROR (attempts reaches 2), this must
+    // return false - that's what lets both the failure alert and the obsolete-assignment process
+    // run
+    @Test
+    void testHasUnfinishedForContextFalseWhenErrorAlreadyRetried() {
+        ExperimentCopyCandidate candidate = mock(ExperimentCopyCandidate.class);
+        when(candidate.getAttempts()).thenReturn(2);
+        when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(1L, List.of(ExperimentCopyCandidateStatus.ERROR)))
+            .thenReturn(List.of(candidate));
+
+        assertFalse(experimentCopyCandidateService.hasUnfinishedForContext(1L));
+    }
+
     @Test
     void testGetCopyStatusNoneWhenNothingToShow() {
         when(securedInfo.getContextId()).thenReturn(1L);

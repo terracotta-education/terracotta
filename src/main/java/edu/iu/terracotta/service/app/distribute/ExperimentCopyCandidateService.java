@@ -68,10 +68,14 @@ public interface ExperimentCopyCandidateService {
 
     /**
      * Whether recreation is still underway for the given context: any candidate still PENDING or
-     * IMPORTING, or IMPORTED with its ExperimentImport still processing. Used to hold off the
-     * obsolete-assignment check (NoticeController, ExperimentServiceImpl) until then, since a
-     * copied assignment's URL still carries the source course's old IDs until it's re-pointed.
-     * A cheap no-op for the overwhelming majority of contexts, which have never been a
+     * IMPORTING, IMPORTED with its ExperimentImport still processing, or ERROR but not yet
+     * retried by an instructor launch (see DistributeController's /copy-status/retry). Used to
+     * hold off the obsolete-assignment check (NoticeController, ExperimentServiceImpl) until
+     * then, since a copied assignment's URL still carries the source course's old IDs until it's
+     * re-pointed - and a candidate's first failure alone shouldn't trigger it either, since the
+     * launch-triggered retry might still succeed. Only once that retry has also ended in ERROR
+     * does this return false, allowing both the failure alert and the obsolete-assignment check
+     * to run. A cheap no-op for the overwhelming majority of contexts, which have never been a
      * course-copy destination at all.
      */
     boolean hasUnfinishedForContext(long contextId);

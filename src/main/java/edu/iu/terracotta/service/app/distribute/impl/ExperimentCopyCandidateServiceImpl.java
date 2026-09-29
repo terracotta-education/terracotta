@@ -88,10 +88,18 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
     private static final int ERROR_MESSAGE_MAX_LENGTH = 1024;
     private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
+    // the launch-triggered retry (DistributeController's /copy-status/retry, called
+    // automatically by Home.vue the first time it sees ERROR) is attempted once before the
+    // obsolete-assignment process is allowed to run and the failure alert is shown - see
+    // hasUnfinishedForContext
+    private static final int ATTEMPTS_BEFORE_OBSOLETE_CHECK_RUNS = 2;
+
     private static final List<ExperimentCopyCandidateStatus> UNFINISHED_STATUSES = List.of(
         ExperimentCopyCandidateStatus.PENDING,
         ExperimentCopyCandidateStatus.IMPORTING
     );
+
+    private static final List<ExperimentCopyCandidateStatus> ERROR_STATUS = List.of(ExperimentCopyCandidateStatus.ERROR);
 
     // every status a recreation attempt can be in - i.e. not declined through the (now unused)
     // selection prompt
@@ -359,10 +367,23 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
             return true;
         }
 
-        return experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(contextId, ExperimentCopyCandidateStatus.IMPORTED).stream()
+        boolean importStillProcessing = experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatus(contextId, ExperimentCopyCandidateStatus.IMPORTED).stream()
             .map(this::findResultingImport)
             .flatMap(Optional::stream)
             .anyMatch(experimentImport -> experimentImport.getStatus() == ExperimentImportStatus.PROCESSING);
+
+        if (importStillProcessing) {
+            return true;
+        }
+
+        // an ERROR'd candidate that hasn't yet had its one launch-triggered retry still counts as
+        // unfinished too - the obsolete-assignment process must not run until that retry has
+        // actually been attempted, or it would mark a copied assignment obsolete while a fresh
+        // recreation attempt is still pending. Once the retry has happened (attempts reaches
+        // ATTEMPTS_BEFORE_OBSOLETE_CHECK_RUNS) and also ended in ERROR, this returns false, so the
+        // caller both shows the failure alert and runs the obsolete-assignment process.
+        return experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(contextId, ERROR_STATUS).stream()
+            .anyMatch(candidate -> candidate.getAttempts() < ATTEMPTS_BEFORE_OBSOLETE_CHECK_RUNS);
     }
 
     @Override
