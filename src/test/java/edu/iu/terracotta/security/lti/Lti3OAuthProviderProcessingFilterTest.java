@@ -142,4 +142,20 @@ public class Lti3OAuthProviderProcessingFilterTest extends BaseTest {
         verify(filterChain, never()).doFilter(any(), any());
     }
 
+    @Test
+    void testDoFilterInvalidLti3RequestSetsBadRequestStatus() throws Exception {
+        when(httpRequest.getParameter("state")).thenReturn("state123");
+        when(ltiJwtService.validateState("state123")).thenReturn(stateJws);
+        when(httpRequest.getParameter("id_token")).thenReturn("id-token-value");
+        @SuppressWarnings("unchecked")
+        Jws<Claims> idTokenJws = mock(Jws.class);
+        when(ltiJwtService.validateJWT("id-token-value", "client-id")).thenReturn(idTokenJws);
+
+        // not a parseable JWT, so building the Lti3Request fails the same way a launch with no user does
+        filter.doFilter(httpRequest, httpResponse, filterChain);
+
+        verify(httpResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        verify(filterChain, never()).doFilter(any(), any());
+    }
+
 }
