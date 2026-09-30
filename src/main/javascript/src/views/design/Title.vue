@@ -18,7 +18,7 @@
 
       <v-btn
         v-if="!editMode"
-        :disabled="!experiment.title || !experiment.title.trim()"
+        :disabled="!!titleError"
         elevation="0"
         color="primary"
         class="mr-4"
@@ -67,7 +67,23 @@ const rules = [
   value => (value || "").length <= 255 || "A maximum of 255 characters is allowed"
 ];
 
+// the first rule the title fails, or null when it passes them all
+const titleError = computed(() => {
+  const failure = rules
+    .map(rule => rule(props.experiment.title))
+    .find(result => result !== true);
+
+  return failure || null;
+});
+
 const saveTitle = async path => {
+  // Save & Exit, and Enter in edit mode (no Next button to disable), would otherwise send a
+  // title the server rejects
+  if (titleError.value) {
+    await Swal.fire(titleError.value);
+    return;
+  }
+
   try {
     const response = await experimentStore.updateExperiment(props.experiment);
 

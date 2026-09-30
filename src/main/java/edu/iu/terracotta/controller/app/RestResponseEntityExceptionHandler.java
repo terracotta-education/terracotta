@@ -298,7 +298,7 @@ public class RestResponseEntityExceptionHandler
     @ExceptionHandler({TitleValidationException.class})
     protected ResponseEntity<Object> handleTitleValidationException(TitleValidationException ex, WebRequest request) {
         String bodyOfResponse = ex.getMessage();
-        log.warn(bodyOfResponse);
+        log.warn(ex.getLogMessage());
 
         if (bodyOfResponse.startsWith("Error 100") || bodyOfResponse.startsWith("Error 102")) {
             return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);

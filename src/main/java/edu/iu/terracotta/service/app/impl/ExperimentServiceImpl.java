@@ -173,7 +173,10 @@ public class ExperimentServiceImpl implements ExperimentService {
         Experiment experimentToChange = getExperiment(experimentId);
 
         if (StringUtils.isAllBlank(experimentDto.getTitle(), experimentToChange.getTitle())) {
-            throw new TitleValidationException("Error 100: Please give the experiment a title.");
+            throw new TitleValidationException(
+                "Error 100: Please give the experiment a title.",
+                String.format("Error 100: No title was given for experiment ID: [%s]", experimentId)
+            );
         }
 
         if (StringUtils.isNotBlank(experimentDto.getTitle())) {

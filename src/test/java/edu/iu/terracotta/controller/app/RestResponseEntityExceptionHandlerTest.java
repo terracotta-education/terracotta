@@ -290,6 +290,14 @@ public class RestResponseEntityExceptionHandlerTest {
     }
 
     @Test
+    void handleTitleValidationExceptionReturnsTheUserMessageNotTheLogMessageTest() {
+        ResponseEntity<Object> response = handler.handleTitleValidationException(new TitleValidationException("Error 100: title issue", "Error 100: logged detail"), webRequest);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("Error 100: title issue", response.getBody());
+    }
+
+    @Test
     void handleTitleValidationExceptionError100Test() {
         ResponseEntity<Object> response = handler.handleTitleValidationException(new TitleValidationException("Error 100: title issue"), webRequest);
 
