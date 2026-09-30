@@ -301,6 +301,17 @@ const conditionForTreatment = (groupConditionList, currentConditionId) => {
 const getAssignmentDetails = async () => {
   await exposuresStore.fetchExposures(props.experiment.experimentId);
 
+  // the stored assignments were loaded on the experiment summary and aren't refreshed when a
+  // treatment is saved here, so questions added to another treatment since wouldn't show up in
+  // "Copy Content From" without reloading them
+  await Promise.all(
+    exposures.value.map(exposure => assignmentStore.fetchAssignmentsByExposure([
+      props.experiment.experimentId,
+      exposure.exposureId,
+      true
+    ]))
+  );
+
   return exposures.value;
 };
 

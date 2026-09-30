@@ -49,6 +49,9 @@ vi.mock("@/services", () => ({
   exposuresService: {
     getAll: vi.fn(() => Promise.resolve([]))
   },
+  assignmentService: {
+    fetchAssignmentsByExposure: vi.fn(() => Promise.resolve([]))
+  },
   treatmentService: {
     create: vi.fn(),
     update: vi.fn()
@@ -162,6 +165,26 @@ describe("TerracottaBuilder", () => {
     expect(assessmentService.fetchAssessment).toHaveBeenCalledWith(1, "5", "10", "100");
     expect(submissionService.getAll).toHaveBeenCalledWith(1, "5", "10", "100");
     expect(exposuresService.getAll).toHaveBeenCalledWith(1);
+  });
+
+  it("reloads each exposure's assignments on mount so the copy list sees content saved since", async () => {
+    const { exposuresService, assignmentService } = await import("@/services");
+    exposuresService.getAll.mockResolvedValue([{ exposureId: "expo-1" }, { exposureId: "expo-2" }]);
+    assignmentService.fetchAssignmentsByExposure.mockImplementation((experimentId, exposureId) => {
+      return Promise.resolve(exposureId === "expo-1"
+        ? [{
+          assignmentId: 7,
+          title: "Other assignment",
+          treatments: [{ treatmentId: 70, assessmentDto: { questions: [{ questionId: 1 }] } }]
+        }]
+        : []);
+    });
+
+    const wrapper = await mountBuilder();
+
+    expect(assignmentService.fetchAssignmentsByExposure).toHaveBeenCalledWith(1, "expo-1", true);
+    expect(assignmentService.fetchAssignmentsByExposure).toHaveBeenCalledWith(1, "expo-2", true);
+    expect(wrapper.vm.assignmentsAvailableToCopy.map(item => item.title)).toEqual(["Other assignment"]);
   });
 
   it("renders the header, tabs, and treatment/settings panes once the assessment has loaded", async () => {
