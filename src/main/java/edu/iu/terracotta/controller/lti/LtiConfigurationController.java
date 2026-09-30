@@ -71,8 +71,6 @@ public class LtiConfigurationController {
 
     @PostMapping("/")
     public ResponseEntity<String> createDeployment(@RequestBody PlatformDeployment platformDeployment, UriComponentsBuilder ucBuilder) {
-        log.info("Creating Deployment : {}", platformDeployment);
-
         if (!platformDeploymentRepository.findByIssAndClientId(platformDeployment.getIss(), platformDeployment.getClientId()).isEmpty()) {
             log.error("Unable to create. A platformDeployment with iss [{}] and clientId [{}] already exists", platformDeployment.getIss(), platformDeployment.getClientId());
             return new ResponseEntity<String>("Unable to create. A platformDeployment with same key already exist.", HttpStatus.CONFLICT);
@@ -86,6 +84,8 @@ public class LtiConfigurationController {
                 toolDeploymentRepository.save(toolDeployment);
             }
         }
+
+        log.info("Created platform deployment ID: [{}] for issuer: [{}] and client ID: [{}]", platformDeploymentSaved.getKeyId(), platformDeploymentSaved.getIss(), platformDeploymentSaved.getClientId());
 
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/config/{id}").buildAndExpand(platformDeploymentSaved.getKeyId()).toUri());
