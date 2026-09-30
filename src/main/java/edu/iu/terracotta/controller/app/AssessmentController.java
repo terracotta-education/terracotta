@@ -182,7 +182,6 @@ public class AssessmentController {
         long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
-        log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -192,6 +191,7 @@ public class AssessmentController {
         }
 
         AssessmentDto updatedAssessmentDto = assessmentService.putAssessment(assessmentId, assessmentDto, true, securedInfo);
+        log.debug("Updated assessment ID: [{}]", assessmentUuid);
 
         return new ResponseEntity<>(updatedAssessmentDto, HttpStatus.OK);
     }

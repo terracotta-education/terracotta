@@ -203,12 +203,14 @@ public class AnswerController {
         for (AnswerDto answerDto : answerDtoList) {
             AnswerMc mcAnswer = answerService.getAnswerMcByUuid(answerDto.getAnswerId());
             apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, mcAnswer.getAnswerMcId());
-            log.debug("Updating answer with id: {}", mcAnswer.getAnswerMcId());
             map.put(mcAnswer, answerDto);
         }
 
         try {
-            return new ResponseEntity<>(answerService.updateAnswerMC(map), HttpStatus.OK);
+            List<AnswerDto> updatedAnswerDtos = answerService.updateAnswerMC(map);
+            log.debug("Updated answer IDs: [{}]", answerDtoList.stream().map(AnswerDto::getAnswerId).toList());
+
+            return new ResponseEntity<>(updatedAnswerDtos, HttpStatus.OK);
         } catch (Exception ex) {
             throw new DataServiceException(String.format("Error 105: An error occurred trying to update the answer list. No answers were updated. %s", ex.getMessage()), ex);
         }
@@ -230,7 +232,6 @@ public class AnswerController {
         long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         long questionId = questionService.getQuestionIdByUuid(questionUuid);
         long answerId = answerService.getAnswerMcIdByUuid(answerUuid);
-        log.debug("Updating answer with id: {}", answerId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -251,6 +252,7 @@ public class AnswerController {
         map.put(answerMc, answerDto);
 
         List<AnswerDto> answerDtos = answerService.updateAnswerMC(map);
+        log.debug("Updated answer ID: [{}]", answerUuid);
 
         if (CollectionUtils.isEmpty(answerDtos)) {
             throw new DataServiceException("Error 105: An error occurred trying to update the answer. Answer was not updated.");

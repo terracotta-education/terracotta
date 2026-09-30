@@ -137,7 +137,6 @@ public class ExposureController {
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
         long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
-        log.debug("Updating exposure with id {}", exposureId);
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -148,6 +147,7 @@ public class ExposureController {
         }
 
         exposureService.updateExposure(exposureId, exposureDto);
+        log.debug("Updated exposure ID: [{}]", exposureUuid);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

@@ -210,12 +210,12 @@ public class ParticipantController {
             long participantId = participantService.getParticipantIdByUuid(participantDto.getParticipantId());
             apijwtService.participantAllowed(securedInfo, experimentId, participantId);
             Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false);
-            log.debug("Updating participant with id: {}", participant.getParticipantId());
             participantMap.put(participant, participantDto);
         }
 
         try {
             participantService.changeParticipant(participantMap, experimentId, securedInfo);
+            log.debug("Updated participant IDs: [{}]", participantDtoList.stream().map(ParticipantDto::getParticipantId).toList());
 
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {

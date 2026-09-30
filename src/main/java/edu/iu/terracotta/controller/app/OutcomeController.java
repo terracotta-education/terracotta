@@ -144,7 +144,6 @@ public class OutcomeController {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
         long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
-        log.debug("Updating outcome with id {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -154,6 +153,7 @@ public class OutcomeController {
         }
 
             outcomeService.updateOutcome(outcomeId, outcomeDto);
+            log.debug("Updated outcome ID: [{}]", outcomeUuid);
 
             return new ResponseEntity<>(HttpStatus.OK);
     }

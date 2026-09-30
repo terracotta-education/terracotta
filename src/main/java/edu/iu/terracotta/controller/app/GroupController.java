@@ -134,7 +134,6 @@ public class GroupController {
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         long groupId = groupService.getGroupIdByUuid(groupUuid);
-        log.debug("Updating group with id {}", groupId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
@@ -144,6 +143,7 @@ public class GroupController {
         }
 
         groupService.updateGroup(groupId, groupDto);
+        log.debug("Updated group ID: [{}]", groupUuid);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

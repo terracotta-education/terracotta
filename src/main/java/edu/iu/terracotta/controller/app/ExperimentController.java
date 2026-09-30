@@ -154,7 +154,6 @@ public class ExperimentController {
                     DataServiceException, ExperimentStartedException, IOException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         long experimentId = experimentService.getExperimentIdByUuid(id);
-        log.debug("Updating Experiment with id {}", experimentId);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -162,6 +161,7 @@ public class ExperimentController {
         }
 
         experimentService.updateExperiment(experimentId, securedInfo.getContextId(), experimentDto, securedInfo);
+        log.debug("Updated experiment ID: [{}]", id);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

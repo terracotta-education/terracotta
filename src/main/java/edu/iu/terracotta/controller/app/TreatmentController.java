@@ -154,7 +154,6 @@ public class TreatmentController {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
-        log.debug("Updating treatment with id: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
@@ -163,7 +162,10 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        return new ResponseEntity(treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo, questions), HttpStatus.OK);
+        TreatmentDto updatedTreatmentDto = treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo, questions);
+        log.debug("Updated treatment ID: [{}]", treatmentUuid);
+
+        return new ResponseEntity(updatedTreatmentDto, HttpStatus.OK);
     }
 
     @DeleteMapping("/{treatmentId}")

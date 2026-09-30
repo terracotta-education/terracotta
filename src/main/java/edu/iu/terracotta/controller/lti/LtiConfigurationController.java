@@ -95,7 +95,6 @@ public class LtiConfigurationController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateDeployment(@PathVariable("id") long id, @RequestBody PlatformDeployment platformDeployment) {
-        log.info("Updating User with id {}", id);
         Optional<PlatformDeployment> platformDeploymentSearchResult = platformDeploymentRepository.findById(id);
 
         if (platformDeploymentSearchResult.isEmpty()) {
@@ -124,6 +123,7 @@ public class LtiConfigurationController {
         }
 
         platformDeploymentRepository.saveAndFlush(platformDeploymentToChange);
+        log.info("Updated platform deployment ID: [{}]", id);
 
         return new ResponseEntity<>(platformDeploymentToChange, HttpStatus.OK);
     }

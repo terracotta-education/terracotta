@@ -194,7 +194,6 @@ public class QuestionSubmissionCommentController {
         long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
-        log.debug("Updating question submission comment with id {}", questionSubmissionCommentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -210,6 +209,7 @@ public class QuestionSubmissionCommentController {
         }
 
         questionSubmissionCommentService.updateQuestionSubmissionComment(questionSubmissionCommentDto, questionSubmissionCommentId, experimentId, submissionId, securedInfo);
+        log.debug("Updated question submission comment ID: [{}]", questionSubmissionCommentUuid);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

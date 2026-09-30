@@ -214,7 +214,6 @@ public class QuestionSubmissionController {
         long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
-        log.debug("Updating question submission with id: [{}]", questionSubmissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -236,6 +235,7 @@ public class QuestionSubmissionController {
         Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
         map.put(questionSubmission, questionSubmissionDto);
         questionSubmissionService.updateQuestionSubmissions(map, student);
+        log.debug("Updated question submission ID: [{}]", questionSubmissionUuid);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -276,13 +276,13 @@ public class QuestionSubmissionController {
             long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionDto.getQuestionSubmissionId());
             apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
             QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionId);
-            log.debug("Updating question submission with id: [{}]", questionSubmission.getQuestionSubmissionId());
             questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
             map.put(questionSubmission, questionSubmissionDto);
         }
 
         try {
             questionSubmissionService.updateQuestionSubmissions(map, student);
+            log.debug("Updated question submission IDs: [{}]", questionSubmissionDtoList.stream().map(QuestionSubmissionDto::getQuestionSubmissionId).toList());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {
             throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated. " + ex.getMessage(), ex);
