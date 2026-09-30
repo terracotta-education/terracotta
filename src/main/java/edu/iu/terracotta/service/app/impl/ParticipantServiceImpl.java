@@ -83,6 +83,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -403,7 +404,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             throw new ParticipantNotUpdatedException(e.getMessage());
         }
 
-        log.debug("Refreshing participants for experiment ID: [{}] took [{}]", experimentId, Duration.between(startTime, Instant.now()));
+        log.debug("Refreshing participants for experiment ID: [{}] took [{}s]", experimentId, String.format(Locale.ROOT, "%.1f", Duration.between(startTime, Instant.now()).toMillis() / 1000.0));
     }
 
     /**
