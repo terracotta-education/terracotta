@@ -134,7 +134,6 @@ public class AssessmentController {
                                                         HttpServletRequest req)
             throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
             TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Creating Assessment for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
@@ -144,6 +143,7 @@ public class AssessmentController {
         }
 
         AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId, securedInfo);
+        log.debug("Created assessment ID: [{}] for treatment ID: [{}]", returnedDto.getAssessmentId(), treatmentId);
         HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, returnedDto.getAssessmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -159,7 +159,6 @@ public class AssessmentController {
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, TitleValidationException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException,
             MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating assessment with id: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -169,6 +168,7 @@ public class AssessmentController {
         }
 
         AssessmentDto updatedAssessmentDto = assessmentService.putAssessment(assessmentId, assessmentDto, true, securedInfo);
+        log.debug("Updated assessment ID: [{}]", assessmentId);
 
         return new ResponseEntity<>(updatedAssessmentDto, HttpStatus.OK);
     }

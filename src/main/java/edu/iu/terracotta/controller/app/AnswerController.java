@@ -126,7 +126,6 @@ public class AnswerController {
                                                 UriComponentsBuilder ucBuilder,
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, BadTokenException, MultipleChoiceLimitReachedException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Creating Answer for question ID: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -137,6 +136,7 @@ public class AnswerController {
         }
 
         AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
+        log.debug("Created answer ID: [{}] for question ID: [{}]", returnedMcdDto.getAnswerId(), questionId);
         HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, questionId, returnedMcdDto.getAnswerId());
 
         return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);
@@ -171,12 +171,14 @@ public class AnswerController {
         for (AnswerDto answerDto : answerDtoList) {
             apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerDto.getAnswerId());
             AnswerMc mcAnswer = answerService.findByAnswerId(answerDto.getAnswerId());
-            log.debug("Updating answer with id: {}", mcAnswer.getAnswerMcId());
             map.put(mcAnswer, answerDto);
         }
 
         try {
-            return new ResponseEntity<>(answerService.updateAnswerMC(map), HttpStatus.OK);
+            List<AnswerDto> updatedAnswerDtos = answerService.updateAnswerMC(map);
+            log.debug("Updated answer IDs: {}", answerDtoList.stream().map(AnswerDto::getAnswerId).toList());
+
+            return new ResponseEntity<>(updatedAnswerDtos, HttpStatus.OK);
         } catch (Exception ex) {
             throw new DataServiceException(String.format("Error 105: An error occurred trying to update the answer list. No answers were updated. %s", ex.getMessage()), ex);
         }
@@ -192,7 +194,6 @@ public class AnswerController {
                                              @RequestBody AnswerDto answerDto,
                                              HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionNotMatchingException, AnswerNotMatchingException, BadTokenException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating answer with id: {}", answerId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -213,6 +214,7 @@ public class AnswerController {
         map.put(answerMc, answerDto);
 
         List<AnswerDto> answerDtos = answerService.updateAnswerMC(map);
+        log.debug("Updated answer ID: [{}]", answerId);
 
         if (CollectionUtils.isEmpty(answerDtos)) {
             throw new DataServiceException("Error 105: An error occurred trying to update the answer. Answer was not updated.");
