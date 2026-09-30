@@ -29,6 +29,7 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredExce
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.model.enums.integrations.IntegrationTokenStatus;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.integrations.impl.IntegrationTokenServiceImpl;
 import jakarta.persistence.LockModeType;
@@ -218,8 +219,52 @@ public class IntegrationTokenServiceImplTest extends BaseTest {
         when(integrationToken.isExpired(anyLong())).thenReturn(true);
 
         assertThrows(IntegrationTokenExpiredException.class, () -> { integrationTokenService.redeemToken("token"); });
-        verify(integrationToken).setRedeemedAt(any(Timestamp.class));
-        verify(integrationTokenRepository).saveAndFlush(any(IntegrationToken.class));
+        // left unredeemed so a relaunch can renew it
+        verify(integrationToken, never()).setRedeemedAt(any(Timestamp.class));
+        verify(integrationTokenRepository, never()).saveAndFlush(any(IntegrationToken.class));
+    }
+
+    // tokens redeemed by an expired attempt before that stopped: every later attempt failed as
+    // already redeemed, and relaunching didn't help
+    @Test
+    void testCreateRelaunchClearsATokenRedeemedWhenItExpired() throws IntegrationTokenNotFoundException {
+        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(integrationToken.getToken()).thenReturn("token");
+        when(integrationToken.isAlreadyRedeemed()).thenReturn(true);
+        when(submission.isSubmitted()).thenReturn(false);
+        when(integrationTokenLogRepository.existsByTokenAndStatus("token", IntegrationTokenStatus.EXPIRED)).thenReturn(true);
+
+        integrationTokenService.create(submission, securedInfo);
+
+        verify(integrationToken).setRedeemedAt(null);
+        verify(integrationTokenRepository).saveAndFlush(integrationToken);
+    }
+
+    @Test
+    void testCreateRelaunchKeepsATokenRedeemedByAScoredSubmission() throws IntegrationTokenNotFoundException {
+        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(integrationToken.getToken()).thenReturn("token");
+        when(integrationToken.isAlreadyRedeemed()).thenReturn(true);
+        when(submission.isSubmitted()).thenReturn(true);
+        when(integrationTokenLogRepository.existsByTokenAndStatus("token", IntegrationTokenStatus.EXPIRED)).thenReturn(true);
+
+        integrationTokenService.create(submission, securedInfo);
+
+        verify(integrationToken, never()).setRedeemedAt(null);
+    }
+
+    // redeemed but not yet scored, and never expired: a score still being recorded right now
+    @Test
+    void testCreateRelaunchKeepsATokenRedeemedWithoutExpiring() throws IntegrationTokenNotFoundException {
+        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(integrationToken.getToken()).thenReturn("token");
+        when(integrationToken.isAlreadyRedeemed()).thenReturn(true);
+        when(submission.isSubmitted()).thenReturn(false);
+        when(integrationTokenLogRepository.existsByTokenAndStatus("token", IntegrationTokenStatus.EXPIRED)).thenReturn(false);
+
+        integrationTokenService.create(submission, securedInfo);
+
+        verify(integrationToken, never()).setRedeemedAt(null);
     }
 
 }
