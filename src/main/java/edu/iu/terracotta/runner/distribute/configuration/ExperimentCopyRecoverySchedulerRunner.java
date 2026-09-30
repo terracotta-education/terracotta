@@ -41,10 +41,12 @@ public class ExperimentCopyRecoverySchedulerRunner {
     @Bean
     Task<Void> experimentCopyRecoverySchedulerTask(ExperimentCopyRecoverySchedulerService experimentCopyRecoverySchedulerService) {
         if (!enabled) {
+            log.info("The experiment copy recovery task [{}] is disabled. Set [experiment.copy.recovery.scheduler.enabled] to true to enable it.", TASK_NAME);
+
             // not enabled; create one-time task to log message
             return Tasks.oneTime(EXPERIMENT_COPY_RECOVERY_TASK)
                 .execute(
-                    (instance, ctx) -> log.info("Experiment copy recovery task [{}] in not enabled.", EXPERIMENT_COPY_RECOVERY_TASK)
+                    (instance, ctx) -> log.info("The experiment copy recovery task [{}] is not enabled.", TASK_NAME)
                 );
         }
 
@@ -55,7 +57,7 @@ public class ExperimentCopyRecoverySchedulerRunner {
             log.error(e.getMessage());
         }
 
-        log.info("Creating experiment copy recovery task [{}]", EXPERIMENT_COPY_RECOVERY_TASK);
+        log.info("Scheduled the experiment copy recovery task [{}] to run every [{}] minute(s)", TASK_NAME, interval);
 
         return Tasks.recurring(EXPERIMENT_COPY_RECOVERY_TASK, Schedules.fixedDelay(Duration.ofMinutes(interval)))
             .onDeadExecutionRevive()
