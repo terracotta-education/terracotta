@@ -181,7 +181,6 @@ public class QuestionSubmissionController {
                                                          @RequestBody QuestionSubmissionDto questionSubmissionDto,
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, AnswerNotMatchingException, AnswerSubmissionNotMatchingException, IdMissingException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating question submission with id: [{}]", questionSubmissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -203,6 +202,7 @@ public class QuestionSubmissionController {
         Map<QuestionSubmission, QuestionSubmissionDto> map = new HashMap<>();
         map.put(questionSubmission, questionSubmissionDto);
         questionSubmissionService.updateQuestionSubmissions(map, student);
+        log.debug("Updated question submission ID: [{}]", questionSubmissionId);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -237,13 +237,13 @@ public class QuestionSubmissionController {
         for (QuestionSubmissionDto questionSubmissionDto : questionSubmissionDtoList) {
             apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionDto.getQuestionSubmissionId());
             QuestionSubmission questionSubmission = questionSubmissionService.getQuestionSubmission(questionSubmissionDto.getQuestionSubmissionId());
-            log.debug("Updating question submission with id: [{}]", questionSubmission.getQuestionSubmissionId());
             questionSubmissionService.validateQuestionSubmission(questionSubmissionDto);
             map.put(questionSubmission, questionSubmissionDto);
         }
 
         try {
             questionSubmissionService.updateQuestionSubmissions(map, student);
+            log.debug("Updated question submission IDs: {}", questionSubmissionDtoList.stream().map(QuestionSubmissionDto::getQuestionSubmissionId).toList());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {
             throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated. " + ex.getMessage(), ex);

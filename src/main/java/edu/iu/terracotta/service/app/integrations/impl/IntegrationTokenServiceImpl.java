@@ -20,6 +20,8 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenExpiredExce
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenInvalidException;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenNotFoundException;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
+import edu.iu.terracotta.dao.model.enums.integrations.IntegrationTokenStatus;
+import edu.iu.terracotta.dao.repository.integrations.IntegrationTokenLogRepository;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationTokenRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.integrations.IntegrationTokenService;
@@ -36,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 public class IntegrationTokenServiceImpl implements IntegrationTokenService {
 
     private final IntegrationTokenRepository integrationTokenRepository;
+    private final IntegrationTokenLogRepository integrationTokenLogRepository;
 
     @PersistenceContext private EntityManager entityManager;
 
@@ -74,6 +77,14 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
             // @Transactional is no recovery at all, since the repository proxy has already
             // marked the transaction rollback-only by then and the launch still fails at commit.
             entityManager.refresh(integrationToken, LockModeType.PESSIMISTIC_WRITE);
+
+            if (isStuckAfterExpiring(integrationToken, submission)) {
+                // an expired submission used to redeem the token as it was rejected, leaving this
+                // unscored submission with a token every later attempt fails on as already
+                // redeemed. This relaunch renews the token's session, so it can be redeemed again.
+                log.info("Token [{}] was redeemed when it expired without a score - clearing it for this relaunch", integrationToken.getToken());
+                integrationToken.setRedeemedAt(null);
+            }
         }
 
         LocalDateTime launchedAt = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
@@ -150,7 +161,8 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         }
 
         if (integrationToken.isExpired(ttl)) {
-            invalidate(integrationToken);
+            // not redeemed: the expiry is measured from the last launch, so the token stays unusable
+            // until the student relaunches, and that relaunch is what lets them submit again
             throw new IntegrationTokenExpiredException(
                 String.format(
                     "Integration token: [%s] expired at [%s].",
@@ -161,6 +173,12 @@ public class IntegrationTokenServiceImpl implements IntegrationTokenService {
         }
 
         return invalidate(integrationToken);
+    }
+
+    private boolean isStuckAfterExpiring(IntegrationToken integrationToken, Submission submission) {
+        return integrationToken.isAlreadyRedeemed()
+            && !submission.isSubmitted()
+            && integrationTokenLogRepository.existsByTokenAndStatus(integrationToken.getToken(), IntegrationTokenStatus.EXPIRED);
     }
 
     private IntegrationToken invalidate(IntegrationToken integrationToken) {

@@ -107,7 +107,6 @@ public class OutcomeController {
                                                   UriComponentsBuilder ucBuilder,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Creating Outcome for exposure ID: {}", exposureId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -117,6 +116,7 @@ public class OutcomeController {
         }
 
         OutcomeDto returnedDto = outcomeService.postOutcome(outcomeDto, exposureId);
+        log.debug("Created outcome ID: [{}] for exposure ID: [{}]", returnedDto.getOutcomeId(), exposureId);
         HttpHeaders headers = outcomeService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getOutcomeId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -129,7 +129,6 @@ public class OutcomeController {
                                               @RequestBody OutcomeDto outcomeDto,
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating outcome with id {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -139,6 +138,7 @@ public class OutcomeController {
         }
 
             outcomeService.updateOutcome(outcomeId, outcomeDto);
+            log.debug("Updated outcome ID: [{}]", outcomeId);
 
             return new ResponseEntity<>(HttpStatus.OK);
     }
