@@ -208,7 +208,7 @@ public class AnswerController {
 
         try {
             List<AnswerDto> updatedAnswerDtos = answerService.updateAnswerMC(map);
-            log.debug("Updated answer IDs: [{}]", answerDtoList.stream().map(AnswerDto::getAnswerId).toList());
+            log.debug("Updated answer IDs: {}", answerDtoList.stream().map(AnswerDto::getAnswerId).toList());
 
             return new ResponseEntity<>(updatedAnswerDtos, HttpStatus.OK);
         } catch (Exception ex) {

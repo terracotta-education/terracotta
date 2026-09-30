@@ -215,7 +215,7 @@ public class ParticipantController {
 
         try {
             participantService.changeParticipant(participantMap, experimentId, securedInfo);
-            log.debug("Updated participant IDs: [{}]", participantDtoList.stream().map(ParticipantDto::getParticipantId).toList());
+            log.debug("Updated participant IDs: {}", participantDtoList.stream().map(ParticipantDto::getParticipantId).toList());
 
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {

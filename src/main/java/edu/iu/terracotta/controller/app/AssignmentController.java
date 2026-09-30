@@ -198,7 +198,7 @@ public class AssignmentController {
         }
 
         List<AssignmentDto> updatedAssignmentDtos = assignmentService.updateAssignments(assignmentDtos, securedInfo);
-        log.debug("Updated assignment IDs: [{}] for exposure ID: [{}]", updatedAssignmentDtos.stream().map(AssignmentDto::getAssignmentId).toList(), exposureUuid);
+        log.debug("Updated assignment IDs: {} for exposure ID: [{}]", updatedAssignmentDtos.stream().map(AssignmentDto::getAssignmentId).toList(), exposureUuid);
 
         return new ResponseEntity<>(updatedAssignmentDtos, HttpStatus.OK);
     }

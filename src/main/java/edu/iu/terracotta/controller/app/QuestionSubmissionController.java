@@ -282,7 +282,7 @@ public class QuestionSubmissionController {
 
         try {
             questionSubmissionService.updateQuestionSubmissions(map, student);
-            log.debug("Updated question submission IDs: [{}]", questionSubmissionDtoList.stream().map(QuestionSubmissionDto::getQuestionSubmissionId).toList());
+            log.debug("Updated question submission IDs: {}", questionSubmissionDtoList.stream().map(QuestionSubmissionDto::getQuestionSubmissionId).toList());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {
             throw new DataServiceException("Error 105: There was an error updating the question submission list. No question submissions were updated. " + ex.getMessage(), ex);

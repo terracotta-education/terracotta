@@ -193,7 +193,7 @@ public class AnswerSubmissionController {
         }
 
         List<AnswerSubmissionDto> returnedDtoList = answerSubmissionService.postAnswerSubmissions(answerSubmissionDtoList);
-        log.info("Created answer submission IDs: [{}] for submission ID: [{}]", returnedDtoList.stream().map(AnswerSubmissionDto::getAnswerSubmissionId).toList(), submissionUuid);
+        log.info("Created answer submission IDs: {} for submission ID: [{}]", returnedDtoList.stream().map(AnswerSubmissionDto::getAnswerSubmissionId).toList(), submissionUuid);
 
         return new ResponseEntity<>(returnedDtoList, HttpStatus.OK);
     }

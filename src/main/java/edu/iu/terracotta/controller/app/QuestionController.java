@@ -184,7 +184,7 @@ public class QuestionController {
 
         try {
             questionService.updateQuestion(map);
-            log.debug("Updated question IDs: [{}]", questionDtoList.stream().map(QuestionDto::getQuestionId).toList());
+            log.debug("Updated question IDs: {}", questionDtoList.stream().map(QuestionDto::getQuestionId).toList());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {
             throw new DataServiceException("Error 105: An error occurred trying to update the question list. No questions were updated. " + ex.getMessage(), ex);

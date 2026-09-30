@@ -897,7 +897,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             return;
         }
 
-        log.info("Processing regrade option: [{}] with edited MC question IDs: [{}] for assessment ID: [{}]",
+        log.info("Processing regrade option: [{}] with edited MC question IDs: {} for assessment ID: [{}]",
             regradeDetails.getRegradeOption(),
             StringUtils.join(regradeDetails.getEditedMCQuestionIds(), ","),
             assessmentId

@@ -164,7 +164,7 @@ public class ConditionController {
 
         try {
             conditionService.updateCondition(map);
-            log.debug("Updated condition IDs: [{}]", conditionDtoList.stream().map(ConditionDto::getConditionId).toList());
+            log.debug("Updated condition IDs: {}", conditionDtoList.stream().map(ConditionDto::getConditionId).toList());
 
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {

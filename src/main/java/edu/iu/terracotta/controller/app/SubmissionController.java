@@ -227,7 +227,7 @@ public class SubmissionController {
 
         try {
             submissionService.updateSubmissions(map, false);
-            log.debug("Updated submission IDs: [{}]", submissionDtoList.stream().map(SubmissionDto::getSubmissionId).toList());
+            log.debug("Updated submission IDs: {}", submissionDtoList.stream().map(SubmissionDto::getSubmissionId).toList());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception e) {
             throw new DataServiceException("Error 105: There was an error updating the submission list. No submissions were updated. " + e.getMessage(), e);

@@ -72,7 +72,7 @@ public class ResultsDashboardController {
             return new ResponseEntity<>(resultsDashboardService.outcomes(experimentId, resultsOutcomesRequestDto), HttpStatus.OK);
         } catch (Exception e) {
             log.error(
-                "Error calculating outcomes for experiment ID: [{}], outcome IDs: [{}], alternate ID: [{}]",
+                "Error calculating outcomes for experiment ID: [{}], outcome IDs: {}, alternate ID: [{}]",
                 experimentId, resultsOutcomesRequestDto.getOutcomeIds(), resultsOutcomesRequestDto.getAlternateId().getId(), e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
