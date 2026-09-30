@@ -117,7 +117,6 @@ public class AssignmentController {
             AssessmentNotMatchingException, TitleValidationException, AssignmentNotCreatedException, IdInPostException,
             DataServiceException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, TerracottaConnectorException {
-        log.debug("Creating Assignment for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -127,6 +126,7 @@ public class AssignmentController {
         }
 
         AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, exposureId, securedInfo);
+        log.debug("Created assignment ID: [{}] for exposure ID: [{}]", returnedDto.getAssignmentId(), exposureId);
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -142,7 +142,6 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException,
                     TitleValidationException, ApiException, AssignmentNotEditedException,
                     RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, ExposureNotMatchingException, TerracottaConnectorException {
-        log.debug("Updating assignment with id: {}", assignmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
@@ -152,6 +151,7 @@ public class AssignmentController {
         }
 
         AssignmentDto updatedAssignmentDto = assignmentService.putAssignment(assignmentId, assignmentDto, securedInfo);
+        log.debug("Updated assignment ID: [{}]", assignmentId);
 
         return new ResponseEntity<>(updatedAssignmentDto, HttpStatus.OK);
     }
@@ -165,7 +165,6 @@ public class AssignmentController {
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException,
                     TitleValidationException, ApiException, AssignmentNotEditedException,
                     RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, ExposureNotMatchingException, AssessmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating assignments for exposure with id: {}", exposureId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -179,6 +178,7 @@ public class AssignmentController {
         }
 
         List<AssignmentDto> updatedAssignmentDtos = assignmentService.updateAssignments(assignmentDtos, securedInfo);
+        log.debug("Updated assignment IDs: {} for exposure ID: [{}]", updatedAssignmentDtos.stream().map(AssignmentDto::getAssignmentId).toList(), exposureId);
 
         return new ResponseEntity<>(updatedAssignmentDtos, HttpStatus.OK);
     }

@@ -90,7 +90,6 @@ public class ExposureController {
                                                     UriComponentsBuilder ucBuilder,
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Creating Exposure for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);
@@ -100,6 +99,7 @@ public class ExposureController {
         }
 
         ExposureDto returnedDto = exposureService.postExposure(exposureDto, experimentId);
+        log.debug("Created exposure ID: [{}] for experiment ID: [{}]", returnedDto.getExposureId(), experimentId);
         HttpHeaders headers = exposureService.buildHeaders(ucBuilder, experimentId, returnedDto.getExposureId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -128,7 +128,6 @@ public class ExposureController {
                                                @RequestBody ExposureDto exposureDto,
                                                HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExposureNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating exposure with id {}", exposureId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -138,6 +137,7 @@ public class ExposureController {
         }
 
         exposureService.updateExposure(exposureId, exposureDto);
+        log.debug("Updated exposure ID: [{}]", exposureId);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

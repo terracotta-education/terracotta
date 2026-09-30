@@ -112,7 +112,6 @@ public class ExperimentController {
             experimentDto = ExperimentDto.builder().build();
         }
 
-        log.debug("Creating Experiment with title : {}", experimentDto.getTitle());
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
 
         if (securedInfo == null) {
@@ -138,6 +137,7 @@ public class ExperimentController {
         }
 
         ExperimentDto returnedDto = experimentService.postExperiment(experimentDto, securedInfo);
+        log.debug("Created experiment with ID: [{}]", returnedDto.getExperimentId());
         HttpHeaders headers = experimentService.buildHeaders(ucBuilder, returnedDto.getExperimentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -149,7 +149,6 @@ public class ExperimentController {
                                                  HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, WrongValueException, TitleValidationException, ParticipantNotUpdatedException,
                     DataServiceException, ExperimentStartedException, IOException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating Experiment with id {}", id);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, id);
 
@@ -158,6 +157,7 @@ public class ExperimentController {
         }
 
         experimentService.updateExperiment(id, securedInfo.getContextId(), experimentDto, securedInfo);
+        log.debug("Updated experiment ID: [{}]", id);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

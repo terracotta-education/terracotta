@@ -184,9 +184,10 @@ public class ExperimentServiceImplTest extends BaseTest {
     public void testUpdateExperimentBothTitlesBlankThrows() {
         ExperimentDto experimentDto = ExperimentDto.builder().build();
 
-        Exception exception = assertThrows(TitleValidationException.class, () -> experimentService.updateExperiment(1L, 1L, experimentDto, securedInfo));
+        TitleValidationException exception = assertThrows(TitleValidationException.class, () -> experimentService.updateExperiment(1L, 1L, experimentDto, securedInfo));
 
         assertEquals("Error 100: Please give the experiment a title.", exception.getMessage());
+        assertEquals("Error 100: No title was given for experiment ID: [1]", exception.getLogMessage());
     }
 
     @Test
