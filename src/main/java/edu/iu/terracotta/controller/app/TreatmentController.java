@@ -113,7 +113,6 @@ public class TreatmentController {
                                                       UriComponentsBuilder ucBuilder,
                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, TreatmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Creating Treatment for condition ID: {}", conditionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
@@ -123,6 +122,7 @@ public class TreatmentController {
         }
 
         TreatmentDto returnedDto = treatmentService.postTreatment(treatmentDto, conditionId, securedInfo);
+        log.debug("Created treatment ID: [{}] for condition ID: [{}]", returnedDto.getTreatmentId(), conditionId);
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentId, conditionId, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -139,7 +139,6 @@ public class TreatmentController {
                 ExceedingLimitException, AssessmentNotMatchingException, IdMissingException, IdMismatchException, TitleValidationException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, ApiException, AssignmentNotEditedException, NegativePointsException, QuestionNotMatchingException,
                 MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating treatment with id: {}", treatmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
@@ -148,7 +147,10 @@ public class TreatmentController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        return new ResponseEntity(treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo, questions), HttpStatus.OK);
+        TreatmentDto updatedTreatmentDto = treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo, questions);
+        log.debug("Updated treatment ID: [{}]", treatmentId);
+
+        return new ResponseEntity(updatedTreatmentDto, HttpStatus.OK);
     }
 
     @DeleteMapping("/{treatmentId}")

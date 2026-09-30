@@ -120,7 +120,6 @@ public class SubmissionCommentController {
                                                                       UriComponentsBuilder ucBuilder,
                                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Creating submission comment for submission ID: {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -135,6 +134,7 @@ public class SubmissionCommentController {
         }
 
         SubmissionCommentDto returnedDto = submissionCommentService.postSubmissionComment(submissionCommentDto, submissionId, securedInfo);
+        log.debug("Created submission comment ID: [{}] for submission ID: [{}]", returnedDto.getSubmissionCommentId(), submissionId);
         HttpHeaders headers = submissionCommentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId, returnedDto.getSubmissionCommentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -150,7 +150,6 @@ public class SubmissionCommentController {
                                                         @RequestBody SubmissionCommentDto submissionCommentDto,
                                                         HttpServletRequest req)
                 throws ExperimentNotMatchingException, AssessmentNotMatchingException, SubmissionCommentNotMatchingException, BadTokenException, InvalidUserException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating submission comment with id {}", submissionCommentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -172,6 +171,7 @@ public class SubmissionCommentController {
         }
 
         submissionCommentService.updateSubmissionComment(submissionComment, submissionCommentDto);
+        log.debug("Updated submission comment ID: [{}]", submissionCommentId);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

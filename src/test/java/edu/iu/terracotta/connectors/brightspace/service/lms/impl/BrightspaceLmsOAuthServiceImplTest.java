@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
@@ -32,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
@@ -43,6 +46,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.UnknownContentTypeException;
 
@@ -63,6 +68,7 @@ public class BrightspaceLmsOAuthServiceImplTest {
     @Mock private ApiOAuthSettingsRepository apiOAuthSettingsRepository;
     @Mock private ApiScopeService apiScopeService;
     @Mock private RestTemplate restTemplate;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private PlatformDeployment platformDeployment;
     private LtiUserEntity user;
@@ -74,7 +80,7 @@ public class BrightspaceLmsOAuthServiceImplTest {
     public void beforeEach() {
         MockitoAnnotations.openMocks(this);
 
-        brightspaceLmsOAuthService = Mockito.spy(new BrightspaceLmsOAuthServiceImpl(apiTokenRepository, apiOAuthSettingsRepository, apiScopeService));
+        brightspaceLmsOAuthService = Mockito.spy(new BrightspaceLmsOAuthServiceImpl(apiTokenRepository, apiOAuthSettingsRepository, apiScopeService, transactionManager));
         doReturn(restTemplate).when(brightspaceLmsOAuthService).createRestTemplate();
 
         platformDeployment = PlatformDeployment.builder()
@@ -189,6 +195,23 @@ public class BrightspaceLmsOAuthServiceImplTest {
         assertEquals("new-access-token", result.getAccessToken());
         verify(restTemplate, times(1)).postForEntity(anyString(), any(HttpEntity.class), any());
         verify(apiTokenRepository, times(1)).save(any(ApiTokenEntity.class));
+    }
+
+    // a refresh saves the token row, which stays locked until its transaction commits. It runs in
+    // its own short transaction so that lock isn't held for a caller's whole long transaction.
+    @Test
+    public void testGetAccessTokenRefreshesInItsOwnTransaction() throws LmsOAuthException {
+        ApiTokenEntity stale = staleToken();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(stale));
+        when(apiTokenRepository.save(any(ApiTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any())).thenReturn(ResponseEntity.ok(refreshedToken()));
+
+        brightspaceLmsOAuthService.getAccessToken(user);
+
+        InOrder inOrder = inOrder(transactionManager, apiTokenRepository);
+        inOrder.verify(transactionManager).getTransaction(argThat(definition -> definition.getPropagationBehavior() == TransactionDefinition.PROPAGATION_REQUIRES_NEW));
+        inOrder.verify(apiTokenRepository).save(stale);
+        inOrder.verify(transactionManager).commit(any());
     }
 
     @Test
@@ -473,12 +496,26 @@ public class BrightspaceLmsOAuthServiceImplTest {
         verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any());
     }
 
+    // this runs on every instructor launch: refreshing a still-valid token each time rotated
+    // Brightspace's refresh token and could hit its rate limit
+    @Test
+    public void testIsAccessTokenAvailableReturnsTrueWithoutRefreshingWhenTokenFresh() {
+        ApiTokenEntity token = freshToken();
+        token.setScopes("scope1 scope2");
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(token));
+        when(apiScopeService.getNecessaryScopes(1L)).thenReturn(Set.of("scope1", "scope2"));
+
+        assertTrue(brightspaceLmsOAuthService.isAccessTokenAvailable(user));
+        verify(restTemplate, never()).postForEntity(anyString(), any(HttpEntity.class), any());
+        verify(apiTokenRepository, never()).save(any(ApiTokenEntity.class));
+    }
+
     @Test
     public void testIsAccessTokenAvailableReturnsTrueWhenRefreshSucceeds() {
         ApiTokenEntity token = ApiTokenEntity.builder()
             .accessToken("stale-access-token")
             .refreshToken("refresh-token")
-            .expiresAt(Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)))
+            .expiresAt(Timestamp.from(Instant.now().minus(1, ChronoUnit.MINUTES)))
             .scopes("scope1 scope2")
             .user(user)
             .build();
@@ -488,6 +525,7 @@ public class BrightspaceLmsOAuthServiceImplTest {
         when(apiTokenRepository.save(any(ApiTokenEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         assertTrue(brightspaceLmsOAuthService.isAccessTokenAvailable(user));
+        verify(apiTokenRepository, times(1)).save(any(ApiTokenEntity.class));
     }
 
     @Test
@@ -495,7 +533,7 @@ public class BrightspaceLmsOAuthServiceImplTest {
         ApiTokenEntity token = ApiTokenEntity.builder()
             .accessToken("stale-access-token")
             .refreshToken("refresh-token")
-            .expiresAt(Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)))
+            .expiresAt(Timestamp.from(Instant.now().minus(1, ChronoUnit.MINUTES)))
             .scopes("scope1 scope2")
             .user(user)
             .build();
@@ -509,7 +547,7 @@ public class BrightspaceLmsOAuthServiceImplTest {
 
     @Test
     public void testCreateRestTemplateReturnsRestTemplateInstance() {
-        BrightspaceLmsOAuthServiceImpl plain = new BrightspaceLmsOAuthServiceImpl(apiTokenRepository, apiOAuthSettingsRepository, apiScopeService);
+        BrightspaceLmsOAuthServiceImpl plain = new BrightspaceLmsOAuthServiceImpl(apiTokenRepository, apiOAuthSettingsRepository, apiScopeService, transactionManager);
 
         assertNotNull(plain.createRestTemplate());
     }

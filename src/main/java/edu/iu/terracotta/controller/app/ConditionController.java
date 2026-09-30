@@ -88,7 +88,6 @@ public class ConditionController {
                                                       @RequestBody(required = false) ConditionDto conditionDto,
                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException, DataServiceException, ExperimentConditionLimitReachedException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Creating Condition for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -102,6 +101,7 @@ public class ConditionController {
         }
 
         ConditionDto returnedDto = conditionService.postCondition(conditionDto, experimentId);
+        log.debug("Created condition ID: [{}] for experiment ID: [{}]", returnedDto.getConditionId(), experimentId);
 
         return new ResponseEntity<>(returnedDto, HttpStatus.CREATED);
     }
@@ -112,7 +112,6 @@ public class ConditionController {
                                                 @RequestBody ConditionDto conditionDto,
                                                 HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating condition with id {}", conditionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
@@ -126,6 +125,7 @@ public class ConditionController {
         conditionService.validateConditionName(condition.getName(), conditionDto.getName(), experimentId, conditionId, true);
         map.put(condition, conditionDto);
         conditionService.updateCondition(map);
+        log.debug("Updated condition ID: [{}]", conditionId);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -148,12 +148,12 @@ public class ConditionController {
         for (ConditionDto conditionDto : conditionDtoList) {
             apijwtService.conditionAllowed(securedInfo, experimentId,conditionDto.getConditionId());
             Condition condition = conditionService.findByConditionId(conditionDto.getConditionId());
-            log.debug("Updating condition: " + condition.getConditionId());
             map.put(condition, conditionDto);
         }
 
         try {
             conditionService.updateCondition(map);
+            log.debug("Updated condition IDs: {}", conditionDtoList.stream().map(ConditionDto::getConditionId).toList());
 
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (Exception ex) {

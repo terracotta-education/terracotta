@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -37,6 +38,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiTokenRepositor
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiScopeService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthService;
+import edu.iu.terracotta.connectors.generic.service.lms.LmsTokenRefreshTransaction;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +53,7 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
     private final ApiTokenRepository apiTokenRepository;
     private final ApiOAuthSettingsRepository apiOAuthSettingsRepository;
     private final ApiScopeService apiScopeService;
+    private final PlatformTransactionManager transactionManager;
     private final Map<Long, Object> refreshLocks = new ConcurrentHashMap<>();
 
     // RestTemplate is thread-safe once constructed; reuse one shared instance for every
@@ -139,19 +142,21 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
         Object lock = refreshLocks.computeIfAbsent(user.getUserId(), userId -> new Object());
 
         synchronized (lock) {
-            ApiTokenEntity current = apiTokenRepository.findByUser(user)
-                .orElseThrow(() -> new LmsOAuthException(MessageFormat.format("User {0} does not have a Canvas API access token nor refresh token!", user.getUserKey())));
+            return LmsTokenRefreshTransaction.run(transactionManager, () -> {
+                ApiTokenEntity current = apiTokenRepository.findByUser(user)
+                    .orElseThrow(() -> new LmsOAuthException(MessageFormat.format("User {0} does not have a Canvas API access token nor refresh token!", user.getUserKey())));
 
-            if (rejectedAccessToken != null && !rejectedAccessToken.equals(current.getAccessToken())) {
-                // another concurrent caller already refreshed past the token Canvas rejected on us
-                return current;
-            }
+                if (rejectedAccessToken != null && !rejectedAccessToken.equals(current.getAccessToken())) {
+                    // another concurrent caller already refreshed past the token Canvas rejected on us
+                    return current;
+                }
 
-            if (rejectedAccessToken == null && isAccessTokenFresh(current)) {
-                return current;
-            }
+                if (rejectedAccessToken == null && isAccessTokenFresh(current)) {
+                    return current;
+                }
 
-            return refreshAccessToken(current);
+                return refreshAccessToken(current);
+            });
         }
     }
 
@@ -184,29 +189,28 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
         Object lock = refreshLocks.computeIfAbsent(user.getUserId(), userId -> new Object());
 
         synchronized (lock) {
-            Optional<ApiTokenEntity> currentOptional = apiTokenRepository.findByUser(user);
-
-            if (currentOptional.isEmpty()) {
-                return false;
-            }
-
-            ApiTokenEntity current = currentOptional.get();
-
-            if (isAccessTokenFresh(current)) {
-                return true;
-            }
-
             try {
-                refreshAccessToken(current);
+                return LmsTokenRefreshTransaction.run(transactionManager, () -> {
+                    Optional<ApiTokenEntity> currentOptional = apiTokenRepository.findByUser(user);
 
-                return true;
+                    if (currentOptional.isEmpty()) {
+                        return false;
+                    }
+
+                    if (!isAccessTokenFresh(currentOptional.get())) {
+                        refreshAccessToken(currentOptional.get());
+                    }
+
+                    return true;
+                });
             } catch (LmsOAuthException e) {
-                log.error(MessageFormat.format("Failed to refresh token {0}", current.getTokenId()), e);
+                log.error(MessageFormat.format("Failed to refresh the token for user ID {0}", user.getUserId()), e);
 
                 return false;
             }
         }
     }
+
 
     private ApiTokenEntity refreshAccessToken(ApiTokenEntity canvasApiTokenEntity) throws LmsOAuthException {
         ApiOAuthSettings canvasAPIOAuthSettings = getApiOAuthSettings(canvasApiTokenEntity.getUser().getPlatformDeployment());
