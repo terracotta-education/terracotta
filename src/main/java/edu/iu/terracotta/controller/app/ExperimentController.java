@@ -140,7 +140,7 @@ public class ExperimentController {
         }
 
         ExperimentDto returnedDto = experimentService.postExperiment(experimentDto, securedInfo);
-        log.debug("Created Experiment ID : [{}]", returnedDto.getExperimentId());
+        log.debug("Created experiment with ID: [{}]", returnedDto.getExperimentId());
         HttpHeaders headers = experimentService.buildHeaders(ucBuilder, returnedDto.getExperimentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
