@@ -96,7 +96,17 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
                 Jws<Claims> jws = ltijwtService.validateJWT(jwt, stateClaims.getPayload().getAudience().toArray(new String[stateClaims.getPayload().getAudience().size()])[0]);
                 if (jws != null) {
                     // Create and populate the Lti3Request object and add it to the httpServletRequest, so the redirect endpoint will have all that information ready and will be able to use it.
-                    Lti3Request lti3Request = new Lti3Request(httpServletRequest, ltiDataService, true, link); // IllegalStateException if invalid
+                    Lti3Request lti3Request;
+
+                    try {
+                        lti3Request = new Lti3Request(httpServletRequest, ltiDataService, true, link);
+                    } catch (IllegalStateException e) {
+                        // an incomplete launch (e.g. no user) - nothing on our side to act on
+                        ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+
+                        return;
+                    }
+
                     httpServletRequest.setAttribute("LTI3", true); // indicate this request is an LTI3 one
                     httpServletRequest.setAttribute("lti3_valid", lti3Request.isLoaded() && lti3Request.isComplete()); // is LTI3 request totally valid and complete
                     httpServletRequest.setAttribute("lti3_message_type", lti3Request.getLtiMessageType()); // is LTI3 request totally valid and complete
