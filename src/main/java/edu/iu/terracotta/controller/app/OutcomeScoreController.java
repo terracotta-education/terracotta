@@ -99,7 +99,6 @@ public class OutcomeScoreController {
                                                             UriComponentsBuilder ucBuilder,
                                                             HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, InvalidParticipantException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Creating outcome score for outcome ID: {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -109,6 +108,7 @@ public class OutcomeScoreController {
         }
 
         OutcomeScoreDto returnedDto = outcomeScoreService.postOutcomeScore(outcomeScoreDto, experimentId, outcomeId);
+        log.debug("Created outcome score ID: [{}] for outcome ID: [{}]", returnedDto.getOutcomeScoreId(), outcomeId);
         HttpHeaders headers = outcomeScoreService.buildHeaders(ucBuilder, experimentId, exposureId, outcomeId, returnedDto.getOutcomeScoreId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
@@ -156,7 +156,6 @@ public class OutcomeScoreController {
                                               @RequestBody OutcomeScoreDto outcomeScoreDto,
                                               HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, OutcomeScoreNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        log.debug("Updating outcome score with id {}", outcomeScoreId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -167,6 +166,7 @@ public class OutcomeScoreController {
         }
 
         outcomeScoreService.updateOutcomeScore(outcomeScoreId, outcomeScoreDto);
+        log.debug("Updated outcome score ID: [{}]", outcomeScoreId);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }

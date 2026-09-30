@@ -71,8 +71,6 @@ public class LtiConfigurationController {
 
     @PostMapping("/")
     public ResponseEntity<String> createDeployment(@RequestBody PlatformDeployment platformDeployment, UriComponentsBuilder ucBuilder) {
-        log.info("Creating Deployment : {}", platformDeployment);
-
         if (!platformDeploymentRepository.findByIssAndClientId(platformDeployment.getIss(), platformDeployment.getClientId()).isEmpty()) {
             log.error("Unable to create. A platformDeployment with iss [{}] and clientId [{}] already exists", platformDeployment.getIss(), platformDeployment.getClientId());
             return new ResponseEntity<String>("Unable to create. A platformDeployment with same key already exist.", HttpStatus.CONFLICT);
@@ -87,6 +85,8 @@ public class LtiConfigurationController {
             }
         }
 
+        log.info("Created platform deployment ID: [{}] for issuer: [{}] and client ID: [{}]", platformDeploymentSaved.getKeyId(), platformDeploymentSaved.getIss(), platformDeploymentSaved.getClientId());
+
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/config/{id}").buildAndExpand(platformDeploymentSaved.getKeyId()).toUri());
 
@@ -95,7 +95,6 @@ public class LtiConfigurationController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateDeployment(@PathVariable("id") long id, @RequestBody PlatformDeployment platformDeployment) {
-        log.info("Updating User with id {}", id);
         Optional<PlatformDeployment> platformDeploymentSearchResult = platformDeploymentRepository.findById(id);
 
         if (platformDeploymentSearchResult.isEmpty()) {
@@ -124,6 +123,7 @@ public class LtiConfigurationController {
         }
 
         platformDeploymentRepository.saveAndFlush(platformDeploymentToChange);
+        log.info("Updated platform deployment ID: [{}]", id);
 
         return new ResponseEntity<>(platformDeploymentToChange, HttpStatus.OK);
     }
