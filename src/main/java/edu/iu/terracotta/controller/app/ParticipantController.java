@@ -117,7 +117,6 @@ public class ParticipantController {
                                                          HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
-        log.debug("Creating Participant for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -126,6 +125,7 @@ public class ParticipantController {
         }
 
         ParticipantDto returnedDto = participantService.postParticipant(participantDto, experimentId, securedInfo);
+        log.debug("Created participant ID: [{}] for experiment ID: [{}]", returnedDto.getParticipantId(), experimentUuid);
         HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentUuid, returnedDto.getParticipantId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

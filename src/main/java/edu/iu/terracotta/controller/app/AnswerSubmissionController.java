@@ -174,7 +174,6 @@ public class AnswerSubmissionController {
         long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
-        log.info("Creating answer submissions for submission ID: {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -194,6 +193,7 @@ public class AnswerSubmissionController {
         }
 
         List<AnswerSubmissionDto> returnedDtoList = answerSubmissionService.postAnswerSubmissions(answerSubmissionDtoList);
+        log.info("Created answer submission IDs: [{}] for submission ID: [{}]", returnedDtoList.stream().map(AnswerSubmissionDto::getAnswerSubmissionId).toList(), submissionUuid);
 
         return new ResponseEntity<>(returnedDtoList, HttpStatus.OK);
     }
@@ -318,13 +318,12 @@ public class AnswerSubmissionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        log.info("Creating answer submission: {}", answerSubmissionDto);
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
 
         AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmission(answerSubmissionDto, file);
+        log.info("Created answer submission ID: [{}] for question submission ID: [{}]", returnedDto.getAnswerSubmissionId(), answerSubmissionDto.getQuestionSubmissionId());
         HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid,
             answerSubmissionDto.getQuestionSubmissionId(), returnedDto.getAnswerSubmissionId());
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
@@ -377,13 +376,12 @@ public class AnswerSubmissionController {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
         }
 
-        log.info("Creating answer submission: {}", answerSubmissionDto);
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
 
         AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmissionUpdate(answerSubmissionDto, file);
+        log.info("Updated answer submission ID: [{}] for question submission ID: [{}]", returnedDto.getAnswerSubmissionId(), answerSubmissionDto.getQuestionSubmissionId());
         HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid,
             answerSubmissionDto.getQuestionSubmissionId(), returnedDto.getAnswerSubmissionId());
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();

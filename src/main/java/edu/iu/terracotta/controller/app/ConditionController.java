@@ -95,7 +95,6 @@ public class ConditionController {
                                                       HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, ConditionsLockedException, IdInPostException, DataServiceException, ExperimentConditionLimitReachedException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
-        log.debug("Creating Condition for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -109,6 +108,7 @@ public class ConditionController {
         }
 
         ConditionDto returnedDto = conditionService.postCondition(conditionDto, experimentId);
+        log.debug("Created condition ID: [{}] for experiment ID: [{}]", returnedDto.getConditionId(), experimentUuid);
 
         return new ResponseEntity<>(returnedDto, HttpStatus.CREATED);
     }

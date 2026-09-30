@@ -153,7 +153,6 @@ public class AnswerController {
         long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         long questionId = questionService.getQuestionIdByUuid(questionUuid);
-        log.debug("Creating Answer for question ID: {}", questionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -164,6 +163,7 @@ public class AnswerController {
         }
 
         AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
+        log.debug("Created answer ID: [{}] for question ID: [{}]", returnedMcdDto.getAnswerId(), questionUuid);
         HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, questionUuid, returnedMcdDto.getAnswerId());
 
         return new ResponseEntity<>(returnedMcdDto, mcHeaders, HttpStatus.CREATED);

@@ -147,7 +147,6 @@ public class SubmissionCommentController {
         long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
-        log.debug("Creating submission comment for submission ID: {}", submissionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -162,6 +161,7 @@ public class SubmissionCommentController {
         }
 
         SubmissionCommentDto returnedDto = submissionCommentService.postSubmissionComment(submissionCommentDto, submissionId, securedInfo);
+        log.debug("Created submission comment ID: [{}] for submission ID: [{}]", returnedDto.getSubmissionCommentId(), submissionUuid);
         HttpHeaders headers = submissionCommentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid, returnedDto.getSubmissionCommentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

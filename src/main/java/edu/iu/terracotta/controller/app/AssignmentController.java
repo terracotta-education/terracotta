@@ -129,7 +129,6 @@ public class AssignmentController {
             MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
-        log.debug("Creating Assignment for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -139,6 +138,7 @@ public class AssignmentController {
         }
 
         AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, exposureId, securedInfo);
+        log.debug("Created assignment ID: [{}] for exposure ID: [{}]", returnedDto.getAssignmentId(), exposureUuid);
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, returnedDto.getAssignmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

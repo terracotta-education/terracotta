@@ -138,7 +138,6 @@ public class QuestionController {
         long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
         long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
-        log.debug("Creating Question for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -148,6 +147,7 @@ public class QuestionController {
         }
 
         QuestionDto returnedDto = questionService.postQuestion(questionDto, assessmentId, answers, true);
+        log.debug("Created question ID: [{}] for assessment ID: [{}]", returnedDto.getQuestionId(), assessmentUuid);
         HttpHeaders headers = questionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, returnedDto.getQuestionId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

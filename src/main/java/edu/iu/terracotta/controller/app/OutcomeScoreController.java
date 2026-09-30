@@ -117,7 +117,6 @@ public class OutcomeScoreController {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
         long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
-        log.debug("Creating outcome score for outcome ID: {}", outcomeId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -127,6 +126,7 @@ public class OutcomeScoreController {
         }
 
         OutcomeScoreDto returnedDto = outcomeScoreService.postOutcomeScore(outcomeScoreDto, experimentId, outcomeId);
+        log.debug("Created outcome score ID: [{}] for outcome ID: [{}]", returnedDto.getOutcomeScoreId(), outcomeUuid);
         HttpHeaders headers = outcomeScoreService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, outcomeUuid, returnedDto.getOutcomeScoreId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

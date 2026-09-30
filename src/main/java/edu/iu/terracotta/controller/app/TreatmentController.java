@@ -125,7 +125,6 @@ public class TreatmentController {
             throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, AssessmentNotMatchingException, IdInPostException, ExceedingLimitException, DataServiceException, TreatmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
-        log.debug("Creating Treatment for condition ID: {}", conditionId);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
@@ -135,6 +134,7 @@ public class TreatmentController {
         }
 
         TreatmentDto returnedDto = treatmentService.postTreatment(treatmentDto, conditionId, securedInfo);
+        log.debug("Created treatment ID: [{}] for condition ID: [{}]", returnedDto.getTreatmentId(), conditionUuid);
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, returnedDto.getTreatmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);

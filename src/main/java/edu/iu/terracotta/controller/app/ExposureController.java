@@ -97,7 +97,6 @@ public class ExposureController {
                                                     HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, TitleValidationException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
-        log.debug("Creating Exposure for experiment ID: {}", experimentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);
@@ -107,6 +106,7 @@ public class ExposureController {
         }
 
         ExposureDto returnedDto = exposureService.postExposure(exposureDto, experimentId);
+        log.debug("Created exposure ID: [{}] for experiment ID: [{}]", returnedDto.getExposureId(), experimentUuid);
         HttpHeaders headers = exposureService.buildHeaders(ucBuilder, experimentUuid, returnedDto.getExposureId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
