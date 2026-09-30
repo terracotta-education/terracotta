@@ -681,7 +681,7 @@ const handleRegradeQuestions = async () => {
 
 const duplicate = async fromAssignment => {
   let availableTreatments = fromAssignment.treatments
-    .filter(treatment => treatment.treatmentId !== treatmentId.value && !treatment.assessmentDto.integration)
+    .filter(isCopyableTreatment)
     .map(treatment => {
       const conditionMatch = conditionForTreatment(
         getGroupConditionListForAssignment(fromAssignment),
@@ -804,15 +804,24 @@ const buildExpandedQuestionPanelId = (questionPageIndex, questionPanelIndex) => 
   return `question-panel-${questionPageIndex}_${questionPanelIndex}`;
 };
 
-const hasTreatmentsNotCurrent = treatments => {
-  return treatments.some(
-    treatment => treatment.treatmentId !== treatmentId.value && !treatment.assessmentDto.integration
-  );
+// the instructions editor leaves markup like "<p></p>" behind once cleared
+const hasInstructions = html => {
+  return !!(html || "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+};
+
+// another (non-integration) treatment with questions or instructions to copy over
+const isCopyableTreatment = treatment => {
+  const assessmentDto = treatment.assessmentDto;
+
+  return treatment.treatmentId !== treatmentId.value
+    && !!assessmentDto
+    && !assessmentDto.integration
+    && ((assessmentDto.questions || []).length > 0 || hasInstructions(assessmentDto.html));
 };
 
 const findAssignmentsAvailableToCopy = () => {
   assignmentsAvailableToCopy.value = assignments.value.filter(item => {
-    return hasTreatmentsNotCurrent(item.treatments || []);
+    return (item.treatments || []).some(isCopyableTreatment);
   });
 };
 

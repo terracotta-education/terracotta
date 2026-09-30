@@ -516,7 +516,7 @@ describe("TerracottaBuilder", () => {
     await wrapper.vm.duplicate({
       exposureId: "expo-1",
       treatments: [
-        { treatmentId: 99, conditionId: "6", assessmentDto: {} },
+        { treatmentId: 99, conditionId: "6", assessmentDto: { questions: [{ questionId: 1 }] } },
         { treatmentId: 10, conditionId: "5", assessmentDto: { integration: false } }
       ]
     });
@@ -959,13 +959,46 @@ describe("TerracottaBuilder", () => {
     assignmentStore.assignments.push({
       assignmentId: 2,
       treatments: [
-        { treatmentId: 20, assessmentDto: { integration: false } },
+        { treatmentId: 20, assessmentDto: { integration: false, questions: [{ questionId: 1 }] } },
         { treatmentId: 21, assessmentDto: { integration: false } }
       ]
     });
     await nextTick();
 
     expect(wrapper.vm.assignmentsAvailableToCopy).toHaveLength(1);
+  });
+
+  it("only offers assignments with another treatment that has questions or instructions to copy", async () => {
+    const wrapper = await mountBuilder();
+
+    assignmentStore.assignments.push(
+      {
+        assignmentId: 2,
+        title: "nothing to copy",
+        treatments: [
+          { treatmentId: 20, assessmentDto: { integration: false, questions: [], html: "" } },
+          { treatmentId: 21, assessmentDto: { integration: false, questions: [], html: "<p>&nbsp;</p>" } },
+          { treatmentId: 22 }
+        ]
+      },
+      {
+        assignmentId: 3,
+        title: "instructions only",
+        treatments: [
+          { treatmentId: 30, assessmentDto: { integration: false, questions: [], html: "<p>Read this first</p>" } }
+        ]
+      },
+      {
+        assignmentId: 4,
+        title: "integration only",
+        treatments: [
+          { treatmentId: 40, assessmentDto: { integration: true, questions: [{ questionId: 1 }] } }
+        ]
+      }
+    );
+    await nextTick();
+
+    expect(wrapper.vm.assignmentsAvailableToCopy.map(item => item.title)).toEqual(["instructions only"]);
   });
 
   it("the questions watcher runs its DOM cleanup after new questions are added", async () => {
