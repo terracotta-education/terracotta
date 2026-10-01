@@ -258,24 +258,16 @@ const rows = computed(() => {
   });
 });
 
-const saveOrder = async (event, exposureRows, exposure) => {
-  const moved = exposureRows.splice(event.oldDraggableIndex, 1)[0];
-  exposureRows.splice(event.newDraggableIndex, 0, moved);
-
-  const updated = exposureRows.map((row, index) => ({
-    ...row,
-    assignmentOrder: index + 1
-  }));
-
-  await Promise.allSettled([
+const sendOrder = async (exposureId, updated) => {
+  const [assignmentsSaved, messagesSaved] = await Promise.all([
     assignmentStore.saveAssignmentOrder([
       experimentId.value,
-      exposure.exposureId,
+      exposureId,
       updated.filter(row => row.type === rowType.assignment)
     ]),
     messagingContainerStore.updateAll([
       experimentId.value,
-      exposure.exposureId,
+      exposureId,
       updated
         .filter(row => row.type === rowType.message)
         .map(row => ({
@@ -288,14 +280,65 @@ const saveOrder = async (event, exposureRows, exposure) => {
     ])
   ]);
 
+  return assignmentsSaved !== null && messagesSaved !== null;
+};
+
+// one order save at a time per exposure: saving rewrites every component in the exposure, so two
+// overlapping saves conflict on the server and one fails. A drag made while a save is running
+// waits for it, and only the latest order is sent. Resolves to whether that latest order saved.
+const orderSaves = new Map();
+
+const queueOrderSave = (exposureId, updated) => {
+  const save = orderSaves.get(exposureId) || { running: null, next: null };
+  orderSaves.set(exposureId, save);
+  save.next = updated;
+
+  if (!save.running) {
+    save.running = (async () => {
+      let saved = false;
+
+      while (save.next) {
+        const order = save.next;
+        save.next = null;
+        saved = await sendOrder(exposureId, order);
+      }
+
+      save.running = null;
+
+      return saved;
+    })();
+  }
+
+  return save.running;
+};
+
+const saveOrder = async (event, exposureRows, exposure) => {
+  const moved = exposureRows.splice(event.oldDraggableIndex, 1)[0];
+  exposureRows.splice(event.newDraggableIndex, 0, moved);
+
+  const updated = exposureRows.map((row, index) => ({
+    ...row,
+    assignmentOrder: index + 1
+  }));
+
+  const saved = await queueOrderSave(exposure.exposureId, updated);
+
   componentTableKey.value++;
 
-  createStatusAlert(
-    statusAlert(alertStatuses.value.success, "Component order saved")
-  );
+  if (saved) {
+    createStatusAlert(
+      statusAlert(alertStatuses.value.success, "Component order saved")
+    );
 
-  dragAnnouncement.value =
-    `${moved.title} moved to position ${event.newDraggableIndex + 1} of ${exposureRows.length}.`;
+    dragAnnouncement.value =
+      `${moved.title} moved to position ${event.newDraggableIndex + 1} of ${exposureRows.length}.`;
+  } else {
+    createStatusAlert(
+      statusAlert(alertStatuses.value.error, "The component order couldn't be saved. Refresh the page and try again.")
+    );
+
+    dragAnnouncement.value = "The component order couldn't be saved.";
+  }
 
   // only set for a keyboard-triggered move (see ComponentTable.vue's
   // handleDragKeydown) - componentTableKey's bump above just remounted the whole

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { flushPromises } from "@vue/test-utils";
 
 vi.mock("@/services", () => ({
   assignmentService: {
@@ -381,6 +382,78 @@ describe("ExperimentAssignments", () => {
     expect(experimentId).toBe(3);
     expect(exposureId).toBe(50);
     expect(updated.map(row => row.assignmentId)).toEqual([101, 100]);
+  });
+
+  // each save rewrites every component in the exposure, so overlapping saves conflict on the server
+  it("waits for a running order save and then sends only the latest order", async () => {
+    seedStores({
+      assignments: [
+        { ...assignmentRow, assignmentId: 100, assignmentOrder: 1 },
+        { ...assignmentRow, assignmentId: 101, assignmentOrder: 2 },
+        { ...assignmentRow, assignmentId: 102, assignmentOrder: 3 }
+      ]
+    });
+    let finishFirstSave;
+    assignmentService.updateAssignments
+      .mockImplementationOnce(() => new Promise(resolve => { finishFirstSave = () => resolve([]); }))
+      .mockResolvedValue([]);
+    messageContainerService.updateAll.mockResolvedValue([]);
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const table = wrapper.findComponent({ name: "ComponentTable" });
+
+    table.vm.$emit("save-order", { oldDraggableIndex: 0, newDraggableIndex: 1 });
+    await vi.waitFor(() => {
+      expect(assignmentService.updateAssignments).toHaveBeenCalledTimes(1);
+    });
+
+    // two more drags while the first save is still running
+    table.vm.$emit("save-order", { oldDraggableIndex: 0, newDraggableIndex: 2 });
+    table.vm.$emit("save-order", { oldDraggableIndex: 1, newDraggableIndex: 0 });
+    await wrapper.vm.$nextTick();
+
+    expect(assignmentService.updateAssignments).toHaveBeenCalledTimes(1);
+
+    finishFirstSave();
+
+    await vi.waitFor(() => {
+      expect(assignmentService.updateAssignments).toHaveBeenCalledTimes(2);
+    });
+
+    // only the last drag moves 102 to the front, so the second drag's order was never sent
+    const [, , latest] = assignmentService.updateAssignments.mock.calls[1];
+    expect(latest[0].assignmentId).toBe(102);
+
+    await flushPromises();
+    expect(assignmentService.updateAssignments).toHaveBeenCalledTimes(2);
+  });
+
+  it("says the order wasn't saved when the save fails", async () => {
+    seedStores({
+      assignments: [
+        { ...assignmentRow, assignmentId: 100, assignmentOrder: 1, title: "First" },
+        { ...assignmentRow, assignmentId: 101, assignmentOrder: 2, title: "Second" }
+      ]
+    });
+    assignmentService.updateAssignments.mockResolvedValue({ status: 409, error: "conflict" });
+    messageContainerService.updateAll.mockResolvedValue([]);
+
+    const wrapper = mountAssignments();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    wrapper.findComponent({ name: "ComponentTable" }).vm.$emit(
+      "save-order",
+      { oldDraggableIndex: 0, newDraggableIndex: 1 }
+    );
+
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain("The component order couldn't be saved.");
+    });
+    expect(wrapper.text()).not.toContain("First moved to position 2 of 2.");
   });
 
   // ComponentTable.vue's own handleDragKeydown (tested in ComponentTable.spec.js)
