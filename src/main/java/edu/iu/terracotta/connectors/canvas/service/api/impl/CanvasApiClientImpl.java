@@ -466,10 +466,12 @@ public class CanvasApiClientImpl implements ApiClient {
         submissionData.put("new_submission", studentSubmission);
 
         // Include date originally submitted so that late grading doesn't result in late
-        // submissions
-        SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // ISO8601 format
-        String dateSubmittedFormatted = dt.format(submission.getDateSubmitted());
-        submissionData.put("submitted_at", dateSubmittedFormatted);
+        // submissions. Left out when there isn't one (an attempt not yet submitted) rather than
+        // failing the whole grade send over it.
+        if (submission.getDateSubmitted() != null) {
+            SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // ISO8601 format
+            submissionData.put("submitted_at", dt.format(submission.getDateSubmitted()));
+        }
 
         score.setLmsSubmissionExtension(submissionData);
     }

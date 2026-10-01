@@ -830,6 +830,18 @@ public class CanvasApiClientImplTest extends BaseTest {
         assertEquals(false, captor.getValue().get("new_submission"));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void testAddLmsExtensionsLeavesOutSubmittedAtWhenThereIsNoSubmittedDate() throws Exception {
+        when(submission.getDateSubmitted()).thenReturn(null);
+
+        canvasApiClientService.addLmsExtensions(score, submission, false);
+
+        ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(score).setLmsSubmissionExtension(captor.capture());
+        assertFalse(captor.getValue().containsKey("submitted_at"));
+    }
+
     // sendConversation
 
     @Test

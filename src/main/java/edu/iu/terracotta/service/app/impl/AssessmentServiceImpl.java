@@ -916,8 +916,16 @@ public class AssessmentServiceImpl implements AssessmentService {
             gradedSubmissions.add(assessmentSubmissionService.gradeSubmission(submission, regradeDetails));
         }
 
+        // only submitted attempts go to the LMS (as in AssignmentServiceImpl.sendAssignmentGradeToLms) -
+        // one still in progress has no submitted date and would be posted as "Completed"; its
+        // regraded score is sent when the student submits it.
         // fetches AGS tokens once instead of once per submission
-        submissionService.sendSubmissionGradesToLmsWithLti(gradedSubmissions, false);
+        submissionService.sendSubmissionGradesToLmsWithLti(
+            gradedSubmissions.stream()
+                .filter(Submission::isSubmitted)
+                .toList(),
+            false
+        );
 
         updateRegradedQuestionStatus(regradeDetails);
         log.info("Regrading complete for assessment ID: [{}]", assessmentId);
