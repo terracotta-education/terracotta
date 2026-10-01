@@ -82,10 +82,20 @@
           elevation="0"
           class="btn-add-option px-0"
           variant="text"
+          :disabled="atOptionLimit || addingAnswer"
           @click="handleAddAnswer(question)"
         >
           Add Option
         </v-btn>
+      </v-col>
+
+      <v-col
+        v-if="atOptionLimit"
+        cols="auto"
+      >
+        <span class="text-caption">
+          A question can have up to {{ MAX_OPTIONS }} options.
+        </span>
       </v-col>
     </v-row>
 
@@ -102,7 +112,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import Swal from "sweetalert2";
 
@@ -127,6 +137,15 @@ const emit = defineEmits([
 
 const route = useRoute();
 const assessmentStore = assessmentModule();
+
+// matches the server's limit (AnswerServiceImpl.limitReached), which rejects a 21st option
+const MAX_OPTIONS = 20;
+
+const addingAnswer = ref(false);
+
+const atOptionLimit = computed(() => {
+  return (props.question.answers || []).length >= MAX_OPTIONS;
+});
 
 const longString = [
   value => value && !!value.trim() || "required"
@@ -164,6 +183,13 @@ const randomizeAnswers = computed({
 });
 
 const handleAddAnswer = async question => {
+  // a second click while the first add is still saving could otherwise send one option too many
+  if (atOptionLimit.value || addingAnswer.value) {
+    return;
+  }
+
+  addingAnswer.value = true;
+
   try {
     await assessmentStore.createAnswer([
       experimentId.value,
@@ -179,6 +205,8 @@ const handleAddAnswer = async question => {
     handleQuestionEdited();
   } catch (error) {
     console.error(error);
+  } finally {
+    addingAnswer.value = false;
   }
 };
 
