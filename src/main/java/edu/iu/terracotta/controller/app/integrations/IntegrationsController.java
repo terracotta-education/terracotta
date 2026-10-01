@@ -70,13 +70,17 @@ public class IntegrationsController {
         }
 
         if (StringUtils.isNotBlank(errorCode)) {
+            // the external site sends the student's browser here, so the referrer is the page that
+            // submitted the score (e.g. which survey) - when the site's referrer policy sends one
             log.error(
-                "launch_token: [{}], score: [{}], error code: [{}], status: [{}], moreAttemptsAvailable: [{}]",
+                "launch_token: [{}], score: [{}], error code: [{}], status: [{}], moreAttemptsAvailable: [{}], referrer: [{}], request: [{}]",
                 launchToken,
                 score,
                 errorCode,
                 status,
-                integrationError.isMoreAttemptsAvailable()
+                integrationError.isMoreAttemptsAvailable(),
+                StringUtils.defaultIfBlank(req.getHeader("Referer"), "none"),
+                StringUtils.isNotBlank(req.getQueryString()) ? req.getRequestURL() + "?" + req.getQueryString() : req.getRequestURL()
             );
         }
 
