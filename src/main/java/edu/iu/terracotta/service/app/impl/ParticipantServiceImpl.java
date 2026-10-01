@@ -171,7 +171,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     public List<ParticipantDto> getParticipants(long experimentId, String userId, boolean student, SecuredInfo securedInfo, boolean refresh) throws ParticipantNotUpdatedException, ExperimentNotMatchingException, TerracottaConnectorException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         // retrieve published assignment IDs from LMS
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo, experiment.getCreatedBy());
 
         if (!student) {
             if (refresh) {
@@ -240,7 +240,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public ParticipantDto postParticipant(ParticipantDto participantDto, long experimentId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo, experiment.getCreatedBy());
 
         if (participantDto.getParticipantId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
@@ -260,7 +260,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
     @Override
     public ParticipantDto toDto(Participant participant, SecuredInfo securedInfo) {
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(participant.getExperiment().getExperimentId(), securedInfo.getLmsCourseId(), participant.getExperiment().getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(participant.getExperiment().getExperimentId(), securedInfo, participant.getExperiment().getCreatedBy());
 
         return toDto(participant, publishedExperimentAssignmentIds, securedInfo);
     }
@@ -764,7 +764,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Transactional
     public List<Participant> changeParticipant(Map<Participant, ParticipantDto> map, Long experimentId, SecuredInfo securedInfo) {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), experiment.getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo, experiment.getCreatedBy());
         List<Participant> participants = new ArrayList<>();
 
         for (Map.Entry<Participant, ParticipantDto> entry : map.entrySet()) {
@@ -835,7 +835,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         // Don't allow changing consent to true if participant has submitted a response and previously not consented
-        if (hasParticipantSubmitted(participant, calculatedPublishedAssignmentIds(experimentId, securedInfo.getLmsCourseId(), participant.getExperiment().getCreatedBy()))
+        if (hasParticipantSubmitted(participant, calculatedPublishedAssignmentIds(experimentId, securedInfo, participant.getExperiment().getCreatedBy()))
                 && BooleanUtils.isFalse(participant.getConsent())
                 && BooleanUtils.isTrue(participantDto.getConsent())) {
             throw new ParticipantAlreadyStartedException("Participant has already started experiment, consent cannot be changed to given");
@@ -932,20 +932,61 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     @Override
-    public List<Long> calculatedPublishedAssignmentIds(long experimentId, String lmsCourseId, LtiUserEntity createdBy) {
-        // find only published assignments
-        return assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId).stream()
-            .filter(
-                assignment -> {
-                    try {
-                        return apiClient.listAssignment(createdBy, lmsCourseId, assignment.getLmsAssignmentId()).get().isPublished();
-                    } catch (Exception e) {
-                        return false;
-                    }
+    public List<Long> calculatedPublishedAssignmentIds(long experimentId, SecuredInfo securedInfo, LtiUserEntity createdBy) {
+        LtiUserEntity apiUser = lmsApiUserFor(securedInfo, createdBy);
+        List<Assignment> assignments = assignmentRepository.findByExposure_Experiment_ExperimentId(experimentId);
+        List<Long> publishedAssignmentIds = new ArrayList<>();
+        int unchecked = 0;
+
+        for (Assignment assignment : assignments) {
+            if (unchecked > 0) {
+                // a failure here is almost always this token's access to the course, which every
+                // remaining call would fail on the same way - stop asking the LMS
+                publishedAssignmentIds.add(assignment.getAssignmentId());
+                unchecked++;
+                continue;
+            }
+
+            try {
+                Optional<LmsAssignment> lmsAssignment = apiClient.listAssignment(apiUser, securedInfo.getLmsCourseId(), assignment.getLmsAssignmentId());
+
+                // not in the LMS any more: not published
+                if (lmsAssignment.isPresent() && lmsAssignment.get().isPublished()) {
+                    publishedAssignmentIds.add(assignment.getAssignmentId());
                 }
-            )
-            .map(Assignment::getAssignmentId)
-            .toList();
+            } catch (Exception e) {
+                // the LMS couldn't say: count it as published, so the checks built on this list
+                // (e.g. never regrouping a participant who has submitted) stay on the safe side
+                publishedAssignmentIds.add(assignment.getAssignmentId());
+                unchecked++;
+                log.warn(
+                    "Couldn't check in the LMS whether assignments in experiment ID: [{}] are published, as user ID: [{}]: {}",
+                    experimentId,
+                    apiUser != null ? apiUser.getUserId() : null,
+                    e.getMessage()
+                );
+            }
+        }
+
+        if (unchecked > 0) {
+            log.warn("Treated [{}] of [{}] assignment(s) in experiment ID: [{}] as published without checking", unchecked, assignments.size(), experimentId);
+        }
+
+        return publishedAssignmentIds;
+    }
+
+    // the experiment's creator may no longer have access to this course; an instructor working in
+    // it right now does. Students have no LMS API token of their own, so their requests use the creator's.
+    private LtiUserEntity lmsApiUserFor(SecuredInfo securedInfo, LtiUserEntity createdBy) {
+        if (apiJwtService.isInstructorOrHigher(securedInfo)) {
+            LtiUserEntity currentUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+
+            if (currentUser != null) {
+                return currentUser;
+            }
+        }
+
+        return createdBy;
     }
 
     @Override
@@ -1149,7 +1190,7 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param participant
      */
     private void handleInitialConsent(Experiment experiment, Participant participant, SecuredInfo securedInfo) {
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo.getLmsCourseId(), experiment.getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo, experiment.getCreatedBy());
         if (participant.getConsent() == null || (!participant.getConsent() && participant.getDateRevoked() == null)) {
             if (ParticipationTypes.AUTO.equals(experiment.getParticipationType())) {
                 participant.setConsent(true);
