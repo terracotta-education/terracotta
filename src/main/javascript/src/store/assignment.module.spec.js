@@ -79,21 +79,22 @@ describe("assignment store", () => {
       expect(store.assignments).toHaveLength(2);
     });
 
-    it("treats a non-array response as an empty list", async () => {
-      assignmentService.updateAssignments.mockResolvedValue({ error: "bad" });
+    it("returns null and leaves the assignments alone when the save fails", async () => {
+      store.upsertAssignments([{ assignmentId: 1 }]);
+      assignmentService.updateAssignments.mockResolvedValue({ status: 409, error: "conflict" });
 
       const result = await store.saveAssignmentOrder([1, 2, []]);
 
-      expect(result).toEqual([]);
-      expect(store.assignments).toEqual([]);
+      expect(result).toBeNull();
+      expect(store.assignments).toEqual([{ assignmentId: 1 }]);
     });
 
-    it("returns [] and logs on rejection", async () => {
+    it("returns null and logs on rejection", async () => {
       assignmentService.updateAssignments.mockRejectedValue(new Error("fail"));
 
       const result = await store.saveAssignmentOrder([1, 2, []]);
 
-      expect(result).toEqual([]);
+      expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalled();
     });
   });

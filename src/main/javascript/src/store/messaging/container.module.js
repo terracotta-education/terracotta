@@ -83,15 +83,20 @@ export const container = defineStore("messagingMessageContainer", {
         const response =
           await messageContainerService.updateAll(...payload);
 
-        this.messageContainers = Array.isArray(response)
-          ? response
-          : [];
+        // a failed save leaves the containers as they were; null tells the caller it wasn't saved
+        if (!Array.isArray(response)) {
+          console.error("container/updateAll | not saved", response);
+
+          return null;
+        }
+
+        this.messageContainers = response;
 
         return this.messageContainers;
       } catch (error) {
         console.error("container/updateAll | catch", error);
 
-        return [];
+        return null;
       }
     },
 

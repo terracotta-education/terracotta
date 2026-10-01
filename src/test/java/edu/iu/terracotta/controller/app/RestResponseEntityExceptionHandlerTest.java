@@ -1,14 +1,35 @@
 package edu.iu.terracotta.controller.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
+import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
@@ -61,10 +82,88 @@ public class RestResponseEntityExceptionHandlerTest {
     private RestResponseEntityExceptionHandler handler;
     private WebRequest webRequest;
 
+    private Logger handlerLogger;
+    private Level handlerLoggerLevel;
+    private CapturingAppender logEvents;
+
+    private static final class CapturingAppender extends AbstractAppender {
+
+        private final List<LogEvent> list = new ArrayList<>();
+
+        private CapturingAppender() {
+            super("capture", null, null, true, Property.EMPTY_ARRAY);
+        }
+
+        @Override
+        public void append(LogEvent event) {
+            list.add(event.toImmutable());
+        }
+
+    }
+
     @BeforeEach
     void beforeEach() {
         handler = new RestResponseEntityExceptionHandler();
         webRequest = mock(WebRequest.class);
+
+        handlerLogger = (Logger) LogManager.getLogger(RestResponseEntityExceptionHandler.class);
+        handlerLoggerLevel = handlerLogger.getLevel();
+        handlerLogger.setLevel(Level.DEBUG);
+        logEvents = new CapturingAppender();
+        logEvents.start();
+        handlerLogger.addAppender(logEvents);
+    }
+
+    @AfterEach
+    void afterEach() {
+        handlerLogger.removeAppender(logEvents);
+        handlerLogger.setLevel(handlerLoggerLevel);
+    }
+
+    private ServletWebRequest committedRequest() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/experiments/1/exposures/2/assignments");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        response.setCommitted(true);
+
+        return new ServletWebRequest(request, response);
+    }
+
+    @Test
+    void committedResponseFromAClientDisconnectLogsTheRequestAtDebugTest() {
+        HttpMessageNotWritableException ex = new HttpMessageNotWritableException(
+            "Could not write JSON: ServletOutputStream failed to write",
+            new IOException("Broken pipe")
+        );
+
+        ResponseEntity<Object> response = handler.handleExceptionInternal(ex, null, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, committedRequest());
+
+        assertNull(response);
+        List<LogEvent> events = logEvents.list;
+        assertEquals(1, events.size());
+        assertEquals(Level.DEBUG, events.get(0).getLevel());
+        assertTrue(events.get(0).getMessage().getFormattedMessage().contains("[GET /api/experiments/1/exposures/2/assignments]"));
+    }
+
+    @Test
+    void committedResponseFromAnythingElseStillWarnsWithTheRequestTest() {
+        HttpMessageNotWritableException ex = new HttpMessageNotWritableException("Could not write JSON: no serializer");
+
+        ResponseEntity<Object> response = handler.handleExceptionInternal(ex, null, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, committedRequest());
+
+        assertNull(response);
+        assertEquals(1, logEvents.list.size());
+        assertEquals(Level.WARN, logEvents.list.get(0).getLevel());
+        assertTrue(logEvents.list.get(0).getMessage().getFormattedMessage().contains("[GET /api/experiments/1/exposures/2/assignments]"));
+    }
+
+    @Test
+    void uncommittedResponseIsHandledAsBeforeTest() {
+        ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest("GET", "/api/x"), new MockHttpServletResponse());
+
+        ResponseEntity<Object> response = handler.handleExceptionInternal(new IOException("Broken pipe"), "body", new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("body", response.getBody());
     }
 
     @Test
@@ -293,6 +392,17 @@ public class RestResponseEntityExceptionHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertEquals("Error 100: title issue", response.getBody());
+    }
+
+    @Test
+    void handleOptimisticLockingFailureExceptionReturnsConflictTest() {
+        ResponseEntity<Object> response = handler.handleOptimisticLockingFailureException(
+            new ObjectOptimisticLockingFailureException(Assignment.class, 1988L),
+            webRequest
+        );
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("This was changed by another save while yours was in progress. Refresh the page and try again.", response.getBody());
     }
 
     @Test

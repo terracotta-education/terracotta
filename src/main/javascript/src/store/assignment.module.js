@@ -57,18 +57,27 @@ export const assignment = defineStore("assignment", {
         const response =
           await assignmentService.updateAssignments(...payload);
 
-        const assignments = Array.isArray(response) ? response : [];
+        // a failed save resolves to an error object rather than throwing - null tells the caller
+        // the order wasn't saved, where an empty list would read as a successful save
+        if (!Array.isArray(response)) {
+          console.error(
+            "assignment/saveAssignmentOrder | not saved",
+            response
+          );
 
-        this.upsertAssignments(assignments);
+          return null;
+        }
 
-        return assignments;
+        this.upsertAssignments(response);
+
+        return response;
       } catch (error) {
         console.error(
           "assignment/saveAssignmentOrder | catch",
           error
         );
 
-        return [];
+        return null;
       }
     },
 
