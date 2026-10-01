@@ -46,16 +46,23 @@ import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -475,6 +482,52 @@ public class RestResponseEntityExceptionHandler
         log.warn(bodyOfResponse);
 
         return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
+
+    /**
+     * Spring's own handling of a response that has already started sending only logs the exception,
+     * not which request it was, so these warnings couldn't be traced to an endpoint. This logs the
+     * request too, and logs a client that disconnected mid-response (e.g. the user left the page) at
+     * debug, since there's nothing to fix on the server side.
+     */
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
+        if (request instanceof ServletWebRequest servletWebRequest) {
+            HttpServletResponse response = servletWebRequest.getResponse();
+
+            if (response != null && response.isCommitted()) {
+                HttpServletRequest httpServletRequest = servletWebRequest.getRequest();
+
+                if (isClientDisconnect(ex)) {
+                    log.debug(
+                        "Client disconnected before the response to [{} {}] was fully sent: {}",
+                        httpServletRequest.getMethod(),
+                        httpServletRequest.getRequestURI(),
+                        ExceptionUtils.getRootCauseMessage(ex)
+                    );
+                } else {
+                    log.warn(
+                        "Response to [{} {}] was already sent; ignoring: {}",
+                        httpServletRequest.getMethod(),
+                        httpServletRequest.getRequestURI(),
+                        ex.toString()
+                    );
+                }
+
+                return null;
+            }
+        }
+
+        return super.handleExceptionInternal(ex, body, headers, statusCode, request);
+    }
+
+    private static boolean isClientDisconnect(Throwable ex) {
+        return ExceptionUtils.getThrowableList(ex).stream()
+            .anyMatch(
+                throwable -> "org.apache.catalina.connector.ClientAbortException".equals(throwable.getClass().getName())
+                    || (throwable instanceof IOException
+                        && StringUtils.containsAnyIgnoreCase(throwable.getMessage(), "Broken pipe", "Connection reset"))
+            );
     }
 
 }
