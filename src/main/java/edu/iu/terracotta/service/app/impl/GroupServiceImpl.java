@@ -81,7 +81,7 @@ public class GroupServiceImpl implements GroupService {
         groupDto.setExperimentId(group.getExperiment().getExperimentId());
         groupDto.setName(group.getName());
 
-        List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(group.getExperiment().getExperimentId(), securedInfo.getLmsCourseId(), group.getExperiment().getCreatedBy());
+        List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(group.getExperiment().getExperimentId(), securedInfo, group.getExperiment().getCreatedBy());
 
         groupDto.setParticipants(
             CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentIdAndGroup_GroupId(groupDto.getExperimentId(), group.getGroupId()))
