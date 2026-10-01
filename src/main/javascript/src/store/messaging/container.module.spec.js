@@ -140,22 +140,22 @@ describe("messaging container store", () => {
       expect(store.messageContainers).toEqual(response);
     });
 
-    it("falls back to [] when response is not an array", async () => {
+    it("returns null and keeps the existing containers when the save fails", async () => {
       store.upsertMessageContainers([{ id: 1 }]);
-      messageContainerService.updateAll.mockResolvedValue(undefined);
+      messageContainerService.updateAll.mockResolvedValue({ status: 500, error: "fail" });
 
       const result = await store.updateAll(["a"]);
 
-      expect(result).toEqual([]);
-      expect(store.messageContainers).toEqual([]);
+      expect(result).toBeNull();
+      expect(store.messageContainers).toEqual([{ id: 1 }]);
     });
 
-    it("returns [] on error", async () => {
+    it("returns null on error", async () => {
       messageContainerService.updateAll.mockRejectedValue(new Error("fail"));
 
       const result = await store.updateAll(["a"]);
 
-      expect(result).toEqual([]);
+      expect(result).toBeNull();
     });
   });
 
