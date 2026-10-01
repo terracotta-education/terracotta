@@ -49,6 +49,8 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchProcessingRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -1162,7 +1164,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testCalculatedPublishedAssignmentIdsIncludesPublished() {
-        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, "1", ltiUserEntity);
+        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, securedInfo, ltiUserEntity);
 
         assertEquals(List.of(1L), retVal);
     }
@@ -1171,18 +1173,66 @@ public class ParticipantServiceImplTest extends BaseTest {
     public void testCalculatedPublishedAssignmentIdsExcludesUnpublished() {
         when(lmsAssignment.isPublished()).thenReturn(false);
 
-        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, "1", ltiUserEntity);
+        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, securedInfo, ltiUserEntity);
 
         assertTrue(retVal.isEmpty());
     }
 
     @Test
-    public void testCalculatedPublishedAssignmentIdsExcludesOnException() throws Exception {
-        when(apiClient.listAssignment(any(), anyString(), anyString())).thenThrow(new RuntimeException("api failure"));
+    public void testCalculatedPublishedAssignmentIdsExcludesAnAssignmentNoLongerInTheLms() throws Exception {
+        when(apiClient.listAssignment(any(), anyString(), anyString())).thenReturn(Optional.empty());
 
-        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, "1", ltiUserEntity);
+        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, securedInfo, ltiUserEntity);
 
         assertTrue(retVal.isEmpty());
+    }
+
+    // counted as published, so a participant who has submitted can't be regrouped just because
+    // the LMS couldn't be asked
+    @Test
+    public void testCalculatedPublishedAssignmentIdsCountsAnUncheckableAssignmentAsPublished() throws Exception {
+        when(apiClient.listAssignment(any(), anyString(), anyString())).thenThrow(new RuntimeException("api failure"));
+
+        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, securedInfo, ltiUserEntity);
+
+        assertEquals(List.of(1L), retVal);
+    }
+
+    @Test
+    public void testCalculatedPublishedAssignmentIdsStopsAskingTheLmsAfterAFailure() throws Exception {
+        Assignment second = mock(Assignment.class);
+        when(second.getAssignmentId()).thenReturn(2L);
+        when(second.getLmsAssignmentId()).thenReturn("2");
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(1L)).thenReturn(List.of(assignment, second));
+        when(apiClient.listAssignment(any(), anyString(), anyString())).thenThrow(new ApiException("user not authorized to perform that action"));
+
+        List<Long> retVal = participantService.calculatedPublishedAssignmentIds(1L, securedInfo, ltiUserEntity);
+
+        assertEquals(List.of(1L, 2L), retVal);
+        verify(apiClient, times(1)).listAssignment(any(), anyString(), anyString());
+    }
+
+    // the experiment's creator may have left the course; the instructor using it now hasn't
+    @Test
+    public void testCalculatedPublishedAssignmentIdsUsesTheCurrentInstructorsToken() throws Exception {
+        LtiUserEntity creator = mock(LtiUserEntity.class);
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+
+        participantService.calculatedPublishedAssignmentIds(1L, securedInfo, creator);
+
+        verify(apiClient).listAssignment(eq(ltiUserEntity), anyString(), anyString());
+        verify(apiClient, never()).listAssignment(eq(creator), anyString(), anyString());
+    }
+
+    // students have no LMS API token of their own
+    @Test
+    public void testCalculatedPublishedAssignmentIdsUsesTheCreatorsTokenForAStudent() throws Exception {
+        LtiUserEntity creator = mock(LtiUserEntity.class);
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        participantService.calculatedPublishedAssignmentIds(1L, securedInfo, creator);
+
+        verify(apiClient).listAssignment(eq(creator), anyString(), anyString());
     }
 
     @Test

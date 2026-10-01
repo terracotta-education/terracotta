@@ -318,7 +318,7 @@ public class ExperimentServiceImpl implements ExperimentService {
         experimentDto.setExposures(exposureDtoList);
 
         if (participants) {
-            List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo.getLmsCourseId(), experiment.getCreatedBy());
+            List<Long> publishedExperimentAssignmentIds = participantService.calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo, experiment.getCreatedBy());
 
             experimentDto.setParticipants(
                 CollectionUtils.emptyIfNull(participantRepository.findByExperiment_ExperimentId(experiment.getExperimentId())).stream()
