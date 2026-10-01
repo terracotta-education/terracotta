@@ -54,10 +54,12 @@ import java.io.IOException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.ServletWebRequest;
@@ -69,6 +71,22 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class RestResponseEntityExceptionHandler
         extends ResponseEntityExceptionHandler {
+
+    // another request changed the same row first (e.g. two overlapping saves of the same
+    // assignments). The transaction has already rolled back, so nothing was half-written - this is
+    // a conflict the user can resolve by reloading, not a server error.
+    @ExceptionHandler({ OptimisticLockingFailureException.class })
+    protected ResponseEntity<Object> handleOptimisticLockingFailureException(OptimisticLockingFailureException ex, WebRequest request) {
+        String bodyOfResponse = "This was changed by another save while yours was in progress. Refresh the page and try again.";
+
+        if (ex instanceof ObjectOptimisticLockingFailureException objectEx) {
+            log.warn("Save conflict on [{}] with ID: [{}]; it was changed by another request", objectEx.getPersistentClassName(), objectEx.getIdentifier());
+        } else {
+            log.warn("Save conflict: {}", ex.getMessage());
+        }
+
+        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
 
     @ExceptionHandler({ BadTokenException.class})
     protected ResponseEntity<Object> handleBadTokenException(BadTokenException ex, WebRequest request) {
