@@ -6,10 +6,12 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.WebRequest;
 
+import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
@@ -295,6 +297,17 @@ public class RestResponseEntityExceptionHandlerTest {
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertEquals("Error 100: title issue", response.getBody());
+    }
+
+    @Test
+    void handleOptimisticLockingFailureExceptionReturnsConflictTest() {
+        ResponseEntity<Object> response = handler.handleOptimisticLockingFailureException(
+            new ObjectOptimisticLockingFailureException(Assignment.class, 1988L),
+            webRequest
+        );
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("This was changed by another save while yours was in progress. Refresh the page and try again.", response.getBody());
     }
 
     @Test
