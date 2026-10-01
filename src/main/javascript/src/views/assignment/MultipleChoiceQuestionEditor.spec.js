@@ -153,6 +153,64 @@ describe("MultipleChoiceQuestionEditor", () => {
     expect(wrapper.emitted("edited")).toBeTruthy();
   });
 
+  it("disables 'Add Option' and says why once a question has 20 options", async () => {
+    const answers = Array.from({ length: 20 }, (_, index) => ({
+      answerId: 100 + index,
+      questionId: 1,
+      html: `Option ${index + 1}`,
+      correct: index === 0
+    }));
+    const wrapper = await mountEditor(buildQuestion({ answers }));
+    const { assessmentService } = await import("@/services");
+
+    const addButton = wrapper.findAllComponents({ name: "VBtn" }).find(
+      button => button.text() === "Add Option"
+    );
+
+    expect(addButton.props("disabled")).toBe(true);
+    expect(wrapper.text()).toContain("A question can have up to 20 options.");
+
+    await addButton.trigger("click");
+    await flushPromises();
+
+    expect(assessmentService.createAnswer).not.toHaveBeenCalled();
+  });
+
+  it("keeps 'Add Option' enabled below 20 options", async () => {
+    const wrapper = await mountEditor(buildQuestion());
+
+    const addButton = wrapper.findAllComponents({ name: "VBtn" }).find(
+      button => button.text() === "Add Option"
+    );
+
+    expect(addButton.props("disabled")).toBe(false);
+    expect(wrapper.text()).not.toContain("A question can have up to 20 options.");
+  });
+
+  it("ignores a second 'Add Option' click while the first is still saving", async () => {
+    const { assessmentService } = await import("@/services");
+    let finishAdd;
+    assessmentService.createAnswer.mockImplementationOnce(() => new Promise(resolve => {
+      finishAdd = () => resolve({ status: 201, data: { answerId: 999, questionId: 1, html: "", correct: false } });
+    }));
+    const wrapper = await mountEditor(buildQuestion());
+
+    const addButton = () => wrapper.findAllComponents({ name: "VBtn" }).find(
+      button => button.text() === "Add Option"
+    );
+
+    await addButton().trigger("click");
+    await addButton().trigger("click");
+
+    expect(assessmentService.createAnswer).toHaveBeenCalledTimes(1);
+    expect(addButton().props("disabled")).toBe(true);
+
+    finishAdd();
+    await flushPromises();
+
+    expect(addButton().props("disabled")).toBe(false);
+  });
+
   it("deletes an option and emits edited on success", async () => {
     const question = buildQuestion();
     const wrapper = await mountEditor(question);

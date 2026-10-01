@@ -536,6 +536,23 @@ public class AssessmentServiceImplTest extends BaseTest {
         verify(submissionService).sendSubmissionGradesToLmsWithLti(anyList(), anyBoolean());
     }
 
+    // an attempt still in progress has no submitted date; posting it would send the LMS a
+    // "Completed" grade for an unfinished attempt (and failed on the missing date)
+    @Test
+    public void testRegradeQuestionsOnlySendsSubmittedAttemptsToTheLms() throws DataServiceException, ConnectionException, ApiException, IOException, TerracottaConnectorException {
+        Submission submitted = mock(Submission.class);
+        when(submitted.isSubmitted()).thenReturn(true);
+        Submission inProgress = mock(Submission.class);
+        when(inProgress.isSubmitted()).thenReturn(false);
+        when(submissionRepository.findByAssessment_AssessmentId(1L)).thenReturn(List.of(submitted, inProgress));
+        when(assessmentSubmissionService.gradeSubmission(any(Submission.class), any(RegradeDetails.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assessmentService.regradeQuestions(regradeDetails, 1L);
+
+        verify(assessmentSubmissionService).gradeSubmission(inProgress, regradeDetails);
+        verify(submissionService).sendSubmissionGradesToLmsWithLti(List.of(submitted), false);
+    }
+
     @Test
     public void testRegradeQuestionsNoSumbissions() throws DataServiceException, ConnectionException, ApiException, IOException, TerracottaConnectorException {
         when(submissionRepository.findByAssessment_AssessmentId(anyLong())).thenReturn(Collections.emptyList());
