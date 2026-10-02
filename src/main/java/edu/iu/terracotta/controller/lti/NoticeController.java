@@ -103,10 +103,13 @@ public class NoticeController {
             // the normal case for a copy into a brand-new course: nobody has launched Terracotta
             // there yet, so there's no instructor to run the LMS assignment sync as
             log.info(
-                "Received a course copy notification from: [{}] for source: [{}] and destination: [{}]. No instructor has launched Terracotta in the destination yet, so its LMS assignment sync will run on the first launch.",
+                "Received a course copy notification from: [{}] for source: [{}] and destination: [{}]. {} Its LMS assignment sync will run when an instructor first launches Terracotta there.",
                 notice.platform(),
                 notice.source(),
-                notice.destination()
+                notice.destination(),
+                destinationContextId.isPresent()
+                    ? "Recreating its copied experiments in the background."
+                    : "There are no experiments to recreate."
             );
             return;
         }
