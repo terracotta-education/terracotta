@@ -81,6 +81,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -183,6 +184,37 @@ public class AssessmentServiceImplTest extends BaseTest {
         assertNull(assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
         assertEquals(1F, assessmentDto.getRetakeDetails().getLastAttemptScore());
         assertEquals(1, assessmentDto.getSubmissions().size());
+    }
+
+    // an unsubmitted attempt with every question answered is submitted on view - unless its answers
+    // were saved outside the current availability window (e.g. before the assignment was closed
+    // and re-opened), which failed this whole view and left the student on a blank page
+    @Test
+    public void testViewAssessmentLeavesAnAttemptSavedOutsideTheAvailabilityWindowUnfinished() throws Exception {
+        when(submission.getDateSubmitted()).thenReturn(null);
+        // one question with one saved answer: every question answered
+        when(assessment.getQuestions()).thenReturn(List.of(question));
+        when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.emptyList());
+        when(submissionService.lastSavedWithinAvailability(submission, securedInfo)).thenReturn(false);
+
+        AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
+
+        assertNotNull(assessmentDto);
+        verify(submissionService).lastSavedWithinAvailability(submission, securedInfo);
+        verify(submissionService, never()).finalizeAndGrade(anyLong(), any(), anyBoolean());
+    }
+
+    @Test
+    public void testViewAssessmentSubmitsAFullyAnsweredAttemptSavedInsideTheAvailabilityWindow() throws Exception {
+        when(submission.getDateSubmitted()).thenReturn(null);
+        // one question with one saved answer: every question answered
+        when(assessment.getQuestions()).thenReturn(List.of(question));
+        when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.emptyList());
+        when(submissionService.lastSavedWithinAvailability(submission, securedInfo)).thenReturn(true);
+
+        assessmentService.viewAssessment(1l, securedInfo);
+
+        verify(submissionService).finalizeAndGrade(eq(submission.getSubmissionId()), eq(securedInfo), anyBoolean());
     }
 
     @Test

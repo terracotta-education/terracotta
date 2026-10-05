@@ -169,6 +169,26 @@ describe("StudentQuiz", () => {
     expect(assessmentService.fetchAssessmentForSubmission).not.toHaveBeenCalled();
   });
 
+  it("tells the student the assignment can't be opened when viewing it fails, instead of a blank page", async () => {
+    mockReportStepByStep({
+      view_assignment: { status: 401, data: "There is no assessment available for this user" }
+    });
+
+    mountComponent(StudentQuiz, {
+      props: { experimentId: "1" },
+      global: { stubs: stubbedChildren }
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({
+      icon: "error",
+      text: "This assignment can't be opened right now. Please contact your instructor."
+    }));
+    expect(apiService.reportStep).not.toHaveBeenCalledWith("1", "launch_assignment", expect.anything(), expect.anything());
+  });
+
   it("shows a general message for any other refused launch", async () => {
     mockReportStepByStep({
       launch_assignment: { status: 401, data: "Error 104: Assignment not found" }

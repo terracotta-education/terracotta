@@ -408,7 +408,13 @@ public class SubmissionServiceImpl implements SubmissionService {
                 submission.get().setLateSubmission(true);
             }
 
-            submission.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submission.get()));
+            Timestamp lastUpdated = getLastUpdatedTimeForSubmission(submission.get());
+            Timestamp now = Timestamp.from(Instant.now());
+
+            // answers saved outside the assignment's current availability window (e.g. before it was
+            // closed and re-opened) but submitted while it's open are dated now, so a submission is
+            // never dated outside the window and isn't rejected below for it
+            submission.get().setDateSubmitted(!datesAllowed(lastUpdated, securedInfo) && datesAllowed(now, securedInfo) ? now : lastUpdated);
         }
 
         if (datesAllowed(submission.get().getDateSubmitted(), securedInfo)) {
@@ -418,6 +424,11 @@ public class SubmissionServiceImpl implements SubmissionService {
         } else {
             throw new AssignmentDatesException("Error 128: LMS Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
         }
+    }
+
+    @Override
+    public boolean lastSavedWithinAvailability(Submission submission, SecuredInfo securedInfo) {
+        return datesAllowed(getLastUpdatedTimeForSubmission(submission), securedInfo);
     }
 
     private boolean datesAllowed(Timestamp timestamp, SecuredInfo securedInfo) {
