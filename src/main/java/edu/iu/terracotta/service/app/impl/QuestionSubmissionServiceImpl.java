@@ -497,7 +497,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 throw new AssignmentLockedException(
                     String.format(
                         TextConstants.ASSIGNMENT_LOCKED_UNTIL,
-                        securedInfo.getUnlockAt().getTime()
+                        securedInfo.getUnlockAt().toInstant()
                     )
                 );
             }
@@ -507,7 +507,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
                 throw new AssignmentLockedException(
                     String.format(
                         TextConstants.ASSIGNMENT_LOCKED_AT,
-                        securedInfo.getLockAt().toString()
+                        securedInfo.getLockAt().toInstant()
                     )
                 );
             }
@@ -568,7 +568,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throw new AssignmentLockedException(
                 String.format(
                     TextConstants.ASSIGNMENT_LOCKED_UNTIL,
-                    lmsAssignment.get().getUnlockAt().getTime()
+                    lmsAssignment.get().getUnlockAt().toInstant()
                 )
             );
         }
@@ -578,7 +578,7 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throw new AssignmentLockedException(
                 String.format(
                     TextConstants.ASSIGNMENT_LOCKED_AT,
-                    lmsAssignment.get().getLockAt().toString()
+                    lmsAssignment.get().getLockAt().toInstant()
                 )
             );
         }

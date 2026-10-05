@@ -191,6 +191,46 @@ describe("StudentQuiz", () => {
     expect(retakeBanner.props("canTryAgain")).toBe(false);
   });
 
+  // the assignment's "Available until" date in the LMS has passed (e.g. the due date was moved
+  // but not the availability date) - previously this left the student on a blank page
+  it("tells the student why when launching a fresh attempt is refused because the assignment is locked", async () => {
+    mockReportStepByStep({
+      launch_assignment: { status: 401, data: "Assignment was locked at 2026-10-01T04:59:59Z" }
+    });
+
+    mountComponent(StudentQuiz, {
+      props: { experimentId: "1" },
+      global: { stubs: stubbedChildren }
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({
+      icon: "error",
+      text: expect.stringMatching(/^This assignment was locked on .+\.$/)
+    }));
+    expect(assessmentService.fetchAssessmentForSubmission).not.toHaveBeenCalled();
+  });
+
+  it("shows a general message for any other refused launch", async () => {
+    mockReportStepByStep({
+      launch_assignment: { status: 401, data: "Error 104: Assignment not found" }
+    });
+
+    mountComponent(StudentQuiz, {
+      props: { experimentId: "1" },
+      global: { stubs: stubbedChildren }
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({
+      text: "This assignment can't be opened right now. Please contact your instructor."
+    }));
+  });
+
   it("goes readonly (no new attempt) when retakes are exhausted, and lets the student browse a past submission", async () => {
     mockReportStepByStep({
       view_assignment: {

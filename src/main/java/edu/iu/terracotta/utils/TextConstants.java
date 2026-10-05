@@ -43,6 +43,8 @@ public class TextConstants {
     public static final String GROUP_NOT_MATCHING = "Error 108: The group does not belong to experiment defined in the path.";
     public static final String SUBMISSION_IDS_MISSING = "Error 113: The request requires at least one submissionId in the list of submissions";
     public static final String ASSIGNMENT_LOCKED = "Error 116: The assignment is not open at this moment";
+    // the date is an ISO-8601 instant (e.g. 2026-10-01T04:59:59Z) the frontend parses to show in
+    // the student's own time zone - see helpers/assignment-lock.js
     public static final String ASSIGNMENT_LOCKED_AT = "Assignment was locked at %s";
     public static final String ASSIGNMENT_LOCKED_UNTIL = "Assignment is locked until %s";
     public static final String LIMIT_OF_SUBMISSIONS_REACHED ="Error 117: You can't answer this assignment again";
