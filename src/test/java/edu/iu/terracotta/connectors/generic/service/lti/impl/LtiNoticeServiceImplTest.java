@@ -3,6 +3,9 @@ package edu.iu.terracotta.connectors.generic.service.lti.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -11,6 +14,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -28,6 +32,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.Roles;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiMembershipRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.ToolDeploymentRepository;
+import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.utils.LtiStrings;
 
 public class LtiNoticeServiceImplTest {
@@ -178,6 +183,186 @@ public class LtiNoticeServiceImplTest {
         Optional<SecuredInfo> result = ltiNoticeService.resolveSecuredInfo(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
 
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResolveOrCreateContextReusesExisting() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment(CONTEXT_KEY, toolDeployment)).thenReturn(ltiContextEntity);
+
+        Optional<LtiContextEntity> result = ltiNoticeService.resolveOrCreateContext(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
+
+        assertTrue(result.isPresent());
+        assertEquals(ltiContextEntity, result.get());
+        verify(ltiContextRepository, never()).save(any());
+    }
+
+    @Test
+    public void testResolveOrCreateContextCreatesWhenAbsent() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment(CONTEXT_KEY, toolDeployment)).thenReturn(null);
+        when(ltiContextRepository.save(any(LtiContextEntity.class))).thenReturn(ltiContextEntity);
+
+        Claims claims = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .add(LtiStrings.LTI_CONTEXT, Map.of(LtiStrings.LTI_CONTEXT_ID, CONTEXT_KEY, LtiStrings.LTI_CONTEXT_TITLE, "New Course"))
+            .build();
+
+        Optional<LtiContextEntity> result = ltiNoticeService.resolveOrCreateContext(claims);
+
+        assertTrue(result.isPresent());
+        assertEquals(ltiContextEntity, result.get());
+
+        ArgumentCaptor<LtiContextEntity> captor = ArgumentCaptor.forClass(LtiContextEntity.class);
+        verify(ltiContextRepository).save(captor.capture());
+        assertEquals(CONTEXT_KEY, captor.getValue().getContextKey());
+        assertEquals("New Course", captor.getValue().getTitle());
+        assertEquals(toolDeployment, captor.getValue().getToolDeployment());
+    }
+
+    @Test
+    public void testResolveOrCreateContextNoToolDeploymentReturnsEmpty() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of());
+
+        Optional<LtiContextEntity> result = ltiNoticeService.resolveOrCreateContext(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResolveOriginContextsMultipleElements() {
+        LtiContextEntity origin1 = mock(LtiContextEntity.class);
+        LtiContextEntity origin2 = mock(LtiContextEntity.class);
+
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment("origin-1", toolDeployment)).thenReturn(origin1);
+        when(ltiContextRepository.findByContextKeyAndToolDeployment("origin-2", toolDeployment)).thenReturn(origin2);
+
+        Claims claims = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .add(LtiStrings.LTI_ORIGIN_CONTEXTS, List.of("origin-1", "origin-2"))
+            .build();
+
+        List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(claims);
+
+        assertEquals(List.of(origin1, origin2), result);
+    }
+
+    // an origin context Terracotta has no launch record for legitimately has no Experiments to
+    // offer, not an error - it's silently omitted rather than surfaced as null
+    @Test
+    public void testResolveOriginContextsFiltersUnmatched() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment("origin-1", toolDeployment)).thenReturn(null);
+
+        Claims claims = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .add(LtiStrings.LTI_ORIGIN_CONTEXTS, List.of("origin-1"))
+            .build();
+
+        List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(claims);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResolveOriginContextsMissingClaimReturnsEmpty() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+
+        Claims claims = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .build();
+
+        List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(claims);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResolveOriginContextsNoToolDeploymentReturnsEmpty() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of());
+
+        List<LtiContextEntity> result = ltiNoticeService.resolveOriginContexts(noticeClaims(ISS, CLIENT_ID, DEPLOYMENT_ID, CONTEXT_KEY));
+
+        assertTrue(result.isEmpty());
+    }
+
+
+    private Claims courseCopyClaims(Map<String, Object> toolPlatform) {
+        ClaimsBuilder builder = Jwts.claims()
+            .issuer(ISS)
+            .audience().add(CLIENT_ID).and()
+            .add(LtiStrings.LTI_DEPLOYMENT_ID, DEPLOYMENT_ID)
+            .add(LtiStrings.LTI_CONTEXT, Map.of(LtiStrings.LTI_CONTEXT_ID, CONTEXT_KEY, LtiStrings.LTI_CONTEXT_TITLE, "Spring 2026"))
+            .add(LtiStrings.LTI_ORIGIN_CONTEXTS, List.of("origin-1", "origin-2"));
+
+        if (toolPlatform != null) {
+            builder.add(LtiStrings.LTI_PLATFORM, toolPlatform);
+        }
+
+        return builder.build();
+    }
+
+    @Test
+    public void testDescribeCourseCopyUsesTheNoticesPlatformUrlAndContextTitles() {
+        LtiContextEntity origin = mock(LtiContextEntity.class);
+        when(origin.getTitle()).thenReturn("Fall 2025");
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(ltiContextRepository.findByContextKeyAndToolDeployment("origin-1", toolDeployment)).thenReturn(origin);
+
+        LtiNoticeService.CourseCopyNoticeDescription result = ltiNoticeService.describeCourseCopy(
+            courseCopyClaims(Map.of(LtiStrings.LTI_PLATFORM_URL, "https://school.instructure.com"))
+        );
+
+        assertEquals("https://school.instructure.com", result.platform());
+        // an origin Terracotta has never seen a launch for still shows its id
+        assertEquals("Fall 2025 (origin-1), origin-2", result.source());
+        assertEquals("Spring 2026 (" + CONTEXT_KEY + ")", result.destination());
+    }
+
+    // Canvas cloud sends the same issuer for every instance, so the matched deployment's own base
+    // URL identifies the instance better when the notice doesn't name its platform
+    @Test
+    public void testDescribeCourseCopyFallsBackToTheDeploymentsBaseUrl() {
+        when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(ISS, CLIENT_ID, DEPLOYMENT_ID))
+            .thenReturn(List.of(toolDeployment));
+        when(toolDeployment.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getBaseUrl()).thenReturn("https://school.instructure.com");
+
+        assertEquals("https://school.instructure.com", ltiNoticeService.describeCourseCopy(courseCopyClaims(null)).platform());
+    }
+
+    @Test
+    public void testDescribeCourseCopyFallsBackToTheIssuerAndIdsWhenNothingResolves() {
+        LtiNoticeService.CourseCopyNoticeDescription result = ltiNoticeService.describeCourseCopy(courseCopyClaims(null));
+
+        assertEquals(ISS, result.platform());
+        assertEquals("origin-1, origin-2", result.source());
+        assertEquals("Spring 2026 (" + CONTEXT_KEY + ")", result.destination());
+    }
+
+    @Test
+    public void testDescribeCourseCopyShowsUnknownForMissingContexts() {
+        LtiNoticeService.CourseCopyNoticeDescription result = ltiNoticeService.describeCourseCopy(noticeClaims(ISS, null, null, null));
+
+        assertEquals("unknown", result.source());
+        assertEquals("unknown", result.destination());
     }
 
 }

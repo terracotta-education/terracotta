@@ -1,6 +1,6 @@
 package edu.iu.terracotta.dao.entity;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.dao.model.enums.LmsType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,7 +33,7 @@ import java.util.List;
 @AllArgsConstructor
 @Table(name = "terr_outcome")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Outcome extends BaseEntity {
+public class Outcome extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

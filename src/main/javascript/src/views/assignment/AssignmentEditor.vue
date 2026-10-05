@@ -133,21 +133,15 @@ const alertStatuses = computed(() => {
 });
 
 const experimentId = computed(() => {
-  return Number.parseInt(route.params.experimentId, 10);
+  return route.params.experimentId;
 });
 
 const assignmentId = computed(() => {
-  return Number.parseInt(route.params.assignmentId, 10);
+  return route.params.assignmentId;
 });
 
 const exposureId = computed(() => {
-  return Number.parseInt(route.params.exposureId, 10);
-});
-
-const resolvedExposureId = computed(() => {
-  return Number.isNaN(exposureId.value)
-    ? route.params.exposureId
-    : exposureId.value;
+  return route.params.exposureId;
 });
 
 const contDisabled = computed(() => {
@@ -218,7 +212,7 @@ const saveNext = async routeName => {
     name: routeName,
     params: {
       experiment: props.experiment.experimentId,
-      exposureId: resolvedExposureId.value
+      exposureId: exposureId.value
     }
   });
 };

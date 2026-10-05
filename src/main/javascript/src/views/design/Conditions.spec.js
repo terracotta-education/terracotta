@@ -72,7 +72,7 @@ describe("DesignConditions", () => {
     return mountComponent(Conditions, { pinia });
   }
 
-  it("renders one name field per existing condition, in conditionId order", () => {
+  it("renders one name field per existing condition, in the order the API returns them", () => {
     const wrapper = mount();
 
     const fields = wrapper.findAllComponents({ name: "VTextField" });

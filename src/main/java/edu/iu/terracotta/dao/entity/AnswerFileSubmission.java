@@ -15,7 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,7 +30,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_answer_file_submission")
-public class AnswerFileSubmission extends BaseEntity {
+public class AnswerFileSubmission extends UuidAwareEntity {
 
     public static final String COMPRESSED_FILE_EXTENSION = ".zip";
 

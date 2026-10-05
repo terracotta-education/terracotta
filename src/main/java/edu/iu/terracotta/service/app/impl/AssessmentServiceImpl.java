@@ -97,6 +97,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -138,6 +139,18 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     private List<Assessment> findAllByTreatmentId(Long treatmentId) {
         return assessmentRepository.findByTreatment_TreatmentId(treatmentId);
+    }
+
+    @Override
+    public Assessment getAssessmentByUuid(UUID uuid) throws AssessmentNotMatchingException {
+        return Optional.ofNullable(assessmentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING));
+    }
+
+    @Override
+    public long getAssessmentIdByUuid(UUID uuid) throws AssessmentNotMatchingException {
+        return assessmentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new AssessmentNotMatchingException(TextConstants.ASSESSMENT_NOT_MATCHING));
     }
 
     @Override
@@ -234,7 +247,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long submissionsCompletedCount = null;
         Long submissionsInProgressCount = null;
         AssessmentDto assessmentDto = new AssessmentDto();
-        assessmentDto.setAssessmentId(assessment.getAssessmentId());
+        assessmentDto.setAssessmentId(assessment.getUuid());
         assessmentDto.setHtml(fileStorageService.parseHTMLFiles(assessment.getHtml(), assessment.getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         assessmentDto.setAutoSubmit(assessment.isAutoSubmit());
         assessmentDto.setNumOfSubmissions(assessment.getNumOfSubmissions());
@@ -331,7 +344,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         assessmentDto.setStarted(CollectionUtils.isNotEmpty(assessmentSubmissions));
         assessmentDto.setSubmissions(submissionDtoList);
-        assessmentDto.setTreatmentId(assessment.getTreatment().getTreatmentId());
+        assessmentDto.setTreatmentId(assessment.getTreatment().getUuid());
         assessmentDto.setMaxPoints(assessmentSubmissionService.calculateMaxScore(assessment));
 
         return assessmentDto;
@@ -349,8 +362,11 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public Assessment fromDto(AssessmentDto assessmentDto) throws DataServiceException {
+        // assessmentDto.getAssessmentId() (now a uuid) is intentionally not set on a new
+        // Assessment here - postAssessment already rejects a create request that carries one
+        // (IdInPostException), and the real numeric id/uuid are both IDENTITY/@PrePersist
+        // generated at insert time regardless.
         Assessment assessment = new Assessment();
-        assessment.setAssessmentId(assessmentDto.getAssessmentId());
         assessment.setHtml(assessmentDto.getHtml());
         assessment.setAutoSubmit(assessmentDto.isAutoSubmit());
         assessment.setNumOfSubmissions(assessmentDto.getNumOfSubmissions());
@@ -364,7 +380,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         assessment.setStudentViewCorrectAnswersAfter(assessmentDto.getStudentViewCorrectAnswersAfter());
         assessment.setStudentViewCorrectAnswersBefore(assessmentDto.getStudentViewCorrectAnswersBefore());
 
-        Optional<Treatment> treatment = treatmentRepository.findById(assessmentDto.getTreatmentId());
+        Optional<Treatment> treatment = Optional.ofNullable(treatmentRepository.findByUuid(assessmentDto.getTreatmentId()));
 
         if (treatment.isEmpty()) {
             throw new DataServiceException("The treatment for the assessment does not exist");
@@ -440,7 +456,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         if (CollectionUtils.isNotEmpty(assessmentDto.getQuestions())) {
-            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentDto.getAssessmentId())).stream()
+            List<Long> existingQuestionIds = CollectionUtils.emptyIfNull(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessment.getAssessmentId())).stream()
                 .map(Question::getQuestionId)
                 .collect(Collectors.toList()); // needs to be a modifiable list
 
@@ -449,12 +465,12 @@ public class AssessmentServiceImpl implements AssessmentService {
             for (QuestionDto questionDto : assessmentDto.getQuestions()) {
                 if (questionDto.getQuestionId() == null) {
                     // create new question
-                    questionService.postQuestion(questionDto, assessmentDto.getAssessmentId(), false, false);
+                    questionService.postQuestion(questionDto, assessment.getAssessmentId(), false, false);
                     continue;
                 }
 
-                // update question
-                Question question = questionRepository.findByQuestionId(questionDto.getQuestionId());
+                // update question - questionDto.getQuestionId() is now a uuid
+                Question question = questionRepository.findByUuid(questionDto.getQuestionId());
 
                 if (question == null) {
                     throw new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING);
@@ -571,9 +587,9 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public AssessmentDto defaultAssessment(AssessmentDto assessmentDto, Long treatmentId) {
-        assessmentDto.setTreatmentId(treatmentId);
-
         Treatment treatment = treatmentRepository.findByTreatmentId(treatmentId);
+        assessmentDto.setTreatmentId(treatment.getUuid());
+
         Assignment assignment = treatment.getAssignment();
 
         // Default multiple attempts settings to assignment level settings
@@ -602,7 +618,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId).toUri());
@@ -656,6 +672,10 @@ public class AssessmentServiceImpl implements AssessmentService {
         Long oldAssessmentId = from.getAssessmentId();
         from.setAssessmentId(null);
         from.setVersion(0);
+        // the detached copy still carries the ORIGINAL row's uuid; clearing it lets
+        // UuidAwareEntity's @PrePersist generate a fresh one for this new row instead of
+        // colliding with the source row's unique uuid constraint
+        from.setUuid(null);
 
         from.setTreatment(treatment);
 
@@ -800,6 +820,15 @@ public class AssessmentServiceImpl implements AssessmentService {
                         );
 
                     if (answerSubmissionCount.get() == assessment.getQuestions().size()) {
+                        if (!submissionService.lastSavedWithinAvailability(submission, securedInfo)) {
+                            // saved outside the current availability window (e.g. before the
+                            // assignment was closed and re-opened): left unfinished for the student
+                            // to continue and submit, rather than submitted with a date outside the
+                            // window - which the date check would also reject, failing this view
+                            log.info("Leaving submission ID: [{}] for assessment ID: [{}] unfinished: its answers were saved outside the assignment's current availability dates", submission.getSubmissionId(), assessment.getAssessmentId());
+                            continue;
+                        }
+
                         // all questions have an answer; finalize and grade
                         submissionService.finalizeAndGrade(
                             submission.getSubmissionId(),
@@ -877,7 +906,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             return;
         }
 
-        log.info("Processing regrade option: [{}] with edited MC question IDs: [{}] for assessment ID: [{}]",
+        log.info("Processing regrade option: [{}] with edited MC question IDs: {} for assessment ID: [{}]",
             regradeDetails.getRegradeOption(),
             StringUtils.join(regradeDetails.getEditedMCQuestionIds(), ","),
             assessmentId

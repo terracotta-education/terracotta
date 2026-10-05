@@ -5,6 +5,7 @@ import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.AnswerMcSubmission;
 import edu.iu.terracotta.dao.entity.integrations.AnswerIntegrationSubmission;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.dao.model.dto.FileResponseDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
@@ -19,6 +20,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 public interface AnswerSubmissionService {
 
@@ -28,6 +30,7 @@ public interface AnswerSubmissionService {
     List<AnswerSubmissionDto> postAnswerSubmissions(List<AnswerSubmissionDto> answerSubmissionDto) throws IdInPostException, DataServiceException, TypeNotSupportedException, IdMissingException, ExceedingLimitException, IOException;
     void updateAnswerSubmission(AnswerSubmissionDto answerSubmissionDto, long answerSubmissionId, String answerType) throws AnswerNotMatchingException, DataServiceException;
     void deleteAnswerSubmission(long answerSubmissionId, String answerType) throws DataServiceException;
+    long resolveAnswerSubmissionId(UUID uuid, String answerType) throws AnswerSubmissionNotMatchingException;
     List<AnswerSubmissionDto> getAnswerMcSubmissions(Long questionSubmissionId);
     AnswerSubmissionDto toDtoMC(AnswerMcSubmission mcAnswer);
     AnswerMcSubmission fromDtoMC(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException;
@@ -37,7 +40,7 @@ public interface AnswerSubmissionService {
     AnswerEssaySubmission fromDtoEssay(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException;
     void updateAnswerEssaySubmission(Long id, AnswerSubmissionDto answerSubmissionDto);
     String getAnswerType(Long questionSubmissionId);
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId, UUID questionSubmissionId, UUID answerSubmissionId);
     AnswerSubmissionDto toDtoFile(AnswerFileSubmission essayAnswer) throws IOException;
     AnswerFileSubmission fromDtoFile(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException;
     List<AnswerSubmissionDto> getAnswerFileSubmissions(Long questionSubmissionId) throws IOException;

@@ -30,6 +30,7 @@ import com.nimbusds.jose.jwk.RSAKey;
 import edu.iu.terracotta.base.BaseTest;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.SignatureException;
@@ -105,6 +106,23 @@ public class LtiJwtServiceImplTest extends BaseTest {
         when(ltiDataService.getOwnPublicKey()).thenReturn(toPublicKeyBase64(otherKeyPair.getPublic()));
 
         assertThrows(SignatureException.class, () -> ltiJwtService.validateState(state));
+    }
+
+    // the key locator's own GeneralSecurityException catch block (a malformed/unparseable public
+    // key coming back from ltiDataService) - it must swallow that exception and resolve to a null
+    // key rather than letting a raw GeneralSecurityException escape validateState()
+    @Test
+    public void testValidateStateUnparseablePublicKeyThrows() throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        when(ltiDataService.getOwnPrivateKey()).thenReturn(toPrivateKeyPem(keyPair.getPrivate()));
+        when(platformDeployment.getClientId()).thenReturn("client1");
+        when(platformDeployment.getOAuth2TokenUrl()).thenReturn("https://example.com/token");
+
+        String state = ltiJwtService.generateTokenRequestJWT(platformDeployment);
+
+        when(ltiDataService.getOwnPublicKey()).thenReturn("not-a-valid-key");
+
+        assertThrows(JwtException.class, () -> ltiJwtService.validateState(state));
     }
 
     // generateTokenRequestJWT

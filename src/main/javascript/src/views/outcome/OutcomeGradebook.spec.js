@@ -99,7 +99,7 @@ describe("OutcomeGradebook", () => {
   it("shows a check icon instead of a checkbox for potentials that already have an outcome", async () => {
     outcomeService.getAll.mockResolvedValue({
       status: 200,
-      data: [{ lmsOutcomeId: 1, exposureId: 20 }]
+      data: [{ lmsOutcomeId: 1, exposureId: "20" }]
     });
 
     const wrapper = mountView();
@@ -145,8 +145,8 @@ describe("OutcomeGradebook", () => {
     await flush();
 
     expect(outcomeService.create).toHaveBeenCalledWith(
-      10,
-      20,
+      "10",
+      "20",
       "Quiz 1",
       10,
       true,

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -37,11 +38,14 @@ import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 
@@ -53,6 +57,9 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
     private static final String PUBLIC_KEY_PEM = "-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlTs7N2Q4Gh1c/UfY2H0SPJFhs4UYVkpp3yVIMlwjjrIHsY970S5M07KS+lN10Tf5JY8ZskTRvHa1QLJxn2cMdksDopDln/ziTb4KGffIhvDQBLyuGpcnVM5usf/heB2E4U9S6wSF6F0Qn5A5YMijgfNmWqn1dZgpER3BJdZ26daBQ70cEUsaq0erZLDaPZR8fMLWqXmlT34H/hFWTzzBFts+Q4FrU9X0RzBk049kLlUYTsxcLUv/Rro2BF+LMCfC7p/SePJtrgyPIzOtQ0L374TJh4cw3d8cDLBt7CqUFPIAcTrvakqiE2z7BvB8UswybrA1AgcEIu32rTPUUUCWIQIDAQAB-----END PUBLIC KEY-----";
 
     @InjectMocks private BrightspaceApiJwtServiceImpl brightspaceApiJWTService;
+
+    private static final UUID ASSIGNMENT_UUID = UUID.randomUUID();
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
 
     private Map<String, Object> customVars;
 
@@ -106,8 +113,8 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
             100L,
             1L,
             "user123",
-            5L,
-            7L,
+            ASSIGNMENT_UUID,
+            EXPERIMENT_UUID,
             Boolean.TRUE,
             brightspaceUserId,
             "globalGuid123",
@@ -201,16 +208,26 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
         assertFalse(claims.getPayload().containsKey(JwtClaim.ALLOWED_ATTEMPTS.key()));
     }
 
+    // legacy launch URL, already persisted in an existing LMS course before the uuid migration -
+    // carries plain numeric ids, which must resolve to the matching entity's uuid via repository
+    // lookup so the JWT claim always carries a uuid, regardless of which format the LMS-stored
+    // launch URL happens to use
     @Test
-    public void testBuildJwtFromLti3RequestWithAssignmentExperimentAndConsent() throws GeneralSecurityException, IOException, BadTokenException, TerracottaConnectorException {
+    public void testBuildJwtFromLti3RequestWithLegacyNumericAssignmentAndExperimentIds() throws GeneralSecurityException, IOException, BadTokenException, TerracottaConnectorException {
         when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/launch?assignment=55&experiment=77&consent=true");
+        Assignment assignment = new Assignment();
+        assignment.setUuid(ASSIGNMENT_UUID);
+        Experiment experiment = new Experiment();
+        experiment.setUuid(EXPERIMENT_UUID);
+        when(assignmentRepository.findByAssignmentId(55L)).thenReturn(assignment);
+        when(experimentRepository.findByExperimentId(77L)).thenReturn(experiment);
 
         String jwt = brightspaceApiJWTService.buildJwt(false, lti3Request);
         Jws<Claims> claims = brightspaceApiJWTService.validateToken(jwt);
         Claims payload = claims.getPayload();
 
-        assertEquals(55L, asLong(payload.get(JwtClaim.ASSIGNMENT_ID.key())));
-        assertEquals(77L, asLong(payload.get(JwtClaim.EXPERIMENT_ID.key())));
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
         assertEquals(Boolean.TRUE, payload.get(JwtClaim.CONSENT.key()));
         assertEquals(100L, asLong(payload.get(JwtClaim.CONTEXT_ID.key())));
         assertEquals(1L, asLong(payload.get(JwtClaim.PLATFORM_DEPLOYMENT_ID.key())));
@@ -227,6 +244,50 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
         assertEquals("2026-03-01T00:00:00Z", payload.get(JwtClaim.UNLOCK_AT.key()));
         assertEquals("nonce123", payload.get(JwtClaim.NONCE.key()));
         assertEquals(BrightspaceJwtClaim.BRIGHTSPACE.key(), payload.get(JwtClaim.LMS_NAME.key()));
+    }
+
+    // legacy numeric id that no longer resolves to any entity (e.g. a since-deleted
+    // assignment/experiment) fails the launch with a clear message - a token issued with no
+    // assignment/experiment claim would only surface later as the frontend spinning forever
+    @Test
+    public void testBuildJwtFromLti3RequestWithLegacyNumericIdsNotFoundFailsTheLaunch() {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/launch?assignment=55&experiment=77&consent=true");
+        when(assignmentRepository.findByAssignmentId(55L)).thenReturn(null);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> brightspaceApiJWTService.buildJwt(false, lti3Request));
+
+        assertTrue(exception.getMessage().contains("assignment ID [55]"));
+    }
+
+    // a launch URL id that is neither a uuid nor a legacy numeric id (e.g. "?assignment=undefined")
+    // is named as malformed instead of escaping as a bare NumberFormatException
+    @Test
+    public void testBuildJwtFromLti3RequestWithMalformedIdFailsTheLaunch() {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/launch?assignment=undefined&consent=true");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> brightspaceApiJWTService.buildJwt(false, lti3Request));
+
+        assertTrue(exception.getMessage().contains("neither a uuid nor a legacy numeric ID"));
+        verify(assignmentRepository, never()).findByAssignmentId(anyLong());
+    }
+
+    // new-format launch URL - the "assignment"/"experiment" query params are already uuids, so
+    // they pass through directly with no repository lookup needed
+    @Test
+    public void testBuildJwtFromLti3RequestWithUuidAssignmentAndExperimentIds() throws GeneralSecurityException, IOException, BadTokenException, TerracottaConnectorException {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn(
+            String.format("https://example.com/launch?assignment=%s&experiment=%s&consent=true", ASSIGNMENT_UUID, EXPERIMENT_UUID)
+        );
+
+        String jwt = brightspaceApiJWTService.buildJwt(false, lti3Request);
+        Jws<Claims> claims = brightspaceApiJWTService.validateToken(jwt);
+        Claims payload = claims.getPayload();
+
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
+        assertEquals(Boolean.TRUE, payload.get(JwtClaim.CONSENT.key()));
+        verify(assignmentRepository, never()).findByAssignmentId(anyLong());
+        verify(experimentRepository, never()).findByExperimentId(any());
     }
 
     @Test
@@ -261,8 +322,8 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
         assertEquals(100L, asLong(payload.get(JwtClaim.CONTEXT_ID.key())));
         assertEquals(1L, asLong(payload.get(JwtClaim.PLATFORM_DEPLOYMENT_ID.key())));
         assertEquals(List.of("Learner"), payload.get(JwtClaim.ROLES.key()));
-        assertEquals(5L, asLong(payload.get(JwtClaim.ASSIGNMENT_ID.key())));
-        assertEquals(7L, asLong(payload.get(JwtClaim.EXPERIMENT_ID.key())));
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
         assertEquals(Boolean.TRUE, payload.get(JwtClaim.CONSENT.key()));
         assertEquals("guid1234_56789", payload.get(BrightspaceJwtClaim.BRIGHTSPACE_USER_ID.key()));
         assertEquals("globalGuid123", payload.get(BrightspaceJwtClaim.BRIGHTSPACE_USER_GLOBAL_ID.key()));
@@ -280,8 +341,8 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
         Claims mockClaims = mock(Claims.class);
         when(mockClaims.get(JwtClaim.ROLES.key(), List.class)).thenReturn(List.of("Learner"));
         when(mockClaims.get(JwtClaim.CONTEXT_ID.key(), Long.class)).thenReturn(200L);
-        when(mockClaims.get(JwtClaim.ASSIGNMENT_ID.key(), Long.class)).thenReturn(9L);
-        when(mockClaims.get(JwtClaim.EXPERIMENT_ID.key(), Long.class)).thenReturn(11L);
+        when(mockClaims.get(JwtClaim.ASSIGNMENT_ID.key())).thenReturn(ASSIGNMENT_UUID.toString());
+        when(mockClaims.get(JwtClaim.EXPERIMENT_ID.key())).thenReturn(EXPERIMENT_UUID.toString());
         when(mockClaims.get(JwtClaim.CONSENT.key(), Boolean.class)).thenReturn(true);
         when(mockClaims.get(BrightspaceJwtClaim.BRIGHTSPACE_USER_ID.key(), String.class)).thenReturn("bUser1");
         when(mockClaims.get(BrightspaceJwtClaim.BRIGHTSPACE_USER_GLOBAL_ID.key(), String.class)).thenReturn("bGlobal1");
@@ -303,11 +364,35 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
         assertEquals(Boolean.TRUE, payload.get(JwtClaim.ONE_USE.key()));
         assertEquals("userKeyABC", payload.getSubject());
         assertEquals(200L, asLong(payload.get(JwtClaim.CONTEXT_ID.key())));
-        assertEquals(9L, asLong(payload.get(JwtClaim.ASSIGNMENT_ID.key())));
-        assertEquals(11L, asLong(payload.get(JwtClaim.EXPERIMENT_ID.key())));
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
         assertEquals("bUser1", payload.get(BrightspaceJwtClaim.BRIGHTSPACE_USER_ID.key()));
         assertEquals("bCourse1", payload.get(BrightspaceJwtClaim.BRIGHTSPACE_COURSE_ID.key()));
         assertEquals("nonceABC", payload.get(JwtClaim.NONCE.key()));
+    }
+
+    // a token issued before the uuid migration carries these claims as numbers - refreshing it
+    // has to resolve them to uuids rather than fail on a jjwt type mismatch
+    @Test
+    public void testBuildJwtFromClaimsResolvesLegacyNumericIds() throws Exception {
+        Claims mockClaims = mock(Claims.class);
+        when(mockClaims.get(JwtClaim.ROLES.key(), List.class)).thenReturn(List.of("Learner"));
+        when(mockClaims.get(JwtClaim.CONTEXT_ID.key(), Long.class)).thenReturn(200L);
+        when(mockClaims.get(JwtClaim.ASSIGNMENT_ID.key())).thenReturn(55);
+        when(mockClaims.get(JwtClaim.EXPERIMENT_ID.key())).thenReturn(77);
+        when(mockClaims.get(JwtClaim.CONSENT.key(), Boolean.class)).thenReturn(true);
+        when(mockClaims.get(JwtClaim.ALLOWED_ATTEMPTS.key(), Integer.class)).thenReturn(5);
+        when(mockClaims.get(JwtClaim.STUDENT_ATTEMPTS.key(), Integer.class)).thenReturn(2);
+        when(assignmentRepository.findByAssignmentId(55L)).thenReturn(assignment);
+        when(experimentRepository.findByExperimentId(77L)).thenReturn(experiment);
+        when(assignment.getUuid()).thenReturn(ASSIGNMENT_UUID);
+        when(experiment.getUuid()).thenReturn(EXPERIMENT_UUID);
+
+        String jwt = brightspaceApiJWTService.buildJwt(1L, "userKeyABC", mockClaims);
+        Claims payload = brightspaceApiJWTService.validateToken(jwt).getPayload();
+
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get(JwtClaim.EXPERIMENT_ID.key()));
     }
 
     @Test
@@ -362,6 +447,17 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
     @Test
     public void testValidateTokenWithMalformedTokenThrowsMalformedJwtException() {
         assertThrows(MalformedJwtException.class, () -> brightspaceApiJWTService.validateToken("not-a-jwt-token-at-all"));
+    }
+
+    // the key locator's own GeneralSecurityException catch block (a malformed/unparseable public
+    // key coming back from ltiDataService) - it must swallow that exception and resolve to a null
+    // key rather than letting a raw GeneralSecurityException escape validateToken()
+    @Test
+    public void testValidateTokenWithUnparseablePublicKeyThrowsJwtException() throws GeneralSecurityException, IOException, BadTokenException, TerracottaConnectorException {
+        String jwt = brightspaceApiJWTService.buildJwt(false, lti3Request);
+        when(ltiDataService.getOwnPublicKey()).thenReturn("not-a-valid-key");
+
+        assertThrows(JwtException.class, () -> brightspaceApiJWTService.validateToken(jwt));
     }
 
     @Test
@@ -571,6 +667,10 @@ public class BrightspaceApiJwtServiceImplTest extends BaseTest {
         Jws<Claims> newClaims = brightspaceApiJWTService.validateToken(response.getBody());
         assertEquals(Boolean.FALSE, newClaims.getPayload().get(JwtClaim.ONE_USE.key()));
         assertEquals("user123", newClaims.getPayload().getSubject());
+        // the uuid-valued assignmentId/experimentId claims round-trip unchanged through the
+        // timed-token exchange
+        assertEquals(ASSIGNMENT_UUID.toString(), newClaims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()));
+        assertEquals(EXPERIMENT_UUID.toString(), newClaims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -44,6 +45,7 @@ import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
 import edu.iu.terracotta.exceptions.WrongValueException;
+import edu.iu.terracotta.utils.LmsAuthorizationUtils;
 import edu.iu.terracotta.utils.TextConstants;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -71,6 +73,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class RestResponseEntityExceptionHandler
         extends ResponseEntityExceptionHandler {
+
+    public static final String LMS_REAUTHORIZATION_HEADER = "X-Terracotta-Lms-Reauthorization";
 
     // another request changed the same row first (e.g. two overlapping saves of the same
     // assignments). The transaction has already rolled back, so nothing was half-written - this is
@@ -286,7 +290,7 @@ public class RestResponseEntityExceptionHandler
         String bodyOfResponse = ex.getMessage();
         log.warn(bodyOfResponse);
 
-        return handleExceptionInternal(ex, bodyOfResponse,new HttpHeaders(), HttpStatus.CONFLICT, request);
+        return withLmsReauthorization(ex, bodyOfResponse, HttpStatus.CONFLICT, request);
     }
 
     @ExceptionHandler({WrongValueException.class})
@@ -399,14 +403,14 @@ public class RestResponseEntityExceptionHandler
     protected ResponseEntity<Object> handleAssignmentNotCreatedException(AssignmentNotCreatedException ex, WebRequest request) {
         log.warn(ex.getMessage());
 
-        return handleExceptionInternal(ex, ex.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+        return withLmsReauthorization(ex, ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
     @ExceptionHandler({AssignmentNotEditedException.class})
     protected ResponseEntity<Object> handleAssignmentNotEditedException(AssignmentNotEditedException ex, WebRequest request) {
         log.warn(ex.getMessage());
 
-        return handleExceptionInternal(ex, ex.getMessage(), new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+        return withLmsReauthorization(ex, ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
     @ExceptionHandler({IdInPostException.class})
@@ -481,7 +485,29 @@ public class RestResponseEntityExceptionHandler
         String bodyOfResponse = ex.getMessage();
         log.warn(bodyOfResponse);
 
-        return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+        return withLmsReauthorization(ex, bodyOfResponse, HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
+
+    @ExceptionHandler({ LmsOAuthException.class })
+    protected ResponseEntity<Object> handleLmsOAuthException(LmsOAuthException ex, WebRequest request) {
+        log.warn(ex.getMessage());
+
+        return withLmsReauthorization(ex, ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
+
+    // an LMS call failed because the user's LMS API token no longer works. Only relaunching
+    // Terracotta can fix that (the authorization link needs the launch), so replace the raw error
+    // with a message saying so and flag the response for the frontend, which shows it once.
+    // The status is left as it was so existing error handling on each screen is unchanged.
+    private ResponseEntity<Object> withLmsReauthorization(Exception ex, String bodyOfResponse, HttpStatus status, WebRequest request) {
+        if (!LmsAuthorizationUtils.isAuthorizationFailure(ex)) {
+            return handleExceptionInternal(ex, bodyOfResponse, new HttpHeaders(), status, request);
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(LMS_REAUTHORIZATION_HEADER, "true");
+
+        return handleExceptionInternal(ex, TextConstants.LMS_REAUTHORIZATION_REQUIRED, headers, status, request);
     }
 
     /**

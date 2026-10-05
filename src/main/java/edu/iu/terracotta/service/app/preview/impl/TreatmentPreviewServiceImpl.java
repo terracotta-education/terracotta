@@ -1,7 +1,6 @@
 package edu.iu.terracotta.service.app.preview.impl;
 
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.stereotype.Service;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -73,24 +72,22 @@ public class TreatmentPreviewServiceImpl implements TreatmentPreviewService {
                 true
             )
         );
-        AtomicLong questionSubmissionId = new AtomicLong(1L);
-
         SubmissionDto submissionDto = SubmissionDto.builder()
-            .assessmentId(treatmentPreview.getTreatment().getAssessment().getAssessmentId())
-            .conditionId(treatmentPreview.getTreatment().getCondition().getConditionId())
-            .experimentId(treatmentPreview.getTreatment().getCondition().getExperiment().getExperimentId())
+            .assessmentId(treatmentPreview.getTreatment().getAssessment().getUuid())
+            .conditionId(treatmentPreview.getTreatment().getCondition().getUuid())
+            .experimentId(treatmentPreview.getTreatment().getCondition().getExperiment().getUuid())
             .questionSubmissionDtoList(
                 treatmentPreview.getTreatment().getAssessment().getQuestions().stream()
                     .map(question -> QuestionSubmissionDto.builder()
                         .answerDtoList(answerService.findAllByQuestionIdMC(question.getQuestionId(), true))
-                        .questionSubmissionId(questionSubmissionId.getAndIncrement())
-                        .questionId(question.getQuestionId())
+                        .questionSubmissionId(UUID.randomUUID())
+                        .questionId(question.getUuid())
                         .build()
                     )
                     .toList()
             )
-            .submissionId(1L)
-            .treatmentId(treatmentId)
+            .submissionId(UUID.randomUUID())
+            .treatmentId(treatmentPreview.getTreatment().getUuid())
             .build();
 
         return TreatmentPreviewDto.builder()

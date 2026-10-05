@@ -96,11 +96,9 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
                 Jws<Claims> jws = ltijwtService.validateJWT(jwt, stateClaims.getPayload().getAudience().toArray(new String[stateClaims.getPayload().getAudience().size()])[0]);
                 if (jws != null) {
                     // Create and populate the Lti3Request object and add it to the httpServletRequest, so the redirect endpoint will have all that information ready and will be able to use it.
-                    Lti3Request lti3Request;
+                    Lti3Request lti3Request = buildLti3Request(httpServletRequest, link);
 
-                    try {
-                        lti3Request = new Lti3Request(httpServletRequest, ltiDataService, true, link);
-                    } catch (IllegalStateException e) {
+                    if (lti3Request == null) {
                         // an incomplete launch (e.g. no user) - nothing on our side to act on
                         ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
 
@@ -127,6 +125,15 @@ public class Lti3OAuthProviderProcessingFilter extends GenericFilterBean {
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         } catch (DataServiceException e) {
             log.error("Error in the Data Service", e);
+        }
+    }
+
+    // null when the launch isn't a valid, complete LTI request
+    private Lti3Request buildLti3Request(HttpServletRequest httpServletRequest, String link) throws DataServiceException {
+        try {
+            return new Lti3Request(httpServletRequest, ltiDataService, true, link);
+        } catch (IllegalStateException _) {
+            return null;
         }
     }
 

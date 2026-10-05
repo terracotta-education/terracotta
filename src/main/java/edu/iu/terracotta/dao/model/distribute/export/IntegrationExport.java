@@ -16,8 +16,8 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class IntegrationExport {
 
-    private long id;
-    private long configurationId;
-    private long questionId;
+    private String id;
+    private String configurationId;
+    private String questionId;
 
 }

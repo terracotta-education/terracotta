@@ -31,6 +31,7 @@ import org.springframework.web.context.request.WebRequest;
 
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
+import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -587,6 +588,39 @@ public class RestResponseEntityExceptionHandlerTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("api error", response.getBody());
+        assertNull(response.getHeaders().getFirst(RestResponseEntityExceptionHandler.LMS_REAUTHORIZATION_HEADER));
+    }
+
+    // only relaunching Terracotta can fix a dead LMS token, so the raw error is replaced with a
+    // message saying so, and the response is flagged for the frontend to show it once. The status
+    // stays as it was so each screen's existing error handling is unchanged.
+    @Test
+    void handleApiExceptionFlagsAnLmsAuthorizationFailureTest() {
+        ApiException failure = new ApiException("Failed to get the list of assignments", new IllegalStateException("Failed to refresh", new LmsOAuthException("invalid_grant")));
+
+        ResponseEntity<Object> response = handler.handleApiException(failure, webRequest);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(TextConstants.LMS_REAUTHORIZATION_REQUIRED, response.getBody());
+        assertEquals("true", response.getHeaders().getFirst(RestResponseEntityExceptionHandler.LMS_REAUTHORIZATION_HEADER));
+    }
+
+    // creating an assignment wraps the LMS failure in its own exception
+    @Test
+    void handleAssignmentNotCreatedExceptionFlagsAnLmsAuthorizationFailureTest() {
+        AssignmentNotCreatedException failure = new AssignmentNotCreatedException("Error 137: could not create", new ApiException("x", new LmsOAuthException("invalid_grant")));
+
+        ResponseEntity<Object> response = handler.handleAssignmentNotCreatedException(failure, webRequest);
+
+        assertEquals("true", response.getHeaders().getFirst(RestResponseEntityExceptionHandler.LMS_REAUTHORIZATION_HEADER));
+    }
+
+    @Test
+    void handleLmsOAuthExceptionFlagsItTest() {
+        ResponseEntity<Object> response = handler.handleLmsOAuthException(new LmsOAuthException("no token"), webRequest);
+
+        assertEquals(TextConstants.LMS_REAUTHORIZATION_REQUIRED, response.getBody());
+        assertEquals("true", response.getHeaders().getFirst(RestResponseEntityExceptionHandler.LMS_REAUTHORIZATION_HEADER));
     }
 
 }

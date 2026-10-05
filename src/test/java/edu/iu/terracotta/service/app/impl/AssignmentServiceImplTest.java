@@ -18,6 +18,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Optional;
+import java.util.UUID;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -68,6 +69,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -148,7 +150,11 @@ public class AssignmentServiceImplTest extends BaseTest {
         when(assignment.getDueDate()).thenReturn(dueDate);
         when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(assignment.isPublished()).thenReturn(true);
-        when(assignmentDto.getExposureId()).thenReturn(1L);
+
+        UUID exposureUuid = UUID.randomUUID();
+        when(exposure.getUuid()).thenReturn(exposureUuid);
+        when(assignmentDto.getExposureId()).thenReturn(exposureUuid);
+        when(exposureRepository.findByUuid(exposureUuid)).thenReturn(exposure);
         when(assignmentDto.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT.toString());
         when(canvasAssignmentExtended.isPublished()).thenReturn(true);
         when(canvasAssignmentExtended.getDueAt()).thenReturn(dueDate);
@@ -273,7 +279,7 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testMoveAssignmentNoTargetExposureMatch() throws IdInPostException, AssessmentNotMatchingException {
-        when(exposureRepository.findByExposureId(anyLong())).thenReturn(null);
+        when(exposureRepository.findByUuid(any(UUID.class))).thenReturn(null);
         Exception exception = assertThrows(ExposureNotMatchingException.class, () -> { assignmentService.moveAssignment(2l, assignmentDto, 1L, 2l, securedInfo); });
 
         assertEquals(TextConstants.EXPOSURE_NOT_MATCHING, exception.getMessage());
@@ -411,7 +417,7 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoExposureNotFound() {
-        when(exposureRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(exposureRepository.findByUuid(any(UUID.class))).thenReturn(null);
 
         Exception exception = assertThrows(DataServiceException.class, () -> assignmentService.fromDto(assignmentDto));
 
@@ -446,6 +452,7 @@ public class AssignmentServiceImplTest extends BaseTest {
             RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {
         String currentAssignmentTitle = assignment.getTitle();
         when(assignmentDto.getTitle()).thenReturn(currentAssignmentTitle);
+        when(assignmentRepository.findByUuid(assignmentDto.getAssignmentId())).thenReturn(assignment);
 
         List<AssignmentDto> retVal = assignmentService.updateAssignments(List.of(assignmentDto, assignmentDto), securedInfo);
 
@@ -803,10 +810,36 @@ public class AssignmentServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders headers = assignmentService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 2L, 3L);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID exposureUuid = UUID.randomUUID();
+        UUID assignmentUuid = UUID.randomUUID();
+
+        HttpHeaders headers = assignmentService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid, exposureUuid, assignmentUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/exposures/2/assignments/3"));
+        assertTrue(headers.getLocation().toString().contains(
+            String.format("/api/experiments/%s/exposures/%s/assignments/%s", experimentUuid, exposureUuid, assignmentUuid)
+        ));
+    }
+
+    @Test
+    public void testGetAssignmentByUuidFound() throws Exception {
+        UUID uuid = assignment.getUuid();
+        when(assignmentRepository.findByUuid(uuid)).thenReturn(assignment);
+
+        Assignment retVal = assignmentService.getAssignmentByUuid(uuid);
+
+        assertEquals(assignment, retVal);
+    }
+
+    @Test
+    public void testGetAssignmentByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(assignmentRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(AssignmentNotMatchingException.class, () -> assignmentService.getAssignmentByUuid(uuid));
+
+        assertEquals(TextConstants.ASSIGNMENT_NOT_MATCHING, exception.getMessage());
     }
 
     @Test
@@ -822,6 +855,78 @@ public class AssignmentServiceImplTest extends BaseTest {
         when(apiClient.createLmsAssignment(any(LtiUserEntity.class), any(Assignment.class), anyString())).thenThrow(new ApiException("failed"));
 
         assertThrows(AssignmentNotCreatedException.class, () -> assignmentService.createAssignmentInLms(instructorUser, assignment, 1L, "course-1"));
+    }
+
+    @Test
+    public void testRepointAssignmentInLmsSuccess() throws AssignmentNotCreatedException, TerracottaConnectorException, ApiException {
+        when(instructorUser.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getLocalUrl()).thenReturn(LTI_URL);
+        UUID experimentUuid = UUID.randomUUID();
+        UUID assignmentUuid = UUID.randomUUID();
+        when(experiment.getUuid()).thenReturn(experimentUuid);
+        when(assignment.getUuid()).thenReturn(assignmentUuid);
+        // Canvas's LTI 1.1 resource_link_id - never matches a line item, so must not be used
+        when(lmsExternalToolFields.getResourceLinkId()).thenReturn("lti-1.1-link-id");
+        when(apiClient.editAssignment(instructorUser, lmsAssignment, "course-1")).thenReturn(Optional.of(lmsAssignment));
+
+        Assignment retVal = assignmentService.repointAssignmentInLms(instructorUser, assignment, "course-1", lmsAssignment);
+
+        assertEquals(assignment, retVal);
+        // uuids, matching the launch URL of a newly-created LMS assignment
+        verify(lmsExternalToolFields).setUrl(String.format("%s/lti3?experiment=%s&assignment=%s", LTI_URL, experimentUuid, assignmentUuid));
+        verify(assignment).setLmsAssignmentId("1");
+        // the LTI 1.3 resource link ID from secure_params, which grade sync matches line items on
+        verify(assignment).setResourceLinkId("1");
+        verify(apiClient, never()).createLmsAssignment(any(), any(), anyString());
+    }
+
+    @Test
+    public void testRepointAssignmentInLmsFallsBackToTheListingsSecureParams() throws AssignmentNotCreatedException, TerracottaConnectorException, ApiException {
+        when(instructorUser.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getLocalUrl()).thenReturn(LTI_URL);
+        LmsAssignment editResponse = mock(LmsAssignment.class);
+        when(editResponse.getId()).thenReturn("1");
+        when(apiClient.editAssignment(instructorUser, lmsAssignment, "course-1")).thenReturn(Optional.of(editResponse));
+
+        assignmentService.repointAssignmentInLms(instructorUser, assignment, "course-1", lmsAssignment);
+
+        verify(apiJwtService).unsecureToken(eq(RESOURCE_LINK_ID), any(PlatformDeployment.class));
+        verify(assignment).setResourceLinkId("1");
+    }
+
+    @Test
+    public void testRepointAssignmentInLmsApiException() throws ApiException, TerracottaConnectorException {
+        when(instructorUser.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getLocalUrl()).thenReturn(LTI_URL);
+        when(apiClient.editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString())).thenThrow(new ApiException("failed"));
+
+        assertThrows(AssignmentNotCreatedException.class, () -> assignmentService.repointAssignmentInLms(instructorUser, assignment, "course-1", lmsAssignment));
+    }
+
+    @Test
+    public void testRestoreRepointedAssignmentUrlInLmsSuccess() throws ApiException, TerracottaConnectorException {
+        assignmentService.restoreRepointedAssignmentUrlInLms(instructorUser, lmsAssignment, "https://original.example.com/lti3?experiment=1&assignment=5", "course-1");
+
+        verify(lmsExternalToolFields).setUrl("https://original.example.com/lti3?experiment=1&assignment=5");
+        verify(apiClient).editAssignment(instructorUser, lmsAssignment, "course-1");
+    }
+
+    @Test
+    public void testRestoreRepointedAssignmentUrlInLmsNoExternalToolFieldsIsNoOp() throws ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getLmsExternalToolFields()).thenReturn(null);
+
+        assignmentService.restoreRepointedAssignmentUrlInLms(instructorUser, lmsAssignment, "https://original.example.com/lti3?experiment=1&assignment=5", "course-1");
+
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+    }
+
+    @Test
+    public void testRestoreRepointedAssignmentUrlInLmsApiExceptionIsSwallowed() throws ApiException, TerracottaConnectorException {
+        doThrow(new ApiException("failed")).when(apiClient).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+
+        assignmentService.restoreRepointedAssignmentUrlInLms(instructorUser, lmsAssignment, "https://original.example.com/lti3?experiment=1&assignment=5", "course-1");
+
+        verify(lmsExternalToolFields).setUrl("https://original.example.com/lti3?experiment=1&assignment=5");
     }
 
     @Test
@@ -892,6 +997,22 @@ public class AssignmentServiceImplTest extends BaseTest {
     @Test
     public void testIsSingleVersionNullAssignmentThrows() {
         assertThrows(IllegalArgumentException.class, () -> assignmentService.isSingleVersion((Assignment) null));
+    }
+
+    @Test
+    public void testGetAssignmentIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(assignmentRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, assignmentService.getAssignmentIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetAssignmentIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(assignmentRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(AssignmentNotMatchingException.class, () -> assignmentService.getAssignmentIdByUuid(uuid));
     }
 
 }

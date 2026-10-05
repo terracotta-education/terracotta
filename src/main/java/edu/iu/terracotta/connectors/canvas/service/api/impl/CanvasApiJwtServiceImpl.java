@@ -24,6 +24,8 @@ import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
 import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRule;
 import edu.iu.terracotta.dao.entity.messaging.recipient.MessageRecipientRuleSet;
+import edu.iu.terracotta.dao.repository.AssignmentRepository;
+import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
@@ -106,6 +108,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -125,6 +128,8 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
     private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
     private final ApiOneUseTokenRepository apiOneUseTokenRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ExperimentRepository experimentRepository;
     private final MessageConfigurationRepository messageConfigurationRepository;
     private final MessageContentRepository messageContentRepository;
     private final MessageContainerConfigurationRepository messageContainerConfigurationRepository;
@@ -208,14 +213,22 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public String buildJwt(long platformDeploymentId, String userKey, Claims claims) throws GeneralSecurityException, IOException {
+        // read as plain Objects rather than String.class: a token issued before the uuid
+        // migration still carries these claims as numbers, and jjwt throws RequiredTypeException
+        // on a type mismatch rather than converting. Resolving through the same dual-format
+        // helpers the launch path uses lets a session that was open across the deploy refresh
+        // normally instead of failing on its first refresh.
+        UUID assignmentId = resolveAssignmentUuid(Objects.toString(claims.get(JwtClaim.ASSIGNMENT_ID.key()), null));
+        UUID experimentId = resolveExperimentUuid(Objects.toString(claims.get(JwtClaim.EXPERIMENT_ID.key()), null));
+
         return buildJwt(
             true,
             claims.get(JwtClaim.ROLES.key(), List.class),
             claims.get(JwtClaim.CONTEXT_ID.key(), Long.class),
             platformDeploymentId,
             userKey,
-            claims.get(JwtClaim.ASSIGNMENT_ID.key(), Long.class),
-            claims.get(JwtClaim.EXPERIMENT_ID.key(), Long.class),
+            assignmentId,
+            experimentId,
             claims.get(JwtClaim.CONSENT.key(), Boolean.class),
             claims.get(CanvasJwtClaim.CANVAS_USER_ID.key(), String.class),
             claims.get(CanvasJwtClaim.CANVAS_USER_GLOBAL_ID.key(), String.class),
@@ -238,8 +251,8 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         Long contextId,
         Long platformDeploymentId,
         String userId,
-        Long assignmentId,
-        Long experimentId,
+        UUID assignmentId,
+        UUID experimentId,
         Boolean consent,
         String canvasUserId,
         String canvasUserGlobalId,
@@ -286,8 +299,8 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         Long contextId,
         Long platformDeploymentId,
         String userId,
-        Long assignmentId,
-        Long experimentId,
+        UUID assignmentId,
+        UUID experimentId,
         Boolean consent,
         String canvasUserId,
         String canvasUserGlobalId,
@@ -375,21 +388,13 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         String targetLinkUrl = lti3Request.getLtiTargetLinkUrl();
         MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUriString(targetLinkUrl).build().getQueryParams();
         String assignmentIdText = queryParams.getFirst(JwtClaim.ASSIGNMENT.key());
-        Long assignmentId = null;
-
-        if (StringUtils.isNotBlank(assignmentIdText)) {
-            assignmentId = Long.parseLong(assignmentIdText);
-        }
+        UUID assignmentId = resolveAssignmentUuid(assignmentIdText);
 
         String consentText = queryParams.getFirst(JwtClaim.CONSENT.key());
         boolean consent = BooleanUtils.toBoolean(consentText);
 
         String experimentIdText = queryParams.getFirst(JwtClaim.EXPERIMENT.key());
-        Long experimentId = null;
-
-        if (StringUtils.isNotBlank(experimentIdText)) {
-            experimentId = Long.parseLong(experimentIdText);
-        }
+        UUID experimentId = resolveExperimentUuid(experimentIdText);
 
         return buildJwt(
             oneUse,
@@ -623,17 +628,20 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
 
         if ((Boolean) claims.getPayload().get(JwtClaim.ONE_USE.key())) {
             try {
-                // experimentId and assignmentId are optionals so check the null.
-                Long assignmentId = null;
+                // experimentId and assignmentId are optionals so check the null. This token was
+                // built by this same server's buildJwt() moments earlier, so these claims are
+                // normally uuids already - resolving them the same way the launch path does
+                // also covers a token minted just before a deploy of the uuid migration.
+                UUID assignmentId = null;
 
                 if (claims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()) != null) {
-                    assignmentId = Long.parseLong(claims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()).toString());
+                    assignmentId = resolveAssignmentUuid(claims.getPayload().get(JwtClaim.ASSIGNMENT_ID.key()).toString());
                 }
 
-                Long experimentId = null;
+                UUID experimentId = null;
 
                 if (claims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()) != null) {
-                    experimentId = Long.parseLong(claims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()).toString());
+                    experimentId = resolveExperimentUuid(claims.getPayload().get(JwtClaim.EXPERIMENT_ID.key()).toString());
                 }
 
                 return new ResponseEntity<>(
@@ -665,6 +673,75 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
         }
 
         return new ResponseEntity<>("Token passed was not a one time valid token", HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * Resolves the "experiment" launch URL query parameter to a uuid, accepting both formats
+     * permanently: a uuid (the current and only format for newly-written launch URLs) or a
+     * legacy numeric experiment ID (already persisted, forever, in existing LMS courses' launch
+     * URLs from before this migration). Existing LMS-stored launch URLs must keep working
+     * indefinitely, so this dual-format resolution can never be removed.
+     */
+    private UUID resolveExperimentUuid(String experimentIdText) {
+        if (StringUtils.isBlank(experimentIdText)) {
+            return null;
+        }
+
+        try {
+            return UUID.fromString(experimentIdText);
+        } catch (IllegalArgumentException _) {
+            // legacy numeric id, already persisted in an existing LMS course's launch URL -
+            // resolve to the entity's uuid so the JWT claim (and everything downstream that
+            // reads it) always sees a uuid regardless of which URL format the LMS happens to
+            // have stored
+            Experiment experiment = experimentRepository.findByExperimentId(parseLegacyId("experiment", experimentIdText));
+
+            if (experiment == null) {
+                // fail here, where the cause is obvious, rather than issuing a token with no
+                // experiment claim - that only surfaces later as the frontend spinning forever on
+                // a load that can never complete
+                throw new IllegalArgumentException(String.format("Launch URL experiment ID [%s] does not match any experiment", experimentIdText));
+            }
+
+            return experiment.getUuid();
+        }
+    }
+
+    /**
+     * Resolves the "assignment" launch URL query parameter to a uuid. See
+     * {@link #resolveExperimentUuid(String)} for why dual-format resolution is permanent.
+     */
+    private UUID resolveAssignmentUuid(String assignmentIdText) {
+        if (StringUtils.isBlank(assignmentIdText)) {
+            return null;
+        }
+
+        try {
+            return UUID.fromString(assignmentIdText);
+        } catch (IllegalArgumentException _) {
+            Assignment assignment = assignmentRepository.findByAssignmentId(parseLegacyId("assignment", assignmentIdText));
+
+            if (assignment == null) {
+                throw new IllegalArgumentException(String.format("Launch URL assignment ID [%s] does not match any assignment", assignmentIdText));
+            }
+
+            return assignment.getUuid();
+        }
+    }
+
+    // a launch URL id that is neither a uuid nor a legacy numeric id (e.g. "?assignment=undefined")
+    // is a malformed link, not something to guess at - name the problem instead of letting
+    // Long.parseLong's bare NumberFormatException escape the launch
+    private long parseLegacyId(String parameter, String idText) {
+        if (!StringUtils.isNumeric(idText)) {
+            throw new IllegalArgumentException(String.format("Launch URL %s ID [%s] is neither a uuid nor a legacy numeric ID", parameter, idText));
+        }
+
+        try {
+            return Long.parseLong(idText);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(String.format("Launch URL %s ID [%s] is neither a uuid nor a legacy numeric ID", parameter, idText), e);
+        }
     }
 
     private Integer parseInt(Object value) {

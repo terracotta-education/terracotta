@@ -1,9 +1,11 @@
 package edu.iu.terracotta.connectors.generic.service.lti;
 
+import java.util.List;
 import java.util.Optional;
 
 import io.jsonwebtoken.Claims;
 
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 
 /**
@@ -22,5 +24,37 @@ import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 public interface LtiNoticeService {
 
     Optional<SecuredInfo> resolveSecuredInfo(Claims noticeClaims);
+
+    /**
+     * Resolves the notice's own (destination) context - unlike resolveSecuredInfo, CREATES a
+     * minimal LtiContextEntity if none exists yet, since a course-copy notice for a brand new
+     * copied course legitimately arrives before anyone has ever launched Terracotta there. NRPS/
+     * line-items URLs are left null; a real launch later fills them in via the same upsert path
+     * that already tolerates them being null (see LtiDataServiceImpl.upsertLTIDataInDB).
+     */
+    Optional<LtiContextEntity> resolveOrCreateContext(Claims noticeClaims);
+
+    /**
+     * Resolves the LtiContextEntity(s) named in the notice's origin_contexts claim (the course(s)
+     * this notice's own context was copied FROM), under the same ToolDeployment as the notice
+     * itself. An origin context Terracotta has never seen a launch for is silently omitted, not
+     * an error - it legitimately has no Experiments to offer as copy candidates.
+     */
+    List<LtiContextEntity> resolveOriginContexts(Claims noticeClaims);
+
+    /**
+     * Identifies a course-copy notice for logging: the LMS instance that sent it and its source and
+     * destination courses. Anything the notice doesn't carry is shown as "unknown" rather than
+     * failing.
+     */
+    CourseCopyNoticeDescription describeCourseCopy(Claims noticeClaims);
+
+    /**
+     * @param platform the sending LMS instance's URL - Canvas cloud uses the same issuer for every
+     *      instance, so the issuer is only the last resort
+     * @param source the course(s) copied from, as "title (context id)" when the title is known
+     * @param destination the course copied into, in the same form
+     */
+    record CourseCopyNoticeDescription(String platform, String source, String destination) { }
 
 }

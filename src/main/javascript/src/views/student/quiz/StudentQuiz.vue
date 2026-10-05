@@ -117,6 +117,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Swal from "sweetalert2";
 import dayjs from "@/plugins/dayjs";
+import { lockedAssignmentMessage } from "@/helpers";
 
 import StudentQuizRetakeBanner from "@/views/student/quiz/components/StudentQuizRetakeBanner.vue";
 import StudentQuizSubmissionDetails from "@/views/student/quiz/components/StudentQuizSubmissionDetails.vue";
@@ -421,7 +422,7 @@ const submitErrorMessage = result => {
 
 const assertSubmitStepSucceeded = result => {
   if (![200, 201].includes(result?.status)) {
-    throw Error(submitErrorMessage(result));
+    throw new Error(submitErrorMessage(result));
   }
 };
 
@@ -554,10 +555,20 @@ const attempt = async (preferLmsChecks = false) => {
       if (isIntegration.value) setupIntegration(data);
     } else if (stepResponse?.status === 401 && stepResponse?.data?.toString().includes("Error 150:")) {
       await Swal.fire({ target: "#app", text: "You have no more attempts available", icon: "error", footer: errorFooter() });
+    } else if (stepResponse?.status === 401) {
+      // e.g. the assignment's "Available until" date in the LMS has passed - without this the
+      // student was left on a blank page with no idea why
+      await showLaunchRefused(stepResponse);
     }
   } finally {
     loading.value = false;
   }
+};
+
+const showLaunchRefused = async stepResponse => {
+  const message = lockedAssignmentMessage(stepResponse?.data?.toString())
+    || "This assignment can't be opened right now. Please contact your instructor.";
+  await Swal.fire({ target: "#app", text: message, icon: "error", footer: errorFooter() });
 };
 
 const setupIntegration = data => {
@@ -643,6 +654,9 @@ onMounted(async () => {
         const { retakeAllowed, submissionAttemptsCount } = stepResponse.data.retakeDetails;
         if (retakeAllowed && submissionAttemptsCount === 0) await attempt();
         else readonly.value = true;
+      } else {
+        // without this the page stayed blank, with no hint why the assignment wouldn't open
+        await showLaunchRefused(stepResponse);
       }
     } finally {
       loading.value = false;

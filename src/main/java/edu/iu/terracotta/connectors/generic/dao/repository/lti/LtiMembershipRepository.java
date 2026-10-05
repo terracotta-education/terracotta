@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.generic.dao.repository.lti;
 
+import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,8 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 @Transactional
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface LtiMembershipRepository extends JpaRepository<LtiMembershipEntity, Long> {
+
+    LtiMembershipEntity findByUuid(UUID uuid);
 
     LtiMembershipEntity findByUserAndContext(LtiUserEntity user, LtiContextEntity context);
     List<LtiMembershipEntity> findByUserInAndContext(Collection<LtiUserEntity> users, LtiContextEntity context);

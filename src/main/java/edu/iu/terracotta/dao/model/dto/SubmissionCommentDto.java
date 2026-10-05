@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
@@ -16,8 +18,8 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SubmissionCommentDto {
 
-    private Long submissionCommentId;
-    private Long submissionId;
+    private UUID submissionCommentId;
+    private UUID submissionId;
     private String comment;
     private String creator;
 

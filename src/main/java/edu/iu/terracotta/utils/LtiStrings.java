@@ -132,6 +132,12 @@ public final class LtiStrings {
     public static final String LTI_NOTICE_TYPE = "type";
     public static final String LTI_NOTICE_TYPE_COURSE_COPY = "LtiContextCopyNotice";
 
+    // Platform Notification Service - on an LtiContextCopyNotice, the array of LTI Context ids
+    // the notice's own (destination) context was copied FROM. Per Canvas's own docs, a plain
+    // array of context-id strings (not objects), currently always a single element in practice
+    // but modeled as an array there too, so this is read as a list rather than assuming one.
+    public static final String LTI_ORIGIN_CONTEXTS = "https://purl.imsglobal.org/spec/lti/claim/origin_contexts";
+
     public static final String LTI_CALIPER_ENDPOINT_SERVICE = "https://purl.imsglobal.org/spec/lti-ces/claim/caliper-endpoint-service";
     public static final String LTI_CALIPER_ENDPOINT_SERVICE_SCOPES = "scopes";
     public static final String LTI_CALIPER_ENDPOINT_SERVICE_URL = "caliper_endpoint_url";

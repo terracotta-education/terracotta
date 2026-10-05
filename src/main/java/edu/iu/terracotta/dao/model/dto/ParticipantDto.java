@@ -20,16 +20,15 @@ import java.util.UUID;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ParticipantDto {
 
-    private Long participantId;
-    private UUID id;
-    private Long experimentId;
+    private UUID participantId;
+    private UUID experimentId;
     private UserDto user;
     private Boolean consent;
     private Timestamp dateGiven;
     private Timestamp dateRevoked;
     private String source;
     private Boolean dropped;
-    private Long groupId;
+    private UUID groupId;
     private boolean started;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

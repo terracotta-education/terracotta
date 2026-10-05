@@ -36,6 +36,7 @@ import edu.iu.terracotta.connectors.generic.service.lti.advantage.AdvantageDeepL
 import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.Lti3Request;
@@ -55,6 +56,7 @@ public class Lti3ControllerTest extends BaseTest {
     @Mock private LmsOAuthServiceManager lmsOAuthServiceManager;
     @Mock private CanvasAdvantageNoticeService canvasAdvantageNoticeService;
     @Mock private ParticipantAsyncService participantAsyncService;
+    @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
 
     private Lti3Controller lti3Controller;
 
@@ -71,7 +73,7 @@ public class Lti3ControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        lti3Controller = new Lti3Controller(ltiLinkRepository, apiJwtService, advantageDeepLinkService, caliperService, ltiDataService, ltiJwtService, lmsOAuthServiceManager, canvasAdvantageNoticeService, participantAsyncService);
+        lti3Controller = new Lti3Controller(ltiLinkRepository, apiJwtService, advantageDeepLinkService, caliperService, ltiDataService, ltiJwtService, lmsOAuthServiceManager, canvasAdvantageNoticeService, participantAsyncService, experimentCopyCandidateService);
 
         when(httpServletRequest.getParameter("state")).thenReturn("state123");
         when(httpServletRequest.getParameter("link")).thenReturn(null);
@@ -111,7 +113,7 @@ public class Lti3ControllerTest extends BaseTest {
 
     @Test
     void homeHappyPathRedirectTest() throws Exception {
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertLaunchView(result, null);
@@ -122,7 +124,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeRegistersNoticeHandlerForCanvasDeploymentTest() throws Exception {
         when(platformDeployment.getLmsConnector()).thenReturn(LmsConnector.CANVAS);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             callHome();
         }
 
@@ -133,7 +135,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeSkipsNoticeHandlerRegistrationForNonCanvasDeploymentTest() throws Exception {
         when(platformDeployment.getLmsConnector()).thenReturn(LmsConnector.BRIGHTSPACE);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             callHome();
         }
 
@@ -144,7 +146,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeObsoleteAssignmentRedirectTest() throws Exception {
         when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/" + ObsoleteAssignment.URL);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals("redirect:/" + ObsoleteAssignment.URL, result);
@@ -169,7 +171,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeBadClientIdTest() throws Exception {
         when(claims.get("clientId")).thenReturn("different-aud");
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals(TextConstants.LTI3ERROR, result);
@@ -183,7 +185,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(claims.get("ltiDeploymentId")).thenReturn("dep-claim");
         when(lti3Request.getLtiDeploymentId()).thenReturn("dep-actual");
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals(TextConstants.LTI3ERROR, result);
@@ -198,7 +200,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(ltiLinkRepository.findByLinkKeyAndContext("linkKey1", ltiContextEntity)).thenReturn(List.of(ltiLinkEntity));
         when(ltiLinkEntity.createHtmlFromLink()).thenReturn("<b>the html</b>");
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals("lti3Result", result);
@@ -213,7 +215,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(lti3Request.getContext()).thenReturn(ltiContextEntity);
         when(ltiLinkRepository.findByLinkKeyAndContext("linkKey1", ltiContextEntity)).thenReturn(Collections.emptyList());
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals("lti3Result", result);
@@ -229,7 +231,7 @@ public class Lti3ControllerTest extends BaseTest {
         // the controller resolves to an empty (blank) string and this "nothing requested" branch is hit.
         when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/launch?link=");
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals("lti3Result", result);
@@ -245,7 +247,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(lti3Request.getLtiMessageType()).thenReturn(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING);
         when(advantageDeepLinkService.generateLtiDeepLink(lti3Request, httpServletRequest, "state123")).thenReturn(ltiDeepLink);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals("redirect:/app/deepLink.html?id=" + uuid, result);
@@ -257,7 +259,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(lti3Request.getLtiMessageType()).thenReturn(LtiStrings.LTI_MESSAGE_TYPE_DEEP_LINKING);
         when(advantageDeepLinkService.generateLtiDeepLink(lti3Request, httpServletRequest, "state123")).thenThrow(new TerracottaConnectorException("boom"));
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             assertThrows(TerracottaConnectorException.class, this::callHome);
         }
     }
@@ -266,7 +268,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeBuildJwtPropagatesTerracottaConnectorExceptionTest() throws Exception {
         when(apiJwtService.buildJwt(true, lti3Request)).thenThrow(new TerracottaConnectorException("boom"));
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             assertThrows(TerracottaConnectorException.class, this::callHome);
         }
     }
@@ -275,7 +277,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeBuildJwtGeneralSecurityExceptionCaughtTest() throws Exception {
         when(apiJwtService.buildJwt(true, lti3Request)).thenThrow(new GeneralSecurityException("boom"));
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals(TextConstants.LTI3ERROR, result);
@@ -286,7 +288,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeValidateStateSignatureExceptionCaughtTest() throws Exception {
         when(ltiJwtService.validateState(anyString())).thenThrow(new SignatureException("bad signature"));
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertEquals(TextConstants.LTI3ERROR, result);
@@ -300,7 +302,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(lti3Request.getUser()).thenReturn(ltiUserEntity);
         when(lmsOAuthServiceManager.getLmsOAuthService(platformDeployment)).thenThrow(new TerracottaConnectorException("no oauth settings"));
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertLaunchView(result, null);
@@ -315,7 +317,7 @@ public class Lti3ControllerTest extends BaseTest {
         doReturn(lmsOAuthService).when(lmsOAuthServiceManager).getLmsOAuthService(platformDeployment);
         when(lmsOAuthService.isConfigured(platformDeployment)).thenReturn(false);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertLaunchView(result, null);
@@ -331,7 +333,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(lmsOAuthService.isConfigured(platformDeployment)).thenReturn(true);
         when(lmsOAuthService.isAccessTokenAvailable(ltiUserEntity)).thenReturn(true);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertLaunchView(result, null);
@@ -349,10 +351,57 @@ public class Lti3ControllerTest extends BaseTest {
         when(apiJwtService.generateStateForAPITokenRequest(lti3Request)).thenReturn("state456");
         when(lmsOAuthService.getAuthorizationRequestURI(platformDeployment, "state456")).thenReturn("https://oauth.example.com/authorize");
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertLaunchView(result, "https://oauth.example.com/authorize");
+        }
+    }
+
+    // a token revoked in Canvas still looks fresh by its cached expiry, so normally no prompt is
+    // shown. When a failed course copy is about to be retried as this instructor, the token is
+    // verified with the LMS instead, so a dead one sends them through re-authorization first.
+    @Test
+    void homeInstructorWithFailedCopyVerifiesTokenAndPromptsWhenInvalidTest() throws Exception {
+        when(lti3Request.isRoleInstructor()).thenReturn(true);
+        when(lti3Request.getKey()).thenReturn(platformDeployment);
+        when(lti3Request.getUser()).thenReturn(ltiUserEntity);
+        when(lti3Request.getContext()).thenReturn(ltiContextEntity);
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+        when(experimentCopyCandidateService.hasFailedForContext(1L)).thenReturn(true);
+        doReturn(lmsOAuthService).when(lmsOAuthServiceManager).getLmsOAuthService(platformDeployment);
+        when(lmsOAuthService.isConfigured(platformDeployment)).thenReturn(true);
+        when(lmsOAuthService.isAccessTokenAvailable(ltiUserEntity)).thenReturn(true);
+        when(lmsOAuthService.isAccessTokenValid(ltiUserEntity)).thenReturn(false);
+        when(apiJwtService.generateStateForAPITokenRequest(lti3Request)).thenReturn("state456");
+        when(lmsOAuthService.getAuthorizationRequestURI(platformDeployment, "state456")).thenReturn("https://oauth.example.com/authorize");
+
+        try (var _ = mockLti3Request()) {
+            String result = callHome();
+
+            assertLaunchView(result, "https://oauth.example.com/authorize");
+        }
+    }
+
+    // without a failed copy pending, the cheap cached check is used - verifying with the LMS on
+    // every instructor launch is what previously tripped Canvas's rate limit
+    @Test
+    void homeInstructorWithoutFailedCopySkipsTokenVerificationTest() throws Exception {
+        when(lti3Request.isRoleInstructor()).thenReturn(true);
+        when(lti3Request.getKey()).thenReturn(platformDeployment);
+        when(lti3Request.getUser()).thenReturn(ltiUserEntity);
+        when(lti3Request.getContext()).thenReturn(ltiContextEntity);
+        when(ltiContextEntity.getContextId()).thenReturn(1L);
+        when(experimentCopyCandidateService.hasFailedForContext(1L)).thenReturn(false);
+        doReturn(lmsOAuthService).when(lmsOAuthServiceManager).getLmsOAuthService(platformDeployment);
+        when(lmsOAuthService.isConfigured(platformDeployment)).thenReturn(true);
+        when(lmsOAuthService.isAccessTokenAvailable(ltiUserEntity)).thenReturn(true);
+
+        try (var _ = mockLti3Request()) {
+            String result = callHome();
+
+            assertLaunchView(result, null);
+            verify(lmsOAuthService, never()).isAccessTokenValid(any());
         }
     }
 
@@ -367,7 +416,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(apiJwtService.generateStateForAPITokenRequest(lti3Request)).thenReturn("state456");
         when(lmsOAuthService.getAuthorizationRequestURI(platformDeployment, "state456")).thenThrow(new FeatureNotFoundException("no feature"));
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertLaunchView(result, null);
@@ -385,7 +434,7 @@ public class Lti3ControllerTest extends BaseTest {
         when(apiJwtService.generateStateForAPITokenRequest(lti3Request)).thenReturn("state456");
         when(lmsOAuthService.getAuthorizationRequestURI(platformDeployment, "state456")).thenThrow(new LmsOAuthException("lms rejected"));
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             assertThrows(LmsOAuthException.class, this::callHome);
         }
     }
@@ -394,7 +443,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeInstructorSkipsOAuthLookupWhenNotInstructorTest() throws Exception {
         when(lti3Request.isRoleInstructor()).thenReturn(false);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             String result = callHome();
 
             assertLaunchView(result, null);
@@ -411,7 +460,7 @@ public class Lti3ControllerTest extends BaseTest {
         doReturn(lmsOAuthService).when(lmsOAuthServiceManager).getLmsOAuthService(platformDeployment);
         when(lmsOAuthService.isConfigured(platformDeployment)).thenReturn(false);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             callHome();
         }
 
@@ -422,7 +471,7 @@ public class Lti3ControllerTest extends BaseTest {
     void homeSkipsParticipantRefreshWhenNotInstructorTest() throws Exception {
         when(lti3Request.isRoleInstructor()).thenReturn(false);
 
-        try (MockedStatic<Lti3Request> _ = mockLti3Request()) {
+        try (var _ = mockLti3Request()) {
             callHome();
         }
 

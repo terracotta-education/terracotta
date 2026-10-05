@@ -19,7 +19,7 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssignmentExport {
 
-    private long id;
+    private String id;
     private Timestamp studentViewResponsesAfter;
     private Timestamp studentViewResponsesBefore;
     private Timestamp studentViewCorrectAnswersAfter;
@@ -32,6 +32,6 @@ public class AssignmentExport {
     private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme;
     private boolean allowStudentViewResponses;
     private boolean allowStudentViewCorrectAnswers;
-    private long exposureId;
+    private String exposureId;
 
 }

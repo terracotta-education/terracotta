@@ -14,6 +14,8 @@ import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.List;
 
 @Slf4j
@@ -49,13 +52,17 @@ public class OutcomeController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}";
 
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
+    private final ExposureService exposureService;
     private final OutcomeService outcomeService;
 
     @GetMapping("/exposures/{exposureId}/outcomes")
-    public ResponseEntity<List<OutcomeDto>> allOutcomesByExposure(@PathVariable long experimentId,
-                                                                  @PathVariable long exposureId,
+    public ResponseEntity<List<OutcomeDto>> allOutcomesByExposure(@PathVariable("experimentId") UUID experimentUuid,
+                                                                  @PathVariable("exposureId") UUID exposureUuid,
                                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -75,13 +82,16 @@ public class OutcomeController {
     }
 
     @GetMapping("/exposures/{exposureId}/outcomes/{outcomeId}")
-    public ResponseEntity<OutcomeDto> getOutcome(@PathVariable long experimentId,
-                                                 @PathVariable long exposureId,
-                                                 @PathVariable long outcomeId,
+    public ResponseEntity<OutcomeDto> getOutcome(@PathVariable("experimentId") UUID experimentUuid,
+                                                 @PathVariable("exposureId") UUID exposureUuid,
+                                                 @PathVariable("outcomeId") UUID outcomeUuid,
                                                  @RequestParam(name = "outcome_scores", defaultValue = "false") boolean outcomeScores,
                                                  @RequestParam(name = "update_scores", defaultValue = "true") boolean updateScores,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, ApiException, ParticipantNotUpdatedException, IOException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, BadTokenException, ApiException, ParticipantNotUpdatedException, IOException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -101,12 +111,14 @@ public class OutcomeController {
     }
 
     @PostMapping("/exposures/{exposureId}/outcomes")
-    public ResponseEntity<OutcomeDto> postOutcome(@PathVariable long experimentId,
-                                                  @PathVariable long exposureId,
+    public ResponseEntity<OutcomeDto> postOutcome(@PathVariable("experimentId") UUID experimentUuid,
+                                                  @PathVariable("exposureId") UUID exposureUuid,
                                                   @RequestBody OutcomeDto outcomeDto,
                                                   UriComponentsBuilder ucBuilder,
                                                   HttpServletRequest req)
             throws ExperimentNotMatchingException, ExposureNotMatchingException, BadTokenException, TitleValidationException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -116,19 +128,22 @@ public class OutcomeController {
         }
 
         OutcomeDto returnedDto = outcomeService.postOutcome(outcomeDto, exposureId);
-        log.debug("Created outcome ID: [{}] for exposure ID: [{}]", returnedDto.getOutcomeId(), exposureId);
-        HttpHeaders headers = outcomeService.buildHeaders(ucBuilder, experimentId, exposureId, returnedDto.getOutcomeId());
+        log.debug("Created outcome ID: [{}] for exposure ID: [{}]", returnedDto.getOutcomeId(), exposureUuid);
+        HttpHeaders headers = outcomeService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, returnedDto.getOutcomeId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
     @PutMapping("/exposures/{exposureId}/outcomes/{outcomeId}")
-    public ResponseEntity<Void> updateOutcome(@PathVariable long experimentId,
-                                              @PathVariable long exposureId,
-                                              @PathVariable long outcomeId,
+    public ResponseEntity<Void> updateOutcome(@PathVariable("experimentId") UUID experimentUuid,
+                                              @PathVariable("exposureId") UUID exposureUuid,
+                                              @PathVariable("outcomeId") UUID outcomeUuid,
                                               @RequestBody OutcomeDto outcomeDto,
                                               HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, BadTokenException, TitleValidationException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -138,17 +153,20 @@ public class OutcomeController {
         }
 
             outcomeService.updateOutcome(outcomeId, outcomeDto);
-            log.debug("Updated outcome ID: [{}]", outcomeId);
+            log.debug("Updated outcome ID: [{}]", outcomeUuid);
 
             return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @DeleteMapping("/exposures/{exposureId}/outcomes/{outcomeId}")
-    public ResponseEntity<Void> deleteOutcome(@PathVariable long experimentId,
-                                              @PathVariable long exposureId,
-                                              @PathVariable long outcomeId,
+    public ResponseEntity<Void> deleteOutcome(@PathVariable("experimentId") UUID experimentUuid,
+                                              @PathVariable("exposureId") UUID exposureUuid,
+                                              @PathVariable("outcomeId") UUID outcomeUuid,
                                               HttpServletRequest req)
-            throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, ExposureNotMatchingException, OutcomeNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long outcomeId = outcomeService.getOutcomeIdByUuid(outcomeUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
@@ -167,8 +185,9 @@ public class OutcomeController {
     }
 
     @GetMapping("/outcome_potentials")
-    public ResponseEntity<List<OutcomePotentialDto>> outcomePotentials(@PathVariable long experimentId, HttpServletRequest req)
+    public ResponseEntity<List<OutcomePotentialDto>> outcomePotentials(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ApiException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
@@ -182,8 +201,9 @@ public class OutcomeController {
     }
 
     @GetMapping("/outcomes")
-    public ResponseEntity<List<OutcomeDto>> getOutcomesForExperiment(@PathVariable long experimentId, HttpServletRequest req)
+    public ResponseEntity<List<OutcomeDto>> getOutcomesForExperiment(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, OutcomeNotMatchingException, BadTokenException, ApiException, ParticipantNotUpdatedException, IOException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

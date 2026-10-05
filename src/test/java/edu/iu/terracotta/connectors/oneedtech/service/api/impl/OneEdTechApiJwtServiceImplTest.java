@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,6 +31,8 @@ import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiOneUseToken;
+import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -52,6 +55,9 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
     private static String publicKeyPem;
 
     @InjectMocks private OneEdTechApiJwtServiceImpl oneEdTechApiJwtService;
+
+    private static final UUID ASSIGNMENT_UUID = UUID.randomUUID();
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
 
     private Map<String, Object> customVars;
 
@@ -101,8 +107,8 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
             1L,
             1L,
             "user-1",
-            10L,
-            20L,
+            ASSIGNMENT_UUID,
+            EXPERIMENT_UUID,
             true,
             "oneEdTechUser1",
             "oneEdTechUserGlobal1",
@@ -234,8 +240,8 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
         Map<String, Object> claimsMap = new HashMap<>();
         claimsMap.put("roles", List.of("Instructor"));
         claimsMap.put("contextId", 2L);
-        claimsMap.put("assignmentId", 30L);
-        claimsMap.put("experimentId", 40L);
+        claimsMap.put("assignmentId", ASSIGNMENT_UUID.toString());
+        claimsMap.put("experimentId", EXPERIMENT_UUID.toString());
         claimsMap.put("consent", Boolean.TRUE);
         claimsMap.put("oneEdTechUserId", "u1");
         claimsMap.put("oneEdTechUserGlobalId", "g1");
@@ -257,6 +263,31 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
         assertEquals("user-key", parsed.getPayload().getSubject());
         assertEquals("nonce-xyz", parsed.getPayload().get("nonce"));
         assertEquals(3, parsed.getPayload().get("allowedAttempts"));
+    }
+
+    // a token issued before the uuid migration carries these claims as numbers - refreshing it
+    // has to resolve them to uuids rather than fail on a jjwt type mismatch
+    @Test
+    public void testBuildJwtFromClaimsResolvesLegacyNumericIds() throws Exception {
+        Map<String, Object> claimsMap = new HashMap<>();
+        claimsMap.put("roles", List.of("Instructor"));
+        claimsMap.put("contextId", 2L);
+        claimsMap.put("assignmentId", 5);
+        claimsMap.put("experimentId", 7);
+        claimsMap.put("consent", Boolean.TRUE);
+        claimsMap.put("allowedAttempts", 3);
+        claimsMap.put("studentAttempts", 1);
+        Claims claims = Jwts.claims().add(claimsMap).build();
+        when(assignmentRepository.findByAssignmentId(5L)).thenReturn(assignment);
+        when(experimentRepository.findByExperimentId(7L)).thenReturn(experiment);
+        when(assignment.getUuid()).thenReturn(ASSIGNMENT_UUID);
+        when(experiment.getUuid()).thenReturn(EXPERIMENT_UUID);
+
+        String token = oneEdTechApiJwtService.buildJwt(1L, "user-key", claims);
+
+        Claims payload = oneEdTechApiJwtService.validateToken(token).getPayload();
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get("assignmentId"));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get("experimentId"));
     }
 
     // ======================= buildJwt(oneUse, roles, ...) =======================
@@ -300,8 +331,8 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
         assertEquals(List.of("Learner"), payload.get("roles"));
         assertEquals(1, payload.get("contextId"));
         assertEquals(1, payload.get("platformDeploymentId"));
-        assertEquals(10, payload.get("assignmentId"));
-        assertEquals(20, payload.get("experimentId"));
+        assertEquals(ASSIGNMENT_UUID.toString(), payload.get("assignmentId"));
+        assertEquals(EXPERIMENT_UUID.toString(), payload.get("experimentId"));
         assertEquals(Boolean.TRUE, payload.get("consent"));
         assertEquals("oneEdTechUser1", payload.get("oneEdTechUserId"));
         assertEquals("oneEdTechUserGlobal1", payload.get("oneEdTechUserGlobalId"));
@@ -317,19 +348,73 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
 
     // ======================= buildJwt(oneUse, lti3Request) =======================
 
+    // legacy launch URL, already persisted in an existing LMS course before the uuid migration -
+    // carries plain numeric ids, which must resolve to the matching entity's uuid via repository
+    // lookup so the JWT claim always carries a uuid, regardless of which format the LMS-stored
+    // launch URL happens to use
     @Test
-    public void testBuildJwtFromLti3RequestParsesQueryParams() throws Exception {
+    public void testBuildJwtFromLti3RequestWithLegacyNumericAssignmentAndExperimentIds() throws Exception {
         when(lti3Request.getLtiTargetLinkUrl()).thenReturn("http://example.com/launch?assignment=5&consent=true&experiment=7");
+        when(lti3Request.getLtiRoles()).thenReturn(List.of("Learner"));
+        Assignment assignment = new Assignment();
+        assignment.setUuid(ASSIGNMENT_UUID);
+        Experiment experiment = new Experiment();
+        experiment.setUuid(EXPERIMENT_UUID);
+        when(assignmentRepository.findByAssignmentId(5L)).thenReturn(assignment);
+        when(experimentRepository.findByExperimentId(7L)).thenReturn(experiment);
+
+        String token = oneEdTechApiJwtService.buildJwt(false, lti3Request);
+
+        Jws<Claims> parsed = oneEdTechApiJwtService.validateToken(token);
+        assertEquals(ASSIGNMENT_UUID.toString(), parsed.getPayload().get("assignmentId"));
+        assertEquals(EXPERIMENT_UUID.toString(), parsed.getPayload().get("experimentId"));
+        assertEquals(Boolean.TRUE, parsed.getPayload().get("consent"));
+        assertEquals("123", parsed.getPayload().get("oneEdTechUserId"));
+        assertEquals("1154", parsed.getPayload().get("oneEdTechCourseId"));
+    }
+
+    // legacy numeric id that no longer resolves to any entity (e.g. a since-deleted
+    // assignment/experiment) fails the launch with a clear message - a token issued with no
+    // assignment/experiment claim would only surface later as the frontend spinning forever
+    @Test
+    public void testBuildJwtFromLti3RequestWithLegacyNumericIdsNotFoundFailsTheLaunch() {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("http://example.com/launch?assignment=5&consent=true&experiment=7");
+        when(assignmentRepository.findByAssignmentId(5L)).thenReturn(null);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> oneEdTechApiJwtService.buildJwt(false, lti3Request));
+
+        assertTrue(exception.getMessage().contains("assignment ID [5]"));
+    }
+
+    // a launch URL id that is neither a uuid nor a legacy numeric id (e.g. "?assignment=undefined")
+    // is named as malformed instead of escaping as a bare NumberFormatException
+    @Test
+    public void testBuildJwtFromLti3RequestWithMalformedIdFailsTheLaunch() {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/launch?assignment=undefined&consent=true");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> oneEdTechApiJwtService.buildJwt(false, lti3Request));
+
+        assertTrue(exception.getMessage().contains("neither a uuid nor a legacy numeric ID"));
+        verify(assignmentRepository, never()).findByAssignmentId(anyLong());
+    }
+
+    // new-format launch URL - the "assignment"/"experiment" query params are already uuids, so
+    // they pass through directly with no repository lookup needed
+    @Test
+    public void testBuildJwtFromLti3RequestWithUuidAssignmentAndExperimentIds() throws Exception {
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn(
+            String.format("http://example.com/launch?assignment=%s&consent=true&experiment=%s", ASSIGNMENT_UUID, EXPERIMENT_UUID)
+        );
         when(lti3Request.getLtiRoles()).thenReturn(List.of("Learner"));
 
         String token = oneEdTechApiJwtService.buildJwt(false, lti3Request);
 
         Jws<Claims> parsed = oneEdTechApiJwtService.validateToken(token);
-        assertEquals(5, parsed.getPayload().get("assignmentId"));
-        assertEquals(7, parsed.getPayload().get("experimentId"));
+        assertEquals(ASSIGNMENT_UUID.toString(), parsed.getPayload().get("assignmentId"));
+        assertEquals(EXPERIMENT_UUID.toString(), parsed.getPayload().get("experimentId"));
         assertEquals(Boolean.TRUE, parsed.getPayload().get("consent"));
-        assertEquals("123", parsed.getPayload().get("oneEdTechUserId"));
-        assertEquals("1154", parsed.getPayload().get("oneEdTechCourseId"));
+        verify(assignmentRepository, never()).findByAssignmentId(anyLong());
+        verify(experimentRepository, never()).findByExperimentId(any());
     }
 
     @Test
@@ -534,7 +619,7 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
     @Test
     public void testExtractValuesFromRequestUnparseableDatesResultInNullTimestamps() throws Exception {
         String token = oneEdTechApiJwtService.buildJwt(
-            false, List.of("Learner"), 1L, 1L, "user-1", 10L, 20L, true,
+            false, List.of("Learner"), 1L, 1L, "user-1", ASSIGNMENT_UUID, EXPERIMENT_UUID, true,
             "u", "g", "l", "n", "c", "a",
             "not-a-date", "not-a-date", "not-a-date", "nonce", 1, 1
         );
@@ -587,6 +672,11 @@ public class OneEdTechApiJwtServiceImplTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
+        // the uuid-valued assignmentId/experimentId claims round-trip unchanged through the
+        // timed-token exchange
+        Jws<Claims> parsed = oneEdTechApiJwtService.validateToken(response.getBody());
+        assertEquals(ASSIGNMENT_UUID.toString(), parsed.getPayload().get("assignmentId"));
+        assertEquals(EXPERIMENT_UUID.toString(), parsed.getPayload().get("experimentId"));
     }
 
     @Test

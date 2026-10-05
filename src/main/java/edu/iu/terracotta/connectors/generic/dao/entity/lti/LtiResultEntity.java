@@ -20,7 +20,7 @@ import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 
 @Entity
 @Getter
@@ -30,7 +30,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "lti_result")
-public class LtiResultEntity extends BaseEntity {
+public class LtiResultEntity extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

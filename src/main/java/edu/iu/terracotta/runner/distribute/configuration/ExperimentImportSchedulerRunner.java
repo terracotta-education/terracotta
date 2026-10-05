@@ -41,11 +41,13 @@ public class ExperimentImportSchedulerRunner {
     @Bean
     Task<Void> experimentImportDeleteSchedulerTask(ExperimentImportSchedulerService experimentImportSchedulerService) {
         if (!enabled) {
+            log.info("The experiment import delete task [{}] is disabled. Set [experiment.import.scheduler.enabled] to true to enable it.", TASK_NAME);
+
             // not enabled; create one-time task to log message
             return Tasks.oneTime(EXPERIMENT_IMPORT_DELETE_TASK)
                 .execute(
                     (instance, ctx) -> {
-                        log.info("Experiment import delete task [{}] in not enabled.", EXPERIMENT_IMPORT_DELETE_TASK);
+                        log.info("The experiment import delete task [{}] is not enabled.", TASK_NAME);
                     }
                 );
         }
@@ -57,7 +59,7 @@ public class ExperimentImportSchedulerRunner {
             log.error(e.getMessage());
         }
 
-        log.info("Creating experiment import delete task [{}]", EXPERIMENT_IMPORT_DELETE_TASK);
+        log.info("Scheduled the experiment import delete task [{}] to run every [{}] minute(s)", TASK_NAME, interval);
 
         return Tasks.recurring(EXPERIMENT_IMPORT_DELETE_TASK, Schedules.fixedDelay(Duration.ofMinutes(interval)))
             .onDeadExecutionRevive()

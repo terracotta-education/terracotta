@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -81,6 +82,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -142,7 +144,8 @@ public class AssessmentServiceImplTest extends BaseTest {
         when(assessmentDto.getQuestions()).thenReturn(List.of(questionDto));
         when(assignment.getMultipleSubmissionScoringScheme()).thenReturn(MultipleSubmissionScoringScheme.MOST_RECENT);
         when(condition.getDefaultCondition()).thenReturn(true);
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        UUID questionUuid = question.getUuid();
+        when(questionDto.getQuestionId()).thenReturn(questionUuid);
         when(regradeDetails.getEditedMCQuestionIds()).thenReturn(List.of(1L));
         when(regradeDetails.getRegradeOption()).thenReturn(RegradeOption.BOTH);
     }
@@ -183,6 +186,37 @@ public class AssessmentServiceImplTest extends BaseTest {
         assertNull(assessmentDto.getRetakeDetails().getRetakeNotAllowedReason());
         assertEquals(1F, assessmentDto.getRetakeDetails().getLastAttemptScore());
         assertEquals(1, assessmentDto.getSubmissions().size());
+    }
+
+    // an unsubmitted attempt with every question answered is submitted on view - unless its answers
+    // were saved outside the current availability window (e.g. before the assignment was closed
+    // and re-opened), which failed this whole view and left the student on a blank page
+    @Test
+    public void testViewAssessmentLeavesAnAttemptSavedOutsideTheAvailabilityWindowUnfinished() throws Exception {
+        when(submission.getDateSubmitted()).thenReturn(null);
+        // one question with one saved answer: every question answered
+        when(assessment.getQuestions()).thenReturn(List.of(question));
+        when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.emptyList());
+        when(submissionService.lastSavedWithinAvailability(submission, securedInfo)).thenReturn(false);
+
+        AssessmentDto assessmentDto = assessmentService.viewAssessment(1l, securedInfo);
+
+        assertNotNull(assessmentDto);
+        verify(submissionService).lastSavedWithinAvailability(submission, securedInfo);
+        verify(submissionService, never()).finalizeAndGrade(anyLong(), any(), anyBoolean());
+    }
+
+    @Test
+    public void testViewAssessmentSubmitsAFullyAnsweredAttemptSavedInsideTheAvailabilityWindow() throws Exception {
+        when(submission.getDateSubmitted()).thenReturn(null);
+        // one question with one saved answer: every question answered
+        when(assessment.getQuestions()).thenReturn(List.of(question));
+        when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.emptyList());
+        when(submissionService.lastSavedWithinAvailability(submission, securedInfo)).thenReturn(true);
+
+        assessmentService.viewAssessment(1l, securedInfo);
+
+        verify(submissionService).finalizeAndGrade(eq(submission.getSubmissionId()), eq(securedInfo), anyBoolean());
     }
 
     @Test
@@ -343,18 +377,19 @@ public class AssessmentServiceImplTest extends BaseTest {
         throws TitleValidationException, RevealResponsesSettingValidationException, MultipleAttemptsSettingsValidationException,
         AssessmentNotMatchingException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException, MultipleChoiceLimitReachedException,
         IntegrationNotFoundException, IntegrationNotMatchingException, IntegrationConfigurationNotFoundException, IntegrationConfigurationNotMatchingException, IntegrationClientNotFoundException {
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        UUID questionUuid = question.getUuid();
+        when(questionDto.getQuestionId()).thenReturn(questionUuid);
         assessmentService.updateAssessment(1L, assessmentDto, true);
 
         verify(questionService, never()).postQuestion(any(QuestionDto.class), anyLong(), anyBoolean(), anyBoolean());
-        verify(questionRepository).findByQuestionId(anyLong());
+        verify(questionRepository).findByUuid(any(UUID.class));
         verify(questionService).updateQuestion(anyMap());
         verify(questionRepository, never()).deleteById(anyLong());
     }
 
     @Test
     public void testUpdateAssessmentWithQuestionNotFound() throws QuestionNotMatchingException {
-        when(questionRepository.findByQuestionId(anyLong())).thenReturn(null);
+        when(questionRepository.findByUuid(any(UUID.class))).thenReturn(null);
         Exception exception = assertThrows(QuestionNotMatchingException.class, () -> { assessmentService.updateAssessment(1L, assessmentDto, true); });
 
         assertEquals(TextConstants.QUESTION_NOT_MATCHING, exception.getMessage());
@@ -396,7 +431,8 @@ public class AssessmentServiceImplTest extends BaseTest {
         Question staleQuestion = mock(Question.class);
         when(staleQuestion.getQuestionId()).thenReturn(2L);
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(new ArrayList<>(List.of(question, staleQuestion)));
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        UUID questionUuid = question.getUuid();
+        when(questionDto.getQuestionId()).thenReturn(questionUuid);
         List<Question> assessmentQuestions = new ArrayList<>(List.of(question, staleQuestion));
         when(assessment.getQuestions()).thenReturn(assessmentQuestions);
 
@@ -424,7 +460,8 @@ public class AssessmentServiceImplTest extends BaseTest {
         Question staleQuestion2 = mock(Question.class);
         when(staleQuestion2.getQuestionId()).thenReturn(3L);
         when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(new ArrayList<>(List.of(question, staleQuestion1, staleQuestion2)));
-        when(questionDto.getQuestionId()).thenReturn(1L);
+        UUID questionUuid = question.getUuid();
+        when(questionDto.getQuestionId()).thenReturn(questionUuid);
         List<Question> assessmentQuestions = new ArrayList<>(List.of(question, staleQuestion1, staleQuestion2));
         when(assessment.getQuestions()).thenReturn(assessmentQuestions);
 
@@ -606,6 +643,12 @@ public class AssessmentServiceImplTest extends BaseTest {
     @Test
     public void testPostAssessment() throws IdInPostException, DataServiceException, TitleValidationException, AssessmentNotMatchingException {
         when(assessmentDto.getAssessmentId()).thenReturn(null);
+        // assessmentDto is a mock, so defaultAssessment()'s assessmentDto.setTreatmentId(treatment.getUuid())
+        // call doesn't stick for the later fromDto() read of assessmentDto.getTreatmentId() - stub it
+        // explicitly so the subsequent treatmentRepository.findByUuid(...) lookup in fromDto() resolves.
+        java.util.UUID treatmentUuid = treatment.getUuid();
+        when(assessmentDto.getTreatmentId()).thenReturn(treatmentUuid);
+        when(treatmentRepository.findByUuid(treatmentUuid)).thenReturn(treatment);
         AssessmentDto retVal = assessmentService.postAssessment(assessmentDto, 1L, securedInfo);
 
         assertNotNull(retVal);
@@ -669,9 +712,29 @@ public class AssessmentServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders header = assessmentService.buildHeaders(UriComponentsBuilder.newInstance(), 1L, 1L, 1L, 1L);
+        HttpHeaders header = assessmentService.buildHeaders(UriComponentsBuilder.newInstance(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
         assertNotNull(header);
+    }
+
+    @Test
+    public void testGetAssessmentByUuidFound() throws Exception {
+        UUID uuid = assessment.getUuid();
+        when(assessmentRepository.findByUuid(uuid)).thenReturn(assessment);
+
+        Assessment retVal = assessmentService.getAssessmentByUuid(uuid);
+
+        assertEquals(assessment, retVal);
+    }
+
+    @Test
+    public void testGetAssessmentByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(assessmentRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(AssessmentNotMatchingException.class, () -> assessmentService.getAssessmentByUuid(uuid));
+
+        assertEquals(TextConstants.ASSESSMENT_NOT_MATCHING, exception.getMessage());
     }
 
     @Test
@@ -711,4 +774,21 @@ public class AssessmentServiceImplTest extends BaseTest {
         assertTrue(e.getCause() instanceof AssessmentNotMatchingException);
         assertEquals("Error 131: This assignment does not have a treatment assigned.", e.getCause().getMessage());
     }
+
+    @Test
+    public void testGetAssessmentIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(assessmentRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, assessmentService.getAssessmentIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetAssessmentIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(assessmentRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(AssessmentNotMatchingException.class, () -> assessmentService.getAssessmentIdByUuid(uuid));
+    }
+
 }

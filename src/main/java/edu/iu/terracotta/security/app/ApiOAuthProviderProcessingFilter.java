@@ -80,35 +80,17 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
 
             // Second, as the state is something that we have created, it should be in our list of states.
 
-            if (StringUtils.hasText(token)) {
-                Jws<Claims> tokenClaims = apiJwtService.validateToken(token);
-
-                if (tokenClaims == null) {
-                    // validateToken(...) returns null (rather than throwing) for a token that
-                    // fails validation without raising ExpiredJwtException/SecurityException here
-                    // - see ApiJwtServiceImpl.validateToken, which catches ExpiredJwtException
-                    // internally and returns null instead of rethrowing. Reject it the same way
-                    // the catches below do: without this, the request silently proceeds to the
-                    // controller, whose own SecuredInfo extraction re-validates the identical
-                    // failure a second time instead of failing fast here. Not logged - an expired
-                    // token here is routine (e.g. a stale browser tab), not actionable.
-                    ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    return;
-                }
-
-                if (!"TERRACOTTA".equals(tokenClaims.getPayload().getIssuer())) {
-                    throw new IllegalStateException("API token is invalid");
-                }
-
-                // TODO add here any other checks we want to perform.
-
-                if ((Boolean) tokenClaims.getPayload().get("oneUse")) {
-                    boolean exists = apiDataService.findAndDeleteOneUseToken(token);
-
-                    if (!exists) {
-                        throw new IllegalStateException("OneUse token does not exist or has been already used");
-                    }
-                }
+            if (StringUtils.hasText(token) && !validateAndConsumeToken(token)) {
+                // validateToken(...) returns null (rather than throwing) for a token that fails
+                // validation without raising ExpiredJwtException/SecurityException here - see
+                // ApiJwtServiceImpl.validateToken, which catches ExpiredJwtException internally
+                // and returns null instead of rethrowing. Reject it the same way the catches
+                // below do: without this, the request silently proceeds to the controller, whose
+                // own SecuredInfo extraction re-validates the identical failure a second time
+                // instead of failing fast here. Not logged - an expired token here is routine
+                // (e.g. a stale browser tab), not actionable.
+                ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
 
             filterChain.doFilter(servletRequest, servletResponse);
@@ -119,7 +101,7 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
         } catch (SecurityException e) {
             log.warn("Invalid JWT signature: {}", e.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        } catch (AuthenticationCredentialsNotFoundException e) {
+        } catch (AuthenticationCredentialsNotFoundException _) {
             // no JWT token on the request - routine for requests that don't require API auth,
             // not actionable
         } catch (IllegalStateException e) {
@@ -129,6 +111,31 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
 
     private void resetAuthenticationAfterRequest() {
         SecurityContextHolder.getContext().setAuthentication(null);
+    }
+
+    /**
+     * @return false if the token failed validation and the caller should respond 401; true if
+     *         the request may proceed. Throws IllegalStateException for the issuer/one-use
+     *         failures, matching doFilter's existing catch handling for those.
+     */
+    private boolean validateAndConsumeToken(String token) {
+        Jws<Claims> tokenClaims = apiJwtService.validateToken(token);
+
+        if (tokenClaims == null) {
+            return false;
+        }
+
+        if (!"TERRACOTTA".equals(tokenClaims.getPayload().getIssuer())) {
+            throw new IllegalStateException("API token is invalid");
+        }
+
+        // TODO add here any other checks we want to perform.
+
+        if (Boolean.TRUE.equals(tokenClaims.getPayload().get("oneUse")) && !apiDataService.findAndDeleteOneUseToken(token)) {
+            throw new IllegalStateException("OneUse token does not exist or has been already used");
+        }
+
+        return true;
     }
 
     private String extractJwtStringValue(HttpServletRequest request) {

@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
@@ -16,9 +18,9 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AnswerDto {
 
-    private Long answerId;
+    private UUID answerId;
     private String answerType;
-    private Long questionId;
+    private UUID questionId;
     private String html;
     private Boolean correct;
     private Integer answerOrder;

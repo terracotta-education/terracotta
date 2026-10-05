@@ -162,13 +162,13 @@ const assignmentCount = computed(() => assignments.value.length);
 
 const assignmentId = computed(() => currentAssignment.value.assignmentId);
 const assignmentTitle = computed(() => currentAssignment.value.title || "");
-const treatmentId = computed(() => Number.parseInt(route.params.treatmentId, 10));
-const assessmentId = computed(() => Number.parseInt(route.params.assessmentId, 10));
-const conditionId = computed(() => Number.parseInt(route.params.conditionId, 10));
+const treatmentId = computed(() => route.params.treatmentId);
+const assessmentId = computed(() => route.params.assessmentId);
+const conditionId = computed(() => route.params.conditionId);
 
 const condition = computed(() => {
   return props.experiment.conditions.find(
-    item => Number(item.conditionId) === Number(conditionId.value)
+    item => item.conditionId === conditionId.value
   );
 });
 
@@ -300,6 +300,17 @@ const conditionForTreatment = (groupConditionList, currentConditionId) => {
 
 const getAssignmentDetails = async () => {
   await exposuresStore.fetchExposures(props.experiment.experimentId);
+
+  // the stored assignments were loaded on the experiment summary and aren't refreshed when a
+  // treatment is saved here, so questions added to another treatment since wouldn't show up in
+  // "Copy Content From" without reloading them
+  await Promise.all(
+    exposures.value.map(exposure => assignmentStore.fetchAssignmentsByExposure([
+      props.experiment.experimentId,
+      exposure.exposureId,
+      true
+    ]))
+  );
 
   return exposures.value;
 };
@@ -681,7 +692,7 @@ const handleRegradeQuestions = async () => {
 
 const duplicate = async fromAssignment => {
   let availableTreatments = fromAssignment.treatments
-    .filter(treatment => treatment.treatmentId !== treatmentId.value && !treatment.assessmentDto.integration)
+    .filter(isCopyableTreatment)
     .map(treatment => {
       const conditionMatch = conditionForTreatment(
         getGroupConditionListForAssignment(fromAssignment),
@@ -704,7 +715,7 @@ const duplicate = async fromAssignment => {
   const fromTreatment = assignmentsAvailableToCopy.value
     .map(assignmentAvailableToCopy => {
       return assignmentAvailableToCopy.treatments.find(
-        treatment => treatment.treatmentId === Number.parseInt(selectedTreatment.value.treatmentId, 10)
+        treatment => treatment.treatmentId === selectedTreatment.value.treatmentId
       );
     })
     .filter(treatment => treatment !== undefined);
@@ -804,15 +815,29 @@ const buildExpandedQuestionPanelId = (questionPageIndex, questionPanelIndex) => 
   return `question-panel-${questionPageIndex}_${questionPanelIndex}`;
 };
 
-const hasTreatmentsNotCurrent = treatments => {
-  return treatments.some(
-    treatment => treatment.treatmentId !== treatmentId.value && !treatment.assessmentDto.integration
-  );
+// the instructions editor leaves markup like "<p></p>" behind once cleared; read the text the
+// browser would show (trim() also drops the non-breaking spaces &nbsp; becomes)
+const hasInstructions = html => {
+  if (!html) {
+    return false;
+  }
+
+  return !!new DOMParser().parseFromString(html, "text/html").body.textContent.trim();
+};
+
+// another (non-integration) treatment with questions or instructions to copy over
+const isCopyableTreatment = treatment => {
+  const assessmentDto = treatment.assessmentDto;
+
+  return treatment.treatmentId !== treatmentId.value
+    && !!assessmentDto
+    && !assessmentDto.integration
+    && ((assessmentDto.questions || []).length > 0 || hasInstructions(assessmentDto.html));
 };
 
 const findAssignmentsAvailableToCopy = () => {
   assignmentsAvailableToCopy.value = assignments.value.filter(item => {
-    return hasTreatmentsNotCurrent(item.treatments || []);
+    return (item.treatments || []).some(isCopyableTreatment);
   });
 };
 

@@ -202,15 +202,15 @@ const props = defineProps({
     default: null
   },
   selectedDownloadId: {
-    type: Number,
+    type: String,
     default: null
   },
   submissionId: {
-    type: Number,
+    type: String,
     required: true
   },
   questionId: {
-    type: Number,
+    type: String,
     required: true
   }
 });

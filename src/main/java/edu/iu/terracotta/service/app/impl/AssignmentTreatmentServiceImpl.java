@@ -109,6 +109,10 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
         // AssertionFailure: null identifier while checking that association)
         from.setTreatmentId(null);
         from.setVersion(0);
+        // the detached copy still carries the ORIGINAL row's uuid; clearing it lets
+        // UuidAwareEntity's @PrePersist generate a fresh one for this new row instead of
+        // colliding with the source row's unique uuid constraint
+        from.setUuid(null);
 
         // set new assignment; if exists
         if (assignment != null) {
@@ -143,7 +147,7 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     public TreatmentDto toTreatmentDto(Treatment treatment, boolean submissions, boolean addAssignmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
         TreatmentDto treatmentDto = new TreatmentDto();
 
-        treatmentDto.setTreatmentId(treatment.getTreatmentId());
+        treatmentDto.setTreatmentId(treatment.getUuid());
 
         if (addAssignmentDto) {
             treatmentDto.setAssignmentDto(toAssignmentDto(treatment.getAssignment(), false, false, securedInfo));
@@ -153,9 +157,9 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
             treatmentDto.setAssessmentDto(assessmentService.toDto(treatment.getAssessment(), true, false, submissions, false, securedInfo));
         }
 
-        treatmentDto.setConditionId(treatment.getCondition().getConditionId());
+        treatmentDto.setConditionId(treatment.getCondition().getUuid());
         // keeping assignmentId at the root, as removal will break the UI in many places...
-        treatmentDto.setAssignmentId(treatment.getAssignment().getAssignmentId());
+        treatmentDto.setAssignmentId(treatment.getAssignment().getUuid());
 
         return treatmentDto;
     }
@@ -163,11 +167,11 @@ public class AssignmentTreatmentServiceImpl implements AssignmentTreatmentServic
     @Override
     public AssignmentDto toAssignmentDto(Assignment assignment, boolean submissions, boolean addTreatmentDto, SecuredInfo securedInfo) throws AssessmentNotMatchingException {
         AssignmentDto assignmentDto = AssignmentDto.builder().build();
-        assignmentDto.setAssignmentId(assignment.getAssignmentId());
+        assignmentDto.setAssignmentId(assignment.getUuid());
         assignmentDto.setLmsAssignmentId(assignment.getLmsAssignmentId());
         assignmentDto.setTitle(assignment.getTitle());
         assignmentDto.setAssignmentOrder(assignment.getAssignmentOrder());
-        assignmentDto.setExposureId(assignment.getExposure().getExposureId());
+        assignmentDto.setExposureId(assignment.getExposure().getUuid());
         assignmentDto.setResourceLinkId(assignment.getResourceLinkId());
         assignmentDto.setSoftDeleted(assignment.getSoftDeleted());
         assignmentDto.setNumOfSubmissions(assignment.getNumOfSubmissions());
