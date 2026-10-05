@@ -8,6 +8,8 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -27,17 +29,28 @@ import org.springframework.http.ResponseEntity;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.dao.exceptions.ExperimentImportNotFoundException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
+import edu.iu.terracotta.dao.model.enums.distribute.ExperimentCopyStatus;
 import edu.iu.terracotta.dao.model.dto.distribute.ImportDto;
 import edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus;
 import edu.iu.terracotta.exceptions.ExperimentExportException;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
+import edu.iu.terracotta.service.app.async.ExperimentCopyRecreationAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
 
 public class DistributeControllerTest extends BaseTest {
 
-    // ExperimentExportService has no mock declared anywhere in the BaseTest hierarchy, so it is declared here.
+    // ExperimentExportService/ExperimentCopyCandidateService have no mocks declared anywhere in
+    // the BaseTest hierarchy, so they are declared here.
     @Mock private ExperimentExportService exportService;
+    @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
+    @Mock private ExperimentCopyRecreationAsyncService experimentCopyRecreationAsyncService;
+
+    // the uuid path variable for the one experiment under test; experiment.getExperimentId() (the
+    // mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
 
     private DistributeController distributeController;
 
@@ -51,11 +64,12 @@ public class DistributeControllerTest extends BaseTest {
 
         // ApiJwtService has two matching mocks in BaseServiceTest (apiJwtService and canvasApiJwtService),
         // so the controller is constructed manually rather than relying on @InjectMocks to avoid ambiguous wiring.
-        distributeController = new DistributeController(apiJwtService, exportService, experimentImportService);
+        distributeController = new DistributeController(apiJwtService, exportService, experimentImportService, experimentService, experimentCopyCandidateService, experimentCopyRecreationAsyncService);
 
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
         when(apiJwtService.experimentImportAllowed(any(), any(UUID.class))).thenReturn(experimentImport);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
     }
 
     @AfterEach
@@ -82,7 +96,7 @@ public class DistributeControllerTest extends BaseTest {
             .build();
         when(exportService.export(experiment)).thenReturn(exportDto);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -91,7 +105,7 @@ public class DistributeControllerTest extends BaseTest {
     void exportUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -102,7 +116,7 @@ public class DistributeControllerTest extends BaseTest {
         ExportDto exportDto = ExportDto.builder().file(null).build();
         when(exportService.export(experiment)).thenReturn(exportDto);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ret.getStatusCode());
         assertNull(ret.getBody());
@@ -113,7 +127,7 @@ public class DistributeControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         doThrow(new ExperimentExportException("export failed")).when(exportService).export(experiment);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ret.getStatusCode());
     }
@@ -128,7 +142,7 @@ public class DistributeControllerTest extends BaseTest {
             .build();
         when(exportService.export(experiment)).thenReturn(exportDto);
 
-        ResponseEntity<Resource> ret = distributeController.export(1L, httpServletRequest);
+        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ret.getStatusCode());
     }
@@ -137,7 +151,7 @@ public class DistributeControllerTest extends BaseTest {
     void exportExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> distributeController.export(1L, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> distributeController.export(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
@@ -289,6 +303,109 @@ public class DistributeControllerTest extends BaseTest {
             ExperimentImportNotFoundException.class,
             () -> distributeController.acknowledgeError(id, ExperimentImportStatus.ERROR_ACKNOWLEDGED, httpServletRequest)
         );
+    }
+
+    @Test
+    void copyStatusUnauthorizedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.copyStatus(httpServletRequest).getStatusCode());
+        verify(experimentCopyCandidateService, never()).getCopyStatus(any());
+    }
+
+    @Test
+    void copyStatusSuccessTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        CopyStatusDto copyStatus = CopyStatusDto.builder().status(ExperimentCopyStatus.COMPLETE).build();
+        when(experimentCopyCandidateService.getCopyStatus(securedInfo)).thenReturn(copyStatus);
+
+        ResponseEntity<CopyStatusDto> ret = distributeController.copyStatus(httpServletRequest);
+
+        assertEquals(HttpStatus.OK, ret.getStatusCode());
+        assertEquals(copyStatus, ret.getBody());
+    }
+
+    @Test
+    void acknowledgeCopyStatusUnauthorizedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.acknowledgeCopyStatus(httpServletRequest).getStatusCode());
+        verify(experimentCopyCandidateService, never()).acknowledgeCopyStatus(any());
+    }
+
+    @Test
+    void acknowledgeCopyStatusSuccessTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+
+        assertEquals(HttpStatus.OK, distributeController.acknowledgeCopyStatus(httpServletRequest).getStatusCode());
+        verify(experimentCopyCandidateService).acknowledgeCopyStatus(securedInfo);
+    }
+
+    @Test
+    void retryCopyUnauthorizedTest() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.retryCopy(httpServletRequest).getStatusCode());
+        verify(experimentCopyCandidateService, never()).resetFailedForRetry(anyLong());
+    }
+
+    @Test
+    void retryCopyRecreatesAsTheLaunchingInstructorWhenSomethingFailed() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(securedInfo.getContextId()).thenReturn(5L);
+        when(securedInfo.getUserId()).thenReturn("launching-user");
+        when(experimentCopyCandidateService.resetFailedForRetry(5L)).thenReturn(true);
+        CopyStatusDto copyStatus = CopyStatusDto.builder().status(ExperimentCopyStatus.IN_PROGRESS).build();
+        when(experimentCopyCandidateService.getCopyStatus(securedInfo)).thenReturn(copyStatus);
+
+        ResponseEntity<CopyStatusDto> ret = distributeController.retryCopy(httpServletRequest);
+
+        assertEquals(HttpStatus.OK, ret.getStatusCode());
+        assertEquals(copyStatus, ret.getBody());
+        verify(experimentCopyRecreationAsyncService).recreate(5L, "launching-user");
+    }
+
+    // a retry without a usable LMS token can only fail again, and would show the failure alert
+    // before the instructor ever got to re-authorize - it waits for authorization instead, leaving
+    // the failed copy untouched so it's retried afterward
+    @Test
+    void retryCopyWaitsForLmsAuthorizationInsteadOfRunning() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(securedInfo.getContextId()).thenReturn(5L);
+        when(experimentCopyCandidateService.hasFailedForContext(5L)).thenReturn(true);
+        when(experimentCopyCandidateService.hasLmsAuthorization(securedInfo)).thenReturn(false);
+        when(experimentCopyCandidateService.getCopyStatus(securedInfo)).thenReturn(CopyStatusDto.builder().status(ExperimentCopyStatus.ERROR).build());
+
+        ResponseEntity<CopyStatusDto> ret = distributeController.retryCopy(httpServletRequest);
+
+        assertEquals(ExperimentCopyStatus.AUTHORIZATION_REQUIRED, ret.getBody().getStatus());
+        verify(experimentCopyCandidateService, never()).resetFailedForRetry(anyLong());
+        verify(experimentCopyRecreationAsyncService, never()).recreate(anyLong(), any());
+    }
+
+    @Test
+    void retryCopyRunsOnceTheInstructorIsAuthorized() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(securedInfo.getContextId()).thenReturn(5L);
+        when(securedInfo.getUserId()).thenReturn("launching-user");
+        when(experimentCopyCandidateService.hasFailedForContext(5L)).thenReturn(true);
+        when(experimentCopyCandidateService.hasLmsAuthorization(securedInfo)).thenReturn(true);
+        when(experimentCopyCandidateService.resetFailedForRetry(5L)).thenReturn(true);
+        when(experimentCopyCandidateService.getCopyStatus(securedInfo)).thenReturn(CopyStatusDto.builder().status(ExperimentCopyStatus.IN_PROGRESS).build());
+
+        distributeController.retryCopy(httpServletRequest);
+
+        verify(experimentCopyRecreationAsyncService).recreate(5L, "launching-user");
+    }
+
+    @Test
+    void retryCopyNothingFailedDoesNotRecreate() throws Exception {
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(experimentCopyCandidateService.resetFailedForRetry(anyLong())).thenReturn(false);
+
+        distributeController.retryCopy(httpServletRequest);
+
+        verify(experimentCopyRecreationAsyncService, never()).recreate(anyLong(), any());
     }
 
 }

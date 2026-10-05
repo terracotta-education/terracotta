@@ -2,29 +2,26 @@ package edu.iu.terracotta.service.app.async.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -39,7 +36,6 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextReposit
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
-import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiClient;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
@@ -63,6 +59,8 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.utils.LmsAuthorizationUtils;
+import edu.iu.terracotta.utils.LmsExternalToolUrlUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -108,13 +106,17 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         try {
             lmsAssignments = assignmentService.getAllAssignmentsForLmsCourse(securedInfo);
         } catch (ApiException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof LmsOAuthException) {
+            if (LmsAuthorizationUtils.isAuthorizationFailure(e)) {
                 // the instructor hasn't (yet) completed the Canvas API authorization prompt shown
-                // on launch (see Lti3Controller#getOAuth2APITokenRedirectURL) - an ordinary,
-                // expected state for a user who hasn't clicked through it, not an application
-                // failure. This method is @Async with a void return, so any exception escaping it
-                // is caught solely by Spring's default AsyncUncaughtExceptionHandler, which logs
-                // at ERROR with a full stack trace - needlessly alarming for this case.
+                // on launch (see Lti3Controller#getOAuth2APITokenRedirectURL), or their token's
+                // refresh_token was rejected (e.g. revoked, or expired past Canvas's refresh
+                // window) - an ordinary, expected state, not an application failure. Either way,
+                // isAccessTokenAvailable's own refresh attempt already independently detects this
+                // and re-prompts the instructor to authorize on their next launch; this is just
+                // this background sync skipping itself for now. This method is @Async with a void
+                // return, so any exception escaping it is caught solely by Spring's default
+                // AsyncUncaughtExceptionHandler, which logs at ERROR with a full stack trace -
+                // needlessly alarming for this case.
                 log.warn("Skipping LMS assignment sync for context ID: [{}] - user does not yet have a Canvas API token", securedInfo.getContextId());
                 return;
             }
@@ -225,13 +227,25 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             .map(Assignment::getAssignmentId)
             .toList();
 
+        // newly-written launch URLs carry a uuid instead of the numeric assignment ID above, but
+        // existing LMS-stored launch URLs written before this migration still carry the numeric
+        // ID, forever - both lists are needed to check "is this LMS assignment still live"
+        // regardless of which format its stored launch URL happens to use
+        List<UUID> terracottaAssignmentUuids = terracottaAssignments.stream()
+            .map(Assignment::getUuid)
+            .toList();
+
         // consent LMS items have no per-assignment ID of their own (ConsentDocument is a
         // separate entity, one per experiment, not tracked via Assignment/terracottaAssignmentIds
         // above) - their URL only ever carries an "experiment" parameter (e.g.
         // ?consent=true&experiment=278), so those still need to be checked against the
         // experiment's own existence
-        List<Long> terracottaExperimentIds = experimentRepository.findAllByLtiContextEntity_ContextId(securedInfo.getContextId()).stream()
+        List<Experiment> terracottaExperiments = experimentRepository.findAllByLtiContextEntity_ContextId(securedInfo.getContextId());
+        List<Long> terracottaExperimentIds = terracottaExperiments.stream()
             .map(Experiment::getExperimentId)
+            .toList();
+        List<UUID> terracottaExperimentUuids = terracottaExperiments.stream()
+            .map(Experiment::getUuid)
             .toList();
 
         List<String> convertedLmsAssignmentIds = obsoleteAssignmentRepository.findAllByContext_ContextId(securedInfo.getContextId()).stream()
@@ -250,40 +264,29 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             .filter(lmsAssignment -> Strings.CI.contains(lmsAssignment.getLmsExternalToolFields().getUrl(), localUrl))
             .map(lmsAssignment -> {
                 try {
-                    String[] queryParameters = StringUtils.split(URI.create(lmsAssignment.getLmsExternalToolFields().getUrl()).getQuery(), '&');
-
-                    if (ArrayUtils.isEmpty(queryParameters)) {
-                        // no query parameters; skip
-                        return null;
-                    }
+                    String url = lmsAssignment.getLmsExternalToolFields().getUrl();
 
                     // prefer the assignment ID from the query parameters - it identifies the
                     // specific Terracotta assignment this LMS assignment links to, not just
                     // which experiment it belongs to. Consent LMS items have no assignment
                     // parameter of their own (e.g. ?consent=true&experiment=278 - see
                     // ConsentDocument), so fall back to the experiment ID for those.
-                    Optional<String> assignmentId = Arrays.stream(queryParameters)
-                        .filter(queryParameter -> Strings.CI.equals(StringUtils.split(queryParameter, '=')[0], "assignment"))
-                        .map(queryParameter -> StringUtils.split(queryParameter, '=')[1])
-                        .findFirst();
+                    Optional<String> assignmentId = LmsExternalToolUrlUtils.extractQueryParam(url, "assignment");
 
                     if (assignmentId.isPresent()) {
-                        if (terracottaAssignmentIds.contains(Long.parseLong(assignmentId.get()))) {
+                        if (isStillLive(assignmentId.get(), terracottaAssignmentIds, terracottaAssignmentUuids)) {
                             // assignment ID still exists in this context; skip
                             return null;
                         }
                     } else {
-                        Optional<String> experimentId = Arrays.stream(queryParameters)
-                            .filter(queryParameter -> Strings.CI.equals(StringUtils.split(queryParameter, '=')[0], "experiment"))
-                            .map(queryParameter -> StringUtils.split(queryParameter, '=')[1])
-                            .findFirst();
+                        Optional<String> experimentId = LmsExternalToolUrlUtils.extractQueryParam(url, "experiment");
 
                         if (experimentId.isEmpty()) {
                             // no assignment or experiment query parameter; skip
                             return null;
                         }
 
-                        if (terracottaExperimentIds.contains(Long.parseLong(experimentId.get()))) {
+                        if (isStillLive(experimentId.get(), terracottaExperimentIds, terracottaExperimentUuids)) {
                             // experiment ID still exists in this context; skip
                             return null;
                         }
@@ -320,6 +323,28 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                 securedInfo.getContextId(),
                 obsoleteAssignmentIds.stream().collect(Collectors.joining(", "))
             );
+        }
+    }
+
+    /**
+     * Checks whether a raw id extracted from an LMS-stored launch URL's "assignment" or
+     * "experiment" query parameter still corresponds to a live Terracotta entity, accepting
+     * both formats permanently: a uuid (the current and only format for newly-written launch
+     * URLs) or a legacy numeric ID (already persisted, forever, in existing LMS courses' launch
+     * URLs from before the launch URL uuid migration). Existing LMS-stored launch URLs must keep
+     * working indefinitely, so this dual-format check can never be removed.
+     *
+     * @param idText the raw id text extracted from the LMS-stored launch URL query parameter
+     * @param liveIds the numeric ids of the live Terracotta entities in this context
+     * @param liveUuids the uuids of the live Terracotta entities in this context
+     * @return true if idText still corresponds to a live entity, in either format
+     */
+    private boolean isStillLive(String idText, List<Long> liveIds, List<UUID> liveUuids) {
+        try {
+            return liveUuids.contains(UUID.fromString(idText));
+        } catch (IllegalArgumentException _) {
+            // legacy numeric id, already persisted in an existing LMS course's launch URL
+            return liveIds.contains(Long.parseLong(idText));
         }
     }
 

@@ -189,6 +189,12 @@ const rowType = {
 };
 
 const conditions = computed(() => experimentStore.conditions || []);
+
+// a message row lists its treatments in the experiment's condition order. The API returns
+// conditions in creation order, so a treatment's position is its condition's index in that
+// list - the id subtraction this used to sort by became a NaN no-op once conditionId turned
+// into a uuid string
+const conditionPosition = conditionId => conditions.value.findIndex(condition => condition.conditionId === conditionId);
 const exposures = computed(() => exposuresStore.exposures || []);
 const assignments = computed(() => assignmentStore.assignments || []);
 const conditionColorMapping = computed(() => conditionStore.conditionColorMapping || {});
@@ -197,7 +203,7 @@ const allMessageContainers = computed(() => messagingContainerStore.messageConta
 const configurations = computed(() => configurationStore.configurations || configurationStore.get || {});
 const alertStatuses = computed(() => alertStore.statuses || {});
 
-const experimentId = computed(() => Number(props.experiment.experimentId));
+const experimentId = computed(() => props.experiment.experimentId);
 const canDeleteAssignment = computed(() => !props.experiment.started);
 const singleConditionExperiment = computed(() => conditions.value.length === 1);
 const defaultCondition = computed(() => conditions.value.find(condition => condition.defaultCondition));
@@ -233,7 +239,7 @@ const rows = computed(() => {
               questions: []
             }
           }))
-          .sort((a, b) => a.conditionId - b.conditionId),
+          .sort((a, b) => conditionPosition(a.conditionId) - conditionPosition(b.conditionId)),
         type: rowType.message
       }))
     : [];

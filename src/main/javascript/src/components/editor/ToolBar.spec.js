@@ -254,6 +254,194 @@ describe("ToolBar", () => {
     expect(wrapper.findComponent({ name: "YouTubeDialog" }).exists()).toBe(false);
   });
 
+  it("does nothing when an unrecognized action is clicked (default switch case)", async () => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: { editor }
+    });
+
+    const item = wrapper.findAllComponents({ name: "ToolbarItem" })[0];
+    item.vm.$emit("clicked", "not-a-real-action");
+    await wrapper.vm.$nextTick();
+
+    expect(editor.calls).toHaveLength(0);
+  });
+
+  it.each([
+    ["Block quote", "toggleBlockquote"],
+    ["Underline", "toggleUnderline"],
+    ["Strike", "toggleStrike"],
+    ["Italic", "toggleItalic"],
+    ["Bulleted List", "toggleBulletList"],
+    ["Ordered List", "toggleOrderedList"],
+    ["Code", "toggleCode"],
+    ["Horizontal line", "setHorizontalRule"],
+    ["Paragraph", "setParagraph"]
+  ])("runs %s through the editor's chain when that button is clicked", async (title, method) => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: { editor }
+    });
+
+    await clickItem(wrapper, title);
+
+    expect(editor.calls.map(call => call.method)).toEqual([
+      "focus",
+      method,
+      "run"
+    ]);
+  });
+
+  it("toggles off a different active heading level before activating the clicked level", async () => {
+    const editor = createMockEditor();
+    editor.isActive = vi.fn(
+      (type, attrs) => type === "heading" && attrs?.level === 1
+    );
+
+    const wrapper = mountComponent(ToolBar, {
+      props: { editor }
+    });
+
+    await clickItem(wrapper, "Heading 2");
+
+    const toggleHeadingCalls = editor.calls.filter(
+      call => call.method === "toggleHeading"
+    );
+
+    expect(toggleHeadingCalls.map(call => call.args[0])).toEqual([
+      { level: 1 },
+      { level: 2 }
+    ]);
+  });
+
+  it("clears all active states without matching anything when activeItems becomes empty", async () => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: {
+        editor,
+        activeItems: { marks: ["bold"] }
+      }
+    });
+
+    await wrapper.setProps({ activeItems: {} });
+
+    expect(findItemByTitle(wrapper, "Bold").props("activate")).toBe(false);
+  });
+
+  it("activates a node-based item with no level attribute using the first match", async () => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: {
+        editor,
+        activeItems: {}
+      }
+    });
+
+    await wrapper.setProps({
+      activeItems: {
+        nodes: [{ name: "blockquote" }]
+      }
+    });
+
+    expect(findItemByTitle(wrapper, "Block quote").props("activate")).toBe(true);
+  });
+
+  it("closes the YouTube dialog without changing the editor when it is dismissed", async () => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: { editor }
+    });
+
+    await clickItem(wrapper, "YouTube");
+    editor.calls.length = 0;
+
+    const youTubeDialog = wrapper.findComponent({ name: "YouTubeDialog" });
+    youTubeDialog.vm.$emit("close");
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent({ name: "YouTubeDialog" }).exists()).toBe(false);
+    expect(editor.calls.length).toBe(0);
+  });
+
+  it("does nothing when the YouTube dialog submits a null result", async () => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: { editor }
+    });
+
+    await clickItem(wrapper, "YouTube");
+
+    const youTubeDialog = wrapper.findComponent({ name: "YouTubeDialog" });
+    youTubeDialog.vm.$emit("submit", null);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent({ name: "YouTubeDialog" }).exists()).toBe(false);
+    expect(editor.commands.setYoutubeVideo).not.toHaveBeenCalled();
+    expect(editor.calls.length).toBe(0);
+  });
+
+  it("does nothing when the YouTube dialog submits a result with a null src", async () => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: { editor }
+    });
+
+    await clickItem(wrapper, "YouTube");
+
+    const youTubeDialog = wrapper.findComponent({ name: "YouTubeDialog" });
+    youTubeDialog.vm.$emit("submit", { src: null });
+    await wrapper.vm.$nextTick();
+
+    expect(editor.commands.setYoutubeVideo).not.toHaveBeenCalled();
+    expect(editor.calls.length).toBe(0);
+  });
+
+  it("clears the YouTube embed through the editor's chain when the dialog submits an empty src", async () => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: { editor }
+    });
+
+    await clickItem(wrapper, "YouTube");
+
+    const youTubeDialog = wrapper.findComponent({ name: "YouTubeDialog" });
+    youTubeDialog.vm.$emit("submit", { src: "" });
+    await wrapper.vm.$nextTick();
+
+    expect(editor.calls.map(call => call.method)).toEqual([
+      "focus",
+      "extendMarkRange",
+      "clearContent",
+      "run"
+    ]);
+    expect(editor.commands.setYoutubeVideo).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the link dialog submits a null result", async () => {
+    const editor = createMockEditor();
+
+    const wrapper = mountComponent(ToolBar, {
+      props: { editor }
+    });
+
+    await clickItem(wrapper, "Add link");
+
+    const linkDialog = wrapper.findComponent({ name: "LinkDialog" });
+    linkDialog.vm.$emit("submit", null);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent({ name: "LinkDialog" }).exists()).toBe(false);
+    expect(editor.calls.length).toBe(0);
+  });
+
   it("marks the matching toolbar items active based on the activeItems prop", async () => {
     const editor = createMockEditor();
 

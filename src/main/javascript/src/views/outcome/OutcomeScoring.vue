@@ -152,15 +152,15 @@ const participants = computed(() => {
 });
 
 const exposureId = computed(() => {
-  return Number.parseInt(route.params.exposureId, 10);
+  return route.params.exposureId;
 });
 
 const experimentId = computed(() => {
-  return Number.parseInt(route.params.experimentId, 10);
+  return route.params.experimentId;
 });
 
 const outcomeId = computed(() => {
-  return Number.parseInt(route.params.outcomeId, 10);
+  return route.params.outcomeId;
 });
 
 const exposureTitle = computed(() => {

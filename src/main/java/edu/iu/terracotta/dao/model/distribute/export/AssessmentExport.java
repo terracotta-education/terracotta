@@ -19,7 +19,7 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AssessmentExport {
 
-    private long id;
+    private String id;
     private String title;
     private Integer numOfSubmissions;
     private Float hoursBetweenSubmissions;
@@ -33,6 +33,6 @@ public class AssessmentExport {
     private MultipleSubmissionScoringScheme multipleSubmissionScoringScheme;
     private boolean allowStudentViewResponses;
     private boolean allowStudentViewCorrectAnswers;
-    private long treatmentId;
+    private String treatmentId;
 
 }

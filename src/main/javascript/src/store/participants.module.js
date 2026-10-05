@@ -116,8 +116,8 @@ export const participants = defineStore("participants", {
 
       const index = this.participants.findIndex(
         item =>
-          parseInt(item.participantId) ===
-          parseInt(participantData.participantId)
+          item.participantId ===
+          participantData.participantId
       );
 
       if (index >= 0) {

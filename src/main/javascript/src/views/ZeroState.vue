@@ -71,6 +71,7 @@
       <v-row>
         <v-btn
           @click="startExperiment"
+          :disabled="disableActions"
           class="experiment-btn"
           color="primary"
           elevation="0"
@@ -81,6 +82,7 @@
       <v-row v-if="experimentExportEnabled">
         <v-btn
           @click="handleImportExperiment"
+          :disabled="disableActions"
           class="experiment-btn"
           color="primary"
           variant="text"
@@ -127,6 +129,10 @@ defineProps({
   importRequestAlerts: {
     type: Array,
     required: true
+  },
+  disableActions: {
+    type: Boolean,
+    default: false
   }
 });
 

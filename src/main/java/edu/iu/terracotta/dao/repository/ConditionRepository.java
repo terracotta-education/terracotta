@@ -7,10 +7,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Condition;
 
+import java.util.Optional;
+import java.util.UUID;
 import java.util.List;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ConditionRepository extends JpaRepository<Condition, Long> {
+
+    Condition findByUuid(UUID uuid);
+
+
+    @Query("select e.conditionId from Condition e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
 
     List<Condition> findByExperiment_ExperimentIdOrderByConditionIdAsc(Long experimentId);
     long countByExperiment_ExperimentId(Long experimentId);

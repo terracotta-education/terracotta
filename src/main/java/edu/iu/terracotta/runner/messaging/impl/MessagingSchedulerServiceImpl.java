@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,8 @@ import edu.iu.terracotta.runner.messaging.model.MessagingScheduleResult;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.messaging.MessageConversationService;
 import edu.iu.terracotta.service.app.messaging.MessageEmailService;
+import edu.iu.terracotta.service.app.notification.LmsReauthorizationNotificationService;
+import edu.iu.terracotta.utils.LmsAuthorizationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,6 +44,7 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
     private final FeatureService featureService;
     private final MessageConversationService messageConversationService;
     private final MessageEmailService messageEmailService;
+    private final LmsReauthorizationNotificationService lmsReauthorizationNotificationService;
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -124,6 +128,7 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
                                 processedMessage.addError(e.getMessage());
                                 messageReadyToSend.getConfiguration().setStatus(MessageStatus.ERROR);
                                 log.error("Messaging scheduler processing conversation message ID: [{}] encountered an error", messageReadyToSend.getId(), e);
+                                notifyIfReauthorizationNeeded(freshMessage, e);
                             }
 
                             break;
@@ -135,6 +140,7 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
                                 processedMessage.addError(e.getMessage());
                                 messageReadyToSend.getConfiguration().setStatus(MessageStatus.ERROR);
                                 log.error("Messaging scheduler processing email message ID: [{}] encountered an error", messageReadyToSend.getId(), e);
+                                notifyIfReauthorizationNeeded(freshMessage, e);
                             }
 
                             break;
@@ -195,6 +201,21 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
                 }
             }
         );
+    }
+
+    // a scheduled send runs with nobody watching, and a dead LMS token fails every send as this
+    // owner until they relaunch Terracotta - so tell them rather than only logging it
+    private void notifyIfReauthorizationNeeded(Message message, Exception e) {
+        if (!LmsAuthorizationUtils.isAuthorizationFailure(e)) {
+            return;
+        }
+
+        String subject = message.getConfiguration() != null ? message.getConfiguration().getSubject() : null;
+        String failedWork = StringUtils.isBlank(subject)
+            ? "a scheduled Terracotta message could not be sent"
+            : String.format("your scheduled Terracotta message \"%s\" could not be sent", subject);
+
+        lmsReauthorizationNotificationService.notifyReauthorizationNeeded(message.getOwner(), failedWork);
     }
 
 }

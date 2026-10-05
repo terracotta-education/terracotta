@@ -19,6 +19,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +37,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -68,6 +71,7 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
+import edu.iu.terracotta.utils.TextConstants;
 
 public class SubmissionServiceImplTest extends BaseTest {
 
@@ -87,6 +91,7 @@ public class SubmissionServiceImplTest extends BaseTest {
         MockitoAnnotations.openMocks(this);
 
         setup();
+        when(assessmentRepository.findUuidByAssessmentId(anyLong())).thenAnswer(invocation -> Optional.ofNullable(assessment.getUuid()));
         clearInvocations(assignmentRepository);
 
         submissionService = new SubmissionServiceImpl(
@@ -439,14 +444,14 @@ public class SubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testPostSubmissionThrowsWhenIdAlreadyPresent() {
-        SubmissionDto dto = SubmissionDto.builder().submissionId(5L).build();
+        SubmissionDto dto = SubmissionDto.builder().submissionId(UUID.randomUUID()).build();
 
         assertThrows(IdInPostException.class, () -> submissionService.postSubmission(dto, 0L, securedInfo, 0L, false));
     }
 
     @Test
     public void testPostSubmissionWrapsDataServiceExceptionFromFromDto() {
-        when(participantRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(participantRepository.findByUuid(any(UUID.class))).thenReturn(Optional.empty());
         SubmissionDto dto = SubmissionDto.builder().build();
 
         DataServiceException ex = assertThrows(DataServiceException.class, () -> submissionService.postSubmission(dto, 0L, securedInfo, 0L, false));
@@ -536,8 +541,8 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoInstructorSetsGradeFields() throws DataServiceException {
         SubmissionDto dto = SubmissionDto.builder()
-            .participantId(1L)
-            .assessmentId(1L)
+            .participantId(UUID.randomUUID())
+            .assessmentId(UUID.randomUUID())
             .calculatedGrade(5F)
             .alteredCalculatedGrade(6F)
             .totalAlteredGrade(7F)
@@ -560,8 +565,8 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testFromDtoStudentDoesNotSetGradeFields() throws DataServiceException {
         SubmissionDto dto = SubmissionDto.builder()
-            .participantId(1L)
-            .assessmentId(1L)
+            .participantId(UUID.randomUUID())
+            .assessmentId(UUID.randomUUID())
             .calculatedGrade(5F)
             .gradeOverridden(true)
             .build();
@@ -574,16 +579,16 @@ public class SubmissionServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoThrowsWhenParticipantNotFound() {
-        when(participantRepository.findById(anyLong())).thenReturn(Optional.empty());
-        SubmissionDto dto = SubmissionDto.builder().participantId(99L).assessmentId(1L).build();
+        when(participantRepository.findByUuid(any(UUID.class))).thenReturn(Optional.empty());
+        SubmissionDto dto = SubmissionDto.builder().participantId(UUID.randomUUID()).assessmentId(UUID.randomUUID()).build();
 
         assertThrows(DataServiceException.class, () -> submissionService.fromDto(dto, false));
     }
 
     @Test
     public void testFromDtoThrowsWhenAssessmentNotFound() {
-        when(assessmentRepository.findById(anyLong())).thenReturn(Optional.empty());
-        SubmissionDto dto = SubmissionDto.builder().participantId(1L).assessmentId(99L).build();
+        when(assessmentRepository.findByUuid(any(UUID.class))).thenReturn(null);
+        SubmissionDto dto = SubmissionDto.builder().participantId(UUID.randomUUID()).assessmentId(UUID.randomUUID()).build();
 
         assertThrows(DataServiceException.class, () -> submissionService.fromDto(dto, false));
     }
@@ -663,6 +668,42 @@ public class SubmissionServiceImplTest extends BaseTest {
         assertEquals(t.getTime() + 1, captor.getValue().getTime());
     }
 
+    // answers saved before the assignment was re-opened with a later "Available from" date, then
+    // submitted while it's open: dated now instead of rejected for falling outside the window
+    @Test
+    public void testFinalizeAndGradeDatesASubmissionNowWhenItsAnswersWereSavedBeforeTheWindowOpened() throws Exception {
+        long now = System.currentTimeMillis();
+        Timestamp savedBeforeReopen = new Timestamp(now - 1_000_000L);
+        Timestamp reopened = new Timestamp(now - 10_000L);
+        AtomicReference<Timestamp> dateSubmitted = new AtomicReference<>();
+        when(submission.getDateSubmitted()).thenAnswer(invocation -> dateSubmitted.get());
+        doAnswer(invocation -> { dateSubmitted.set(invocation.getArgument(0)); return null; }).when(submission).setDateSubmitted(any());
+        when(submission.getUpdatedAt()).thenReturn(savedBeforeReopen);
+        when(submission.getCreatedAt()).thenReturn(new Timestamp(now - 2_000_000L));
+        when(questionSubmission.getUpdatedAt()).thenReturn(savedBeforeReopen);
+        when(securedInfo.getUnlockAt()).thenReturn(reopened);
+        when(assignment.getResourceLinkId()).thenReturn(RESOURCE_LINK_ID);
+
+        submissionService.finalizeAndGrade(1L, securedInfo, true);
+
+        assertTrue(dateSubmitted.get().after(reopened));
+        verify(submissionRepository).saveAndFlush(submission);
+    }
+
+    @Test
+    public void testLastSavedWithinAvailability() {
+        Timestamp saved = new Timestamp(System.currentTimeMillis() - 1_000_000L);
+        when(submission.getUpdatedAt()).thenReturn(saved);
+        when(submission.getCreatedAt()).thenReturn(new Timestamp(saved.getTime() - 1_000L));
+        when(questionSubmission.getUpdatedAt()).thenReturn(saved);
+
+        assertTrue(submissionService.lastSavedWithinAvailability(submission, securedInfo));
+
+        when(securedInfo.getUnlockAt()).thenReturn(new Timestamp(saved.getTime() + 500_000L));
+
+        assertFalse(submissionService.lastSavedWithinAvailability(submission, securedInfo));
+    }
+
     // datesAllowed (public overload)
 
     @Test
@@ -730,11 +771,39 @@ public class SubmissionServiceImplTest extends BaseTest {
     @Test
     public void testBuildHeadersSetsLocation() {
         org.springframework.web.util.UriComponentsBuilder builder = org.springframework.web.util.UriComponentsBuilder.newInstance();
+        UUID experimentUuid = UUID.randomUUID();
+        UUID conditionUuid = UUID.randomUUID();
+        UUID treatmentUuid = UUID.randomUUID();
+        UUID assessmentUuid = UUID.randomUUID();
+        UUID submissionUuid = UUID.randomUUID();
 
-        org.springframework.http.HttpHeaders headers = submissionService.buildHeaders(builder, 1L, 2L, 3L, 4L, 5L);
+        org.springframework.http.HttpHeaders headers = submissionService.buildHeaders(builder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/1/conditions/2/treatments/3/assessments/4/submissions/5"));
+        assertTrue(headers.getLocation().toString().contains(
+            "/" + experimentUuid + "/conditions/" + conditionUuid + "/treatments/" + treatmentUuid + "/assessments/" + assessmentUuid + "/submissions/" + submissionUuid));
+    }
+
+    // getSubmissionByUuid
+
+    @Test
+    public void testGetSubmissionByUuidFound() throws Exception {
+        UUID uuid = submission.getUuid();
+        when(submissionRepository.findByUuid(uuid)).thenReturn(submission);
+
+        Submission result = submissionService.getSubmissionByUuid(uuid);
+
+        assertEquals(submission, result);
+    }
+
+    @Test
+    public void testGetSubmissionByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(submissionRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(SubmissionNotMatchingException.class, () -> submissionService.getSubmissionByUuid(uuid));
+
+        assertEquals(TextConstants.SUBMISSION_NOT_MATCHING, exception.getMessage());
     }
 
     // getAllSubmissionsForMultipleAssignments
@@ -919,6 +988,22 @@ public class SubmissionServiceImplTest extends BaseTest {
 
         assertEquals(1, result.size());
         assertEquals(7F, result.get(1L));
+    }
+
+    @Test
+    public void testGetSubmissionIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(submissionRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, submissionService.getSubmissionIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetSubmissionIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(submissionRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(SubmissionNotMatchingException.class, () -> submissionService.getSubmissionIdByUuid(uuid));
     }
 
 }

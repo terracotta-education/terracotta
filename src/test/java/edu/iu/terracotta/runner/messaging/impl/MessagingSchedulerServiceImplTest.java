@@ -46,6 +46,8 @@ import edu.iu.terracotta.runner.messaging.model.MessagingScheduleResult;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.messaging.MessageConversationService;
 import edu.iu.terracotta.service.app.messaging.MessageEmailService;
+import edu.iu.terracotta.service.app.notification.LmsReauthorizationNotificationService;
+import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 
 public class MessagingSchedulerServiceImplTest extends BaseTest {
 
@@ -56,6 +58,7 @@ public class MessagingSchedulerServiceImplTest extends BaseTest {
     @Mock private FeatureService featureService;
     @Mock private MessageConversationService messageConversationService;
     @Mock private MessageEmailService messageEmailService;
+    @Mock private LmsReauthorizationNotificationService lmsReauthorizationNotificationService;
 
     private MessagingSchedulerServiceImpl messagingSchedulerService;
     private AtomicLong nextId;
@@ -71,7 +74,8 @@ public class MessagingSchedulerServiceImplTest extends BaseTest {
             messageRepository,
             featureService,
             messageConversationService,
-            messageEmailService
+            messageEmailService,
+            lmsReauthorizationNotificationService
         );
 
         nextId = new AtomicLong(1L);
@@ -251,6 +255,40 @@ public class MessagingSchedulerServiceImplTest extends BaseTest {
         assertEquals("email boom", result.get().getProcessed().get(0).getErrors().get(0));
         assertEquals(MessageStatus.ERROR, message.getConfiguration().getStatus());
         assertEquals(MessageStatus.ERROR, container.getConfiguration().getStatus());
+    }
+
+    // a scheduled send runs with nobody watching - a dead LMS token must reach the owner somehow
+    @Test
+    public void testSendTellsTheOwnerWhenTheirLmsTokenNoLongerWorks() throws Exception {
+        MessageContainer container = buildContainer(MessageStatus.PUBLISHED);
+        Message message = buildMessage(container, MessageStatus.READY, MessageType.CONVERSATION, Timestamp.from(Instant.now().minusSeconds(600)), 0, KEY_ID);
+        message.getConfiguration().setSubject("Week 3 reminder");
+        doReturn(ltiUserEntity).when(message).getOwner();
+
+        when(messageRepository.findAllByContainer_Configuration_StatusAndConfiguration_Status(MessageStatus.PUBLISHED, MessageStatus.READY))
+            .thenReturn(List.of(message));
+        when(featureService.isFeatureEnabled(FeatureType.MESSAGING, KEY_ID)).thenReturn(true);
+        doThrow(new MessageSendConversationException("conversation boom", new LmsOAuthException("invalid_grant"))).when(messageConversationService).send(message);
+
+        messagingSchedulerService.send();
+
+        assertEquals(MessageStatus.ERROR, message.getConfiguration().getStatus());
+        verify(lmsReauthorizationNotificationService).notifyReauthorizationNeeded(ltiUserEntity, "your scheduled Terracotta message \"Week 3 reminder\" could not be sent");
+    }
+
+    @Test
+    public void testSendDoesNotTellTheOwnerAboutOtherFailures() throws Exception {
+        MessageContainer container = buildContainer(MessageStatus.PUBLISHED);
+        Message message = buildMessage(container, MessageStatus.READY, MessageType.EMAIL, Timestamp.from(Instant.now().minusSeconds(600)), 0, KEY_ID);
+
+        when(messageRepository.findAllByContainer_Configuration_StatusAndConfiguration_Status(MessageStatus.PUBLISHED, MessageStatus.READY))
+            .thenReturn(List.of(message));
+        when(featureService.isFeatureEnabled(FeatureType.MESSAGING, KEY_ID)).thenReturn(true);
+        doThrow(new MessageSendEmailException("email boom", null)).when(messageEmailService).send(message);
+
+        messagingSchedulerService.send();
+
+        verifyNoInteractions(lmsReauthorizationNotificationService);
     }
 
     @Test

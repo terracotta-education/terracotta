@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -19,11 +20,11 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QuestionSubmissionDto {
 
-    private Long questionSubmissionId;
-    private Long questionId;
+    private UUID questionSubmissionId;
+    private UUID questionId;
     private Float calculatedPoints;
     private Float alteredGrade;
-    private Long submissionId;
+    private UUID submissionId;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<QuestionSubmissionCommentDto> questionSubmissionCommentDtoList;

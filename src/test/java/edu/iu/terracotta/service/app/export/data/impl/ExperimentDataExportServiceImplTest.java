@@ -83,7 +83,7 @@ class ExperimentDataExportServiceImplTest extends BaseTest {
         ExperimentDataExportDto result = experimentDataExportService.process(experiment, securedInfo);
 
         assertEquals(ExperimentDataExportStatus.PROCESSING, result.getStatus());
-        assertEquals(1L, result.getExperimentId());
+        assertEquals(experiment.getUuid(), result.getExperimentId());
         assertEquals("My Experiment", result.getExperimentTitle());
         assertNull(result.getFile());
         verify(experimentDataExportAsyncService).process(eq(55L), eq(securedInfo));

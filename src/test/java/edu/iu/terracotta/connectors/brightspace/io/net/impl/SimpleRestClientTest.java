@@ -405,6 +405,25 @@ class SimpleRestClientTest {
         }
     }
 
+    // HttpDeleteWithBody is a local class that overrides HttpPost.getMethod() to report "DELETE"
+    // instead of "POST" - since httpClient is mocked, nothing in this suite actually invokes
+    // getMethod() unless we call it directly on the captured, real (non-mocked) request object
+    @Test
+    void testSendApiDeleteSendsDeleteHttpMethod() throws Exception {
+        CloseableHttpResponse response = httpResponse(200);
+        when(response.getEntity()).thenReturn(new StringEntity("ok", ContentType.TEXT_PLAIN));
+        CloseableHttpClient httpClient = mockClientReturning(response);
+
+        try (MockedStatic<HttpClientBuilder> _ = mockHttpClientBuilder(httpClient)) {
+            simpleRestClient.sendApiDelete(token(), URL, sampleParams(), 100, 100);
+
+            ArgumentCaptor<HttpUriRequest> requestCaptor = ArgumentCaptor.forClass(HttpUriRequest.class);
+            verify(httpClient).execute(requestCaptor.capture());
+
+            assertEquals("DELETE", requestCaptor.getValue().getMethod());
+        }
+    }
+
     @Test
     void testSendApiDeleteWithNullParametersUsesEmptyParamList() throws Exception {
         CloseableHttpResponse response = httpResponse(200);

@@ -41,11 +41,13 @@ public class ExperimentDataExportSchedulerRunner {
     @Bean
     Task<Void> experimentDataExportDeleteSchedulerTask(ExperimentDataExportSchedulerService experimentDataExportSchedulerService) {
         if (!enabled) {
+            log.info("The experiment data export delete task [{}] is disabled. Set [experiment.data.export.scheduler.enabled] to true to enable it.", TASK_NAME);
+
             // not enabled; create one-time task to log message
             return Tasks.oneTime(EXPERIMENT_DATA_EXPORT_DELETE_TASK)
                 .execute(
                     (instance, ctx) -> {
-                        log.info("Experiment data export delete task [{}] is not enabled.", EXPERIMENT_DATA_EXPORT_DELETE_TASK);
+                        log.info("The experiment data export delete task [{}] is not enabled.", TASK_NAME);
                     }
                 );
         }
@@ -57,7 +59,7 @@ public class ExperimentDataExportSchedulerRunner {
             log.error(e.getMessage());
         }
 
-        log.info("Creating experiment data export delete task [{}]", EXPERIMENT_DATA_EXPORT_DELETE_TASK);
+        log.info("Scheduled the experiment data export delete task [{}] to run every [{}] minute(s)", TASK_NAME, interval);
 
         return Tasks.recurring(EXPERIMENT_DATA_EXPORT_DELETE_TASK, Schedules.fixedDelay(Duration.ofMinutes(interval)))
             .onDeadExecutionRevive()

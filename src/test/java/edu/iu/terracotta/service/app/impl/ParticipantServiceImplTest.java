@@ -329,6 +329,26 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetParticipantByUuidFound() throws Exception {
+        UUID uuid = participant.getUuid();
+        when(participantRepository.findByUuid(uuid)).thenReturn(Optional.of(participant));
+
+        Participant retVal = participantService.getParticipantByUuid(uuid);
+
+        assertEquals(participant, retVal);
+    }
+
+    @Test
+    public void testGetParticipantByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(participantRepository.findByUuid(uuid)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(ParticipantNotMatchingException.class, () -> participantService.getParticipantByUuid(uuid));
+
+        assertTrue(exception.getMessage().startsWith("Error 108"));
+    }
+
+    @Test
     public void testFindAllByExperimentId() {
         List<Participant> retVal = participantService.findAllByExperimentId(1l);
 
@@ -338,6 +358,9 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Test
     public void testPostParticipant() throws IdInPostException, DataServiceException {
         when(participantDto.getParticipantId()).thenReturn(null);
+        UUID experimentUuid = experiment.getUuid();
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(experiment);
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
         ParticipantDto retVal = participantService.postParticipant(participantDto, 1l, securedInfo);
 
         assertNotNull(retVal);
@@ -603,7 +626,7 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testPostParticipantIdInPostExceptionThrows() {
-        when(participantDto.getParticipantId()).thenReturn(5L);
+        when(participantDto.getParticipantId()).thenReturn(UUID.randomUUID());
 
         assertThrows(
             IdInPostException.class,
@@ -628,7 +651,7 @@ public class ParticipantServiceImplTest extends BaseTest {
         ParticipantDto retVal = participantService.toDto(participant, securedInfo);
 
         assertNotNull(retVal);
-        assertEquals(1L, retVal.getGroupId());
+        assertEquals(group.getUuid(), retVal.getGroupId());
     }
 
     @Test
@@ -643,7 +666,9 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoSuccess() throws DataServiceException {
-        when(participantDto.getExperimentId()).thenReturn(1L);
+        UUID experimentUuid = experiment.getUuid();
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(experiment);
 
         Participant retVal = participantService.fromDto(participantDto);
 
@@ -652,8 +677,13 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoGroupAssignedWhenExists() throws DataServiceException {
-        when(participantDto.getExperimentId()).thenReturn(1L);
-        when(groupRepository.existsByExperiment_ExperimentIdAndGroupId(anyLong(), anyLong())).thenReturn(true);
+        UUID groupUuid = UUID.randomUUID();
+        UUID experimentUuid = experiment.getUuid();
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(experiment);
+        when(participantDto.getGroupId()).thenReturn(groupUuid);
+        when(group.getExperiment()).thenReturn(experiment);
+        when(groupRepository.findByUuid(groupUuid)).thenReturn(group);
 
         Participant retVal = participantService.fromDto(participantDto);
 
@@ -662,15 +692,18 @@ public class ParticipantServiceImplTest extends BaseTest {
 
     @Test
     public void testFromDtoExperimentNotFoundThrows() {
-        when(participantDto.getExperimentId()).thenReturn(1L);
-        when(experimentRepository.findById(anyLong())).thenReturn(Optional.empty());
+        UUID experimentUuid = UUID.randomUUID();
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(null);
 
         assertThrows(DataServiceException.class, () -> participantService.fromDto(participantDto));
     }
 
     @Test
     public void testFromDtoUserNotFoundThrows() {
-        when(participantDto.getExperimentId()).thenReturn(1L);
+        UUID experimentUuid = experiment.getUuid();
+        when(participantDto.getExperimentId()).thenReturn(experimentUuid);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(experiment);
         when(ltiUserRepository.findById(anyLong())).thenReturn(Optional.empty());
 
         assertThrows(DataServiceException.class, () -> participantService.fromDto(participantDto));
@@ -1205,11 +1238,13 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Test
     public void testBuildHeaders() {
         org.springframework.web.util.UriComponentsBuilder ucBuilder = org.springframework.web.util.UriComponentsBuilder.fromUriString("http://localhost:8080");
+        UUID experimentUuid = UUID.randomUUID();
+        UUID participantUuid = UUID.randomUUID();
 
-        org.springframework.http.HttpHeaders headers = participantService.buildHeaders(ucBuilder, 1L, 2L);
+        org.springframework.http.HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentUuid, participantUuid);
 
         assertNotNull(headers.getLocation());
-        assertTrue(headers.getLocation().toString().contains("/api/experiments/1/participant/2"));
+        assertTrue(headers.getLocation().toString().contains("/api/experiments/" + experimentUuid + "/participant/" + participantUuid));
     }
 
     @Test
@@ -1319,6 +1354,22 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         assertNotNull(transactional, method.getName() + " is missing @Transactional");
         assertEquals(Isolation.READ_COMMITTED, transactional.isolation(), method.getName() + " must use READ_COMMITTED isolation");
+    }
+
+    @Test
+    public void testGetParticipantIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(participantRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, participantService.getParticipantIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetParticipantIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(participantRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(ParticipantNotMatchingException.class, () -> participantService.getParticipantIdByUuid(uuid));
     }
 
 }

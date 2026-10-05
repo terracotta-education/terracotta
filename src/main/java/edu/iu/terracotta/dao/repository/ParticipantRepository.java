@@ -18,6 +18,11 @@ import java.util.UUID;
 public interface ParticipantRepository extends JpaRepository<Participant, Long> {
 
     Optional<Participant> findByUuid(UUID uuid);
+
+
+    @Query("select e.id from Participant e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
     List<Participant> findByExperiment_ExperimentId(Long experimentId);
     long countByExperiment_ExperimentId(Long experimentId);
     List<Participant> findByExperiment_ExperimentId(Long experimentId, Pageable pageable);

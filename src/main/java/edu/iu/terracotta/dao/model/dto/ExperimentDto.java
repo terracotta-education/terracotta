@@ -1,5 +1,6 @@
 package edu.iu.terracotta.dao.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -11,6 +12,7 @@ import lombok.Setter;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -20,16 +22,25 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExperimentDto {
 
-    private Long experimentId;
+    private UUID experimentId;
+
+    // Internal carriers only, threaded from SecuredInfo through fillContextInfo()/fromDto() to
+    // build a new Experiment's LtiContextEntity/PlatformDeployment/createdBy relations on the
+    // create-experiment flow - not populated by toDto() and never serialized to the frontend,
+    // which has no legitimate use for another context/platform/LTI user's raw internal id.
+    @JsonIgnore
     private Long platformDeploymentId;
+    @JsonIgnore
     private Long contextId;
+    @JsonIgnore
+    private Long createdBy;
+
     private String title;
     private String description;
     private String exposureType;
     private String participationType;
     private String distributionType;
     private Timestamp started;
-    private Long createdBy;
     private String createdByEmail;
     private Timestamp closed;
     private Integer potentialParticipants;

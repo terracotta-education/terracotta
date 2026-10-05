@@ -2,7 +2,7 @@ package edu.iu.terracotta.connectors.generic.dao.entity.lti;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -31,7 +31,7 @@ import lombok.Setter;
         @UniqueConstraint(columnNames = { "user_id", "context_id" })
     }
 )
-public class LtiMembershipEntity extends BaseEntity {
+public class LtiMembershipEntity extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

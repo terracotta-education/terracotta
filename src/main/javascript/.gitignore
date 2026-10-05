@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
 /dist
+/coverage
 
 # Yarn Berry's local install-resolution cache - disposable, environment-tied, regenerated
 # automatically on the next `yarn install`; not a lockfile (that's yarn.lock, which stays

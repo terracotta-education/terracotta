@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.model.dto;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.AllArgsConstructor;
@@ -16,7 +18,7 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConsentDto {
 
-    private Long consentDocumentId;
+    private UUID consentDocumentId;
     private String title;
     private String filePointer;
     private String html;

@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.generic.dao.repository.lti;
 
+import java.util.UUID;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +11,8 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.ToolDeployment;
 @Transactional
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ToolDeploymentRepository extends JpaRepository<ToolDeployment, Long> {
+
+    ToolDeployment findByUuid(UUID uuid);
 
     List<ToolDeployment> findByPlatformDeployment_Iss(String iss);
     List<ToolDeployment> findByPlatformDeployment_IssAndLtiDeploymentId(String iss, String ltiDeploymentId);

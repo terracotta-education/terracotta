@@ -21,6 +21,7 @@ import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
 import edu.iu.terracotta.dao.exceptions.FeatureNotFoundException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.caliper.CaliperService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -65,6 +66,7 @@ public class Lti3Controller {
     private final LmsOAuthServiceManager lmsOAuthServiceManager;
     private final CanvasAdvantageNoticeService canvasAdvantageNoticeService;
     private final ParticipantAsyncService participantAsyncService;
+    private final ExperimentCopyCandidateService experimentCopyCandidateService;
 
     @RequestMapping({"", "/"})
     public String home(HttpServletRequest req, Principal principal, Model model) throws DataServiceException, ApiException, ConnectionException, LmsOAuthException, TerracottaConnectorException {
@@ -219,7 +221,17 @@ public class Lti3Controller {
             return null;
         }
 
-        if (lmsOAuthService.isAccessTokenAvailable(user)) {
+        // normally the cached expiry is trusted (refreshing on every instructor launch hits Canvas's
+        // rate limit), but a revoked token looks fresh locally. When this course has a failed copy
+        // that Home.vue is about to retry as this instructor, confirm the token with the LMS first,
+        // so a dead one sends them through re-authorization before the retry instead of failing it.
+        boolean copyRetryPending = lti3Request.getContext() != null
+            && experimentCopyCandidateService.hasFailedForContext(lti3Request.getContext().getContextId());
+        boolean tokenUsable = copyRetryPending
+            ? lmsOAuthService.isAccessTokenValid(user)
+            : lmsOAuthService.isAccessTokenAvailable(user);
+
+        if (tokenUsable) {
             return null;
         }
 

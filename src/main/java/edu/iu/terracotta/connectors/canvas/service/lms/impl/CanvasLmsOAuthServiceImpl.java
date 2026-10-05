@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.Strings;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.UnknownContentTypeException;
@@ -211,6 +213,30 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
         }
     }
 
+    @Override
+    public boolean isAccessTokenValid(LtiUserEntity user) {
+        if (!isAccessTokenAvailable(user)) {
+            return false;
+        }
+
+        Optional<ApiTokenEntity> token = apiTokenRepository.findByUser(user);
+
+        if (token.isEmpty()) {
+            return false;
+        }
+
+        try {
+            // passing the current access token as "rejected" forces a real refresh_token call
+            // rather than trusting the cached expiry - see getAccessToken(LtiUserEntity, String)
+            getAccessToken(user, token.get().getAccessToken());
+
+            return true;
+        } catch (LmsOAuthException e) {
+            log.warn("Canvas API token for user ID: [{}] failed verification: {}", user.getUserId(), e.getMessage());
+
+            return false;
+        }
+    }
 
     private ApiTokenEntity refreshAccessToken(ApiTokenEntity canvasApiTokenEntity) throws LmsOAuthException {
         ApiOAuthSettings canvasAPIOAuthSettings = getApiOAuthSettings(canvasApiTokenEntity.getUser().getPlatformDeployment());
@@ -226,11 +252,33 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
         map.add("refresh_token", canvasApiTokenEntity.getRefreshToken());
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
-        CanvasApiToken tokenResponse = postToTokenURL(request, canvasAPIOAuthSettings);
+        CanvasApiToken tokenResponse;
+
+        try {
+            tokenResponse = postToTokenURL(request, canvasAPIOAuthSettings);
+        } catch (LmsOAuthException e) {
+            if (isRefreshTokenRejected(e)) {
+                // the refresh token is permanently dead (revoked in Canvas, or the developer key
+                // changed). Keeping the row would let isAccessTokenAvailable keep trusting its
+                // cached expiry, so the instructor would never be sent through re-authorization.
+                log.warn("Canvas rejected the refresh token for token ID: [{}] - removing it so the user is asked to re-authorize", canvasApiTokenEntity.getTokenId());
+                apiTokenRepository.delete(canvasApiTokenEntity);
+            }
+
+            throw e;
+        }
+
         canvasApiTokenEntity.setAccessToken(tokenResponse.getAccessToken());
         canvasApiTokenEntity.setExpiresAt(new Timestamp(System.currentTimeMillis() + tokenResponse.getExpiresIn() * 1000));
 
         return apiTokenRepository.save(canvasApiTokenEntity);
+    }
+
+    // only a definitive 4xx "invalid_grant" from Canvas - never a network error or 5xx, where the
+    // token may well still be good and deleting it would force a needless re-authorization
+    private boolean isRefreshTokenRejected(LmsOAuthException e) {
+        return e.getCause() instanceof HttpClientErrorException clientError
+            && Strings.CI.contains(clientError.getResponseBodyAsString(), "invalid_grant");
     }
 
     private CanvasApiToken postToTokenURL(HttpEntity<MultiValueMap<String, String>> request, ApiOAuthSettings apiOAuthSettings) throws LmsOAuthException {

@@ -10,9 +10,20 @@ import edu.iu.terracotta.dao.entity.Experiment;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
+
+    Experiment findByUuid(UUID uuid);
+
+
+    @Query("select e.experimentId from Experiment e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
+
+    @Query("select e.uuid from Experiment e where e.experimentId = ?1")
+    Optional<UUID> findUuidByExperimentId(long experimentId);
 
     List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndCreatedBy_UserKey(long keyId, long contextId, String userKey);
     List<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(long keyId, long contextId);
@@ -21,6 +32,7 @@ public interface ExperimentRepository extends JpaRepository<Experiment, Long> {
     Optional<Experiment> findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextIdAndExperimentId(long keyId, long contextId, Long experimentId);
     boolean existsByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(Long experimentId, long keyId, long contextId);
     boolean existsByTitle(String title);
+    boolean existsByTitleAndLtiContextEntity_ContextId(String title, long contextId);
     Optional<Experiment> findByExperimentIdAndPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(long experimentId, long keyId, long contextId);
     boolean existsByTitleAndLtiContextEntity_ContextIdAndExperimentIdIsNot(String title, long contextId, Long experimentId);
 

@@ -16,9 +16,9 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class IntegrationConfigurationExport {
 
-    private long id;
-    private long integrationId;
-    private long clientId;
+    private String id;
+    private String integrationId;
+    private String clientId;
     private String launchUrl;
 
 }

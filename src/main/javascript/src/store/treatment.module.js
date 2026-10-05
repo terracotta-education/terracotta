@@ -16,7 +16,7 @@ export const treatment = defineStore("treatment", {
   actions: {
     async createTreatment(payload) {
       try {
-        const assignmentId = parseInt(payload[2]);
+        const assignmentId = payload[2];
 
         const treat = this.treatments.find(
           t => t.assignmentId === assignmentId
@@ -98,8 +98,7 @@ export const treatment = defineStore("treatment", {
       }
 
       const index = this.treatments.findIndex(
-        item =>
-          parseInt(item.treatmentId) === parseInt(treat.treatmentId)
+        item => item.treatmentId === treat.treatmentId
       );
 
       if (index >= 0) {

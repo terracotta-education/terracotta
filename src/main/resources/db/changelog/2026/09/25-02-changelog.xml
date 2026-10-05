@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+    http://www.liquibase.org/xml/ns/pro
+    http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd"
+>
+  <changeSet author="rlong" id="1790356296-01">
+    <addColumn tableName="terr_experiment_copy_candidate">
+      <column name="attempts" type="INT" defaultValueNumeric="0" afterColumn="status">
+        <constraints nullable="false"/>
+      </column>
+      <column name="repoint_plan" type="TEXT" afterColumn="acknowledged_at"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="rlong" id="1790356296-02">
+    <createTable tableName="terr_experiment_copy_created_assignment">
+      <column autoIncrement="true" name="id" type="BIGINT">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="uuid" type="BINARY(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="copy_candidate_id" type="BIGINT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="lms_assignment_id" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="entity_version" type="INT"/>
+      <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+      <column name="updated_at" type="datetime"/>
+    </createTable>
+  </changeSet>
+  <changeSet author="rlong" id="1790356296-03">
+    <createIndex indexName="IDX1790356296" tableName="terr_experiment_copy_created_assignment">
+      <column name="copy_candidate_id"/>
+    </createIndex>
+    <addForeignKeyConstraint baseColumnNames="copy_candidate_id" baseTableName="terr_experiment_copy_created_assignment" constraintName="FK1790356296-1" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="terr_experiment_copy_candidate" validate="true"/>
+  </changeSet>
+</databaseChangeLog>

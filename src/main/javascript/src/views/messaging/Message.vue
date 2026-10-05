@@ -384,7 +384,7 @@
               <ReplyTo
                 v-if="showReplyTo"
                 ref="replyTo"
-                :reply-tos="replyTo"
+                :reply-tos="replyToList"
                 :required="false"
                 :read-only="readOnly"
                 @updated="updateReplyTo"

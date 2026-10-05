@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.condition.OutcomesConditions;
@@ -19,7 +21,7 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ResultsOutcomesDto {
 
-    private long experimentId;
+    private UUID experimentId;
     private OutcomesConditions conditions;
     private OutcomesExposures exposures;
     private OutcomeType outcomeType;

@@ -17,7 +17,7 @@ import jakarta.persistence.Table;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,7 +32,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Table(name = "lti_tool_deployment")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ToolDeployment extends BaseEntity {
+public class ToolDeployment extends UuidAwareEntity {
 
     @Id
     @Column(name = "deployment_id")

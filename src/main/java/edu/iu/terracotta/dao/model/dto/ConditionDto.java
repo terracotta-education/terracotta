@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
@@ -16,8 +18,8 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConditionDto {
 
-    private Long conditionId;
-    private Long experimentId;
+    private UUID conditionId;
+    private UUID experimentId;
     private String name;
     private Boolean defaultCondition;
     private float distributionPct;

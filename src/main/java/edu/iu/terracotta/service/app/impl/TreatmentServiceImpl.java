@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -100,12 +101,25 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
+    public Treatment getTreatmentByUuid(UUID uuid) throws TreatmentNotMatchingException {
+        return Optional.ofNullable(treatmentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING));
+    }
+
+    @Override
+    public long getTreatmentIdByUuid(UUID uuid) throws TreatmentNotMatchingException {
+        return treatmentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING));
+    }
+
+    @Override
     public TreatmentDto postTreatment(TreatmentDto treatmentDto, long conditionId, SecuredInfo securedInfo) throws IdInPostException, DataServiceException, ExceedingLimitException, AssessmentNotMatchingException, TreatmentNotMatchingException {
         if (treatmentDto.getTreatmentId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        treatmentDto.setConditionId(conditionId);
+        Condition conditionForDto = conditionRepository.findById(conditionId).orElse(null);
+        treatmentDto.setConditionId(conditionForDto != null ? conditionForDto.getUuid() : null);
 
         if (treatmentDto.getAssignmentId() == null) {
             throw new DataServiceException("Error 129: Unable to create Treatment: The assignmentId is mandatory");
@@ -135,7 +149,15 @@ public class TreatmentServiceImpl implements TreatmentService {
             throw new IdMissingException(TextConstants.ID_MISSING);
         }
 
-        if (!treatmentDto.getTreatmentId().equals(treatmentId)) {
+        // resolve via the already-known-good path-derived numeric id rather than a second
+        // findByUuid lookup on the (client-supplied, unverified) dto id
+        Treatment treatment = getTreatment(treatmentId);
+
+        if (treatment == null) {
+            throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
+        }
+
+        if (!treatmentDto.getTreatmentId().equals(treatment.getUuid())) {
             throw new IdMismatchException(TextConstants.ID_MISMATCH_PUT);
         }
 
@@ -143,13 +165,7 @@ public class TreatmentServiceImpl implements TreatmentService {
             throw new DataServiceException(TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO);
         }
 
-        Treatment treatment = getTreatment(treatmentDto.getTreatmentId());
-
-        if (treatment == null) {
-            throw new TreatmentNotMatchingException(TextConstants.TREATMENT_NOT_MATCHING);
-        }
-
-        Optional<Condition> condition = conditionRepository.findById(treatmentDto.getConditionId());
+        Optional<Condition> condition = Optional.ofNullable(conditionRepository.findByUuid(treatmentDto.getConditionId()));
 
         if (condition.isEmpty()) {
             throw new DataServiceException(TextConstants.NO_CONDITION_FOR_TREATMENT);
@@ -158,7 +174,8 @@ public class TreatmentServiceImpl implements TreatmentService {
         treatment.setCondition(condition.get());
 
         try {
-            Assessment assessment = assessmentService.updateAssessment(treatmentDto.getAssessmentDto().getAssessmentId(), treatmentDto.getAssessmentDto(), questions);
+            long assessmentId = assessmentService.getAssessmentByUuid(treatmentDto.getAssessmentDto().getAssessmentId()).getAssessmentId();
+            Assessment assessment = assessmentService.updateAssessment(assessmentId, treatmentDto.getAssessmentDto(), questions);
             treatment.setAssessment(assessment);
         } catch (AssessmentNotMatchingException e) {
             throw new DataServiceException(String.format(TextConstants.UNABLE_TO_UPDATE_TREATMENT, e.getMessage()), e);
@@ -169,16 +186,19 @@ public class TreatmentServiceImpl implements TreatmentService {
 
     @Override
     public Treatment fromDto(TreatmentDto treatmentDto) throws DataServiceException{
+        // treatmentDto.getTreatmentId() (now a uuid) is intentionally not set on a new
+        // Treatment here - postTreatment already rejects a create request that carries one
+        // (IdInPostException), and the real numeric id/uuid are both IDENTITY/@PrePersist
+        // generated at insert time regardless.
         Treatment treatment = new Treatment();
-        treatment.setTreatmentId(treatmentDto.getTreatmentId());
-        Optional<Assignment> assignment = assignmentRepository.findById(treatmentDto.getAssignmentId());
+        Optional<Assignment> assignment = Optional.ofNullable(assignmentRepository.findByUuid(treatmentDto.getAssignmentId()));
 
         if (assignment.isEmpty()) {
             throw new DataServiceException(TextConstants.NO_ASSIGNMENT_IN_TREATMENTDTO);
         }
 
         treatment.setAssignment(assignment.get());
-        Optional<Condition> condition = conditionRepository.findById(treatmentDto.getConditionId());
+        Optional<Condition> condition = Optional.ofNullable(conditionRepository.findByUuid(treatmentDto.getConditionId()));
 
         if (condition.isEmpty()) {
             throw new DataServiceException(TextConstants.NO_CONDITION_FOR_TREATMENT);
@@ -206,7 +226,7 @@ public class TreatmentServiceImpl implements TreatmentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId).toUri());

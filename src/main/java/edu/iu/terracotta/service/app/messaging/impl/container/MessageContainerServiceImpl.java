@@ -201,7 +201,7 @@ public class MessageContainerServiceImpl implements MessageContainerService {
 
         return MessageContainerDto.builder()
             .configuration(containerConfigurationService.toDto(container.getConfiguration()))
-            .exposureId(container.getExposure().getExposureId())
+            .exposureId(container.getExposure().getUuid())
             .id(container.getUuid())
             .messages(messageService.toDto(container.getMessages()))
             .myFilesUrl(

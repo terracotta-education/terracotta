@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.generic.dao.repository.lti;
 
+import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,8 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 @Transactional
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface LtiUserRepository extends JpaRepository<LtiUserEntity, Long> {
+
+    LtiUserEntity findByUuid(UUID uuid);
 
     LtiUserEntity findFirstByUserKeyAndPlatformDeployment(String linkKey, PlatformDeployment platformDeployment);
     List<LtiUserEntity> findAllByUserKeyInAndPlatformDeployment(Collection<String> userKeys, PlatformDeployment platformDeployment);

@@ -199,8 +199,8 @@ public class ResultsOverviewServiceImpl implements ResultsOverviewService {
 
                         Grade grade = grades(findAssessmentsByTreatmentId(treatment.getTreatmentId(), allAssessmentsByAssignment, experimentTreatments));
                         overviewTreatment
-                            .assignmentId(assignment.getAssignmentId())
-                            .conditionId(treatment.getCondition().getConditionId())
+                            .assignmentId(assignment.getUuid())
+                            .conditionId(treatment.getCondition().getUuid())
                             .averageGrade(grade.getAverage())
                             .id(treatment.getTreatmentId())
                             .standardDeviation(grade.getStandardDeviation())

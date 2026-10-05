@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.ConditionDto;
 import edu.iu.terracotta.dao.model.dto.ExperimentDto;
 import edu.iu.terracotta.dao.model.dto.ExposureDto;
@@ -46,12 +48,14 @@ import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 
 public class ExperimentServiceImplTest extends BaseTest {
 
     @Mock private AssignmentAsyncService assignmentAsyncService;
     @Mock private ConditionService conditionService;
     @Mock private FeatureService featureService;
+    @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
 
     @InjectMocks private ExperimentServiceImpl experimentService;
 
@@ -107,6 +111,21 @@ public class ExperimentServiceImplTest extends BaseTest {
         assertEquals(1, retVal.size());
     }
 
+    // while copied experiments are still being recreated in this context (e.g. the instructor
+    // launches a freshly copied course before recreation finishes), the obsolete-assignment check
+    // must not run - it would mark the copied assignment obsolete before recreation re-points it.
+    // See NoticeController's identical guard.
+    @Test
+    public void testGetExperimentsSuppressesObsoleteAssignmentCheckWhileRecreationIsUnfinished() throws Exception {
+        when(experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(anyLong(), anyLong())).thenReturn(List.of(experiment));
+        when(experimentCopyCandidateService.hasUnfinishedForContext(securedInfo.getContextId())).thenReturn(true);
+
+        List<ExperimentDto> retVal = experimentService.getExperiments(securedInfo, true);
+
+        assertEquals(1, retVal.size());
+        verify(assignmentAsyncService, never()).handleAssignmentTasksInLmsByContext(any());
+    }
+
     @Test
     public void testGetExperiment() {
         Experiment retVal = experimentService.getExperiment(1L);
@@ -115,9 +134,29 @@ public class ExperimentServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetExperimentByUuidFound() throws Exception {
+        UUID uuid = experiment.getUuid();
+        when(experimentRepository.findByUuid(uuid)).thenReturn(experiment);
+
+        Experiment retVal = experimentService.getExperimentByUuid(uuid);
+
+        assertEquals(experiment, retVal);
+    }
+
+    @Test
+    public void testGetExperimentByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(experimentRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(ExperimentNotMatchingException.class, () -> experimentService.getExperimentByUuid(uuid));
+
+        assertTrue(exception.getMessage().startsWith("Error 108"));
+    }
+
+    @Test
     public void testPostExperimentSuccess() throws Exception {
         ExperimentDto experimentDto = ExperimentDto.builder()
-            .experimentId(1L)
+            .experimentId(UUID.randomUUID())
             .title("New Experiment")
             .exposureType("BETWEEN")
             .participationType("AUTO")
@@ -156,7 +195,7 @@ public class ExperimentServiceImplTest extends BaseTest {
 
     @Test
     public void testPostExperimentSyncExceptionSwallowed() throws Exception {
-        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(1L).title("New Experiment").build();
+        ExperimentDto experimentDto = ExperimentDto.builder().experimentId(UUID.randomUUID()).title("New Experiment").build();
         when(ltiUserRepository.findFirstByUserIdAndPlatformDeployment_KeyId(anyLong(), anyLong())).thenReturn(ltiUserEntity);
         when(experimentRepository.save(any(Experiment.class))).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new ApiException("fail")).when(participantAsyncService).updateParticipantData(any());
@@ -330,7 +369,7 @@ public class ExperimentServiceImplTest extends BaseTest {
     public void testToDtoBasicNoFlags() {
         ExperimentDto retVal = experimentService.toDto(experiment, false, false, false, securedInfo);
 
-        assertEquals(1L, retVal.getExperimentId());
+        assertEquals(experiment.getUuid(), retVal.getExperimentId());
         assertEquals("BETWEEN", retVal.getExposureType());
         assertEquals("AUTO", retVal.getParticipationType());
         assertEquals("EVEN", retVal.getDistributionType());
@@ -555,7 +594,7 @@ public class ExperimentServiceImplTest extends BaseTest {
         ExperimentDto retVal = experimentService.getEmptyExperiment(securedInfo, experimentDto);
 
         assertNotNull(retVal);
-        assertEquals(1L, retVal.getExperimentId());
+        assertEquals(experiment.getUuid(), retVal.getExperimentId());
     }
 
     @Test
@@ -594,10 +633,11 @@ public class ExperimentServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders retVal = experimentService.buildHeaders(UriComponentsBuilder.newInstance(), 5L);
+        UUID experimentUuid = UUID.randomUUID();
+        HttpHeaders retVal = experimentService.buildHeaders(UriComponentsBuilder.newInstance(), experimentUuid);
 
         assertNotNull(retVal.getLocation());
-        assertTrue(retVal.getLocation().toString().contains("/api/experiment/5"));
+        assertTrue(retVal.getLocation().toString().contains("/api/experiment/" + experimentUuid));
     }
 
     @Test
@@ -619,6 +659,22 @@ public class ExperimentServiceImplTest extends BaseTest {
         Exception exception = assertThrows(TitleValidationException.class, () -> experimentService.validateTitle("Duplicate", 1L));
 
         assertTrue(exception.getMessage().contains("Duplicate"));
+    }
+
+    @Test
+    public void testGetExperimentIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(experimentRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, experimentService.getExperimentIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetExperimentIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(experimentRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(ExperimentNotMatchingException.class, () -> experimentService.getExperimentIdByUuid(uuid));
     }
 
 }

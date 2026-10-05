@@ -437,11 +437,11 @@ const studentResponse = computed(() => submissionsStore.studentResponse);
 const questionPages = computed(() => assessmentStore.questionPages);
 const configurations = computed(() => configurationStore.get);
 
-const assessmentId = computed(() => parseInt(route.params.assessmentId));
-const conditionId = computed(() => parseInt(route.params.conditionId));
-const treatmentId = computed(() => parseInt(route.params.treatmentId));
-const participantId = computed(() => parseInt(route.params.participantId));
-const experimentId = computed(() => parseInt(route.params.experimentId));
+const assessmentId = computed(() => route.params.assessmentId);
+const conditionId = computed(() => route.params.conditionId);
+const treatmentId = computed(() => route.params.treatmentId);
+const participantId = computed(() => route.params.participantId);
+const experimentId = computed(() => route.params.experimentId);
 
 const allSubmissions = computed(() => assessment.value?.submissions || []);
 
@@ -861,7 +861,7 @@ const findSubmissionById = id => {
 const isSameAssessmentQuestion = questionId => {
   return assessment.value?.questions
     ?.map(question => question.questionId)
-    ?.includes(Number(questionId));
+    ?.includes(questionId);
 };
 
 const downloadFileResponse = async fileResponse => {

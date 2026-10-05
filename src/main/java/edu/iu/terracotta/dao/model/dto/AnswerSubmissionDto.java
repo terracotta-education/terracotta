@@ -1,6 +1,7 @@
 package edu.iu.terracotta.dao.model.dto;
 
 import java.io.File;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -18,9 +19,9 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AnswerSubmissionDto {
 
-    private Long answerSubmissionId;
-    private Long answerId;
-    private Long questionSubmissionId;
+    private UUID answerSubmissionId;
+    private UUID answerId;
+    private UUID questionSubmissionId;
     private String response;
     private String fileContent;
     private String fileName;

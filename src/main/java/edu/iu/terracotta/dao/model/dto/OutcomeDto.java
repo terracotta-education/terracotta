@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -19,8 +20,8 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OutcomeDto {
 
-    private Long outcomeId;
-    private Long exposureId;
+    private UUID outcomeId;
+    private UUID exposureId;
     private String title;
     private String lmsType;
     private String lmsOutcomeId;

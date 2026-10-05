@@ -157,12 +157,12 @@ describe("participants store", () => {
       expect(store.participants).toEqual([{ participantId: 1 }]);
     });
 
-    it("matches participantId across string/number types via parseInt", () => {
-      store.setParticipants([{ participantId: "1" }]);
+    it("matches participantId by exact string equality", () => {
+      store.setParticipants([{ participantId: "uuid-1" }]);
 
-      store.upsertParticipant({ participantId: 1, consent: true });
+      store.upsertParticipant({ participantId: "uuid-1", consent: true });
 
-      expect(store.participants).toEqual([{ participantId: 1, consent: true }]);
+      expect(store.participants).toEqual([{ participantId: "uuid-1", consent: true }]);
     });
   });
 

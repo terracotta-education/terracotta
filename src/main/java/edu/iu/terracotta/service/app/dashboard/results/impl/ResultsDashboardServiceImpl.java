@@ -37,7 +37,7 @@ public class ResultsDashboardServiceImpl implements ResultsDashboardService {
         }
 
         ResultsDashboardDtoBuilder resultsDashboardDto = ResultsDashboardDto.builder()
-            .experimentId(experimentId)
+            .experimentId(experiment.get().getUuid())
             .overview(resultsOverviewService.overview(experiment.get(), securedInfo));
 
         log.info("Calculated overview for experiment ID: [{}]", experimentId);
@@ -47,7 +47,7 @@ public class ResultsDashboardServiceImpl implements ResultsDashboardService {
 
     @Override
     public ResultsDashboardDto outcomes(long experimentId, ResultsOutcomesRequestDto resultsOutcomesRequestDto) throws ExperimentNotMatchingException, OutcomeNotMatchingException {
-        log.info("Starting results outcomes dashboard calculations for experiment ID: [{}], outcomes IDs: [{}], alternate ID: [{}]",
+        log.info("Starting results outcomes dashboard calculations for experiment ID: [{}], outcomes IDs: {}, alternate ID: [{}]",
             experimentId,
             resultsOutcomesRequestDto.getOutcomeIds(),
             resultsOutcomesRequestDto.getAlternateId().getId()
@@ -59,10 +59,10 @@ public class ResultsDashboardServiceImpl implements ResultsDashboardService {
         }
 
         ResultsDashboardDtoBuilder resultsDashboardDto = ResultsDashboardDto.builder()
-            .experimentId(experimentId)
+            .experimentId(experiment.get().getUuid())
             .outcomes(resultsOutcomesService.outcomes(experiment.get(), resultsOutcomesRequestDto));
 
-        log.info("Finished results outcomes dashboard calculations for experiment ID: [{}], outcomes IDs: [{}], alternate ID: [{}]",
+        log.info("Finished results outcomes dashboard calculations for experiment ID: [{}], outcomes IDs: {}, alternate ID: [{}]",
             experimentId,
             resultsOutcomesRequestDto.getOutcomeIds(),
             resultsOutcomesRequestDto.getAlternateId().getId()

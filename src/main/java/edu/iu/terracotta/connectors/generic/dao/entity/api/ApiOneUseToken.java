@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,7 +26,7 @@ import jakarta.persistence.Table;
 @AllArgsConstructor
 @Table(name = "api_one_use_token")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ApiOneUseToken extends BaseEntity {
+public class ApiOneUseToken extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

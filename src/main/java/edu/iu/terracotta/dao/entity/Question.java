@@ -2,7 +2,7 @@ package edu.iu.terracotta.dao.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.dao.model.enums.RegradeOption;
@@ -37,7 +37,7 @@ import jakarta.persistence.Transient;
 @Table(name = "terr_question")
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Inheritance(strategy = InheritanceType.JOINED)
-public class Question extends BaseEntity {
+public class Question extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

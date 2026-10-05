@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,14 @@ import edu.iu.terracotta.utils.TextConstants;
 
 public class ConditionControllerTest extends BaseTest {
 
+    // the uuid path variable for the one experiment under test; experiment.getExperimentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one condition under test; condition.getConditionId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID CONDITION_UUID = UUID.randomUUID();
+
     // ConditionService has no mock in the BaseTest hierarchy, so it must be declared locally.
     @Mock private ConditionService conditionService;
 
@@ -47,20 +56,22 @@ public class ConditionControllerTest extends BaseTest {
         // Constructed manually (not @InjectMocks) because ApiJwtService has two type-matching
         // mock candidates in BaseServiceTest (apiJwtService and canvasApiJwtService), and
         // Mockito's constructor injection matches by type only, with no field-name tiebreak.
-        conditionController = new ConditionController(conditionService, apiJwtService);
+        conditionController = new ConditionController(conditionService, apiJwtService, experimentService);
 
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(conditionService.findByConditionId(anyLong())).thenReturn(condition);
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
     }
 
     @Test
     void testAllConditionsByExperiment() throws Exception {
-        ConditionDto dto = ConditionDto.builder().conditionId(1L).build();
+        ConditionDto dto = ConditionDto.builder().conditionId(CONDITION_UUID).build();
         when(conditionService.findAllByExperimentId(1L)).thenReturn(List.of(dto));
 
-        ResponseEntity<List<ConditionDto>> response = conditionController.allConditionsByExperiment(1L, httpServletRequest);
+        ResponseEntity<List<ConditionDto>> response = conditionController.allConditionsByExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
@@ -70,7 +81,7 @@ public class ConditionControllerTest extends BaseTest {
     void testAllConditionsByExperimentNoContent() throws Exception {
         when(conditionService.findAllByExperimentId(1L)).thenReturn(Collections.emptyList());
 
-        ResponseEntity<List<ConditionDto>> response = conditionController.allConditionsByExperiment(1L, httpServletRequest);
+        ResponseEntity<List<ConditionDto>> response = conditionController.allConditionsByExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
@@ -79,7 +90,7 @@ public class ConditionControllerTest extends BaseTest {
     void testAllConditionsByExperimentUnauthorized() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<List<ConditionDto>> response = conditionController.allConditionsByExperiment(1L, httpServletRequest);
+        ResponseEntity<List<ConditionDto>> response = conditionController.allConditionsByExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -88,15 +99,15 @@ public class ConditionControllerTest extends BaseTest {
     void testAllConditionsByExperimentNotMatching() throws Exception {
         doThrow(new ExperimentNotMatchingException("error")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> conditionController.allConditionsByExperiment(1L, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> conditionController.allConditionsByExperiment(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
     void testGetCondition() throws Exception {
-        ConditionDto dto = ConditionDto.builder().conditionId(1L).build();
+        ConditionDto dto = ConditionDto.builder().conditionId(CONDITION_UUID).build();
         when(conditionService.getCondition(1L)).thenReturn(dto);
 
-        ResponseEntity<ConditionDto> response = conditionController.getCondition(1L, 1L, httpServletRequest);
+        ResponseEntity<ConditionDto> response = conditionController.getCondition(EXPERIMENT_UUID, CONDITION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(dto, response.getBody());
@@ -106,7 +117,7 @@ public class ConditionControllerTest extends BaseTest {
     void testGetConditionUnauthorized() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ConditionDto> response = conditionController.getCondition(1L, 1L, httpServletRequest);
+        ResponseEntity<ConditionDto> response = conditionController.getCondition(EXPERIMENT_UUID, CONDITION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -116,16 +127,16 @@ public class ConditionControllerTest extends BaseTest {
     void testGetConditionNotMatching() throws Exception {
         doThrow(new ConditionNotMatchingException("error")).when(apiJwtService).conditionAllowed(securedInfo, 1L, 1L);
 
-        assertThrows(ConditionNotMatchingException.class, () -> conditionController.getCondition(1L, 1L, httpServletRequest));
+        assertThrows(ConditionNotMatchingException.class, () -> conditionController.getCondition(EXPERIMENT_UUID, CONDITION_UUID, httpServletRequest));
     }
 
     @Test
     void testPostCondition() throws Exception {
         ConditionDto requestDto = ConditionDto.builder().name("new condition").build();
-        ConditionDto returnedDto = ConditionDto.builder().conditionId(1L).name("new condition").build();
+        ConditionDto returnedDto = ConditionDto.builder().conditionId(CONDITION_UUID).name("new condition").build();
         when(conditionService.postCondition(requestDto, 1L)).thenReturn(returnedDto);
 
-        ResponseEntity<ConditionDto> response = conditionController.postCondition(1L, requestDto, httpServletRequest);
+        ResponseEntity<ConditionDto> response = conditionController.postCondition(EXPERIMENT_UUID, requestDto, httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(returnedDto, response.getBody());
@@ -133,10 +144,10 @@ public class ConditionControllerTest extends BaseTest {
 
     @Test
     void testPostConditionNullBody() throws Exception {
-        ConditionDto returnedDto = ConditionDto.builder().conditionId(1L).build();
+        ConditionDto returnedDto = ConditionDto.builder().conditionId(CONDITION_UUID).build();
         when(conditionService.postCondition(any(ConditionDto.class), anyLong())).thenReturn(returnedDto);
 
-        ResponseEntity<ConditionDto> response = conditionController.postCondition(1L, null, httpServletRequest);
+        ResponseEntity<ConditionDto> response = conditionController.postCondition(EXPERIMENT_UUID, null, httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(returnedDto, response.getBody());
@@ -146,7 +157,7 @@ public class ConditionControllerTest extends BaseTest {
     void testPostConditionUnauthorized() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ConditionDto> response = conditionController.postCondition(1L, ConditionDto.builder().build(), httpServletRequest);
+        ResponseEntity<ConditionDto> response = conditionController.postCondition(EXPERIMENT_UUID, ConditionDto.builder().build(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -155,12 +166,12 @@ public class ConditionControllerTest extends BaseTest {
     void testPostConditionLocked() throws Exception {
         doThrow(new ExperimentLockedException("error")).when(apiJwtService).experimentLocked(1L, true);
 
-        assertThrows(ExperimentLockedException.class, () -> conditionController.postCondition(1L, ConditionDto.builder().build(), httpServletRequest));
+        assertThrows(ExperimentLockedException.class, () -> conditionController.postCondition(EXPERIMENT_UUID, ConditionDto.builder().build(), httpServletRequest));
     }
 
     @Test
     void testUpdateCondition() throws Exception {
-        ResponseEntity<Void> response = conditionController.updateCondition(1L, 1L, ConditionDto.builder().name("updated").build(), httpServletRequest);
+        ResponseEntity<Void> response = conditionController.updateCondition(EXPERIMENT_UUID, CONDITION_UUID, ConditionDto.builder().name("updated").build(), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(conditionService, times(1)).updateCondition(any());
@@ -170,7 +181,7 @@ public class ConditionControllerTest extends BaseTest {
     void testUpdateConditionUnauthorized() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = conditionController.updateCondition(1L, 1L, ConditionDto.builder().name("updated").build(), httpServletRequest);
+        ResponseEntity<Void> response = conditionController.updateCondition(EXPERIMENT_UUID, CONDITION_UUID, ConditionDto.builder().name("updated").build(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -179,21 +190,21 @@ public class ConditionControllerTest extends BaseTest {
     void testUpdateConditionNotMatching() throws Exception {
         doThrow(new ConditionNotMatchingException("error")).when(apiJwtService).conditionAllowed(securedInfo, 1L, 1L);
 
-        assertThrows(ConditionNotMatchingException.class, () -> conditionController.updateCondition(1L, 1L, ConditionDto.builder().name("updated").build(), httpServletRequest));
+        assertThrows(ConditionNotMatchingException.class, () -> conditionController.updateCondition(EXPERIMENT_UUID, CONDITION_UUID, ConditionDto.builder().name("updated").build(), httpServletRequest));
     }
 
     @Test
     void testUpdateConditionTitleValidation() throws Exception {
         doThrow(new TitleValidationException("error")).when(conditionService).validateConditionName(any(), any(), anyLong(), anyLong(), anyBoolean());
 
-        assertThrows(TitleValidationException.class, () -> conditionController.updateCondition(1L, 1L, ConditionDto.builder().name("updated").build(), httpServletRequest));
+        assertThrows(TitleValidationException.class, () -> conditionController.updateCondition(EXPERIMENT_UUID, CONDITION_UUID, ConditionDto.builder().name("updated").build(), httpServletRequest));
     }
 
     @Test
     void testUpdateConditions() throws Exception {
-        ConditionDto dto = ConditionDto.builder().conditionId(1L).name("updated").build();
+        ConditionDto dto = ConditionDto.builder().conditionId(CONDITION_UUID).name("updated").build();
 
-        ResponseEntity<Void> response = conditionController.updateConditions(1L, List.of(dto), httpServletRequest);
+        ResponseEntity<Void> response = conditionController.updateConditions(EXPERIMENT_UUID, List.of(dto), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(apiJwtService, times(1)).conditionAllowed(securedInfo, 1L, 1L);
@@ -204,9 +215,9 @@ public class ConditionControllerTest extends BaseTest {
         // Note: apijwtService.isInstructorOrHigher is checked AFTER conditionService.validateConditionNames
         // runs, so validation still executes for an unauthorized caller before the 401 is returned.
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-        ConditionDto dto = ConditionDto.builder().conditionId(1L).name("updated").build();
+        ConditionDto dto = ConditionDto.builder().conditionId(CONDITION_UUID).name("updated").build();
 
-        ResponseEntity<Void> response = conditionController.updateConditions(1L, List.of(dto), httpServletRequest);
+        ResponseEntity<Void> response = conditionController.updateConditions(EXPERIMENT_UUID, List.of(dto), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(conditionService, times(1)).validateConditionNames(List.of(dto), 1L, true);
@@ -215,24 +226,24 @@ public class ConditionControllerTest extends BaseTest {
     @Test
     void testUpdateConditionsTitleValidation() throws Exception {
         doThrow(new TitleValidationException("error")).when(conditionService).validateConditionNames(any(), anyLong(), anyBoolean());
-        ConditionDto dto = ConditionDto.builder().conditionId(1L).name("updated").build();
+        ConditionDto dto = ConditionDto.builder().conditionId(CONDITION_UUID).name("updated").build();
 
-        assertThrows(TitleValidationException.class, () -> conditionController.updateConditions(1L, List.of(dto), httpServletRequest));
+        assertThrows(TitleValidationException.class, () -> conditionController.updateConditions(EXPERIMENT_UUID, List.of(dto), httpServletRequest));
     }
 
     @Test
     void testUpdateConditionsDataServiceException() throws Exception {
         doThrow(new RuntimeException("boom")).when(conditionService).updateCondition(any());
-        ConditionDto dto = ConditionDto.builder().conditionId(1L).name("updated").build();
+        ConditionDto dto = ConditionDto.builder().conditionId(CONDITION_UUID).name("updated").build();
 
-        assertThrows(DataServiceException.class, () -> conditionController.updateConditions(1L, List.of(dto), httpServletRequest));
+        assertThrows(DataServiceException.class, () -> conditionController.updateConditions(EXPERIMENT_UUID, List.of(dto), httpServletRequest));
     }
 
     @Test
     void testDeleteCondition() throws Exception {
         when(conditionService.isDefaultCondition(1L)).thenReturn(false);
 
-        ResponseEntity<Void> response = conditionController.deleteCondition(1L, 1L, httpServletRequest);
+        ResponseEntity<Void> response = conditionController.deleteCondition(EXPERIMENT_UUID, CONDITION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -241,7 +252,7 @@ public class ConditionControllerTest extends BaseTest {
     void testDeleteConditionDefaultConflict() throws Exception {
         when(conditionService.isDefaultCondition(1L)).thenReturn(true);
 
-        ResponseEntity<Void> response = conditionController.deleteCondition(1L, 1L, httpServletRequest);
+        ResponseEntity<Void> response = conditionController.deleteCondition(EXPERIMENT_UUID, CONDITION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
     }
@@ -251,7 +262,7 @@ public class ConditionControllerTest extends BaseTest {
         when(conditionService.isDefaultCondition(1L)).thenReturn(false);
         doThrow(new EmptyResultDataAccessException(1)).when(conditionService).deleteById(1L);
 
-        ResponseEntity<Void> response = conditionController.deleteCondition(1L, 1L, httpServletRequest);
+        ResponseEntity<Void> response = conditionController.deleteCondition(EXPERIMENT_UUID, CONDITION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
@@ -260,7 +271,7 @@ public class ConditionControllerTest extends BaseTest {
     void testDeleteConditionUnauthorized() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = conditionController.deleteCondition(1L, 1L, httpServletRequest);
+        ResponseEntity<Void> response = conditionController.deleteCondition(EXPERIMENT_UUID, CONDITION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -269,7 +280,7 @@ public class ConditionControllerTest extends BaseTest {
     void testDeleteConditionLocked() throws Exception {
         doThrow(new ConditionsLockedException("error")).when(apiJwtService).conditionsLocked(1L, true);
 
-        assertThrows(ConditionsLockedException.class, () -> conditionController.deleteCondition(1L, 1L, httpServletRequest));
+        assertThrows(ConditionsLockedException.class, () -> conditionController.deleteCondition(EXPERIMENT_UUID, CONDITION_UUID, httpServletRequest));
     }
 
 }

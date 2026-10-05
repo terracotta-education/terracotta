@@ -106,7 +106,7 @@ export const outcome = defineStore("outcome", {
       try {
         const outcomeId = payload[2];
         const isDifferentOutcome =
-          parseInt(this.outcome?.outcomeId) !== parseInt(outcomeId);
+          this.outcome?.outcomeId !== outcomeId;
 
         const response = await outcomeService.getById(...payload);
 
@@ -217,7 +217,7 @@ export const outcome = defineStore("outcome", {
       try {
         const response =
           await outcomeService.getOutcomePotentials(
-            parseInt(experimentId)
+            experimentId
           );
 
         if (response?.status === 200) {

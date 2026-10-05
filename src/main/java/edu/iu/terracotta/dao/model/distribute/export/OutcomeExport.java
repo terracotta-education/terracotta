@@ -16,9 +16,9 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OutcomeExport {
 
-    private long id;
+    private String id;
     private String title;
     private Float maxPoints;
-    private long exposureId;
+    private String exposureId;
 
 }

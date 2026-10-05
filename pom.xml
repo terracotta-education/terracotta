@@ -10,7 +10,7 @@
     </parent>
     <groupId>edu.iu</groupId>
     <artifactId>terracotta</artifactId>
-    <version>26.10.01</version>
+    <version>26.10.06</version>
     <inceptionYear>2021</inceptionYear>
     <name>Terracotta</name>
     <description>LTI 1.3 tool for educational experimentation</description>
@@ -29,10 +29,10 @@
         <frontend-maven-plugin.version>2.0.2</frontend-maven-plugin.version>
         <guava.version>33.7.1-jre</guava.version>
         <h2.version>2.5.250</h2.version>
-        <!-- override spring-boot-starter-parent's managed 2.21.5/3.1.5 - fixes unsafe
-             reflection and untrusted-data deserialization CVEs found via Snyk -->
-        <jackson-2-bom.version>2.21.6</jackson-2-bom.version>
-        <jackson-bom.version>3.1.6</jackson-bom.version>
+        <!-- override spring-boot-starter-parent's managed 2.21.6/3.1.6 - fixes
+             allocation-without-limits/ReDoS CVEs found via Snyk -->
+        <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+        <jackson-bom.version>3.1.7</jackson-bom.version>
         <jacoco.version>0.8.15</jacoco.version>
         <java.version>25</java.version>
         <jjwt.version>0.13.0</jjwt.version>
@@ -41,6 +41,9 @@
         <jsoup.version>1.23.2</jsoup.version>
         <lombok.version>1.18.48</lombok.version>
         <mysql-connector-j.version>26.7.0</mysql-connector-j.version>
+        <!-- override spring-boot-starter-parent's managed 4.2.17.Final - fixes an
+             allocation-without-limits CVE and an HTTP request smuggling CVE found via Snyk -->
+        <netty.version>4.2.18.Final</netty.version>
         <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
         <node.version>v22.22.3</node.version>
         <npm.version>10.9.0</npm.version>

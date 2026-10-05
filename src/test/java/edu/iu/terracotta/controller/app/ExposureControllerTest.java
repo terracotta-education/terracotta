@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,12 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 
 public class ExposureControllerTest extends BaseTest {
 
+    // the uuid path variable for the one experiment under test; experiment.getExperimentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+    // likewise for exposure.getExposureId(), which BaseModelTest stubs to 1L
+    private static final UUID EXPOSURE_UUID = UUID.randomUUID();
+
     private ExposureController exposureController;
 
     @BeforeEach
@@ -40,26 +47,28 @@ public class ExposureControllerTest extends BaseTest {
 
         // ApiJwtService has two matching mocks in BaseServiceTest (apiJwtService and canvasApiJwtService),
         // so the controller is constructed manually rather than relying on @InjectMocks to avoid ambiguous wiring.
-        exposureController = new ExposureController(exposureService, apiJwtService);
+        exposureController = new ExposureController(exposureService, apiJwtService, experimentService);
 
         when(apiJwtService.extractValues(any(), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(any(), anyLong())).thenReturn(experiment);
         when(apiJwtService.exposureAllowed(any(), anyLong(), anyLong())).thenReturn(exposure);
         when(apiJwtService.experimentLocked(anyLong(), anyBoolean())).thenReturn(false);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
     }
 
     @Test
     void allExposuresByExperimentExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> exposureController.allExposuresByExperiment(1L, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> exposureController.allExposuresByExperiment(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
     void allExposuresByExperimentUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<List<ExposureDto>> ret = exposureController.allExposuresByExperiment(1L, httpServletRequest);
+        ResponseEntity<List<ExposureDto>> ret = exposureController.allExposuresByExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -69,7 +78,7 @@ public class ExposureControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(exposureService.getExposures(1L)).thenReturn(List.of());
 
-        ResponseEntity<List<ExposureDto>> ret = exposureController.allExposuresByExperiment(1L, httpServletRequest);
+        ResponseEntity<List<ExposureDto>> ret = exposureController.allExposuresByExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, ret.getStatusCode());
     }
@@ -77,10 +86,10 @@ public class ExposureControllerTest extends BaseTest {
     @Test
     void allExposuresByExperimentSuccessTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
-        ExposureDto exposureDto = ExposureDto.builder().exposureId(1L).title("exposure").build();
+        ExposureDto exposureDto = ExposureDto.builder().exposureId(EXPOSURE_UUID).title("exposure").build();
         when(exposureService.getExposures(1L)).thenReturn(List.of(exposureDto));
 
-        ResponseEntity<List<ExposureDto>> ret = exposureController.allExposuresByExperiment(1L, httpServletRequest);
+        ResponseEntity<List<ExposureDto>> ret = exposureController.allExposuresByExperiment(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(List.of(exposureDto), ret.getBody());
@@ -90,14 +99,14 @@ public class ExposureControllerTest extends BaseTest {
     void getExposureExposureNotMatchingTest() throws Exception {
         doThrow(new ExposureNotMatchingException("not matching")).when(apiJwtService).exposureAllowed(securedInfo, 1L, 1L);
 
-        assertThrows(ExposureNotMatchingException.class, () -> exposureController.getExposure(1L, 1L, httpServletRequest));
+        assertThrows(ExposureNotMatchingException.class, () -> exposureController.getExposure(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest));
     }
 
     @Test
     void getExposureUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ExposureDto> ret = exposureController.getExposure(1L, 1L, httpServletRequest);
+        ResponseEntity<ExposureDto> ret = exposureController.getExposure(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -105,11 +114,11 @@ public class ExposureControllerTest extends BaseTest {
     @Test
     void getExposureSuccessTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
-        ExposureDto exposureDto = ExposureDto.builder().exposureId(1L).title("exposure").build();
+        ExposureDto exposureDto = ExposureDto.builder().exposureId(EXPOSURE_UUID).title("exposure").build();
         when(exposureService.getExposure(1L)).thenReturn(exposure);
         when(exposureService.toDto(exposure)).thenReturn(exposureDto);
 
-        ResponseEntity<ExposureDto> ret = exposureController.getExposure(1L, 1L, httpServletRequest);
+        ResponseEntity<ExposureDto> ret = exposureController.getExposure(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(exposureDto, ret.getBody());
@@ -123,7 +132,7 @@ public class ExposureControllerTest extends BaseTest {
 
         assertThrows(
             ExperimentLockedException.class,
-            () -> exposureController.postExposure(1L, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest)
+            () -> exposureController.postExposure(EXPERIMENT_UUID, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest)
         );
     }
 
@@ -132,7 +141,7 @@ public class ExposureControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         ExposureDto exposureDto = ExposureDto.builder().title("exposure").build();
 
-        ResponseEntity<ExposureDto> ret = exposureController.postExposure(1L, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<ExposureDto> ret = exposureController.postExposure(EXPERIMENT_UUID, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -141,10 +150,10 @@ public class ExposureControllerTest extends BaseTest {
     void postExposureSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         ExposureDto exposureDto = ExposureDto.builder().title("exposure").build();
-        ExposureDto returnedDto = ExposureDto.builder().exposureId(1L).title("exposure").build();
+        ExposureDto returnedDto = ExposureDto.builder().exposureId(EXPOSURE_UUID).title("exposure").build();
         when(exposureService.postExposure(exposureDto, 1L)).thenReturn(returnedDto);
 
-        ResponseEntity<ExposureDto> ret = exposureController.postExposure(1L, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<ExposureDto> ret = exposureController.postExposure(EXPERIMENT_UUID, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(returnedDto, ret.getBody());
@@ -158,19 +167,19 @@ public class ExposureControllerTest extends BaseTest {
 
         assertThrows(
             TitleValidationException.class,
-            () -> exposureController.postExposure(1L, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest)
+            () -> exposureController.postExposure(EXPERIMENT_UUID, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest)
         );
     }
 
     @Test
     void postExposureIdInPostTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        ExposureDto exposureDto = ExposureDto.builder().exposureId(1L).title("exposure").build();
+        ExposureDto exposureDto = ExposureDto.builder().exposureId(EXPOSURE_UUID).title("exposure").build();
         doThrow(new IdInPostException("id in post")).when(exposureService).postExposure(exposureDto, 1L);
 
         assertThrows(
             IdInPostException.class,
-            () -> exposureController.postExposure(1L, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest)
+            () -> exposureController.postExposure(EXPERIMENT_UUID, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest)
         );
     }
 
@@ -182,7 +191,7 @@ public class ExposureControllerTest extends BaseTest {
 
         assertThrows(
             DataServiceException.class,
-            () -> exposureController.postExposure(1L, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest)
+            () -> exposureController.postExposure(EXPERIMENT_UUID, exposureDto, UriComponentsBuilder.newInstance(), httpServletRequest)
         );
     }
 
@@ -190,14 +199,14 @@ public class ExposureControllerTest extends BaseTest {
     void createExposuresExperimentLockedTest() throws Exception {
         doThrow(new ExperimentLockedException("locked")).when(apiJwtService).experimentLocked(1L, true);
 
-        assertThrows(ExperimentLockedException.class, () -> exposureController.createExposures(1L, httpServletRequest));
+        assertThrows(ExperimentLockedException.class, () -> exposureController.createExposures(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
     void createExposuresUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> ret = exposureController.createExposures(1L, httpServletRequest);
+        ResponseEntity<Void> ret = exposureController.createExposures(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -206,7 +215,7 @@ public class ExposureControllerTest extends BaseTest {
     void createExposuresSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
-        ResponseEntity<Void> ret = exposureController.createExposures(1L, httpServletRequest);
+        ResponseEntity<Void> ret = exposureController.createExposures(EXPERIMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
     }
@@ -216,7 +225,7 @@ public class ExposureControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new ExperimentStartedException("already started")).when(exposureService).createExposures(1L);
 
-        assertThrows(ExperimentStartedException.class, () -> exposureController.createExposures(1L, httpServletRequest));
+        assertThrows(ExperimentStartedException.class, () -> exposureController.createExposures(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
@@ -224,7 +233,7 @@ public class ExposureControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new DataServiceException("failed")).when(exposureService).createExposures(1L);
 
-        assertThrows(DataServiceException.class, () -> exposureController.createExposures(1L, httpServletRequest));
+        assertThrows(DataServiceException.class, () -> exposureController.createExposures(EXPERIMENT_UUID, httpServletRequest));
     }
 
     @Test
@@ -232,7 +241,7 @@ public class ExposureControllerTest extends BaseTest {
         doThrow(new ExposureNotMatchingException("not matching")).when(apiJwtService).exposureAllowed(securedInfo, 1L, 1L);
         ExposureDto exposureDto = ExposureDto.builder().title("exposure").build();
 
-        assertThrows(ExposureNotMatchingException.class, () -> exposureController.updateExposure(1L, 1L, exposureDto, httpServletRequest));
+        assertThrows(ExposureNotMatchingException.class, () -> exposureController.updateExposure(EXPERIMENT_UUID, EXPOSURE_UUID, exposureDto, httpServletRequest));
     }
 
     @Test
@@ -240,7 +249,7 @@ public class ExposureControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         ExposureDto exposureDto = ExposureDto.builder().title("exposure").build();
 
-        ResponseEntity<Void> ret = exposureController.updateExposure(1L, 1L, exposureDto, httpServletRequest);
+        ResponseEntity<Void> ret = exposureController.updateExposure(EXPERIMENT_UUID, EXPOSURE_UUID, exposureDto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -250,7 +259,7 @@ public class ExposureControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         ExposureDto exposureDto = ExposureDto.builder().title("exposure").build();
 
-        ResponseEntity<Void> ret = exposureController.updateExposure(1L, 1L, exposureDto, httpServletRequest);
+        ResponseEntity<Void> ret = exposureController.updateExposure(EXPERIMENT_UUID, EXPOSURE_UUID, exposureDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -261,21 +270,21 @@ public class ExposureControllerTest extends BaseTest {
         ExposureDto exposureDto = ExposureDto.builder().title("").build();
         doThrow(new TitleValidationException("invalid title")).when(exposureService).updateExposure(1L, exposureDto);
 
-        assertThrows(TitleValidationException.class, () -> exposureController.updateExposure(1L, 1L, exposureDto, httpServletRequest));
+        assertThrows(TitleValidationException.class, () -> exposureController.updateExposure(EXPERIMENT_UUID, EXPOSURE_UUID, exposureDto, httpServletRequest));
     }
 
     @Test
     void deleteExposureExperimentLockedTest() throws Exception {
         doThrow(new ExperimentLockedException("locked")).when(apiJwtService).experimentLocked(1L, true);
 
-        assertThrows(ExperimentLockedException.class, () -> exposureController.deleteExposure(1L, 1L, httpServletRequest));
+        assertThrows(ExperimentLockedException.class, () -> exposureController.deleteExposure(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest));
     }
 
     @Test
     void deleteExposureUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> ret = exposureController.deleteExposure(1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = exposureController.deleteExposure(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -284,7 +293,7 @@ public class ExposureControllerTest extends BaseTest {
     void deleteExposureSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
-        ResponseEntity<Void> ret = exposureController.deleteExposure(1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = exposureController.deleteExposure(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -294,7 +303,7 @@ public class ExposureControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new EmptyResultDataAccessException(1)).when(exposureService).deleteById(1L);
 
-        ResponseEntity<Void> ret = exposureController.deleteExposure(1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = exposureController.deleteExposure(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }

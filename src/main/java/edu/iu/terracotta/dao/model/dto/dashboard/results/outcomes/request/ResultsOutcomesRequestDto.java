@@ -1,6 +1,7 @@
 package edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.request;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -18,7 +19,7 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ResultsOutcomesRequestDto {
 
-    private List<Long> outcomeIds;
+    private List<UUID> outcomeIds;
     private AlternateIdDto alternateId;
 
 }

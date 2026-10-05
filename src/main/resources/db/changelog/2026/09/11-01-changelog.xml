@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+    http://www.liquibase.org/xml/ns/dbchangelog-ext
+    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+    http://www.liquibase.org/xml/ns/pro
+    http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd"
+>
+  <changeSet author="rlong" id="1789140776-01">
+    <createTable tableName="terr_experiment_copy_candidate">
+      <column autoIncrement="true" name="id" type="BIGINT">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="uuid" type="BINARY(16)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="status" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="resulting_import_uuid" type="BINARY(16)"/>
+      <column name="source_experiment_id" type="BIGINT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="destination_context_id" type="BIGINT">
+        <constraints nullable="false"/>
+      </column>
+      <column name="entity_version" type="INT"/>
+      <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="timestamp"/>
+      <column name="updated_at" type="datetime"/>
+    </createTable>
+  </changeSet>
+  <changeSet author="rlong" id="1789140776-02">
+    <addUniqueConstraint columnNames="source_experiment_id, destination_context_id" constraintName="UQ1789140776" tableName="terr_experiment_copy_candidate"/>
+    <createIndex associatedWith="" indexName="IDX1789140776" tableName="terr_experiment_copy_candidate">
+      <column name="uuid"/>
+      <column name="destination_context_id"/>
+      <column name="status"/>
+    </createIndex>
+  </changeSet>
+  <changeSet author="rlong" id="1789140776-03">
+    <addForeignKeyConstraint baseColumnNames="source_experiment_id" baseTableName="terr_experiment_copy_candidate" constraintName="FK1789140776-1" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="experiment_id" referencedTableName="terr_experiment" validate="true"/>
+    <addForeignKeyConstraint baseColumnNames="destination_context_id" baseTableName="terr_experiment_copy_candidate" constraintName="FK1789140776-2" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="RESTRICT" referencedColumnNames="context_id" referencedTableName="lti_context" validate="true"/>
+  </changeSet>
+</databaseChangeLog>

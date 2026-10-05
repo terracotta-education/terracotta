@@ -90,7 +90,7 @@
                 :to="{
                   name: 'AssignmentCreateAssignment',
                   params: {
-                    exposureId: Number.parseInt(exposure.exposureId, 10)
+                    exposureId: exposure.exposureId
                   }
                 }"
                 elevation="0"
@@ -156,11 +156,11 @@ const exposuresStore = exposuresModule();
 const loaded = ref(false);
 
 const exposureId = computed(() => {
-  return Number.parseInt(route.params.exposureId, 10);
+  return route.params.exposureId;
 });
 
 const experimentId = computed(() => {
-  return Number.parseInt(props.experiment.experimentId, 10);
+  return props.experiment.experimentId;
 });
 
 const assignments = computed(() => {
@@ -324,7 +324,7 @@ onMounted(async () => {
   const selectedExposureExists =
     exposures.value.some(exposure => {
       return (
-        Number.parseInt(exposure.exposureId, 10) ===
+        exposure.exposureId ===
         exposureId.value
       );
     });
@@ -332,7 +332,7 @@ onMounted(async () => {
   const selectedExposureHasAssignments =
     assignments.value.some(assignment => {
       return (
-        Number.parseInt(assignment.exposureId, 10) ===
+        assignment.exposureId ===
         exposureId.value
       );
     });

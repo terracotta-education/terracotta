@@ -24,7 +24,7 @@ public class MessageContainerDto {
     public static final String MY_FILES_URL = "%s/files/folder/users_%s/conversation attachments";
 
     private UUID id;
-    private long exposureId;
+    private UUID exposureId;
     private long ownerId;
     private List<MessageDto> messages;
     private MessageContainerConfigurationDto configuration;

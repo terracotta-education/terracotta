@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -21,13 +22,19 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.Assignment;
@@ -42,6 +49,7 @@ import edu.iu.terracotta.dao.entity.distribute.ExperimentImportError;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
 import edu.iu.terracotta.dao.model.distribute.export.AnswerMcExport;
 import edu.iu.terracotta.dao.model.distribute.export.AssessmentExport;
 import edu.iu.terracotta.dao.model.distribute.export.AssignmentExport;
@@ -63,9 +71,15 @@ import edu.iu.terracotta.dao.model.enums.ExposureTypes;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
 import edu.iu.terracotta.exceptions.ExperimentImportException;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCreatedAssignmentService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyNotificationService;
 import tools.jackson.databind.json.JsonMapper;
 
 class ExperimentImportAsyncServiceImplTest extends BaseTest {
+
+    @Mock private ExperimentCopyNotificationService experimentCopyNotificationService;
+    @Mock private PlatformTransactionManager transactionManager;
+    @Mock private ExperimentCopyCreatedAssignmentService experimentCopyCreatedAssignmentService;
 
     @InjectMocks private ExperimentImportAsyncServiceImpl experimentImportAsyncServiceImpl;
 
@@ -104,7 +118,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
     private ExperimentExport experimentExport() {
         return ExperimentExport.builder()
-            .id(100L)
+            .id("100")
             .title("source experiment title")
             .description("description")
             .exposureType(ExposureTypes.BETWEEN)
@@ -116,24 +130,24 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     private Export fullExport() {
         return Export.builder()
             .experiment(experimentExport())
-            .conditions(List.of(ConditionExport.builder().id(300L).name("condition").defaultCondition(true).distributionPct(50F).experimentId(100L).build()))
-            .exposures(List.of(ExposureExport.builder().id(400L).title("exposure").experimentId(100L).build()))
-            .groups(List.of(GroupExport.builder().id(500L).name("group").experimentId(100L).build()))
-            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id(600L).conditionId(300L).exposureId(400L).groupId(500L).build()))
-            .assignments(List.of(AssignmentExport.builder().id(700L).title("assignment").exposureId(400L).numOfSubmissions(1).build()))
-            .treatments(List.of(TreatmentExport.builder().id(800L).assignmentId(700L).conditionId(300L).build()))
-            .assessments(List.of(AssessmentExport.builder().id(900L).title("assessment").treatmentId(800L).build()))
+            .conditions(List.of(ConditionExport.builder().id("300").name("condition").defaultCondition(true).distributionPct(50F).experimentId("100").build()))
+            .exposures(List.of(ExposureExport.builder().id("400").title("exposure").experimentId("100").build()))
+            .groups(List.of(GroupExport.builder().id("500").name("group").experimentId("100").build()))
+            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id("600").conditionId("300").exposureId("400").groupId("500").build()))
+            .assignments(List.of(AssignmentExport.builder().id("700").title("assignment").exposureId("400").numOfSubmissions(1).build()))
+            .treatments(List.of(TreatmentExport.builder().id("800").assignmentId("700").conditionId("300").build()))
+            .assessments(List.of(AssessmentExport.builder().id("900").title("assessment").treatmentId("800").build()))
             .questions(
                 List.of(
-                    QuestionExport.builder().id(1000L).html("mc question").questionType(QuestionTypes.MC).assessmentId(900L).randomizeAnswers(true).build(),
-                    QuestionExport.builder().id(1001L).html("essay question").questionType(QuestionTypes.ESSAY).assessmentId(900L).build()
+                    QuestionExport.builder().id("1000").html("mc question").questionType(QuestionTypes.MC).assessmentId("900").randomizeAnswers(true).build(),
+                    QuestionExport.builder().id("1001").html("essay question").questionType(QuestionTypes.ESSAY).assessmentId("900").build()
                 )
             )
-            .integrationClients(List.of(IntegrationClientExport.builder().id(1100L).name("integration client").enabled(true).build()))
-            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id(1200L).clientId(1100L).launchUrl("http://launch.url").build()))
-            .integrations(List.of(IntegrationExport.builder().id(1300L).configurationId(1200L).questionId(1000L).build()))
-            .answersMc(List.of(AnswerMcExport.builder().id(1400L).answerOrder(1).correct(true).html("answer").questionId(1000L).build()))
-            .outcomes(List.of(OutcomeExport.builder().id(1500L).title("outcome").maxPoints(10F).exposureId(400L).build()))
+            .integrationClients(List.of(IntegrationClientExport.builder().id("1100").name("integration client").enabled(true).build()))
+            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id("1200").clientId("1100").launchUrl("http://launch.url").build()))
+            .integrations(List.of(IntegrationExport.builder().id("1300").configurationId("1200").questionId("1000").build()))
+            .answersMc(List.of(AnswerMcExport.builder().id("1400").answerOrder(1).correct(true).html("answer").questionId("1000").build()))
+            .outcomes(List.of(OutcomeExport.builder().id("1500").title("outcome").maxPoints(10F).exposureId("400").build()))
             .build();
     }
 
@@ -145,10 +159,11 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessNoImportDirectory() {
         when(fileStorageService.getExperimentImportFile(anyLong())).thenReturn(null);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
-        // prepare() records the specific error, then process() itself records a second, generic one
-        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        // prepare() records the specific error, then process() itself records a second, generic one, and
+        // the failure is then saved (a third) since nothing else persists it
+        verify(experimentImport, times(3)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage("No import .zip file found.");
         verify(experimentImport).addErrorMessage("No import file found.");
         verify(experimentRepository, never()).save(any(Experiment.class));
@@ -156,9 +171,9 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
     @Test
     void testProcessNoJsonFile() {
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
-        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        verify(experimentImport, times(3)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage(String.format("No JSON file [%s] found in imported .zip file.", ExperimentImport.JSON_FILE_NAME));
         verify(experimentImport).addErrorMessage("No import file found.");
         verify(experimentRepository, never()).save(any(Experiment.class));
@@ -168,9 +183,9 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessMalformedJsonFile() throws IOException {
         Files.writeString(importDirectory.resolve(ExperimentImport.JSON_FILE_NAME), "not valid json");
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
-        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        verify(experimentImport, times(3)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage(String.format("Error reading JSON file: [%s]", ExperimentImport.JSON_FILE_NAME));
         verify(experimentImport).addErrorMessage("No import file found.");
         verify(experimentRepository, never()).save(any(Experiment.class));
@@ -182,10 +197,11 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         errors.add(mock(ExperimentImportError.class));
 
         // validation errors already present when process() is invoked; it records the error and
-        // returns immediately, never reaching the final rollback check that throws the exception
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        // returns immediately, never reaching the final rollback check that throws the exception -
+        // the ERROR status is then saved on its own, since nothing in the import did
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
-        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage(org.mockito.ArgumentMatchers.startsWith("Validation errors:"));
         verify(experimentRepository, never()).save(any(Experiment.class));
     }
@@ -206,7 +222,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
             throw new RuntimeException(e);
         }
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
         verify(experimentRepository).save(any(Experiment.class));
         verify(experimentImportRepository).save(experimentImport);
@@ -242,11 +258,13 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
         assertThrows(
             org.springframework.orm.ObjectOptimisticLockingFailureException.class,
-            () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo)
+            () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false)
         );
 
-        verify(experimentImportRepository, never()).findById(anyLong());
-        verify(experimentImportRepository).save(experimentImport);
+        // no retry of the save inside the rolled-back transaction; the failure is recorded afterwards,
+        // separately (that save fails here too, and is logged rather than masking the original error)
+        verify(experimentImportRepository).findById(1L);
+        verify(experimentImportRepository, times(2)).save(experimentImport);
     }
 
     @Test
@@ -254,7 +272,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         writeExportJson(fullExport());
         when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
         verify(conditionRepository).save(any(Condition.class));
         verify(exposureRepository).save(any(Exposure.class));
@@ -277,6 +295,222 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         verify(experimentImportRepository).save(experimentImport);
     }
 
+    // export id/FK fields are plain strings - fullExport() above uses old-style numeric strings
+    // (as a pre-uuid export file would still contain), this proves a new-style export using real
+    // uuid strings imports and links entities identically, since the cross-referencing is
+    // format-agnostic (a fresh HashMap keyed by whatever string the file happens to use)
+    @Test
+    void testProcessSuccessFullExportWithUuidIds() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        String experimentId = UUID.randomUUID().toString();
+        String conditionId = UUID.randomUUID().toString();
+        String exposureId = UUID.randomUUID().toString();
+        String groupId = UUID.randomUUID().toString();
+        String exposureGroupConditionId = UUID.randomUUID().toString();
+        String assignmentId = UUID.randomUUID().toString();
+        String treatmentId = UUID.randomUUID().toString();
+        String assessmentId = UUID.randomUUID().toString();
+        String mcQuestionId = UUID.randomUUID().toString();
+        String essayQuestionId = UUID.randomUUID().toString();
+        String integrationClientId = UUID.randomUUID().toString();
+        String integrationConfigurationId = UUID.randomUUID().toString();
+        String integrationId = UUID.randomUUID().toString();
+        String answerMcId = UUID.randomUUID().toString();
+        String outcomeId = UUID.randomUUID().toString();
+
+        Export export = Export.builder()
+            .experiment(ExperimentExport.builder().id(experimentId).title("source experiment title").description("description").exposureType(ExposureTypes.BETWEEN).participationType(ParticipationTypes.AUTO).distributionType(DistributionTypes.EVEN).build())
+            .conditions(List.of(ConditionExport.builder().id(conditionId).name("condition").defaultCondition(true).distributionPct(50F).experimentId(experimentId).build()))
+            .exposures(List.of(ExposureExport.builder().id(exposureId).title("exposure").experimentId(experimentId).build()))
+            .groups(List.of(GroupExport.builder().id(groupId).name("group").experimentId(experimentId).build()))
+            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id(exposureGroupConditionId).conditionId(conditionId).exposureId(exposureId).groupId(groupId).build()))
+            .assignments(List.of(AssignmentExport.builder().id(assignmentId).title("assignment").exposureId(exposureId).numOfSubmissions(1).build()))
+            .treatments(List.of(TreatmentExport.builder().id(treatmentId).assignmentId(assignmentId).conditionId(conditionId).build()))
+            .assessments(List.of(AssessmentExport.builder().id(assessmentId).title("assessment").treatmentId(treatmentId).build()))
+            .questions(
+                List.of(
+                    QuestionExport.builder().id(mcQuestionId).html("mc question").questionType(QuestionTypes.MC).assessmentId(assessmentId).randomizeAnswers(true).build(),
+                    QuestionExport.builder().id(essayQuestionId).html("essay question").questionType(QuestionTypes.ESSAY).assessmentId(assessmentId).build()
+                )
+            )
+            .integrationClients(List.of(IntegrationClientExport.builder().id(integrationClientId).name("integration client").enabled(true).build()))
+            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id(integrationConfigurationId).clientId(integrationClientId).launchUrl("http://launch.url").build()))
+            .integrations(List.of(IntegrationExport.builder().id(integrationId).configurationId(integrationConfigurationId).questionId(mcQuestionId).build()))
+            .answersMc(List.of(AnswerMcExport.builder().id(answerMcId).answerOrder(1).correct(true).html("answer").questionId(mcQuestionId).build()))
+            .outcomes(List.of(OutcomeExport.builder().id(outcomeId).title("outcome").maxPoints(10F).exposureId(exposureId).build()))
+            .build();
+
+        writeExportJson(export);
+        when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
+
+        verify(conditionRepository).save(any(Condition.class));
+        verify(exposureRepository).save(any(Exposure.class));
+        verify(groupRepository).save(any(Group.class));
+        verify(exposureGroupConditionRepository).save(any(ExposureGroupCondition.class));
+        verify(assignmentRepository).save(any(Assignment.class));
+        verify(treatmentRepository, times(2)).save(any(edu.iu.terracotta.dao.entity.Treatment.class));
+        verify(assessmentRepository).save(any(edu.iu.terracotta.dao.entity.Assessment.class));
+        verify(integrationRepository).save(any(edu.iu.terracotta.dao.entity.integrations.Integration.class));
+        verify(answerMcRepository).save(any(edu.iu.terracotta.dao.entity.AnswerMc.class));
+        verify(outcomeRepository).save(any(edu.iu.terracotta.dao.entity.Outcome.class));
+        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
+        verify(experimentImport, never()).addErrorMessage(anyString());
+    }
+
+    // when a source assignment's old ID is in the repoint map, the already-existing (copied) LMS
+    // assignment is re-pointed rather than a brand-new one created - see
+    // ExperimentCopyCandidateServiceImpl for how that map gets built
+    @Test
+    void testProcessRepointsMappedAssignmentInsteadOfCreating() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyString(), eq(lmsAssignment))).thenReturn(assignment);
+
+        // 700L is the old (source) assignment ID from fullExport()'s AssignmentExport
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.ofAssignments(Map.of(700L, lmsAssignment)), false, false);
+
+        verify(assignmentService).repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyString(), eq(lmsAssignment));
+        verify(assignmentService, never()).createAssignmentInLms(any(), any(), anyLong(), anyString());
+        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
+    }
+
+    // a repointed assignment is the instructor's own pre-existing LMS content - on rollback it
+    // must be restored to its original URL, never deleted, unlike a newly-created assignment
+    @Test
+    void testProcessRepointedAssignmentRestoredNotDeletedOnRollback() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException, AssignmentNotEditedException, ApiException {
+        Export export = fullExport();
+        // a second assignment (not in the repoint map) that will fail to create, forcing rollback
+        export.setAssignments(
+            List.of(
+                AssignmentExport.builder().id("700").title("assignment").exposureId("400").numOfSubmissions(1).build(),
+                AssignmentExport.builder().id("701").title("assignment 2").exposureId("400").numOfSubmissions(1).build()
+            )
+        );
+        writeExportJson(export);
+
+        when(lmsAssignment.getLmsExternalToolFields()).thenReturn(
+            edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields.builder().url("https://original.example.com/lti3?experiment=1&assignment=700").build()
+        );
+        when(assignmentService.repointAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyString(), eq(lmsAssignment))).thenReturn(assignment);
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
+            .thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.ofAssignments(Map.of(700L, lmsAssignment)), false, false));
+
+        verify(assignmentService, never()).deleteAssignmentInLms(any(), anyString(), any());
+        verify(assignmentService).restoreRepointedAssignmentUrlInLms(eq(ltiUserEntity), eq(lmsAssignment), eq("https://original.example.com/lti3?experiment=1&assignment=700"), anyString());
+    }
+
+    // the import's own transaction rolls back on failure - the ERROR status must be saved
+    // separately afterwards, or the import would look like it's still processing forever
+    @Test
+    void testProcessLmsFailureRollsBackThenRecordsErrorStatus() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
+            .thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false));
+
+        verify(transactionManager).rollback(any());
+        verify(experimentImport, atLeastOnce()).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        verify(experimentImportRepository).findById(experimentImport.getId());
+        verify(experimentImportRepository).save(experimentImport);
+    }
+
+    @Test
+    void testProcessSuccessDoesNotRecordAnError() throws IOException {
+        writeExportJson(fullExport());
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
+
+        verify(transactionManager, never()).rollback(any());
+        verify(experimentImportRepository, never()).findById(anyLong());
+    }
+
+    // recovery gave up on this copy recreation's import and started another - running this one
+    // as well would recreate the experiment twice
+    @Test
+    void testProcessSkipsACopyImportRecoveryAbandoned() throws IOException {
+        writeExportJson(fullExport());
+        ExperimentImport current = mock(ExperimentImport.class);
+        when(current.getStatus()).thenReturn(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR_ACKNOWLEDGED);
+        when(experimentImportRepository.findById(1L)).thenReturn(Optional.of(current));
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.builder().copyCandidateId(5L).build(), true, true);
+
+        verify(experimentRepository, never()).save(any(Experiment.class));
+        verify(transactionManager, never()).getTransaction(any());
+    }
+
+    @Test
+    void testProcessRecordsCreatedLmsAssignmentsForACopyAndClearsThemOnSuccess() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        ExperimentImport current = mock(ExperimentImport.class);
+        when(current.getStatus()).thenReturn(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.PROCESSING);
+        when(experimentImportRepository.findById(1L)).thenReturn(Optional.of(current));
+        when(assignment.getLmsAssignmentId()).thenReturn("444");
+        when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.builder().copyCandidateId(5L).build(), true, true);
+
+        verify(experimentCopyCreatedAssignmentService).recordCreated(5L, "444");
+        verify(experimentCopyCreatedAssignmentService).clear(5L);
+    }
+
+    @Test
+    void testProcessKeepsCreatedLmsAssignmentRecordsWhenACopyImportFails() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(experimentImport.getStatus()).thenReturn(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.PROCESSING);
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString())).thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.builder().copyCandidateId(5L).build(), false, true));
+
+        verify(experimentCopyCreatedAssignmentService, never()).clear(anyLong());
+    }
+
+    @Test
+    void testProcessManualImportRecordsNothing() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.createAssignmentInLms(eq(ltiUserEntity), any(Assignment.class), anyLong(), anyString())).thenReturn(assignment);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
+
+        verify(experimentCopyCreatedAssignmentService, never()).recordCreated(anyLong(), any());
+        verify(experimentCopyCreatedAssignmentService, never()).clear(anyLong());
+    }
+
+    // a background course-copy recreation has nobody watching - its owner gets an email instead
+    @Test
+    void testProcessEmailsOwnerWhenLmsAssignmentFailsAndNotificationRequested() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
+            .thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), true, false));
+
+        verify(experimentCopyNotificationService).notifyLmsFailure(ltiUserEntity);
+    }
+
+    @Test
+    void testProcessDoesNotEmailOwnerWhenLmsAssignmentFailsWithoutNotificationRequested() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString()))
+            .thenThrow(new AssignmentNotCreatedException("boom"));
+
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false));
+
+        verify(experimentCopyNotificationService, never()).notifyLmsFailure(any());
+    }
+
+    @Test
+    void testProcessDoesNotEmailOwnerWhenLmsAssignmentsSucceed() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        writeExportJson(fullExport());
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), true, false);
+
+        verify(experimentCopyNotificationService, never()).notifyLmsFailure(any());
+    }
+
     @Test
     void testProcessIntegrationClientReusesExistingEnabledClient() throws IOException {
         when(integrationClientRepository.findAll()).thenReturn(List.of(integrationClient));
@@ -292,16 +526,46 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         export.setAnswersMc(Collections.emptyList());
         writeExportJson(export);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
         verify(integrationClientRepository, never()).save(any(IntegrationClient.class));
+    }
+
+    // a copied course already has its consent assignment - point it at the recreated experiment
+    // rather than creating a second, unpublished one
+    @Test
+    void testProcessRepointsCopiedConsentAssignmentInsteadOfCreating() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        Export export = fullExport();
+        export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
+        writeExportJson(export);
+
+        File consentDir = importDirectory.resolve("consent").toFile();
+        consentDir.mkdirs();
+        Files.writeString(consentDir.toPath().resolve(ExperimentImport.CONSENT_FILE_NAME), "pdf-bytes");
+
+        when(fileStorageService.saveConsentFile(any(), anyString())).thenReturn(
+            edu.iu.terracotta.dao.entity.FileSubmissionLocal.builder()
+                .encryptionMethod("AES")
+                .encryptionPhrase("phrase")
+                .filePath("/tmp/consent.pdf")
+                .build()
+        );
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString())).thenReturn(assignment);
+        LmsAssignment copiedConsentAssignment = mock(LmsAssignment.class);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.builder().consentAssignment(copiedConsentAssignment).build(), false, true);
+
+        verify(fileStorageService).repointConsentFileInLms(any(ConsentDocument.class), any(Experiment.class), eq(ltiUserEntity), eq(copiedConsentAssignment), anyString());
+        verify(fileStorageService, never()).sendConsentFileToLms(any(), any(), any());
+        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
     }
 
     @Test
     void testProcessConsentParticipationTypeSuccess() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
         Export export = fullExport();
         export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-        export.setConsentDocument(ConsentDocumentExport.builder().id(200L).title("consent title").html("<p>consent</p>").experimentId(100L).build());
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
         writeExportJson(export);
 
         File consentDir = importDirectory.resolve("consent").toFile();
@@ -317,7 +581,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         );
         when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString())).thenReturn(assignment);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
         verify(consentDocumentRepository).save(any(ConsentDocument.class));
         verify(fileStorageService).sendConsentFileToLms(any(ConsentDocument.class), any(Experiment.class), eq(ltiUserEntity));
@@ -328,14 +592,15 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessConsentParticipationTypeMissingFile() throws IOException {
         Export export = fullExport();
         export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-        export.setConsentDocument(ConsentDocumentExport.builder().id(200L).title("consent title").html("<p>consent</p>").experimentId(100L).build());
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
         writeExportJson(export);
 
         // the missing consent file only aborts the consentDocument() step; process() continues
         // importing every other component and only rolls back once it reaches the final error check
-        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo));
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false));
 
-        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
+        // once when the error happens, once more when it's saved after the rollback
+        verify(experimentImport, times(2)).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.ERROR);
         verify(experimentImport).addErrorMessage(String.format("No consent PDF file [%s] found for experiment with consent participation type.", ExperimentImport.CONSENT_FILE_NAME));
         verify(consentDocumentRepository, never()).save(any(ConsentDocument.class));
         verify(conditionRepository).save(any(Condition.class));
@@ -345,7 +610,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessConsentFileReadError() throws IOException {
         Export export = fullExport();
         export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-        export.setConsentDocument(ConsentDocumentExport.builder().id(200L).title("consent title").html("<p>consent</p>").experimentId(100L).build());
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
         writeExportJson(export);
 
         File consentDir = importDirectory.resolve("consent").toFile();
@@ -354,7 +619,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
         when(fileStorageService.saveConsentFile(any(), anyString())).thenThrow(new RuntimeException("disk full"));
 
-        assertThrows(RuntimeException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo));
+        assertThrows(RuntimeException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false));
     }
 
     @Test
@@ -371,9 +636,36 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         String collidingTitle = String.format("%s %s", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle());
         when(experimentRepository.existsByTitle(collidingTitle)).thenReturn(true);
 
-        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo);
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
 
         verify(experimentImport).setImportedTitle(String.format("%s %s (1)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle()));
+    }
+
+    // a copied course's recreated experiment keeps its own title - the "(Imported)" label is only
+    // for experiments an instructor imports themselves from an export file
+    @Test
+    void testProcessKeepSourceTitleUsesTheSourceTitleUnlabelled() throws IOException {
+        Export export = fullExport();
+        writeExportJson(export);
+        when(experimentImport.getContext()).thenReturn(ltiContextEntity);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, true);
+
+        verify(experimentImport).setImportedTitle(export.getExperiment().getTitle());
+        // the source experiment in the original course always has this same title
+        verify(experimentRepository, never()).existsByTitle(anyString());
+    }
+
+    @Test
+    void testProcessKeepSourceTitleIsMadeUniqueWithinTheNewCourse() throws IOException {
+        Export export = fullExport();
+        writeExportJson(export);
+        when(experimentImport.getContext()).thenReturn(ltiContextEntity);
+        when(experimentRepository.existsByTitleAndLtiContextEntity_ContextId(export.getExperiment().getTitle(), 1L)).thenReturn(true);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, true);
+
+        verify(experimentImport).setImportedTitle(String.format("%s (1)", export.getExperiment().getTitle()));
     }
 
     @Test
@@ -381,8 +673,8 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         Export export = fullExport();
         export.setAssignments(
             List.of(
-                AssignmentExport.builder().id(700L).title("assignment one").exposureId(400L).numOfSubmissions(1).build(),
-                AssignmentExport.builder().id(701L).title("assignment two").exposureId(400L).numOfSubmissions(1).build()
+                AssignmentExport.builder().id("700").title("assignment one").exposureId("400").numOfSubmissions(1).build(),
+                AssignmentExport.builder().id("701").title("assignment two").exposureId("400").numOfSubmissions(1).build()
             )
         );
         export.setTreatments(Collections.emptyList());
@@ -396,12 +688,14 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
             .thenReturn(assignment)
             .thenThrow(new AssignmentNotCreatedException("failed to create assignment"));
 
-        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo));
+        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false));
 
         assertEquals(String.format("Errors occurred processing experiment import with ID: [%s]. Rolling back transactions.", experimentImport.getId()), exception.getMessage());
         verify(experimentImport).addErrorMessage("Assignment creation in LMS failed");
         verify(assignmentService).deleteAssignmentInLms(eq(assignment), anyString(), eq(ltiUserEntity));
-        verify(experimentImportRepository, never()).save(experimentImport);
+        // never saved as COMPLETE inside the rolled-back transaction - only as ERROR, afterwards
+        verify(experimentImport, never()).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
+        verify(experimentImportRepository).save(experimentImport);
     }
 
     @Test
@@ -409,8 +703,8 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         Export export = fullExport();
         export.setAssignments(
             List.of(
-                AssignmentExport.builder().id(700L).title("assignment one").exposureId(400L).numOfSubmissions(1).build(),
-                AssignmentExport.builder().id(701L).title("assignment two").exposureId(400L).numOfSubmissions(1).build()
+                AssignmentExport.builder().id("700").title("assignment one").exposureId("400").numOfSubmissions(1).build(),
+                AssignmentExport.builder().id("701").title("assignment two").exposureId("400").numOfSubmissions(1).build()
             )
         );
         export.setTreatments(Collections.emptyList());
@@ -425,7 +719,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
             .thenThrow(new TerracottaConnectorException("connector failed"));
         doThrow(new AssignmentNotEditedException("could not delete")).when(assignmentService).deleteAssignmentInLms(any(Assignment.class), anyString(), any());
 
-        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo));
+        assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false));
 
         verify(assignmentService).deleteAssignmentInLms(eq(assignment), anyString(), eq(ltiUserEntity));
     }
@@ -434,7 +728,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
     void testProcessConsentAssignmentCreationInLmsFails() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
         Export export = fullExport();
         export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-        export.setConsentDocument(ConsentDocumentExport.builder().id(200L).title("consent title").html("<p>consent</p>").experimentId(100L).build());
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").title("consent title").html("<p>consent</p>").experimentId("100").build());
         writeExportJson(export);
 
         File consentDir = importDirectory.resolve("consent").toFile();
@@ -451,7 +745,7 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
         when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString())).thenReturn(assignment);
         doThrow(new IOException("io error")).when(fileStorageService).sendConsentFileToLms(any(ConsentDocument.class), any(Experiment.class), any());
 
-        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo));
+        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false));
 
         assertEquals(String.format("Errors occurred processing experiment import with ID: [%s]. Rolling back transactions.", experimentImport.getId()), exception.getMessage());
         verify(experimentImport).addErrorMessage("Consent assignment creation in LMS failed");
