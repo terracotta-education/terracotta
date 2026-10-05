@@ -8,6 +8,7 @@ import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
 import edu.iu.terracotta.dao.entity.integrations.AnswerIntegrationSubmission;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.dao.model.dto.FileResponseDto;
 import edu.iu.terracotta.dao.model.enums.SubmissionType;
@@ -44,8 +45,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -107,7 +110,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        answerSubmissionDto.setQuestionSubmissionId(questionSubmissionId);
+        answerSubmissionDto.setQuestionSubmissionId(questionSubmissionRepository.findUuidByQuestionSubmissionId(questionSubmissionId).orElse(null));
 
         SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, getAnswerType(questionSubmissionId));
 
@@ -170,14 +173,25 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
                 throw new IdMissingException(TextConstants.ID_MISSING);
             }
 
-            if (existsByQuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId())) {
+            Long questionSubmissionId = resolveQuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId());
+
+            if (existsByQuestionSubmissionId(questionSubmissionId)) {
                 throw new ExceedingLimitException("Error 145: Multiple choice and essay questions can only have one answer submission.");
             }
 
-            returnedDtoList.add(postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId()));
+            returnedDtoList.add(postAnswerSubmission(answerSubmissionDto, questionSubmissionId));
         }
 
         return returnedDtoList;
+    }
+
+    // AnswerSubmissionDto.questionSubmissionId is a uuid (FK to QuestionSubmission), but the derived-query
+    // repository methods below are all still keyed on the numeric id, so resolve it here once per dto.
+    private Long resolveQuestionSubmissionId(UUID questionSubmissionUuid) {
+        return Optional.ofNullable(questionSubmissionUuid)
+            .map(questionSubmissionRepository::findByUuid)
+            .map(QuestionSubmission::getQuestionSubmissionId)
+            .orElse(null);
     }
 
     private boolean existsByQuestionSubmissionId(Long questionSubmissionId) throws TypeNotSupportedException {
@@ -251,6 +265,36 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         }
     }
 
+    @Override
+    public long resolveAnswerSubmissionId(UUID uuid, String answerType) throws AnswerSubmissionNotMatchingException {
+        SubmissionType submissionType = EnumUtils.getEnum(SubmissionType.class, answerType);
+
+        if (submissionType == null) {
+            throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
+        }
+
+        switch (submissionType) {
+            case MC:
+                return Optional.ofNullable(answerMcSubmissionRepository.findByUuid(uuid))
+                    .map(AnswerMcSubmission::getAnswerMcSubId)
+                    .orElseThrow(() -> new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING));
+            case ESSAY:
+                return Optional.ofNullable(answerEssaySubmissionRepository.findByUuid(uuid))
+                    .map(AnswerEssaySubmission::getAnswerEssaySubmissionId)
+                    .orElseThrow(() -> new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING));
+            case FILE:
+                return Optional.ofNullable(answerFileSubmissionRepository.findByUuid(uuid))
+                    .map(AnswerFileSubmission::getAnswerFileSubmissionId)
+                    .orElseThrow(() -> new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING));
+            case INTEGRATION:
+                return Optional.ofNullable(answerIntegrationSubmissionRepository.findByUuid(uuid))
+                    .map(AnswerIntegrationSubmission::getId)
+                    .orElseThrow(() -> new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING));
+            default:
+                throw new AnswerSubmissionNotMatchingException(TextConstants.ANSWER_SUBMISSION_NOT_MATCHING);
+        }
+    }
+
     /*
     MULTIPLE CHOICE SUBMISSION METHODS
      */
@@ -269,11 +313,11 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public AnswerSubmissionDto toDtoMC(AnswerMcSubmission answer) {
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
-        answerSubmissionDto.setAnswerSubmissionId(answer.getAnswerMcSubId());
-        answerSubmissionDto.setQuestionSubmissionId(answer.getQuestionSubmission().getQuestionSubmissionId());
+        answerSubmissionDto.setAnswerSubmissionId(answer.getUuid());
+        answerSubmissionDto.setQuestionSubmissionId(answer.getQuestionSubmission().getUuid());
 
         if (answer.getAnswerMc() != null) {
-            answerSubmissionDto.setAnswerId(answer.getAnswerMc().getAnswerMcId());
+            answerSubmissionDto.setAnswerId(answer.getAnswerMc().getUuid());
         }
 
         return answerSubmissionDto;
@@ -282,10 +326,12 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public AnswerMcSubmission fromDtoMC(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException {
         AnswerMcSubmission answerMcSubmission = new AnswerMcSubmission();
-        answerMcSubmission.setAnswerMcSubId(answerSubmissionDto.getAnswerSubmissionId());
+        // answerSubmissionDto.getAnswerSubmissionId() is intentionally not assigned here: the numeric
+        // id is generated at insert time, and (post-uuid-migration) the incoming dto's answerSubmissionId
+        // is a client-supplied uuid that would collide with the entity's own generated uuid.
 
         if (answerSubmissionDto.getAnswerId() != null) {
-            Optional<AnswerMc> answerMc = answerMcRepository.findById(answerSubmissionDto.getAnswerId());
+            Optional<AnswerMc> answerMc = Optional.ofNullable(answerMcRepository.findByUuid(answerSubmissionDto.getAnswerId()));
 
             if (answerMc.isEmpty()) {
                 throw new DataServiceException("The MC answer for the answer submission does not exist.");
@@ -294,7 +340,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
             answerMcSubmission.setAnswerMc(answerMc.get());
         }
 
-        Optional<QuestionSubmission> questionSubmission = questionSubmissionRepository.findById(answerSubmissionDto.getQuestionSubmissionId());
+        Optional<QuestionSubmission> questionSubmission = Optional.ofNullable(questionSubmissionRepository.findByUuid(answerSubmissionDto.getQuestionSubmissionId()));
 
         if (questionSubmission.isEmpty()) {
             throw new DataServiceException("The question submission for the answer submission does not exist.");
@@ -312,7 +358,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public void updateAnswerMcSubmission(Long id, AnswerSubmissionDto answerSubmissionDto) throws AnswerNotMatchingException {
         AnswerMcSubmission answerMcSubmission = getAnswerMcSubmission(id);
-        Optional<AnswerMc> answerMc = answerMcRepository.findById(answerSubmissionDto.getAnswerId());
+        Optional<AnswerMc> answerMc = Optional.ofNullable(answerMcRepository.findByUuid(answerSubmissionDto.getAnswerId()));
 
         if (answerMc.isEmpty()) {
             throw new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING);
@@ -341,8 +387,8 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public AnswerSubmissionDto toDtoEssay(AnswerEssaySubmission answer) {
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
-        answerSubmissionDto.setAnswerSubmissionId(answer.getAnswerEssaySubmissionId());
-        answerSubmissionDto.setQuestionSubmissionId(answer.getQuestionSubmission().getQuestionSubmissionId());
+        answerSubmissionDto.setAnswerSubmissionId(answer.getUuid());
+        answerSubmissionDto.setQuestionSubmissionId(answer.getQuestionSubmission().getUuid());
         answerSubmissionDto.setResponse(answer.getResponse());
 
         return answerSubmissionDto;
@@ -351,9 +397,11 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public AnswerEssaySubmission fromDtoEssay(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException{
         AnswerEssaySubmission answerEssaySubmission = new AnswerEssaySubmission();
-        answerEssaySubmission.setAnswerEssaySubmissionId(answerSubmissionDto.getAnswerSubmissionId());
+        // answerSubmissionDto.getAnswerSubmissionId() is intentionally not assigned here: the numeric
+        // id is generated at insert time, and (post-uuid-migration) the incoming dto's answerSubmissionId
+        // is a client-supplied uuid that would collide with the entity's own generated uuid.
         answerEssaySubmission.setResponse(answerSubmissionDto.getResponse());
-        Optional<QuestionSubmission> questionSubmission = questionSubmissionRepository.findById(answerSubmissionDto.getQuestionSubmissionId());
+        Optional<QuestionSubmission> questionSubmission = Optional.ofNullable(questionSubmissionRepository.findByUuid(answerSubmissionDto.getQuestionSubmissionId()));
 
         if (questionSubmission.isEmpty()) {
             throw new DataServiceException("Question submission for answer submission does not exist.");
@@ -383,7 +431,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long submissionId, Long questionSubmissionId, Long answerSubmissionId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId, UUID questionSubmissionId, UUID answerSubmissionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path(
                 "/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/submissions/{submissionId}/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}")
@@ -399,8 +447,8 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     private AnswerSubmissionDto toDtoFile(AnswerFileSubmission answerFileSubmission, boolean includeFileContent) throws IOException {
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
-        answerSubmissionDto.setAnswerSubmissionId(answerFileSubmission.getAnswerFileSubmissionId());
-        answerSubmissionDto.setQuestionSubmissionId(answerFileSubmission.getQuestionSubmission().getQuestionSubmissionId());
+        answerSubmissionDto.setAnswerSubmissionId(answerFileSubmission.getUuid());
+        answerSubmissionDto.setQuestionSubmissionId(answerFileSubmission.getQuestionSubmission().getUuid());
         answerSubmissionDto.setMimeType(answerFileSubmission.getMimeType());
         answerSubmissionDto.setFileName(answerFileSubmission.getFileName());
 
@@ -416,14 +464,16 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
     @Override
     public AnswerFileSubmission fromDtoFile(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException {
         AnswerFileSubmission answerFileSubmission = new AnswerFileSubmission();
-        answerFileSubmission.setAnswerFileSubmissionId(answerSubmissionDto.getAnswerSubmissionId());
+        // answerSubmissionDto.getAnswerSubmissionId() is intentionally not assigned here: the numeric
+        // id is generated at insert time, and (post-uuid-migration) the incoming dto's answerSubmissionId
+        // is a client-supplied uuid that would collide with the entity's own generated uuid.
         answerFileSubmission.setFileContent(StringUtils.getBytes(answerSubmissionDto.getFileContent(), StandardCharsets.UTF_8));
         answerFileSubmission.setFileName(answerSubmissionDto.getFileName());
         answerFileSubmission.setMimeType(answerSubmissionDto.getMimeType());
         answerFileSubmission.setFileUri(answerSubmissionDto.getFileUri());
         answerFileSubmission.setEncryptionMethod(answerSubmissionDto.getEncryptionMethod());
         answerFileSubmission.setEncryptionPhrase(answerSubmissionDto.getEncryptionPhrase());
-        Optional<QuestionSubmission> questionSubmission = questionSubmissionRepository.findById(answerSubmissionDto.getQuestionSubmissionId());
+        Optional<QuestionSubmission> questionSubmission = Optional.ofNullable(questionSubmissionRepository.findByUuid(answerSubmissionDto.getQuestionSubmissionId()));
 
         if (questionSubmission.isEmpty()) {
             throw new DataServiceException("Question submission for answer submission does not exist.");
@@ -480,11 +530,16 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
             answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.encryptionMethod());
         }
 
-        return postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId());
+        return postAnswerSubmission(answerSubmissionDto, resolveQuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId()));
     }
 
     public AnswerSubmissionDto handleFileAnswerSubmissionUpdate(AnswerSubmissionDto answerSubmissionDto, MultipartFile file) throws IdInPostException, DataServiceException, TypeNotSupportedException, IOException {
-        List<AnswerFileSubmission> answerFileSubmissions = answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId());
+        // answerSubmissionDto.getQuestionSubmissionId() is a uuid; resolve the entity first since the
+        // derived query below is still keyed on the numeric id (no _Uuid variant is added for it)
+        QuestionSubmission questionSubmissionForFileLookup = questionSubmissionRepository.findByUuid(answerSubmissionDto.getQuestionSubmissionId());
+        List<AnswerFileSubmission> answerFileSubmissions = questionSubmissionForFileLookup != null
+            ? answerFileSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(questionSubmissionForFileLookup.getQuestionSubmissionId())
+            : Collections.emptyList();
 
         CollectionUtils.emptyIfNull(answerFileSubmissions).stream()
             .forEach(
@@ -519,7 +574,7 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
             answerSubmissionDto.setEncryptionMethod(fileSubmissionLocal.encryptionMethod());
         }
 
-        return postAnswerSubmission(answerSubmissionDto, answerSubmissionDto.getQuestionSubmissionId());
+        return postAnswerSubmission(answerSubmissionDto, resolveQuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId()));
     }
 
     private File getFile(MultipartFile multipartFile, String fileName) {
@@ -536,15 +591,15 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
     private AnswerSubmissionDto toDtoIntegration(AnswerIntegrationSubmission answerIntegrationSubmission) throws IOException {
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
-        answerSubmissionDto.setAnswerSubmissionId(answerIntegrationSubmission.getId());
-        answerSubmissionDto.setQuestionSubmissionId(answerIntegrationSubmission.getQuestionSubmission().getQuestionSubmissionId());
+        answerSubmissionDto.setAnswerSubmissionId(answerIntegrationSubmission.getUuid());
+        answerSubmissionDto.setQuestionSubmissionId(answerIntegrationSubmission.getQuestionSubmission().getUuid());
 
         return answerSubmissionDto;
     }
 
     @Override
     public AnswerIntegrationSubmission fromDtoIntegration(AnswerSubmissionDto answerSubmissionDto) throws DataServiceException {
-        QuestionSubmission questionSubmission = questionSubmissionRepository.findById(answerSubmissionDto.getQuestionSubmissionId())
+        QuestionSubmission questionSubmission = Optional.ofNullable(questionSubmissionRepository.findByUuid(answerSubmissionDto.getQuestionSubmissionId()))
             .orElseThrow(() -> new DataServiceException("Question submission for answer submission does not exist."));
 
         return AnswerIntegrationSubmission.builder()

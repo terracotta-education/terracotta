@@ -14,7 +14,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,7 +29,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(name = "terr_answer_mc_submission_option")
-public class AnswerMcSubmissionOption extends BaseEntity {
+public class AnswerMcSubmissionOption extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

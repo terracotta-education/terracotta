@@ -138,7 +138,7 @@ export const assignment = defineStore("assignment", {
 
         if (response?.status === 200) {
           this.assignments = this.assignments.filter(
-            a => parseInt(a.assignmentId) !== parseInt(assignmentId)
+            a => a.assignmentId !== assignmentId
           );
 
           return {
@@ -229,7 +229,7 @@ export const assignment = defineStore("assignment", {
 
         if (response && !response.error) {
           this.assignments = this.assignments.filter(
-            a => parseInt(a.assignmentId) !== parseInt(assignmentId)
+            a => a.assignmentId !== assignmentId
           );
 
           if (response?.assignmentId) {
@@ -290,9 +290,7 @@ export const assignment = defineStore("assignment", {
 
       assignments.filter(Boolean).forEach(assignment => {
         const index = this.assignments.findIndex(
-          item =>
-            parseInt(item.assignmentId) ===
-            parseInt(assignment.assignmentId)
+          item => item.assignmentId === assignment.assignmentId
         );
 
         if (index >= 0) {

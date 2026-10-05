@@ -11,7 +11,7 @@ import jakarta.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +27,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Table(name = "terr_admin_user")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AdminUser extends BaseEntity  {
+public class AdminUser extends UuidAwareEntity  {
 
     @Id
     @Column(nullable = false)

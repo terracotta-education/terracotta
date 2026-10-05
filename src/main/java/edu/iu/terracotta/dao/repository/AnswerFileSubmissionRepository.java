@@ -5,10 +5,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 
+import java.util.UUID;
 import java.util.List;
 
 @SuppressWarnings({"squid:S100", "PMD.MethodNamingConventions"})
 public interface AnswerFileSubmissionRepository extends JpaRepository<AnswerFileSubmission, Long> {
+
+    AnswerFileSubmission findByUuid(UUID uuid);
 
     List<AnswerFileSubmission> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
     List<AnswerFileSubmission> findByQuestionSubmission_QuestionSubmissionIdIn(List<Long> questionSubmissionIds);

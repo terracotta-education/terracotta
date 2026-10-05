@@ -5,6 +5,8 @@ import { experiment as experimentStore } from "@/store/experiment.module";
 import { consent as consentStore } from "@/store/consent.module";
 import { configuration as configurationStore } from "@/store/configuration.module";
 import { pinia } from "@/pinia";
+import { watchForLmsReauthorization } from "@/helpers/lms-reauthorization";
+import Swal from "sweetalert2";
 
 import App from "./App.vue";
 import router from "./router";
@@ -145,6 +147,24 @@ const startVue = () => {
   configureAppProps();
   cleanURL();
   registerRouteGuards();
+  watchForLmsReauthorization({
+    isInstructor: () => api(pinia).userInfo === "Instructor",
+    notify: async () => {
+      // the configuration loads alongside the app's first requests, so it may not be here yet
+      const configurations = configurationStore(pinia);
+
+      if (!configurations.hasConfigurations) {
+        await configurations.retrieve();
+      }
+
+      const lmsTitle = configurations.get?.lmsTitle || "LMS";
+
+      Swal.fire({
+        icon: "warning",
+        text: `Terracotta has lost its connection to your ${lmsTitle} account. Relaunch Terracotta from your course to reconnect it.`
+      });
+    }
+  });
 
   createApp(App, appProps)
     .use(pinia)
@@ -152,10 +172,10 @@ const startVue = () => {
     .use(vuetify)
     .mount("#app");
 
+  // a pending LMS authorization is routed to oauth2-redirect by the router's own guard, before
+  // anything else mounts - see requireLmsAuthorization
   router.isReady().then(() => {
-    if (lmsApiOAuthURL) {
-      router.replace({ name: "oauth2-redirect" });
-    } else if (Object.keys(router.currentRoute.value.query).length) {
+    if (Object.keys(router.currentRoute.value.query).length) {
       router.replace({ ...router.currentRoute.value, query: {} });
     }
   });

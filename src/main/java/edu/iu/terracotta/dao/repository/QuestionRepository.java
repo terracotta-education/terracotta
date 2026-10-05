@@ -9,11 +9,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.Question;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface QuestionRepository extends JpaRepository<Question, Long> {
+
+    Question findByUuid(UUID uuid);
+
+
+    @Query("select e.questionId from Question e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
 
     List<Question> findByAssessment_AssessmentIdOrderByQuestionOrder(Long assessmentId);
     @Query("SELECT q FROM Question q WHERE q.assessment.treatment.condition.experiment.experimentId = :experimentId")

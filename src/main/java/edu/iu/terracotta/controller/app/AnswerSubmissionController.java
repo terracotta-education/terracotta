@@ -6,8 +6,11 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AnswerSubmissionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionSubmissionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.AnswerSubmissionDto;
 import edu.iu.terracotta.dao.model.dto.FileResponseDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
@@ -17,8 +20,13 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.IdMissingException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.exceptions.TypeNotSupportedException;
+import edu.iu.terracotta.service.app.ConditionService;
+import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.AnswerSubmissionService;
+import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +58,7 @@ import jakarta.transaction.Transactional;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,17 +77,28 @@ public class AnswerSubmissionController {
 
     private final AnswerSubmissionService answerSubmissionService;
     private final SubmissionService submissionService;
+    private final QuestionSubmissionService questionSubmissionService;
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
+    private final ConditionService conditionService;
+    private final TreatmentService treatmentService;
+    private final AssessmentService assessmentService;
 
     @GetMapping("/question_submissions/{questionSubmissionId}/answer_submissions")
-    public ResponseEntity<List<AnswerSubmissionDto>> getAnswerSubmissionsByQuestionId(@PathVariable long experimentId,
-                                                                                      @PathVariable long conditionId,
-                                                                                      @PathVariable long treatmentId,
-                                                                                      @PathVariable long assessmentId,
-                                                                                      @PathVariable long submissionId,
-                                                                                      @PathVariable long questionSubmissionId,
+    public ResponseEntity<List<AnswerSubmissionDto>> getAnswerSubmissionsByQuestionId(@PathVariable("experimentId") UUID experimentUuid,
+                                                                                      @PathVariable("conditionId") UUID conditionUuid,
+                                                                                      @PathVariable("treatmentId") UUID treatmentUuid,
+                                                                                      @PathVariable("assessmentId") UUID assessmentUuid,
+                                                                                      @PathVariable("submissionId") UUID submissionUuid,
+                                                                                      @PathVariable("questionSubmissionId") UUID questionSubmissionUuid,
                                                                                       HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, IOException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, DataServiceException, IOException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -103,20 +123,27 @@ public class AnswerSubmissionController {
     }
 
     @GetMapping("/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}")
-    public ResponseEntity<AnswerSubmissionDto> getAnswerSubmission(@PathVariable long experimentId,
-                                                                   @PathVariable long conditionId,
-                                                                   @PathVariable long treatmentId,
-                                                                   @PathVariable long assessmentId,
-                                                                   @PathVariable long submissionId,
-                                                                   @PathVariable long questionSubmissionId,
-                                                                   @PathVariable long answerSubmissionId,
+    public ResponseEntity<AnswerSubmissionDto> getAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
+                                                                   @PathVariable("conditionId") UUID conditionUuid,
+                                                                   @PathVariable("treatmentId") UUID treatmentUuid,
+                                                                   @PathVariable("assessmentId") UUID assessmentUuid,
+                                                                   @PathVariable("submissionId") UUID submissionUuid,
+                                                                   @PathVariable("questionSubmissionId") UUID questionSubmissionUuid,
+                                                                   @PathVariable("answerSubmissionId") UUID answerSubmissionUuid,
                                                                    HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, InvalidUserException, DataServiceException, IOException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, DataServiceException, IOException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
+        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
+        long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
-        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
@@ -132,23 +159,29 @@ public class AnswerSubmissionController {
 
     @Transactional
     @PostMapping("/answer_submissions")
-    public ResponseEntity<List<AnswerSubmissionDto>> postAnswerSubmissions(@PathVariable long experimentId,
-                                                                        @PathVariable long conditionId,
-                                                                        @PathVariable long treatmentId,
-                                                                        @PathVariable long assessmentId,
-                                                                        @PathVariable long submissionId,
+    public ResponseEntity<List<AnswerSubmissionDto>> postAnswerSubmissions(@PathVariable("experimentId") UUID experimentUuid,
+                                                                        @PathVariable("conditionId") UUID conditionUuid,
+                                                                        @PathVariable("treatmentId") UUID treatmentUuid,
+                                                                        @PathVariable("assessmentId") UUID assessmentUuid,
+                                                                        @PathVariable("submissionId") UUID submissionUuid,
                                                                         @RequestBody List<AnswerSubmissionDto> answerSubmissionDtoList,
                                                                         HttpServletRequest req)
-                                                                        throws ExperimentNotMatchingException, AssessmentNotMatchingException,
-                                                                        QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, IdInPostException,
+                                                                        throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException,
+                                                                        QuestionSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, IdInPostException,
                                                                         TypeNotSupportedException, DataServiceException, IdMissingException, ExceedingLimitException, IOException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
         for (AnswerSubmissionDto answerSubmissionDto : answerSubmissionDtoList) {
+            long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(answerSubmissionDto.getQuestionSubmissionId());
             apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId,
-                    answerSubmissionDto.getQuestionSubmissionId());
+                    answerSubmissionQuestionSubmissionId);
         }
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
@@ -160,7 +193,7 @@ public class AnswerSubmissionController {
         }
 
         List<AnswerSubmissionDto> returnedDtoList = answerSubmissionService.postAnswerSubmissions(answerSubmissionDtoList);
-        log.info("Created answer submission IDs: {} for submission ID: [{}]", returnedDtoList.stream().map(AnswerSubmissionDto::getAnswerSubmissionId).toList(), submissionId);
+        log.info("Created answer submission IDs: {} for submission ID: [{}]", returnedDtoList.stream().map(AnswerSubmissionDto::getAnswerSubmissionId).toList(), submissionUuid);
 
         return new ResponseEntity<>(returnedDtoList, HttpStatus.OK);
     }
@@ -170,21 +203,28 @@ public class AnswerSubmissionController {
     For example, a fill-in-the-blank question with multiple blanks to fill in.
     */
     @PutMapping("/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}")
-    public ResponseEntity<Void> updateAnswerSubmission(@PathVariable long experimentId,
-                                                       @PathVariable long conditionId,
-                                                       @PathVariable long treatmentId,
-                                                       @PathVariable long assessmentId,
-                                                       @PathVariable long submissionId,
-                                                       @PathVariable long questionSubmissionId,
-                                                       @PathVariable long answerSubmissionId,
+    public ResponseEntity<Void> updateAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
+                                                       @PathVariable("conditionId") UUID conditionUuid,
+                                                       @PathVariable("treatmentId") UUID treatmentUuid,
+                                                       @PathVariable("assessmentId") UUID assessmentUuid,
+                                                       @PathVariable("submissionId") UUID submissionUuid,
+                                                       @PathVariable("questionSubmissionId") UUID questionSubmissionUuid,
+                                                       @PathVariable("answerSubmissionId") UUID answerSubmissionUuid,
                                                        @RequestBody AnswerSubmissionDto answerSubmissionDto,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, InvalidUserException, AnswerNotMatchingException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, AnswerNotMatchingException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
+        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
+        long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
-        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
@@ -204,20 +244,27 @@ public class AnswerSubmissionController {
     }
 
     @DeleteMapping("/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}")
-    public ResponseEntity<Void> deleteAnswerSubmission(@PathVariable long experimentId,
-                                                       @PathVariable long conditionId,
-                                                       @PathVariable long treatmentId,
-                                                       @PathVariable long assessmentId,
-                                                       @PathVariable long submissionId,
-                                                       @PathVariable long questionSubmissionId,
-                                                       @PathVariable long answerSubmissionId,
+    public ResponseEntity<Void> deleteAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
+                                                       @PathVariable("conditionId") UUID conditionUuid,
+                                                       @PathVariable("treatmentId") UUID treatmentUuid,
+                                                       @PathVariable("assessmentId") UUID assessmentUuid,
+                                                       @PathVariable("submissionId") UUID submissionUuid,
+                                                       @PathVariable("questionSubmissionId") UUID questionSubmissionUuid,
+                                                       @PathVariable("answerSubmissionId") UUID answerSubmissionUuid,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, BadTokenException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
+        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
+        long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
-        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
@@ -233,16 +280,21 @@ public class AnswerSubmissionController {
     }
 
     @PostMapping(value = "/answer_submissions/file", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<List<AnswerSubmissionDto>> postFileAnswerSubmission(@PathVariable long experimentId,
-                                                                            @PathVariable long conditionId,
-                                                                            @PathVariable long treatmentId,
-                                                                            @PathVariable long assessmentId,
-                                                                            @PathVariable long submissionId,
+    public ResponseEntity<List<AnswerSubmissionDto>> postFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
+                                                                            @PathVariable("conditionId") UUID conditionUuid,
+                                                                            @PathVariable("treatmentId") UUID treatmentUuid,
+                                                                            @PathVariable("assessmentId") UUID assessmentUuid,
+                                                                            @PathVariable("submissionId") UUID submissionUuid,
                                                                             @RequestParam("answer_dto") String answerSubmissionDtoStr,
                                                                             UriComponentsBuilder ucBuilder,
                                                                             @RequestPart("file") MultipartFile file,
                                                                             HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
 
         if (file.isEmpty()) {
             log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
@@ -259,7 +311,8 @@ public class AnswerSubmissionController {
                 answerSubmissionDtoStr,
                 AnswerSubmissionDto.class
             );
-        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionDto.getQuestionSubmissionId());
+        long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(answerSubmissionDto.getQuestionSubmissionId());
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionQuestionSubmissionId);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -271,7 +324,7 @@ public class AnswerSubmissionController {
 
         AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmission(answerSubmissionDto, file);
         log.info("Created answer submission ID: [{}] for question submission ID: [{}]", returnedDto.getAnswerSubmissionId(), answerSubmissionDto.getQuestionSubmissionId());
-        HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId,
+        HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid,
             answerSubmissionDto.getQuestionSubmissionId(), returnedDto.getAnswerSubmissionId());
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
         answerSubmissionDtoList.add(returnedDto);
@@ -280,17 +333,22 @@ public class AnswerSubmissionController {
     }
 
     @PutMapping("/answer_submissions/{answerSubmissionId}/file")
-    public ResponseEntity<List<AnswerSubmissionDto>> putFileAnswerSubmission(@PathVariable long experimentId,
-                                                                            @PathVariable long conditionId,
-                                                                            @PathVariable long treatmentId,
-                                                                            @PathVariable long assessmentId,
-                                                                            @PathVariable long submissionId,
-                                                                            @PathVariable long answerSubmissionId,
+    public ResponseEntity<List<AnswerSubmissionDto>> putFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
+                                                                            @PathVariable("conditionId") UUID conditionUuid,
+                                                                            @PathVariable("treatmentId") UUID treatmentUuid,
+                                                                            @PathVariable("assessmentId") UUID assessmentUuid,
+                                                                            @PathVariable("submissionId") UUID submissionUuid,
+                                                                            @PathVariable("answerSubmissionId") UUID answerSubmissionUuid,
                                                                             @RequestParam("answer_dto") String answerSubmissionDtoStr,
                                                                             UriComponentsBuilder ucBuilder,
                                                                             @RequestPart("file") MultipartFile file,
                                                                             HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, AnswerSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, InvalidUserException, TypeNotSupportedException, DataServiceException, IdInPostException, IOException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         if (file.isEmpty()) {
             log.error("Invalid (empty) file for submission ID: [{}], experiment ID: [{}]", submissionId, experimentId);
             return new ResponseEntity(TextConstants.FILE_MISSING, HttpStatus.BAD_REQUEST);
@@ -306,7 +364,13 @@ public class AnswerSubmissionController {
                 answerSubmissionDtoStr,
                 AnswerSubmissionDto.class
             );
-        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionDto.getQuestionSubmissionId());
+        long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(answerSubmissionDto.getQuestionSubmissionId());
+        apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionQuestionSubmissionId);
+        String answerType = answerSubmissionService.getAnswerType(answerSubmissionQuestionSubmissionId);
+        // the resolved id here isn't otherwise consumed by this endpoint (mirrors the pre-existing
+        // handling below, which never read the path's answerSubmissionId either), but resolving it
+        // validates that the uuid corresponds to a real answer submission of this type.
+        answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {
             return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
@@ -318,7 +382,7 @@ public class AnswerSubmissionController {
 
         AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmissionUpdate(answerSubmissionDto, file);
         log.info("Updated answer submission ID: [{}] for question submission ID: [{}]", returnedDto.getAnswerSubmissionId(), answerSubmissionDto.getQuestionSubmissionId());
-        HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentId, submissionId,
+        HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid,
             answerSubmissionDto.getQuestionSubmissionId(), returnedDto.getAnswerSubmissionId());
         List<AnswerSubmissionDto> answerSubmissionDtoList = new ArrayList<>();
         answerSubmissionDtoList.add(returnedDto);
@@ -327,20 +391,27 @@ public class AnswerSubmissionController {
     }
 
     @GetMapping("question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}/file")
-    public ResponseEntity<Resource> downloadFileAnswerSubmission(@PathVariable long experimentId,
-                                                                        @PathVariable long conditionId,
-                                                                        @PathVariable long treatmentId,
-                                                                        @PathVariable long assessmentId,
-                                                                        @PathVariable long submissionId,
-                                                                        @PathVariable long questionSubmissionId,
-                                                                        @PathVariable long answerSubmissionId,
+    public ResponseEntity<Resource> downloadFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
+                                                                        @PathVariable("conditionId") UUID conditionUuid,
+                                                                        @PathVariable("treatmentId") UUID treatmentUuid,
+                                                                        @PathVariable("assessmentId") UUID assessmentUuid,
+                                                                        @PathVariable("submissionId") UUID submissionUuid,
+                                                                        @PathVariable("questionSubmissionId") UUID questionSubmissionUuid,
+                                                                        @PathVariable("answerSubmissionId") UUID answerSubmissionUuid,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, BadTokenException, AnswerSubmissionNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, QuestionSubmissionNotMatchingException, SubmissionNotMatchingException, BadTokenException, ConditionNotMatchingException, AnswerSubmissionNotMatchingException, IOException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long questionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(questionSubmissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
+        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
+        long answerSubmissionId = answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
-        String answerType = answerSubmissionService.getAnswerType(questionSubmissionId);
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
         if (!apijwtService.isLearnerOrHigher(securedInfo)) {

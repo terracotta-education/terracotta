@@ -26,18 +26,28 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface SubmissionService {
 
     List<SubmissionDto> getSubmissions(Long experimentId, String userId, Long assessmentId, boolean student) throws NoSubmissionsException;
     Submission getSubmission(Long experimentId, String userId, Long submissionId, boolean student) throws NoSubmissionsException;
+    Submission getSubmissionByUuid(UUID uuid) throws SubmissionNotMatchingException;
+    long getSubmissionIdByUuid(UUID uuid) throws SubmissionNotMatchingException;
     SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student) throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException;
     void updateSubmissions(Map<Submission, SubmissionDto> map, boolean student) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException;
     SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments);
     Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException;
     void deleteById(Long id) throws EmptyResultDataAccessException;
     void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student) throws DataServiceException, IOException, AssignmentDatesException, ConnectionException, ApiException, TerracottaConnectorException;
+
+    /**
+     * Whether an unsubmitted attempt's answers were last saved inside the assignment's current
+     * availability window - false when, say, they were saved before the assignment was closed and
+     * then re-opened with a new "Available from" date.
+     */
+    boolean lastSavedWithinAvailability(Submission submission, SecuredInfo securedInfo);
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
     void sendSubmissionGradeToLmsWithLti(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException, IOException, ApiException, TerracottaConnectorException;
     // fetches AGS tokens once per platform deployment instead of once per submission
@@ -46,7 +56,7 @@ public interface SubmissionService {
     Submission createNewSubmission(Assessment assessment, Participant participant, SecuredInfo securedInfo) throws IntegrationTokenNotFoundException;
     void validateUser(Long experimentId, String userId, Long submissionId) throws InvalidUserException;
     void validateDto(Long experimentId, String userId, SubmissionDto submissionDto) throws InvalidUserException, ParticipantNotMatchingException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId);
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId);
     void allowedSubmission(Long submissionId, SecuredInfo securedInfo) throws SubmissionNotMatchingException;
     boolean isOwnSubmission(Long submissionId, SecuredInfo securedInfo);
     Float getScoreFromMultipleSubmissions(Participant participant, Assessment assessment);

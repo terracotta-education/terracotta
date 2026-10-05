@@ -20,14 +20,18 @@ import edu.iu.terracotta.connectors.generic.dao.model.lti.dto.NoticeRequestDto;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.async.ExperimentCopyRecreationAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.utils.LtiStrings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Receives LTI Advantage Platform Notification Service (PNS) notices - currently just Canvas's
- * "LtiContextCopyNotice" (course copy) - and reacts by re-running the obsolete-assignment check
- * for the affected course immediately, instead of waiting for the next time someone happens to
+ * "LtiContextCopyNotice" (course copy) - and reacts by (a) staging any experiment(s) from the
+ * notice's origin course(s) as copy candidates for the receiving (destination) course and
+ * recreating them there in the background, and (b) re-running the obsolete-assignment check for
+ * the affected course immediately, instead of waiting for the next time someone happens to
  * launch the tool there.
  *
  * Per the PNS spec, this endpoint must be public with no session/authentication of its own - the
@@ -45,6 +49,8 @@ public class NoticeController {
     private final LtiJwtService ltiJwtService;
     private final LtiNoticeService ltiNoticeService;
     private final AssignmentAsyncService assignmentAsyncService;
+    private final ExperimentCopyCandidateService experimentCopyCandidateService;
+    private final ExperimentCopyRecreationAsyncService experimentCopyRecreationAsyncService;
 
     @PostMapping
     public ResponseEntity<Void> receiveNotices(@RequestBody NoticeRequestDto noticeRequestDto) {
@@ -76,15 +82,46 @@ public class NoticeController {
             return;
         }
 
+        Optional<Long> destinationContextId = Optional.empty();
+
+        try {
+            // runs regardless of whether a live acting user can be resolved below - a brand-new
+            // copied course has no LtiContextEntity/membership at all yet, which is exactly the
+            // case this is for - see ExperimentCopyCandidateService's stageFromNotice method.
+            destinationContextId = experimentCopyCandidateService.stageFromNotice(claims);
+        } catch (Exception e) {
+            log.error("Error staging experiment copy candidates for an LTI notice from issuer: [{}]", claims.getIssuer(), e);
+        }
+
+        // recreate the staged experiments in the background - the notice response doesn't wait
+        destinationContextId.ifPresent(experimentCopyRecreationAsyncService::recreate);
+
         Optional<SecuredInfo> securedInfo = ltiNoticeService.resolveSecuredInfo(claims);
 
         if (securedInfo.isEmpty()) {
-            log.warn("Could not resolve a course/acting-user for an LTI notice from issuer: [{}]", claims.getIssuer());
+            LtiNoticeService.CourseCopyNoticeDescription notice = ltiNoticeService.describeCourseCopy(claims);
+            // the normal case for a copy into a brand-new course: nobody has launched Terracotta
+            // there yet, so there's no instructor to run the LMS assignment sync as
+            log.info(
+                "Received a course copy notification from: [{}] for source: [{}] and destination: [{}]. {} Its LMS assignment sync will run when an instructor first launches Terracotta there.",
+                notice.platform(),
+                notice.source(),
+                notice.destination(),
+                destinationContextId.isPresent()
+                    ? "Recreating its copied experiments in the background."
+                    : "There are no experiments to recreate."
+            );
             return;
         }
 
         try {
-            assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo.get());
+            // deferred while recreation is still underway for this context - a copied
+            // assignment's URL still carries the source course's old IDs until recreation
+            // re-points it, so running this now would mark it obsolete. The next launch into
+            // the course after recreation finishes runs it instead (see ExperimentServiceImpl).
+            if (!experimentCopyCandidateService.hasUnfinishedForContext(securedInfo.get().getContextId())) {
+                assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo.get());
+            }
         } catch (Exception e) {
             log.error("Error handling LTI notice (context ID: [{}])", securedInfo.get().getContextId(), e);
         }

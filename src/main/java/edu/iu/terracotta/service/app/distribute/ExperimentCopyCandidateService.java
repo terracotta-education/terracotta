@@ -1,0 +1,103 @@
+package edu.iu.terracotta.service.app.distribute;
+
+import java.time.Duration;
+import java.util.Optional;
+import java.util.Set;
+
+import io.jsonwebtoken.Claims;
+
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
+
+/**
+ * Detects (via an LTI Advantage Platform Notification Service "course copy" notice) that a course
+ * was copied from another course Terracotta has an Experiment in, stages that as a pending
+ * ExperimentCopyCandidate, and then recreates the source Experiment(s) in the destination course
+ * automatically, with no live session: the source course's instructor's LMS API access drives
+ * the existing export/import pipeline, re-pointing each already-copied LMS assignment at its
+ * recreated Assignment rather than creating a duplicate. The instructor is told how it went on
+ * their first launch into the destination course.
+ */
+public interface ExperimentCopyCandidateService {
+
+    /**
+     * Called at notice-time (no live session) - resolves/creates the destination context and the
+     * origin context(s) named in the notice, and stages a PENDING candidate for every Experiment
+     * found in those origin context(s) that doesn't already have one. Idempotent: safe to call
+     * more than once for the same notice (PNS notices can be redelivered). Returns the
+     * destination context's ID, or empty if nothing should be recreated for this notice.
+     */
+    Optional<Long> stageFromNotice(Claims noticeClaims);
+
+    /**
+     * Recreates every PENDING candidate's source Experiment in the given destination context,
+     * acting as that Experiment's own instructor (its creator, or failing that any instructor in
+     * its course) - or, when actingUserKey is given, as that user instead: an instructor retrying
+     * from their own launch into the destination course, e.g. after re-approving LMS access. The
+     * source instructor is emailed if the LMS work fails; a retrying instructor isn't, since
+     * they're watching the result on the page. Runs with no live session - see ExperimentCopyRecreationAsyncService, which
+     * calls this in the background right after stageFromNotice. Each candidate's outcome is
+     * recorded on the candidate itself (IMPORTED or ERROR, with an error message) and, once
+     * imported, on its resulting ExperimentImport.
+     */
+    void recreateForContext(long destinationContextId, String actingUserKey);
+
+    /**
+     * Puts every failed recreation in the given context back to PENDING - both candidates that
+     * failed outright and ones whose import failed - so recreateForContext can try them again.
+     * Returns whether there was anything to retry.
+     */
+    boolean resetFailedForRetry(long contextId);
+
+    /**
+     * Finds recreations that stopped part-way - e.g. the server was restarted while they ran -
+     * and puts them back to PENDING so they can run again: candidates still PENDING or IMPORTING
+     * after stalledAfter, and ones whose import has been processing for longer than
+     * importStalledAfter (that import is abandoned). A candidate that has already been started
+     * maxAttempts times is marked as failed instead, and its instructor emailed. Returns the
+     * destination contexts that have something to recreate again.
+     */
+    Set<Long> resetStalledForRecovery(Duration stalledAfter, Duration importStalledAfter, int maxAttempts);
+
+    /**
+     * Whether recreation is still underway for the given context: any candidate still PENDING or
+     * IMPORTING, IMPORTED with its ExperimentImport still processing, or ERROR but not yet
+     * retried by an instructor launch (see DistributeController's /copy-status/retry). Used to
+     * hold off the obsolete-assignment check (NoticeController, ExperimentServiceImpl) until
+     * then, since a copied assignment's URL still carries the source course's old IDs until it's
+     * re-pointed - and a candidate's first failure alone shouldn't trigger it either, since the
+     * launch-triggered retry might still succeed. Only once that retry has also ended in ERROR
+     * does this return false, allowing both the failure alert and the obsolete-assignment check
+     * to run. A cheap no-op for the overwhelming majority of contexts, which have never been a
+     * course-copy destination at all.
+     */
+    boolean hasUnfinishedForContext(long contextId);
+
+    /**
+     * Whether the given context has a failed recreation the instructor hasn't been told about yet,
+     * i.e. one the next instructor launch will retry (see DistributeController's
+     * /copy-status/retry). Lti3Controller uses this to decide when an instructor's LMS token is
+     * worth verifying with the LMS before letting that retry run on it.
+     */
+    boolean hasFailedForContext(long contextId);
+
+    /**
+     * Whether the instructor behind securedInfo currently holds a usable LMS API token to recreate
+     * experiments as. A retry run without one can only fail again, so the retry endpoint waits for
+     * the instructor to (re-)authorize instead.
+     */
+    boolean hasLmsAuthorization(SecuredInfo securedInfo);
+
+    /**
+     * The overall result of recreating copied experiments in the current (live-launch) context,
+     * for the first-launch message. NONE once acknowledgeCopyStatus has been called.
+     */
+    CopyStatusDto getCopyStatus(SecuredInfo securedInfo);
+
+    /**
+     * Marks the current context's finished recreation result as shown, along with the
+     * ExperimentImports it created, so neither is shown again. Does nothing while still underway.
+     */
+    void acknowledgeCopyStatus(SecuredInfo securedInfo);
+
+}

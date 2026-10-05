@@ -197,7 +197,7 @@ public class Lti3Request {
         try {
             ltiRequest = getInstanceOrDie(linkId);
         } catch (Exception e) {
-            log.debug("The method getInstanceOrDie... died: [{}]", e.getMessage());
+            log.debug("No LTI request available: {}", e.getMessage());
         }
 
         return ltiRequest;
@@ -239,7 +239,7 @@ public class Lti3Request {
         }
 
         if (ltiRequest == null) {
-            throw new IllegalStateException(String.format("Invalid LTI request, cannot create LTIRequest from request: [%s]", req));
+            throw new IllegalStateException("The current request is not a valid LTI request");
         }
 
         return ltiRequest;
@@ -365,16 +365,16 @@ public class Lti3Request {
 
         // loads and upserts in a single transaction, so the entities the load resolves stay
         // managed/attached for the upsert instead of needing to be re-merged
-        String link = Strings.CI.equals(isLti3Request, LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) ? linkId : null;
+        String resourceLinkId = Strings.CI.equals(isLti3Request, LtiStrings.LTI_MESSAGE_TYPE_RESOURCE_LINK) ? linkId : null;
 
         try {
-            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, link);
+            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, resourceLinkId);
         } catch (DataIntegrityViolationException e) {
             // two concurrent first launches for the same user/context both miss the lookup and both
             // insert; the loser hits a unique constraint. Its transaction is rollback-only by now, so
             // retry in a fresh one: the load step re-reads the rows the winner committed.
             log.warn("Concurrent LTI launch inserted the same LTI data first for sub: [{}], retrying: [{}]", sub, ExceptionUtils.getRootCauseMessage(e));
-            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, link);
+            ltiDataService.loadAndUpsertLTIDataInDB(this, toolDeployment, resourceLinkId);
         }
     }
 

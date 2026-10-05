@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -19,10 +20,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.AnswerMc;
@@ -40,11 +43,13 @@ import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.QuestionMc;
 import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
+import edu.iu.terracotta.dao.entity.distribute.ExperimentImportError;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
+import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
 import edu.iu.terracotta.dao.model.distribute.export.Export;
 import edu.iu.terracotta.dao.model.enums.LmsType;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
@@ -70,6 +75,8 @@ import edu.iu.terracotta.exceptions.ExperimentImportException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.ExperimentImportAsyncService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCreatedAssignmentService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.databind.json.JsonMapper;
@@ -98,11 +105,96 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
     private final TreatmentRepository treatmentRepository;
     private final AssignmentService assignmentService;
     private final FileStorageService fileStorageService;
+    private final ExperimentCopyNotificationService experimentCopyNotificationService;
+    private final ExperimentCopyCreatedAssignmentService experimentCopyCreatedAssignmentService;
+    private final PlatformTransactionManager transactionManager;
 
     @Async
     @Override
-    @Transactional(rollbackFor = { Exception.class, ExperimentImportException.class })
-    public void process(ExperimentImport experimentImport, SecuredInfo securedInfo) throws ExperimentImportException {
+    public void process(ExperimentImport experimentImport, SecuredInfo securedInfo, LmsRepointTargets repointTargets, boolean notifyOwnerOnLmsFailure, boolean keepSourceTitle) throws ExperimentImportException {
+        if (isAbandoned(experimentImport, repointTargets)) {
+            return;
+        }
+
+        // the import runs in one transaction so a failure part-way through rolls back everything
+        // it created - but that rollback would also discard the ERROR status recording why, so
+        // that's saved separately, afterwards, in a transaction of its own
+        try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(transactionStatus -> {
+                try {
+                    processInTransaction(experimentImport, securedInfo, repointTargets, notifyOwnerOnLmsFailure, keepSourceTitle);
+                } catch (ExperimentImportException e) {
+                    throw new ImportRolledBackException(e);
+                }
+            });
+        } catch (ImportRolledBackException e) {
+            recordFailure(experimentImport);
+            throw (ExperimentImportException) e.getCause();
+        } catch (RuntimeException e) {
+            experimentImport.addErrorMessage("Unexpected error processing the import");
+            recordFailure(experimentImport);
+            throw e;
+        }
+
+        if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
+            // failed before creating anything (e.g. no import file), so nothing was rolled back
+            recordFailure(experimentImport);
+
+            return;
+        }
+
+        if (repointTargets.getCopyCandidateId() != null) {
+            // committed - the LMS assignments this import created are now the course's own
+            experimentCopyCreatedAssignmentService.clear(repointTargets.getCopyCandidateId());
+        }
+    }
+
+    // a copy recreation's import that waited so long to start that recovery (see
+    // ExperimentCopyCandidateService.resetStalledForRecovery) gave up on it and started another -
+    // running this one too would recreate the same experiment twice
+    private boolean isAbandoned(ExperimentImport experimentImport, LmsRepointTargets repointTargets) {
+        if (repointTargets.getCopyCandidateId() == null) {
+            return false;
+        }
+
+        Optional<ExperimentImport> current = experimentImportRepository.findById(experimentImport.getId());
+
+        if (current.isPresent() && current.get().getStatus() != ExperimentImportStatus.PROCESSING) {
+            log.warn("Skipping experiment import with ID: [{}] - it's no longer processing (status: [{}])", experimentImport.getId(), current.get().getStatus());
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static class ImportRolledBackException extends RuntimeException {
+
+        ImportRolledBackException(ExperimentImportException cause) {
+            super(cause);
+        }
+
+    }
+
+    private void recordFailure(ExperimentImport experimentImport) {
+        List<String> errorMessages = CollectionUtils.emptyIfNull(experimentImport.getErrors()).stream()
+            .map(ExperimentImportError::getText)
+            .toList();
+
+        try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(transactionStatus ->
+                experimentImportRepository.findById(experimentImport.getId()).ifPresent(persisted -> {
+                    persisted.setStatus(ExperimentImportStatus.ERROR);
+                    errorMessages.forEach(persisted::addErrorMessage);
+                    experimentImportRepository.save(persisted);
+                })
+            );
+        } catch (Exception e) {
+            log.error("Error recording the failure of experiment import with ID: [{}]", experimentImport.getId(), e);
+        }
+    }
+
+    private void processInTransaction(ExperimentImport experimentImport, SecuredInfo securedInfo, LmsRepointTargets repointTargets, boolean notifyOwnerOnLmsFailure, boolean keepSourceTitle) throws ExperimentImportException {
         log.info("Processing experiment import with ID: [{}]", experimentImport.getId());
         Optional<Export> export = prepare(experimentImport);
 
@@ -121,7 +213,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
 
         // ["component": ["imported id": "newly-created object"]]
-        Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap = new HashMap<>();
+        Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap = new HashMap<>();
 
         /*
          * Process each experiment component.
@@ -130,7 +222,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
          */
 
         consentDocument(export.get(), experimentImport, export.get().getImportDirectory(), idMap);
-        experiment(export.get(), experimentImport, idMap);
+        experiment(export.get(), experimentImport, idMap, keepSourceTitle);
         conditions(export.get(), idMap);
         exposures(export.get(), idMap);
         groups(export.get(), idMap);
@@ -147,7 +239,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
             // no errors occurred yet; create assignments in LMS
-            sendAssignmentsToLms(export.get(), experimentImport, idMap, securedInfo);
+            sendAssignmentsToLms(export.get(), experimentImport, idMap, securedInfo, repointTargets, notifyOwnerOnLmsFailure);
         }
 
         if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
@@ -155,7 +247,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             experimentImport.setStatus(ExperimentImportStatus.COMPLETE);
 
             // deliberately no retry if this save hits an optimistic-locking failure: this method
-            // is itself @Transactional, so by the time save() has thrown, the repository proxy
+            // runs inside process()'s transaction, so by the time save() has thrown, the repository proxy
             // has already marked the transaction rollback-only and any re-fetch/re-save here
             // would be silently discarded at commit along with the rest of the import. Letting
             // it propagate rolls the import back loudly instead. Preventing the conflict is
@@ -211,7 +303,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         return Optional.empty();
     }
 
-    private void consentDocument(Export export, ExperimentImport experimentImport, File importDirectory, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void consentDocument(Export export, ExperimentImport experimentImport, File importDirectory, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(ConsentDocument.class, new HashMap<>());
 
         if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
@@ -246,15 +338,8 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         }
     }
 
-    private void experiment(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
-        String title = String.format("%s %s", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle());
-        int index = 1;
-
-        // ensure experiment title does not exist already
-        while (experimentRepository.existsByTitle(title)) {
-            title = String.format("%s %s (%s)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle(), index);
-            index++;
-        }
+    private void experiment(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, boolean keepSourceTitle) {
+        String title = keepSourceTitle ? sourceTitle(export, experimentImport) : importedTitle(export);
 
         Experiment experiment = experimentRepository.save(
             Experiment.builder()
@@ -278,7 +363,34 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         experimentImport.setImportedTitle(title);
     }
 
-    private void conditions(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private String importedTitle(Export export) {
+        String title = String.format("%s %s", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle());
+        int index = 1;
+
+        // ensure experiment title does not exist already
+        while (experimentRepository.existsByTitle(title)) {
+            title = String.format("%s %s (%s)", ExperimentImport.EXPERIMENT_TITLE_PREFIX, export.getExperiment().getTitle(), index);
+            index++;
+        }
+
+        return title;
+    }
+
+    // a recreated experiment keeps its own title - only made unique within its new course, since
+    // the source experiment it was copied from, in the original course, always has the same one
+    private String sourceTitle(Export export, ExperimentImport experimentImport) {
+        String title = export.getExperiment().getTitle();
+        int index = 1;
+
+        while (experimentRepository.existsByTitleAndLtiContextEntity_ContextId(title, experimentImport.getContext().getContextId())) {
+            title = String.format("%s (%s)", export.getExperiment().getTitle(), index);
+            index++;
+        }
+
+        return title;
+    }
+
+    private void conditions(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Condition.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getConditions()).stream()
             .map(
@@ -299,7 +411,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void exposures(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void exposures(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Exposure.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getExposures()).stream()
             .map(
@@ -319,7 +431,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void groups(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void groups(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Group.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getGroups()).stream()
             .map(
@@ -338,7 +450,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void exposureGroupConditions(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void exposureGroupConditions(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(ExposureGroupCondition.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getExposureGroupConditions()).stream()
             .map(
@@ -359,7 +471,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void assignments(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void assignments(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Assignment.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getAssignments()).stream()
             .map(
@@ -392,7 +504,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void treatments(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void treatments(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Treatment.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getTreatments()).stream()
             .map(
@@ -412,7 +524,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void assessments(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void assessments(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Assessment.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getAssessments()).stream()
             .map(
@@ -450,7 +562,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void questions(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void questions(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Question.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getQuestions()).stream()
             .map(
@@ -479,7 +591,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void integrationClients(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void integrationClients(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         List<IntegrationClient> existingIntegrationClients = integrationClientRepository.findAll();
 
         // process only integration clients that do not have the same name
@@ -515,7 +627,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void integrationConfigurations(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void integrationConfigurations(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(IntegrationConfiguration.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getIntegrationConfigurations()).stream()
             .map(
@@ -535,7 +647,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void integrations(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void integrations(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Integration.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getIntegrations()).stream()
             .map(
@@ -555,7 +667,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void answerMcs(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void answerMcs(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(AnswerMc.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getAnswersMc()).stream()
             .map(
@@ -577,7 +689,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void outcomes(Export export, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap) {
+    private void outcomes(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         // process only non-external outcomes
         idMap.put(Outcome.class, new HashMap<>());
         CollectionUtils.emptyIfNull(export.getOutcomes()).stream()
@@ -601,69 +713,177 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .toList();
     }
 
-    private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<Long, BaseEntity>> idMap, SecuredInfo securedInfo) {
+    // captures a repointed assignment's LmsAssignment + its pre-repoint URL, so a rollback (see
+    // below) can best-effort restore it - a repointed assignment is the instructor's own
+    // pre-existing LMS content, so on error it must be put back the way it was, never deleted.
+    private record RepointedAssignment(LmsAssignment lmsAssignment, String originalUrl) { }
+
+    // the export DTO's own "assignment" cross-reference id (idMap's key) is the source
+    // assignment's real persisted identifier, carried through as an opaque string - a uuid for
+    // an export built after the uuid migration, or a legacy numeric id for an older export file
+    // (see ExperimentCopyCandidateServiceImpl's identical resolution, which builds
+    // the repoint targets from the same kind of id). Their assignments map itself is always
+    // keyed by the assignment's real internal Long id, so this id needs resolving to that
+    // before it can be looked up there.
+    private Long resolveOldAssignmentId(String idText) {
+        try {
+            return assignmentRepository.findIdByUuid(UUID.fromString(idText)).orElse(null);
+        } catch (IllegalArgumentException _) {
+            try {
+                return Long.parseLong(idText);
+            } catch (NumberFormatException _) {
+                return null;
+            }
+        }
+    }
+
+    // an LMS-side change this import's own transaction can't roll back - recorded independently,
+    // so a retry of an interrupted copy recreation can remove it first
+    private void recordCreated(LmsRepointTargets repointTargets, String lmsAssignmentId) {
+        if (repointTargets.getCopyCandidateId() != null && lmsAssignmentId != null) {
+            experimentCopyCreatedAssignmentService.recordCreated(repointTargets.getCopyCandidateId(), lmsAssignmentId);
+        }
+    }
+
+    // the state threaded through the assignment-by-assignment LMS sync below, bundled into one
+    // record so passing it between the per-entry/rollback helper methods doesn't itself trip the
+    // too-many-parameters rule those helpers were extracted to fix
+    private record LmsAssignmentSyncContext(
+        Export export,
+        ExperimentImport experimentImport,
+        Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap,
+        SecuredInfo securedInfo,
+        LmsRepointTargets repointTargets,
+        List<Assignment> createdAssignments,
+        List<RepointedAssignment> repointedAssignments,
+        AtomicBoolean errorOccurred
+    ) { }
+
+    private void sendAssignmentsToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, LmsRepointTargets repointTargets, boolean notifyOwnerOnLmsFailure) {
         if (MapUtils.isEmpty(idMap.get(Assignment.class))) {
             // no assignments to process
             return;
         }
 
-        List<Assignment> createdAssignments = new ArrayList<>();
-        AtomicBoolean errorOccurred = new AtomicBoolean(false);
+        LmsAssignmentSyncContext context = new LmsAssignmentSyncContext(
+            export, experimentImport, idMap, securedInfo, repointTargets, new ArrayList<>(), new ArrayList<>(), new AtomicBoolean(false)
+        );
 
-        idMap.get(Assignment.class).entrySet().stream()
+        idMap.get(Assignment.class).entrySet()
+            .forEach(entry -> processAssignmentForLms(entry, context));
+
+        if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
+            rollBackLmsAssignments(context);
+        }
+
+        if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
+            sendConsentAssignmentToLms(export, experimentImport, idMap, securedInfo, repointTargets);
+        }
+
+        // this method only runs when there were no errors beforehand, so any error now means an
+        // LMS assignment couldn't be created or re-pointed
+        if (notifyOwnerOnLmsFailure && CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
+            experimentCopyNotificationService.notifyLmsFailure(experimentImport.getOwner());
+        }
+    }
+
+    // one entry from idMap's Assignment map - pulled out of sendAssignmentsToLms's forEach so
+    // its create-vs-repoint branching isn't nested inside a lambda inside that method
+    private void processAssignmentForLms(Map.Entry<String, BaseEntity> entry, LmsAssignmentSyncContext context) {
+        if (context.errorOccurred().get()) {
+            // an error has already occurred; skip processing remaining assignments
+            return;
+        }
+
+        Long oldAssignmentId = resolveOldAssignmentId(entry.getKey());
+        Assignment assignment = (Assignment) entry.getValue();
+        long newExperimentId = ((Experiment) context.idMap().get(Experiment.class).get(context.export().getExperiment().getId())).getExperimentId();
+        LmsAssignment existingLmsAssignment = oldAssignmentId != null ? MapUtils.emptyIfNull(context.repointTargets().getAssignments()).get(oldAssignmentId) : null;
+
+        try {
+            if (existingLmsAssignment != null) {
+                String originalUrl = existingLmsAssignment.getLmsExternalToolFields() != null ? existingLmsAssignment.getLmsExternalToolFields().getUrl() : null;
+
+                assignmentService.repointAssignmentInLms(
+                    context.experimentImport().getOwner(),
+                    assignment,
+                    context.securedInfo().getLmsCourseId(),
+                    existingLmsAssignment
+                );
+
+                context.repointedAssignments().add(new RepointedAssignment(existingLmsAssignment, originalUrl));
+            } else {
+                Assignment newAssignment = assignmentService.createAssignmentInLms(
+                    context.experimentImport().getOwner(),
+                    assignment,
+                    newExperimentId,
+                    context.securedInfo().getLmsCourseId()
+                );
+
+                context.createdAssignments().add(newAssignment);
+
+                if (context.repointTargets().getCopyCandidateId() != null) {
+                    recordCreated(context.repointTargets(), newAssignment.getLmsAssignmentId());
+                }
+            }
+        } catch (AssignmentNotCreatedException | TerracottaConnectorException e) {
+            log.error("Error processing experiment import with ID: [{}]. Assignment creation in LMS failed.", context.experimentImport().getUuid(), e);
+            handleError(context.experimentImport(), "Assignment creation in LMS failed");
+            context.errorOccurred().set(true);
+        }
+    }
+
+    // an error occurred creating/repointing at least one assignment above - undo whatever this
+    // import already did in the LMS, since the DB transaction wrapping it will roll back but has
+    // no way to undo LMS-side effects on its own
+    private void rollBackLmsAssignments(LmsAssignmentSyncContext context) {
+        log.warn("An error occurred creating an assignment in the LMS. Removing all newly-created assignments from the LMS course ID: [{}].", context.securedInfo().getLmsCourseId());
+        context.createdAssignments()
             .forEach(
-                entry -> {
-                    if (errorOccurred.get()) {
-                        // an error has already occurred; skip processing remaining assignments
-                        return;
-                    }
-
-                    Assignment assignment = (Assignment) entry.getValue();
-
+                assignment -> {
                     try {
-                        Assignment newAssignment = assignmentService.createAssignmentInLms(
-                            experimentImport.getOwner(),
-                            assignment,
-                            ((Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId())).getExperimentId(),
-                            securedInfo.getLmsCourseId()
-                        );
-
-                        createdAssignments.add(newAssignment);
-                    } catch (AssignmentNotCreatedException | TerracottaConnectorException e) {
-                        log.error("Error processing experiment import with ID: [{}]. Assignment creation in LMS failed.", experimentImport.getUuid(), e);
-                        handleError(experimentImport, "Assignment creation in LMS failed");
-                        errorOccurred.set(true);
+                        assignmentService.deleteAssignmentInLms(assignment, context.securedInfo().getLmsCourseId(), context.experimentImport().getOwner());
+                    } catch (AssignmentNotEditedException | ApiException | TerracottaConnectorException e) {
+                        log.warn("Error occurred while deleting an assignment LMS ID: [{}] from LMS Course ID: [{}]", assignment.getLmsAssignmentId(), context.securedInfo().getLmsCourseId());
                     }
                 }
             );
 
-        if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
-            // an error occurred; delete any created assignments in LMS
-            log.warn("An error occurred creating an assignment in the LMS. Removing all newly-created assignments from the LMS course ID: [{}].", securedInfo.getLmsCourseId());
-            createdAssignments.stream()
-                .forEach(
-                    assignment -> {
-                        try {
-                            assignmentService.deleteAssignmentInLms(assignment, securedInfo.getLmsCourseId(), experimentImport.getOwner());
-                        } catch (AssignmentNotEditedException | ApiException | TerracottaConnectorException e) {
-                            log.warn("Error occurred while deleting an assignment LMS ID: [{}] from LMS Course ID: [{}]", assignment.getLmsAssignmentId(), securedInfo.getLmsCourseId());
-                        }
-                    }
-                );
+        // a repointed assignment is never deleted (see the RepointedAssignment comment
+        // above) - only its URL mutation gets best-effort restored, since that Canvas-side
+        // PUT isn't covered by this method's own DB transaction rollback
+        context.repointedAssignments()
+            .forEach(
+                repointed -> assignmentService.restoreRepointedAssignmentUrlInLms(
+                    context.experimentImport().getOwner(),
+                    repointed.lmsAssignment(),
+                    repointed.originalUrl(),
+                    context.securedInfo().getLmsCourseId()
+                )
+            );
+    }
+
+    private void sendConsentAssignmentToLms(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap, SecuredInfo securedInfo, LmsRepointTargets repointTargets) {
+        if (MapUtils.isEmpty(idMap.get(ConsentDocument.class))) {
+            return;
         }
 
-        if (CollectionUtils.isEmpty(experimentImport.getErrors())) {
-            if (MapUtils.isNotEmpty(idMap.get(ConsentDocument.class))) {
-                try {
-                    fileStorageService.sendConsentFileToLms(
-                        (ConsentDocument) idMap.get(ConsentDocument.class).get(export.getConsentDocument().getId()),
-                        (Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId()),
-                        experimentImport.getOwner());
-                } catch (AssignmentNotCreatedException | IOException | TerracottaConnectorException e) {
-                    log.error("Error processing experiment import with ID: [{}]. Consent assignment creation in LMS failed.", experimentImport.getUuid(), e);
-                    handleError(experimentImport, "Consent assignment creation in LMS failed");
-                }
+        ConsentDocument consentDocument = (ConsentDocument) idMap.get(ConsentDocument.class).get(export.getConsentDocument().getId());
+        Experiment experiment = (Experiment) idMap.get(Experiment.class).get(export.getExperiment().getId());
+
+        try {
+            if (repointTargets.getConsentAssignment() != null) {
+                // the course copy already brought the consent assignment along - point it at
+                // the recreated experiment, keeping its publish state and settings, rather
+                // than creating a second, unpublished one
+                fileStorageService.repointConsentFileInLms(consentDocument, experiment, experimentImport.getOwner(), repointTargets.getConsentAssignment(), securedInfo.getLmsCourseId());
+            } else {
+                fileStorageService.sendConsentFileToLms(consentDocument, experiment, experimentImport.getOwner());
+                recordCreated(repointTargets, consentDocument.getLmsAssignmentId());
             }
+        } catch (AssignmentNotCreatedException | IOException | TerracottaConnectorException e) {
+            log.error("Error processing experiment import with ID: [{}]. Consent assignment creation in LMS failed.", experimentImport.getUuid(), e);
+            handleError(experimentImport, "Consent assignment creation in LMS failed");
         }
     }
 

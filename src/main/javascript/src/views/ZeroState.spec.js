@@ -50,6 +50,26 @@ describe("ZeroState", () => {
     expect(wrapper.emitted("handleImportExperiment")).toBeTruthy();
   });
 
+  it("leaves both action buttons enabled by default", () => {
+    const wrapper = mountComponent(ZeroState, {
+      props: { ...baseProps, experimentExportEnabled: true }
+    });
+
+    wrapper.findAll(".experiment-btn").forEach(button => {
+      expect(button.attributes("disabled")).toBeUndefined();
+    });
+  });
+
+  it("disables both action buttons when disableActions is true", () => {
+    const wrapper = mountComponent(ZeroState, {
+      props: { ...baseProps, experimentExportEnabled: true, disableActions: true }
+    });
+
+    wrapper.findAll(".experiment-btn").forEach(button => {
+      expect(button.attributes("disabled")).toBeDefined();
+    });
+  });
+
   it("renders no import request alerts when the list is empty", () => {
     const wrapper = mountComponent(ZeroState, { props: baseProps });
 

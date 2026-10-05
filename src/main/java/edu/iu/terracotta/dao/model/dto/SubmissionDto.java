@@ -11,6 +11,7 @@ import lombok.Setter;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -20,12 +21,12 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SubmissionDto {
 
-    private Long submissionId;
-    private Long participantId;
-    private Long assessmentId;
-    private Long conditionId;
-    private Long treatmentId;
-    private Long experimentId;
+    private UUID submissionId;
+    private UUID participantId;
+    private UUID assessmentId;
+    private UUID conditionId;
+    private UUID treatmentId;
+    private UUID experimentId;
     private Float calculatedGrade;
     private Float alteredCalculatedGrade;
     private Float totalAlteredGrade;

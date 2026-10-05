@@ -16,9 +16,9 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TreatmentExport {
 
-    private long id;
-    private long assessmentId;
-    private long assignmentId;
-    private long conditionId;
+    private String id;
+    private String assessmentId;
+    private String assignmentId;
+    private String conditionId;
 
 }

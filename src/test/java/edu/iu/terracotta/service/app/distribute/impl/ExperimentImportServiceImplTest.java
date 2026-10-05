@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,8 +23,10 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImportError;
+import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
 import edu.iu.terracotta.dao.model.distribute.export.AnswerMcExport;
 import edu.iu.terracotta.dao.model.distribute.export.AssessmentExport;
 import edu.iu.terracotta.dao.model.distribute.export.AssignmentExport;
@@ -75,24 +78,24 @@ class ExperimentImportServiceImplTest extends BaseTest {
         return Export.builder()
             .experiment(
                 ExperimentExport.builder()
-                    .id(1L)
+                    .id("1")
                     .title("source experiment title")
                     .participationType(ParticipationTypes.AUTO)
                     .build()
             )
-            .conditions(List.of(ConditionExport.builder().id(10L).name("condition").experimentId(1L).build()))
-            .exposures(List.of(ExposureExport.builder().id(20L).title("exposure").experimentId(1L).build()))
-            .groups(List.of(GroupExport.builder().id(30L).name("group").experimentId(1L).build()))
-            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id(40L).exposureId(20L).groupId(30L).conditionId(10L).build()))
-            .assignments(List.of(AssignmentExport.builder().id(50L).title("assignment").exposureId(20L).build()))
-            .treatments(List.of(TreatmentExport.builder().id(60L).conditionId(10L).assignmentId(50L).build()))
-            .assessments(List.of(AssessmentExport.builder().id(70L).title("assessment").treatmentId(60L).build()))
-            .questions(List.of(QuestionExport.builder().id(80L).html("question").questionType(QuestionTypes.MC).assessmentId(70L).questionOrder(1).build()))
-            .integrationClients(List.of(IntegrationClientExport.builder().id(90L).name("integration client").enabled(true).build()))
-            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id(91L).clientId(90L).launchUrl("http://launch.url").build()))
-            .integrations(List.of(IntegrationExport.builder().id(92L).configurationId(91L).questionId(80L).build()))
-            .answersMc(List.of(AnswerMcExport.builder().id(93L).answerOrder(1).correct(true).html("answer").questionId(80L).build()))
-            .outcomes(List.of(OutcomeExport.builder().id(94L).title("outcome").maxPoints(10F).exposureId(20L).build()))
+            .conditions(List.of(ConditionExport.builder().id("10").name("condition").experimentId("1").build()))
+            .exposures(List.of(ExposureExport.builder().id("20").title("exposure").experimentId("1").build()))
+            .groups(List.of(GroupExport.builder().id("30").name("group").experimentId("1").build()))
+            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id("40").exposureId("20").groupId("30").conditionId("10").build()))
+            .assignments(List.of(AssignmentExport.builder().id("50").title("assignment").exposureId("20").build()))
+            .treatments(List.of(TreatmentExport.builder().id("60").conditionId("10").assignmentId("50").build()))
+            .assessments(List.of(AssessmentExport.builder().id("70").title("assessment").treatmentId("60").build()))
+            .questions(List.of(QuestionExport.builder().id("80").html("question").questionType(QuestionTypes.MC).assessmentId("70").questionOrder(1).build()))
+            .integrationClients(List.of(IntegrationClientExport.builder().id("90").name("integration client").enabled(true).build()))
+            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id("91").clientId("90").launchUrl("http://launch.url").build()))
+            .integrations(List.of(IntegrationExport.builder().id("92").configurationId("91").questionId("80").build()))
+            .answersMc(List.of(AnswerMcExport.builder().id("93").answerOrder(1).correct(true).html("answer").questionId("80").build()))
+            .outcomes(List.of(OutcomeExport.builder().id("94").title("outcome").maxPoints(10F).exposureId("20").build()))
             .build();
     }
 
@@ -129,7 +132,101 @@ class ExperimentImportServiceImplTest extends BaseTest {
         }
 
         verify(fileStorageService).saveExperimentImportFile(eq(multipartFile), any(ExperimentImport.class));
-        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo));
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(LmsRepointTargets.none()), eq(false), eq(false));
+    }
+
+    // used by ExperimentCopyCandidateServiceImpl to feed an in-process export straight into this
+    // same import pipeline, without a real uploaded MultipartFile
+    @Test
+    void testPreprocessFromFileSuccess() throws IOException {
+        when(securedInfo.getUserId()).thenReturn("user-id");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(experimentImport.getErrors()).thenReturn(Collections.emptyList());
+
+        Path jsonFile = importDirectory.resolve(ExperimentImport.JSON_FILE_NAME);
+        JsonMapper.builder().build().writeValue(jsonFile.toFile(), fullExport());
+
+        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
+            fileUtils.when(() -> FileUtils.getFile(any(File.class), anyString())).thenReturn(jsonFile.toFile());
+
+            ImportDto result = experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, LmsRepointTargets.none(), true);
+
+            assertNotNull(result);
+        }
+
+        verify(fileStorageService).saveExperimentImportFile(eq(file), any(ExperimentImport.class));
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(LmsRepointTargets.none()), eq(true), eq(true));
+    }
+
+    // validate(...) saves the entity again partway through (to persist the source title),
+    // returning a different (more current) instance than the one passed in - regression test for
+    // a bug where that returned reference was discarded, letting the async process(...) call
+    // receive an already-superseded entity and fail to save its own final status update with an
+    // optimistic-locking error (every save() call returns a fresh instance in real Hibernate
+    // usage, unlike this test's other cases where a single shared mock stands in for all of them)
+    @Test
+    void testPreprocessFromFilePassesPostValidationEntityToAsyncProcess() throws IOException {
+        when(securedInfo.getUserId()).thenReturn("user-id");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getContextId()).thenReturn(1L);
+
+        ExperimentImport preValidation = mock(ExperimentImport.class);
+        ExperimentImport postValidation = mock(ExperimentImport.class);
+        when(postValidation.getErrors()).thenReturn(Collections.emptyList());
+
+        when(experimentImportRepository.save(any(ExperimentImport.class)))
+            .thenReturn(preValidation)
+            .thenReturn(postValidation);
+
+        Path jsonFile = importDirectory.resolve(ExperimentImport.JSON_FILE_NAME);
+        JsonMapper.builder().build().writeValue(jsonFile.toFile(), fullExport());
+
+        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
+            fileUtils.when(() -> FileUtils.getFile(any(File.class), anyString())).thenReturn(jsonFile.toFile());
+
+            experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, LmsRepointTargets.none(), true);
+        }
+
+        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(LmsRepointTargets.none()), eq(true), eq(true));
+        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), any(LmsRepointTargets.class), anyBoolean(), anyBoolean());
+    }
+
+    // the map is forwarded unchanged, all the way through to the async import step - this is
+    // what lets ExperimentCopyCandidateServiceImpl's repoint-instead-of-duplicate logic reach the
+    // assignment-creation step despite it running on a different (@Async) thread
+    @Test
+    void testPreprocessFromFileForwardsNonEmptyRepointMap() throws IOException {
+        when(securedInfo.getUserId()).thenReturn("user-id");
+        when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(experimentImport.getErrors()).thenReturn(Collections.emptyList());
+
+        Path jsonFile = importDirectory.resolve(ExperimentImport.JSON_FILE_NAME);
+        JsonMapper.builder().build().writeValue(jsonFile.toFile(), fullExport());
+
+        LmsAssignment existingLmsAssignment = mock(LmsAssignment.class);
+        Map<Long, LmsAssignment> assignmentRepointMap = Map.of(50L, existingLmsAssignment);
+
+        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
+            fileUtils.when(() -> FileUtils.getFile(any(File.class), anyString())).thenReturn(jsonFile.toFile());
+
+            experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, LmsRepointTargets.ofAssignments(assignmentRepointMap), true);
+        }
+
+        verify(experimentImportAsyncService).process(any(ExperimentImport.class), eq(securedInfo), eq(LmsRepointTargets.ofAssignments(assignmentRepointMap)), eq(true), eq(true));
+    }
+
+    @Test
+    void testPreprocessFromFileContextNotFound() {
+        when(securedInfo.getContextId()).thenReturn(1L);
+        when(ltiContextRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ExperimentImportException exception = assertThrows(ExperimentImportException.class, () -> {
+            experimentImportService.preprocessFromFile(file, "test-file.zip", securedInfo, LmsRepointTargets.none(), true);
+        });
+
+        assertEquals("Context ID: [1] not found", exception.getMessage());
     }
 
     // validate(...) saves the entity again partway through (to persist the source title),
@@ -162,8 +259,8 @@ class ExperimentImportServiceImplTest extends BaseTest {
             experimentImportService.preprocess(multipartFile, securedInfo);
         }
 
-        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo));
-        verify(experimentImportAsyncService, never()).process(eq(preValidation), any());
+        verify(experimentImportAsyncService).process(eq(postValidation), eq(securedInfo), eq(LmsRepointTargets.none()), eq(false), eq(false));
+        verify(experimentImportAsyncService, never()).process(eq(preValidation), any(), any(LmsRepointTargets.class), anyBoolean(), anyBoolean());
     }
 
     @Test
@@ -201,7 +298,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
             assertEquals(ExperimentImportStatus.ERROR, result.getStatus());
         }
 
-        verify(experimentImportAsyncService, never()).process(any(ExperimentImport.class), eq(securedInfo));
+        verify(experimentImportAsyncService, never()).process(any(ExperimentImport.class), eq(securedInfo), any(LmsRepointTargets.class), anyBoolean(), anyBoolean());
         verify(experimentImportErrorRepository).save(any(ExperimentImportError.class));
     }
 
@@ -349,6 +446,51 @@ class ExperimentImportServiceImplTest extends BaseTest {
         verify(experimentImport, never()).addErrorMessage(anyString());
     }
 
+    // export id/FK fields are plain strings - fullExport() above uses old-style numeric strings
+    // (as a pre-uuid export file would still contain), this proves a new-style export using real
+    // uuid strings validates identically, since the cross-referencing is format-agnostic
+    @Test
+    void testValidateSuccessNoErrorsWithUuidIds() throws IOException {
+        String experimentId = UUID.randomUUID().toString();
+        String conditionId = UUID.randomUUID().toString();
+        String exposureId = UUID.randomUUID().toString();
+        String groupId = UUID.randomUUID().toString();
+        String exposureGroupConditionId = UUID.randomUUID().toString();
+        String assignmentId = UUID.randomUUID().toString();
+        String treatmentId = UUID.randomUUID().toString();
+        String assessmentId = UUID.randomUUID().toString();
+        String questionId = UUID.randomUUID().toString();
+        String integrationClientId = UUID.randomUUID().toString();
+        String integrationConfigurationId = UUID.randomUUID().toString();
+        String integrationId = UUID.randomUUID().toString();
+        String answerMcId = UUID.randomUUID().toString();
+        String outcomeId = UUID.randomUUID().toString();
+
+        Export export = Export.builder()
+            .experiment(ExperimentExport.builder().id(experimentId).title("source experiment title").participationType(ParticipationTypes.AUTO).build())
+            .conditions(List.of(ConditionExport.builder().id(conditionId).name("condition").experimentId(experimentId).build()))
+            .exposures(List.of(ExposureExport.builder().id(exposureId).title("exposure").experimentId(experimentId).build()))
+            .groups(List.of(GroupExport.builder().id(groupId).name("group").experimentId(experimentId).build()))
+            .exposureGroupConditions(List.of(ExposureGroupConditionExport.builder().id(exposureGroupConditionId).exposureId(exposureId).groupId(groupId).conditionId(conditionId).build()))
+            .assignments(List.of(AssignmentExport.builder().id(assignmentId).title("assignment").exposureId(exposureId).build()))
+            .treatments(List.of(TreatmentExport.builder().id(treatmentId).conditionId(conditionId).assignmentId(assignmentId).build()))
+            .assessments(List.of(AssessmentExport.builder().id(assessmentId).title("assessment").treatmentId(treatmentId).build()))
+            .questions(List.of(QuestionExport.builder().id(questionId).html("question").questionType(QuestionTypes.MC).assessmentId(assessmentId).questionOrder(1).build()))
+            .integrationClients(List.of(IntegrationClientExport.builder().id(integrationClientId).name("integration client").enabled(true).build()))
+            .integrationConfigurations(List.of(IntegrationConfigurationExport.builder().id(integrationConfigurationId).clientId(integrationClientId).launchUrl("http://launch.url").build()))
+            .integrations(List.of(IntegrationExport.builder().id(integrationId).configurationId(integrationConfigurationId).questionId(questionId).build()))
+            .answersMc(List.of(AnswerMcExport.builder().id(answerMcId).answerOrder(1).correct(true).html("answer").questionId(questionId).build()))
+            .outcomes(List.of(OutcomeExport.builder().id(outcomeId).title("outcome").maxPoints(10F).exposureId(exposureId).build()))
+            .build();
+
+        writeExportJson(export);
+
+        experimentImportService.validate(experimentImport);
+
+        verify(experimentImport, never()).setStatus(ExperimentImportStatus.ERROR);
+        verify(experimentImport, never()).addErrorMessage(anyString());
+    }
+
     @Test
     void testValidateConsentDocumentSuccess() throws IOException {
         Export export = fullExport();
@@ -383,7 +525,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateConditionExperimentIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getConditions().get(0).setExperimentId(999L);
+        export.getConditions().get(0).setExperimentId("999");
 
         assertValidationError(export, "No experiment ID: [999] found for condition ID: [10]");
     }
@@ -399,7 +541,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateExposureExperimentIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getExposures().get(0).setExperimentId(999L);
+        export.getExposures().get(0).setExperimentId("999");
 
         assertValidationError(export, "No experiment ID: [999] found for exposure ID: [20]");
     }
@@ -415,7 +557,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateGroupExperimentIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getGroups().get(0).setExperimentId(999L);
+        export.getGroups().get(0).setExperimentId("999");
 
         assertValidationError(export, "No experiment ID: [999] found for group ID: [30]");
     }
@@ -431,7 +573,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateExposureGroupConditionExposureIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getExposureGroupConditions().get(0).setExposureId(999L);
+        export.getExposureGroupConditions().get(0).setExposureId("999");
 
         assertValidationError(export, "No exposure ID: [999] found for exposureGroupCondition ID: [40]");
     }
@@ -439,7 +581,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateExposureGroupConditionGroupIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getExposureGroupConditions().get(0).setGroupId(999L);
+        export.getExposureGroupConditions().get(0).setGroupId("999");
 
         assertValidationError(export, "No group ID: [999] found for exposureGroupCondition ID: [40]");
     }
@@ -447,7 +589,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateExposureGroupConditionConditionIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getExposureGroupConditions().get(0).setConditionId(999L);
+        export.getExposureGroupConditions().get(0).setConditionId("999");
 
         assertValidationError(export, "No condition ID: [999] found for exposureGroupCondition ID: [40]");
     }
@@ -455,7 +597,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateAssignmentExposureIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getAssignments().get(0).setExposureId(999L);
+        export.getAssignments().get(0).setExposureId("999");
 
         assertValidationError(export, "No exposure ID: [999] found for assignment ID: [50]");
     }
@@ -471,7 +613,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateTreatmentConditionIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getTreatments().get(0).setConditionId(999L);
+        export.getTreatments().get(0).setConditionId("999");
 
         assertValidationError(export, "No condition ID: [999] found for treatment ID: [60]");
     }
@@ -479,7 +621,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateTreatmentAssignmentIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getTreatments().get(0).setAssignmentId(999L);
+        export.getTreatments().get(0).setAssignmentId("999");
 
         assertValidationError(export, "No assignment ID: [999] found for treatment ID: [60]");
     }
@@ -487,7 +629,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateAssessmentTreatmentIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getAssessments().get(0).setTreatmentId(999L);
+        export.getAssessments().get(0).setTreatmentId("999");
 
         assertValidationError(export, "No treatment ID: [999] found for assessment ID: [70]");
     }
@@ -495,7 +637,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateQuestionAssessmentIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getQuestions().get(0).setAssessmentId(999L);
+        export.getQuestions().get(0).setAssessmentId("999");
 
         assertValidationError(export, "No assessment ID: [999] found for question ID: [80]");
     }
@@ -503,7 +645,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateQuestionIntegrationIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getQuestions().get(0).setIntegrationId(999L);
+        export.getQuestions().get(0).setIntegrationId("999");
 
         assertValidationError(export, "No integration ID: [999] found for question ID: [80]");
     }
@@ -519,7 +661,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateIntegrationConfigurationClientIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getIntegrationConfigurations().get(0).setClientId(999L);
+        export.getIntegrationConfigurations().get(0).setClientId("999");
 
         assertValidationError(export, "No integration client ID: [999] found for integration configuration ID: [91]");
     }
@@ -527,7 +669,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateIntegrationConfigurationIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getIntegrations().get(0).setConfigurationId(999L);
+        export.getIntegrations().get(0).setConfigurationId("999");
 
         assertValidationError(export, "No integration configuration ID: [999] found for integration ID: [92]");
     }
@@ -535,7 +677,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateIntegrationQuestionIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getIntegrations().get(0).setQuestionId(999L);
+        export.getIntegrations().get(0).setQuestionId("999");
 
         assertValidationError(export, "No question ID: [999] found for integration ID: [92]");
     }
@@ -543,7 +685,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateAnswerMcQuestionIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getAnswersMc().get(0).setQuestionId(999L);
+        export.getAnswersMc().get(0).setQuestionId("999");
 
         assertValidationError(export, "No question ID: [999] found for multiple choice answer ID: [93]");
     }
@@ -559,7 +701,7 @@ class ExperimentImportServiceImplTest extends BaseTest {
     @Test
     void testValidateOutcomeExposureIdMismatch() throws IOException {
         Export export = fullExport();
-        export.getOutcomes().get(0).setExposureId(999L);
+        export.getOutcomes().get(0).setExposureId("999");
 
         assertValidationError(export, "No exposure ID: [999] found for outcome ID: [94]");
     }

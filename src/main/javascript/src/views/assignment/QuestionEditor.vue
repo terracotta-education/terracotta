@@ -146,19 +146,19 @@ const alertStatuses = computed(() => {
 });
 
 const experimentId = computed(() => {
-  return Number.parseInt(route.params.experimentId, 10);
+  return route.params.experimentId;
 });
 
 const treatmentId = computed(() => {
-  return Number.parseInt(route.params.treatmentId, 10);
+  return route.params.treatmentId;
 });
 
 const assessmentId = computed(() => {
-  return Number.parseInt(route.params.assessmentId, 10);
+  return route.params.assessmentId;
 });
 
 const conditionId = computed(() => {
-  return Number.parseInt(route.params.conditionId, 10);
+  return route.params.conditionId;
 });
 
 const questionIndex = computed(() => {

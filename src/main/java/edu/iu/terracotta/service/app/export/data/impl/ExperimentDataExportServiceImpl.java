@@ -208,7 +208,7 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
     @Override
     public ExperimentDataExportDto toDto(ExperimentDataExport experimentDataExport, boolean includeFileContent) throws IOException {
         return ExperimentDataExportDto.builder()
-        .experimentId(experimentDataExport.getExperimentId())
+        .experimentId(experimentDataExport.getExperiment().getUuid())
             .experimentTitle(experimentDataExport.getExperimentTitle())
             .id(experimentDataExport.getUuid())
             .file(includeFileContent ? fileStorageService.getExperimentDataExport(experimentDataExport.getId()) : null)

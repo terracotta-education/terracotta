@@ -20,7 +20,7 @@ import lombok.Setter;
 public class IntegrationDto {
 
     private UUID id;
-    private long questionId;
+    private UUID questionId;
     private IntegrationConfigurationDto configuration;
     private List<IntegrationClientDto> clients;
     private String previewUrl;

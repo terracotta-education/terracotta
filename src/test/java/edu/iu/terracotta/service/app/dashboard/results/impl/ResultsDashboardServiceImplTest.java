@@ -36,7 +36,7 @@ public class ResultsDashboardServiceImplTest extends BaseTest {
         ResultsDashboardDto ret = resultsDashboardService.outcomes(1L, resultsOutcomesRequestDto);
 
         assertNotNull(ret);
-        assertEquals(1l, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
         assertNotNull(ret.getOutcomes());
         assertNull(ret.getOverview());
     }
@@ -55,7 +55,7 @@ public class ResultsDashboardServiceImplTest extends BaseTest {
         ResultsDashboardDto ret = resultsDashboardService.overview(1L, securedInfo);
 
         assertNotNull(ret);
-        assertEquals(1l, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
         assertNotNull(ret.getOverview());
         assertNull(ret.getOutcomes());
     }

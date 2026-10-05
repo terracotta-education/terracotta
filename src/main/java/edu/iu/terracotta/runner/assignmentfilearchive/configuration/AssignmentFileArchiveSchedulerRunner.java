@@ -43,11 +43,13 @@ public class AssignmentFileArchiveSchedulerRunner {
     @Bean
     Task<Void> assignmentFileArchiveDeleteSchedulerTask(AssignmentFileArchiveSchedulerService assignmentFileArchiveSchedulerService) {
         if (!enabled) {
+            log.info("The assignment file archive delete task [{}] is disabled. Set [assignment.file.archive.scheduler.enabled] to true to enable it.", TASK_NAME);
+
             // not enabled; create one-time task to log message
             return Tasks.oneTime(ASSIGNMENT_FILE_DELETE_TASK)
                 .execute(
                     (instance, ctx) -> {
-                        log.info("Assignment file archive delete task [{}] is not enabled.", ASSIGNMENT_FILE_DELETE_TASK);
+                        log.info("The assignment file archive delete task [{}] is not enabled.", TASK_NAME);
                     }
                 );
         }
@@ -59,7 +61,7 @@ public class AssignmentFileArchiveSchedulerRunner {
             log.error(e.getMessage());
         }
 
-        log.info("Creating assignment file archive delete task [{}]", ASSIGNMENT_FILE_DELETE_TASK);
+        log.info("Scheduled the assignment file archive delete task [{}] to run every [{}] minute(s)", TASK_NAME, interval);
 
         return Tasks.recurring(ASSIGNMENT_FILE_DELETE_TASK, Schedules.fixedDelay(Duration.ofMinutes(interval)))
             .onDeadExecutionRevive()

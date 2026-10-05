@@ -8,11 +8,20 @@
       :display="isDeletingExperiment"
       message="Please wait..."
     />
+    <v-alert
+      v-if="isLoaded && isCopyInProgress"
+      class="copy-in-progress-alert mx-12 mt-6"
+      type="info"
+      variant="tonal"
+    >
+      Your experiments and assignments are being copied from your previous course. This page will update when they're ready.
+    </v-alert>
     <zero-state
       v-show="isLoaded && !hasExperiments"
       :experimentExportEnabled="experimentExportEnabled"
       :experimentImportRequests="experimentImportRequests"
       :importRequestAlerts="importRequestAlerts"
+      :disableActions="isExperimentImporting || isCopyInProgress"
       @handleImportExperiment="handleImportExperiment"
       @handleImportRequestAlertDismiss="handleImportRequestAlertDismiss"
       @handleImportRequestAlertVisibilityChange="handleImportRequestAlertVisibilityChange"
@@ -41,7 +50,7 @@
         >
           <v-btn
             v-if="experimentExportEnabled"
-            :disabled="isExperimentImporting"
+            :disabled="isExperimentImporting || isCopyInProgress"
             @click="handleImportExperiment"
             color="primary"
             elevation="0"
@@ -50,7 +59,7 @@
             Import Experiment
           </v-btn>
           <v-btn
-            :disabled="isExperimentImporting"
+            :disabled="isExperimentImporting || isCopyInProgress"
             @click="startExperiment"
             color="primary"
             elevation="0"
@@ -278,6 +287,7 @@ import PageLoading from "@/components/PageLoading.vue";
 import ZeroState from "@/views/ZeroState.vue";
 
 import { experiment as experimentModule } from "@/store/experiment.module";
+import { experimentCopyCandidate as experimentCopyCandidateModule } from "@/store/experiment-copy-candidate.module";
 import { dataExportRequest as dataExportRequestModule } from "@/store/experiment-data-export.module";
 import { configuration as configurationModule } from "@/store/configuration.module";
 import { consent as consentModule } from "@/store/consent.module";
@@ -301,6 +311,7 @@ defineOptions({
 const router = useRouter();
 
 const experimentStore = experimentModule();
+const experimentCopyCandidateStore = experimentCopyCandidateModule();
 const dataExportRequestStore = dataExportRequestModule();
 const configurationStore = configurationModule();
 const consentStore = consentModule();
@@ -327,6 +338,16 @@ const isLoaded = ref(false);
 const isExportingExperiment = ref(false);
 const isDeletingExperiment = ref(false);
 
+const COPY_MESSAGES = {
+  COMPLETE: "Your experiments and assignments have been copied from your previous course and are ready to use.",
+  ERROR: "We couldn't copy all of the experiments and assignments from your previous course. Please contact info@terracotta.education for help."
+};
+const copyStatusPollingId = ref(null);
+// a failed copy is retried once per visit, as whoever is launching now, before its failure is
+// reported - so an instructor who re-approved LMS access after the failure email isn't told it
+// failed again without it being tried again
+const copyRetryAttempted = ref(false);
+
 const experimentDataExportRequests = ref({
   downloadLinkClicked: false
 });
@@ -334,6 +355,8 @@ const experimentDataExportRequests = ref({
 const experimentImportRequests = ref({});
 
 const experiments = computed(() => experimentStore.experiments);
+const copyStatus = computed(() => experimentCopyCandidateStore.copyStatus);
+const isCopyInProgress = computed(() => copyStatus.value?.status === "IN_PROGRESS");
 const dataExportRequests = computed(() => dataExportRequestStore.dataExportRequests);
 const importRequests = computed(() => experimentStore.importRequests);
 const configurations = computed(() => configurationStore.get);
@@ -360,7 +383,10 @@ const dataExportRequestAlerts = computed(() => {
       continue;
     }
 
-    const request = dataExportRequest(experimentId);
+    // object keys (from for..in) are always strings, but experimentId is numeric
+    // everywhere else in this store/component - without this conversion, the lookup
+    // below never matches and no data-export alert can ever be shown
+    const request = dataExportRequest(Number(experimentId));
 
     if (request?.ready) {
       experimentsToShow.push({
@@ -463,7 +489,7 @@ const formatDate = date => {
 
 const dataExportRequest = experimentId => {
   return dataExportRequests.value?.find(
-    request => request.experimentId === parseInt(experimentId)
+    request => request.experimentId === experimentId
   );
 };
 
@@ -565,6 +591,57 @@ const handleImportExperiment = async () => {
       }
     }
   };
+};
+
+// shows the result of recreating this course's experiments after a course copy once, then
+// acknowledges it so it isn't shown again. While still underway, checks back until it finishes.
+const handleCopyStatus = async () => {
+  const status = copyStatus.value?.status;
+
+  if (status === "IN_PROGRESS") {
+    if (!copyStatusPollingId.value) {
+      copyStatusPollingId.value = window.setInterval(handleCopyStatusPolling, 5000);
+    }
+
+    return;
+  }
+
+  // the server is holding the retry until the instructor re-authorizes LMS access (see
+  // DistributeController#retryCopy). It hasn't run, so there's no failure to report yet, and the
+  // copy must stay unacknowledged so it's retried after authorization.
+  if (status === "AUTHORIZATION_REQUIRED") {
+    return;
+  }
+
+  if (status === "ERROR" && !copyRetryAttempted.value) {
+    copyRetryAttempted.value = true;
+    await experimentCopyCandidateStore.retryCopy();
+
+    return handleCopyStatus();
+  }
+
+  if (!COPY_MESSAGES[status]) {
+    return;
+  }
+
+  await Swal.fire({
+    text: COPY_MESSAGES[status],
+    icon: status === "COMPLETE" ? "success" : "error"
+  });
+
+  await experimentCopyCandidateStore.acknowledgeCopyStatus();
+};
+
+const handleCopyStatusPolling = async () => {
+  await experimentCopyCandidateStore.fetchCopyStatus();
+
+  if (isCopyInProgress.value) {
+    return;
+  }
+
+  copyStatusPollingId.value = window.clearInterval(copyStatusPollingId.value);
+  await experimentStore.fetchExperiments();
+  await handleCopyStatus();
 };
 
 const handleDelete = async experiment => {
@@ -836,7 +913,13 @@ watch(
       return;
     }
 
-    const sortableColumns = table.querySelectorAll("th.sortable > span:not(.v-icon)");
+    // Vuetify 3 marks a sortable header with the "v-data-table__th--sortable" class
+    // (not the older "sortable" class this selector was written for) and nests its
+    // label in a ".v-data-table-header__content" wrapper - the old selector never
+    // matched anything, silently disabling this keyboard-accessibility behavior
+    const sortableColumns = table.querySelectorAll(
+      "th.v-data-table__th--sortable .v-data-table-header__content > span:not(.v-icon)"
+    );
 
     sortableColumns.forEach(column => {
       column.setAttribute("tabindex", "0");
@@ -862,8 +945,11 @@ watch(
       }
 
       if (request.polling.active && !request.polling.id) {
+        // for..in keys are always strings, but experimentId is numeric everywhere
+        // else in this store/component - handleDataExportRequestPolling looks the
+        // request back up by strict equality, so this needs to be a number too
         request.polling.id = window.setInterval(() => {
-          handleDataExportRequestPolling(experimentId);
+          handleDataExportRequestPolling(Number(experimentId));
         }, 5000);
       } else if (!request.polling.active && request.polling.id) {
         request.polling.id = window.clearInterval(request.polling.id);
@@ -933,10 +1019,12 @@ onMounted(async () => {
   navigationStore.deleteEditMode();
   dataExportRequestStore.reset();
   experimentStore.resetImportRequests();
+  experimentCopyCandidateStore.reset();
   messagingContainerStore.reset();
   messagingConditionalTextStore.reset();
 
   await experimentStore.fetchExperiments();
+  await experimentCopyCandidateStore.fetchCopyStatus();
 
   if (experiments.value && experiments.value.length > 0) {
     await dataExportRequestStore.pollList([
@@ -969,7 +1057,15 @@ onMounted(async () => {
 
   await experimentStore.pollImports();
 
+  // imports created by recreating a copied course are reported by one combined message
+  // (see handleCopyStatus) instead of each import's own alert
+  const copyImportIds = copyStatus.value?.importIds ?? [];
+
   importRequests.value.forEach(request => {
+    if (copyImportIds.includes(request.id)) {
+      return;
+    }
+
     experimentImportRequests.value = {
       ...experimentImportRequests.value,
       [request.id]: {
@@ -983,9 +1079,15 @@ onMounted(async () => {
   });
 
   isLoaded.value = true;
+
+  handleCopyStatus();
 });
 
 onBeforeUnmount(() => {
+  if (copyStatusPollingId.value) {
+    window.clearInterval(copyStatusPollingId.value);
+  }
+
   for (const experimentId in experimentDataExportRequests.value) {
     const request = experimentDataExportRequests.value[experimentId];
 
@@ -996,6 +1098,10 @@ onBeforeUnmount(() => {
 });
 
 onBeforeRouteLeave((to, from, next) => {
+  if (copyStatusPollingId.value) {
+    copyStatusPollingId.value = window.clearInterval(copyStatusPollingId.value);
+  }
+
   for (const id in experimentImportRequests.value) {
     const request = experimentImportRequests.value[id];
 
@@ -1048,6 +1154,15 @@ onBeforeRouteLeave((to, from, next) => {
   a {
     color: map.get($blue, "light");
   }
+}
+// while a copy runs the course has no experiments yet, so ZeroState's fixed, half-transparent
+// background image paints over this banner and washes it out. Lift the banner above it, and give
+// the tonal (see-through) variant a solid base so the image doesn't show through. On a plain
+// white page this looks the same as before.
+.copy-in-progress-alert {
+  position: relative;
+  z-index: 1;
+  background-color: #fff;
 }
 .alert-request {
   min-width: 100%;

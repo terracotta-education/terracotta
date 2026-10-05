@@ -120,6 +120,25 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(assignmentRepository, never()).findAssignmentsToCheckByContext(anyLong());
     }
 
+    // a real incident: a rejected refresh_token (e.g. the instructor revoked API access, or it
+    // expired past Canvas's own refresh window) throws an LmsOAuthException that itself wraps the
+    // underlying HTTP failure as its cause (see CanvasLmsOAuthServiceImpl#postToTokenURL) - so
+    // LmsOAuthException is NOT the deepest/"root" cause here. A getRootCause()-based check would
+    // walk right past it to that HTTP exception and miss this case entirely, letting it escape as
+    // an "Unexpected exception" from Spring's async handler instead of being swallowed like any
+    // other not-yet-authorized case.
+    @Test
+    void testHandleAssignmentTasksInLmsByContextSwallowsRejectedRefreshTokenException() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        RuntimeException httpFailure = new RuntimeException("400 Bad Request");
+        LmsOAuthException oauthFailure = new LmsOAuthException("{\"error\":\"invalid_grant\",\"error_description\":\"refresh_token not found\"}", httpFailure);
+        IllegalStateException refreshFailure = new IllegalStateException("Failed to refresh Canvas API access token", new ApiException("Could not get a Canvas API token for user", oauthFailure));
+        when(assignmentService.getAllAssignmentsForLmsCourse(any())).thenThrow(new ApiException("Failed to get the list of assignments", refreshFailure));
+
+        assertDoesNotThrow(() -> assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo));
+
+        verify(assignmentRepository, never()).findAssignmentsToCheckByContext(anyLong());
+    }
+
     // checkAndRestoreAssignmentsInLmsByContext
 
     @Test
@@ -348,6 +367,63 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(apiClient).editAssignment(any(LtiUserEntity.class), eq(lmsAssignment), anyString());
         verify(apiClient).editAssignment(any(LtiUserEntity.class), eq(lmsAssignment2), anyString());
         verify(obsoleteAssignmentRepository, times(1)).save(any(ObsoleteAssignment.class));
+    }
+
+    // new-format LMS-stored launch URL: the "assignment" query parameter is already a uuid
+    // (matching the still-live default mock "assignment"'s uuid) - must be recognized as still
+    // live without falling back to the legacy numeric-id comparison
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextSkipsWhenAssignmentUuidStillInContext() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        UUID assignmentUuid = assignment.getUuid();
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?experiment=99&assignment=" + assignmentUuid);
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+        verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
+    }
+
+    // new-format LMS-stored launch URL whose "assignment" uuid no longer matches any live
+    // Terracotta assignment (e.g. a since-deleted assignment) - must be marked obsolete just
+    // like the legacy numeric-id case
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextMarksObsoleteWhenAssignmentUuidNotFound() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?experiment=99&assignment=" + UUID.randomUUID());
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient).editAssignment(any(LtiUserEntity.class), eq(lmsAssignment), anyString());
+        verify(obsoleteAssignmentRepository).save(any(ObsoleteAssignment.class));
+    }
+
+    // new-format LMS-stored consent launch URL: the "experiment" query parameter is already a
+    // uuid (matching the still-live default mock "experiment"'s uuid) - must be recognized as
+    // still live without falling back to the legacy numeric-id comparison
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextSkipsConsentAssignmentWhenExperimentUuidStillInContext() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        UUID experimentUuid = experiment.getUuid();
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?consent=true&experiment=" + experimentUuid);
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+        verify(obsoleteAssignmentRepository, never()).save(any(ObsoleteAssignment.class));
+    }
+
+    // new-format LMS-stored consent launch URL whose "experiment" uuid no longer matches any
+    // live Terracotta experiment - must be marked obsolete just like the legacy numeric-id case
+    @Test
+    void testHandleObsoleteAssignmentsInLmsByContextMarksObsoleteConsentAssignmentWhenExperimentUuidNotFound() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(lmsExternalToolFields.getUrl()).thenReturn(LTI_URL + "?consent=true&experiment=" + UUID.randomUUID());
+
+        assignmentAsyncService.handleObsoleteAssignmentsInLmsByContext(securedInfo, List.of(lmsAssignment));
+
+        verify(apiClient).editAssignment(any(LtiUserEntity.class), eq(lmsAssignment), anyString());
+        verify(obsoleteAssignmentRepository).save(any(ObsoleteAssignment.class));
     }
 
     @Test

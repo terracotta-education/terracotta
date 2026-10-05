@@ -322,17 +322,19 @@ public class ApiJwtServiceImplTest extends BaseTest {
     @Test
     public void testBuildJwtLongFormDelegates() throws Exception {
         List<String> roles = List.of(Roles.MEMBERSHIP_LEARNER);
+        UUID assignmentUuid = UUID.randomUUID();
+        UUID experimentUuid = UUID.randomUUID();
         when(apiJwtConnectorService.instance(eq(20L), eq(ApiJwtService.class))).thenReturn(apiJwtService);
         when(
             apiJwtService.buildJwt(
-                true, roles, 1L, 20L, "user1", 2L, 3L, true, "lmsUser1", "lmsGlobal1",
+                true, roles, 1L, 20L, "user1", assignmentUuid, experimentUuid, true, "lmsUser1", "lmsGlobal1",
                 "login1", "lmsUserName1", "course1", "lmsAssign1", "due", "lock", "unlock",
                 "nonce1", 5, 2
             )
         ).thenReturn("big-jwt");
 
         String result = apiJwtServiceImpl.buildJwt(
-            true, roles, 1L, 20L, "user1", 2L, 3L, true, "lmsUser1", "lmsGlobal1",
+            true, roles, 1L, 20L, "user1", assignmentUuid, experimentUuid, true, "lmsUser1", "lmsGlobal1",
             "login1", "lmsUserName1", "course1", "lmsAssign1", "due", "lock", "unlock",
             "nonce1", 5, 2
         );

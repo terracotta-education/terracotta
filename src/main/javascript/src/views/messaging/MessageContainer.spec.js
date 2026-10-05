@@ -179,14 +179,14 @@ describe("MessageContainer", () => {
 
     expect(result).toBe(true);
     expect(messageContainerService.create).toHaveBeenCalledWith(
-      1,
+      "1",
       "exposure-1",
       false
     );
     expect(messageContainerService.update).toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith({
       name: "ExperimentSummary",
-      params: { experimentId: 1 }
+      params: { experimentId: "1" }
     });
   });
 
@@ -218,14 +218,14 @@ describe("MessageContainer", () => {
     expect(result).toBe(true);
     expect(messageContainerService.create).not.toHaveBeenCalled();
     expect(messageContainerService.update).toHaveBeenCalledWith(
-      1,
+      "1",
       "exposure-1",
       "container-1",
       expect.objectContaining({ id: "container-1" })
     );
     expect(push).toHaveBeenCalledWith({
       name: "ExperimentSummary",
-      params: { experimentId: 1 }
+      params: { experimentId: "1" }
     });
   });
 

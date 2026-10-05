@@ -11,7 +11,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.dao.model.enums.MultipleSubmissionScoringScheme;
 
 import java.sql.Timestamp;
@@ -37,7 +37,7 @@ import jakarta.persistence.Transient;
 @AllArgsConstructor
 @Table(name = "terr_assignment")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Assignment extends BaseEntity {
+public class Assignment extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -131,10 +131,14 @@ public class BaseRepositoryTest extends BaseModelTest {
 
             when(answerIntegrationSubmissionRepository.existsByQuestionSubmission_QuestionSubmissionIdAndId(anyLong(), anyLong())).thenReturn(true);
             when(answerIntegrationSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(List.of(answerIntegrationSubmission));
+            when(answerIntegrationSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerIntegrationSubmission);
             when(answerMcRepository.save(any(AnswerMc.class))).thenReturn(answerMc);
+            when(answerMcRepository.findByUuid(any(UUID.class))).thenReturn(answerMc);
             when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(List.of(answerEssaySubmission));
+            when(answerEssaySubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerEssaySubmission);
             when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(List.of(answerMcSubmission));
             when(answerMcSubmissionRepository.findByQuestionSubmission_QuestionSubmissionIdIn(anyList())).thenReturn(List.of(answerMcSubmission));
+            when(answerMcSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(answerMcSubmission);
             when(apiOAuthSettingsRepository.findByPlatformDeployment(any(PlatformDeployment.class))).thenReturn(Optional.of(apiOAuthSettings));
             when(apiOneUseTokenRepository.findByToken(anyString())).thenReturn(apiOneUseToken);
             when(apiScopeRepository.findAll()).thenReturn(List.of(apiScope));
@@ -147,6 +151,7 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(apiTokenRepository.findByUser(any(LtiUserEntity.class))).thenReturn(Optional.of(apiTokenEntity));
             when(assessmentRepository.findByAssessmentId(anyLong())).thenReturn(assessment);
             when(assessmentRepository.findById(anyLong())).thenReturn(Optional.of(assessment));
+            when(assessmentRepository.findByUuid(any(UUID.class))).thenReturn(assessment);
             when(assessmentRepository.findByTreatment_Assignment_AssignmentId(anyLong())).thenReturn(List.of(assessment));
             when(assessmentRepository.findByTreatment_Assignment_AssignmentIdIn(any())).thenReturn(List.of(assessment));
             when(assessmentRepository.save(any(Assessment.class))).thenReturn(assessment);
@@ -176,10 +181,12 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(exposureGroupConditionRepository.findByCondition_Experiment_ExperimentId(anyLong())).thenReturn(List.of(exposureGroupCondition));
             when(exposureGroupConditionRepository.findByExposure_ExposureId(anyLong())).thenReturn(List.of(exposureGroupCondition));
             when(exposureGroupConditionRepository.findByGroup_GroupId(anyLong())).thenReturn(List.of(exposureGroupCondition));
+            when(exposureGroupConditionRepository.findByUuid(any(UUID.class))).thenReturn(exposureGroupCondition);
             when(exposureGroupConditionRepository.getByCondition_ConditionIdAndExposure_ExposureId(anyLong(), anyLong())).thenReturn(Optional.of(exposureGroupCondition));
             when(exposureRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(List.of(exposure));
             when(exposureRepository.findByExposureId(anyLong())).thenReturn(exposure);
             when(exposureRepository.findById(anyLong())).thenReturn(Optional.of(exposure));
+            when(exposureRepository.findByUuid(any(UUID.class))).thenReturn(exposure);
             when(groupRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(List.of(group));
             when(groupRepository.getReferenceById(anyLong())).thenReturn(group);
             when(groupRepository.saveAll(anyList())).thenReturn(List.of(group));
@@ -206,9 +213,9 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(outcome)));
             when(outcomeRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(List.of(outcome));
             when(outcomeRepository.findByExposure_ExposureId(anyLong())).thenReturn(List.of(outcome));
-            when(outcomeRepository.findAllById(anyList())).thenReturn(List.of(outcome));
             when(outcomeRepository.findById(anyLong())).thenReturn(Optional.of(outcome));
             when(outcomeRepository.findByOutcomeId(anyLong())).thenReturn(outcome);
+            when(outcomeRepository.findByUuid(any(UUID.class))).thenReturn(outcome);
             when(outcomeRepository.save(any(Outcome.class))).thenReturn(outcome);
             when(outcomeScoreRepository.findByOutcome_OutcomeId(anyLong())).thenReturn(List.of(outcomeScore));
             when(participantRepository.countByGroup_GroupId(anyLong())).thenReturn(1L);
@@ -223,15 +230,19 @@ public class BaseRepositoryTest extends BaseModelTest {
             when(platformDeploymentRepository.findByIssAndClientId(anyString(), anyString())).thenReturn(List.of(platformDeployment));
             when(platformDeploymentRepository.getReferenceById(anyLong())).thenReturn(platformDeployment);
             when(questionRepository.findByQuestionId(anyLong())).thenReturn(question);
+            when(questionRepository.findByUuid(any(UUID.class))).thenReturn(question);
             when(questionRepository.save(any(Question.class))).thenReturn(question);
             when(questionRepository.save(any(QuestionMc.class))).thenReturn(questionMc);
             when(questionRepository.saveAndFlush(any(Question.class))).thenReturn(question);
             when(questionRepository.saveAndFlush(any(QuestionMc.class))).thenReturn(questionMc);
+            when(questionSubmissionRepository.findByUuid(any(UUID.class))).thenReturn(questionSubmission);
             when(questionSubmissionRepository.save(any(QuestionSubmission.class))).thenReturn(questionSubmission);
+            when(questionSubmissionCommentRepository.findByUuid(any(UUID.class))).thenReturn(questionSubmissionComment);
             when(submissionRepository.findById(anyLong())).thenReturn(Optional.of(submission));
             when(submissionRepository.findByParticipant_Id(anyLong())).thenReturn(List.of(submission));
             when(submissionRepository.findByParticipant_IdAndAssessment_AssessmentId(anyLong(), anyLong())).thenReturn(List.of(submission));
             when(submissionRepository.findBySubmissionId(anyLong())).thenReturn(submission);
+            when(submissionRepository.findByUuid(any(UUID.class))).thenReturn(submission);
             when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
             when(toolDeploymentRepository.findByPlatformDeployment_IssAndPlatformDeployment_ClientIdAndLtiDeploymentId(anyString(), anyString(), anyString())).thenReturn(List.of(toolDeployment));
             when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(List.of(treatment));

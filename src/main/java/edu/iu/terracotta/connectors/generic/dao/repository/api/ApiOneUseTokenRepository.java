@@ -5,10 +5,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.api.ApiOneUseToken;
 
+import java.util.UUID;
 import java.util.Date;
 
 @Transactional
 public interface ApiOneUseTokenRepository extends JpaRepository<ApiOneUseToken, Long> {
+
+    ApiOneUseToken findByUuid(UUID uuid);
 
     ApiOneUseToken findByToken(String token);
 

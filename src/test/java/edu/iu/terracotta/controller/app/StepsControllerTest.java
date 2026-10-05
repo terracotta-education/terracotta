@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
+import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.StepDto;
@@ -35,6 +37,14 @@ import edu.iu.terracotta.utils.TextConstants;
 
 @SuppressWarnings("unchecked")
 public class StepsControllerTest extends BaseTest {
+
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
+    // uuid wire ids for the "submissionIds" parameter (a comma-separated list); each resolves via
+    // submissionService.getSubmissionByUuid (stubbed below) to a submission whose numeric
+    // getSubmissionId() is 5L/6L respectively, matching this test file's existing numeric expectations
+    private static final UUID SUBMISSION_5_UUID = UUID.randomUUID();
+    private static final UUID SUBMISSION_6_UUID = UUID.randomUUID();
 
     private StepsController stepsController;
 
@@ -47,9 +57,18 @@ public class StepsControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        stepsController = new StepsController(exposureService, participantService, participantAsyncService, groupService, submissionService, assessmentService, assignmentService, questionSubmissionService, apiJwtService);
+        stepsController = new StepsController(exposureService, participantService, participantAsyncService, groupService, submissionService, assessmentService, assignmentService, questionSubmissionService, apiJwtService, experimentService);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+
+        Submission submission5 = mock(Submission.class);
+        when(submission5.getSubmissionId()).thenReturn(5L);
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_5_UUID)).thenAnswer(invocation -> submission5.getSubmissionId());
+
+        Submission submission6 = mock(Submission.class);
+        when(submission6.getSubmissionId()).thenReturn(6L);
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_6_UUID)).thenAnswer(invocation -> submission6.getSubmissionId());
     }
 
     private StepDto stepDto(String step) {
@@ -64,7 +83,7 @@ public class StepsControllerTest extends BaseTest {
     void exposureTypeHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.EXPOSURE_TYPE), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.EXPOSURE_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(exposureService).createExposures(1L);
@@ -74,7 +93,7 @@ public class StepsControllerTest extends BaseTest {
     void exposureTypePermissionDeniedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.EXPOSURE_TYPE), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.EXPOSURE_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -88,7 +107,7 @@ public class StepsControllerTest extends BaseTest {
         LmsUserBatchStatusDto lmsUserBatchStatusDto = LmsUserBatchStatusDto.builder().batchId(batchId).status(LmsUserBatchStatus.IN_PROGRESS).build();
         when(participantService.startPrepareParticipation(1L, securedInfo)).thenReturn(lmsUserBatchStatusDto);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(lmsUserBatchStatusDto, response.getBody());
@@ -104,7 +123,7 @@ public class StepsControllerTest extends BaseTest {
         LmsUserBatchStatusDto lmsUserBatchStatusDto = LmsUserBatchStatusDto.builder().batchId(UUID.randomUUID()).status(LmsUserBatchStatus.COMPLETED).build();
         when(participantService.startPrepareParticipation(1L, securedInfo)).thenReturn(lmsUserBatchStatusDto);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(lmsUserBatchStatusDto, response.getBody());
@@ -115,7 +134,7 @@ public class StepsControllerTest extends BaseTest {
     void participationTypePermissionDeniedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.PARTICIPATION_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         verify(participantAsyncService, never()).prepareParticipationAsync(anyLong(), any(), any());
@@ -127,7 +146,7 @@ public class StepsControllerTest extends BaseTest {
         LmsUserBatchStatusDto lmsUserBatchStatusDto = LmsUserBatchStatusDto.builder().batchId(batchId).status(LmsUserBatchStatus.COMPLETED).build();
         when(participantService.getPrepareParticipationStatus(batchId)).thenReturn(Optional.of(lmsUserBatchStatusDto));
 
-        ResponseEntity<Object> response = stepsController.getStepStatus(1L, batchId, httpServletRequest);
+        ResponseEntity<Object> response = stepsController.getStepStatus(EXPERIMENT_UUID, batchId, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(lmsUserBatchStatusDto, response.getBody());
@@ -138,7 +157,7 @@ public class StepsControllerTest extends BaseTest {
         UUID batchId = UUID.randomUUID();
         when(participantService.getPrepareParticipationStatus(batchId)).thenReturn(Optional.empty());
 
-        ResponseEntity<Object> response = stepsController.getStepStatus(1L, batchId, httpServletRequest);
+        ResponseEntity<Object> response = stepsController.getStepStatus(EXPERIMENT_UUID, batchId, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
@@ -147,7 +166,7 @@ public class StepsControllerTest extends BaseTest {
     void distributionTypeHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.DISTRIBUTION_TYPE), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.DISTRIBUTION_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(groupService).createAndAssignGroupsToConditionsAndExposures(1L, securedInfo, false);
@@ -157,14 +176,14 @@ public class StepsControllerTest extends BaseTest {
     void distributionTypePermissionDeniedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.DISTRIBUTION_TYPE), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.DISTRIBUTION_TYPE), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
     void studentSubmissionParametersNullTest() throws Exception {
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.STUDENT_SUBMISSION), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.STUDENT_SUBMISSION), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(TextConstants.SUBMISSION_IDS_MISSING, response.getBody());
@@ -173,7 +192,7 @@ public class StepsControllerTest extends BaseTest {
     @Test
     void studentSubmissionEmptyIdsTest() throws Exception {
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
             stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "")),
             httpServletRequest
@@ -189,9 +208,9 @@ public class StepsControllerTest extends BaseTest {
         when(submissionService.isOwnSubmission(5L, securedInfo)).thenReturn(true);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             true,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -211,9 +230,9 @@ public class StepsControllerTest extends BaseTest {
         when(submissionService.isOwnSubmission(5L, securedInfo)).thenReturn(true);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             true,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -232,9 +251,9 @@ public class StepsControllerTest extends BaseTest {
         when(submissionService.isOwnSubmission(5L, securedInfo)).thenReturn(false);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -249,9 +268,9 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5,6")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID + "," + SUBMISSION_6_UUID)),
             httpServletRequest
         );
 
@@ -265,9 +284,9 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5,6")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID + "," + SUBMISSION_6_UUID)),
             httpServletRequest
         );
 
@@ -282,9 +301,9 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -299,9 +318,9 @@ public class StepsControllerTest extends BaseTest {
         doThrow(new AssignmentAttemptException("no attempts left")).when(questionSubmissionService).canSubmit(securedInfo, 1L, false);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -317,9 +336,9 @@ public class StepsControllerTest extends BaseTest {
         doThrow(new AssignmentLockedException("locked")).when(questionSubmissionService).canSubmit(securedInfo, 1L, false);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
-            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", "5")),
+            stepDto(StepsController.STUDENT_SUBMISSION, Map.of("submissionIds", SUBMISSION_5_UUID.toString())),
             httpServletRequest
         );
 
@@ -329,7 +348,7 @@ public class StepsControllerTest extends BaseTest {
 
     @Test
     void postAssignmentParametersNullTest() throws Exception {
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.POST_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.POST_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -337,7 +356,7 @@ public class StepsControllerTest extends BaseTest {
     @Test
     void postAssignmentEmptyIdsTest() throws Exception {
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
             stepDto(StepsController.POST_ASSIGNMENT, Map.of("assignmentIds", "")),
             httpServletRequest
@@ -351,7 +370,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
             stepDto(StepsController.POST_ASSIGNMENT, Map.of("assignmentIds", "9")),
             httpServletRequest
@@ -366,7 +385,7 @@ public class StepsControllerTest extends BaseTest {
         when(assignmentService.findById(9L)).thenReturn(Optional.empty());
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
             stepDto(StepsController.POST_ASSIGNMENT, Map.of("assignmentIds", "9")),
             httpServletRequest
@@ -382,7 +401,7 @@ public class StepsControllerTest extends BaseTest {
         when(assignmentService.findById(9L)).thenReturn(Optional.of(assignment));
 
         ResponseEntity<Object> response = stepsController.postStep(
-            1L,
+            EXPERIMENT_UUID,
             false,
             stepDto(StepsController.POST_ASSIGNMENT, Map.of("assignmentIds", "9")),
             httpServletRequest
@@ -397,7 +416,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(false);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -409,7 +428,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> launched = new ResponseEntity<>("launch-payload", HttpStatus.OK);
         when(assignmentService.launchAssignment(1L, securedInfo)).thenReturn(launched);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
 
         assertEquals(launched, response);
     }
@@ -423,7 +442,7 @@ public class StepsControllerTest extends BaseTest {
         ResponseEntity<Object> launched = new ResponseEntity<>("launch-payload", HttpStatus.OK);
         when(assignmentService.launchAssignment(1L, securedInfo)).thenReturn(launched);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
 
         assertEquals(launched, response);
     }
@@ -434,7 +453,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         doThrow(new AssignmentAttemptException("blocked")).when(questionSubmissionService).canSubmit(securedInfo, 1L, false);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.LAUNCH_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("blocked", response.getBody());
@@ -446,7 +465,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(participantService.getParticipants(1L, USER_ID, true, securedInfo, false)).thenReturn(List.of(participantDto));
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
@@ -461,7 +480,7 @@ public class StepsControllerTest extends BaseTest {
         when(participantService.getParticipants(1L, USER_ID, true, securedInfo, false))
             .thenReturn(Collections.emptyList(), List.of(participantDto));
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
@@ -478,7 +497,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(participantService.getParticipants(1L, USER_ID, true, securedInfo, false)).thenReturn(List.of(participantDto));
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
@@ -488,7 +507,7 @@ public class StepsControllerTest extends BaseTest {
     void launchConsentAssignmentPermissionDeniedTest() throws Exception {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.LAUNCH_CONSENT_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -498,7 +517,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isLearner(securedInfo)).thenReturn(false);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -509,7 +528,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(assessmentService.viewAssessment(1L, securedInfo)).thenReturn(assessmentDto);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(assessmentDto, response.getBody());
@@ -523,7 +542,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(assessmentService.viewAssessment(1L, securedInfo)).thenReturn(assessmentDto);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(assessmentDto, response.getBody());
@@ -535,7 +554,7 @@ public class StepsControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         doThrow(new AssessmentNotMatchingException("no assessment")).when(assessmentService).viewAssessment(1L, securedInfo);
 
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.VIEW_ASSIGNMENT), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("no assessment", response.getBody());
@@ -543,7 +562,7 @@ public class StepsControllerTest extends BaseTest {
 
     @Test
     void unknownStepReturnsBadRequestTest() throws Exception {
-        ResponseEntity<Object> response = stepsController.postStep(1L, false, stepDto("not_a_real_step"), httpServletRequest);
+        ResponseEntity<Object> response = stepsController.postStep(EXPERIMENT_UUID, false, stepDto("not_a_real_step"), httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
@@ -552,7 +571,7 @@ public class StepsControllerTest extends BaseTest {
     void propagatesBadTokenExceptionFromExperimentAllowedTest() throws Exception {
         doThrow(new BadTokenException("bad token")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(BadTokenException.class, () -> stepsController.postStep(1L, false, stepDto(StepsController.EXPOSURE_TYPE), httpServletRequest));
+        assertThrows(BadTokenException.class, () -> stepsController.postStep(EXPERIMENT_UUID, false, stepDto(StepsController.EXPOSURE_TYPE), httpServletRequest));
     }
 
 }

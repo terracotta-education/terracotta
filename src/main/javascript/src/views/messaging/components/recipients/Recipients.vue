@@ -277,7 +277,7 @@ defineOptions({
 
 const props = defineProps({
   experimentId: {
-    type: Number,
+    type: String,
     required: true
   },
   exposureId: {

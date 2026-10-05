@@ -140,6 +140,11 @@ public class ApiClientImpl implements ApiClient {
     }
 
     @Override
+    public Optional<String> getLmsCourseId(LtiUserEntity apiUser, LtiContextEntity ltiContext) throws ApiException, TerracottaConnectorException {
+        return instance(apiUser).getLmsCourseId(apiUser, ltiContext);
+    }
+
+    @Override
     public void addLmsExtensions(Score score, Submission submission, boolean studentSubmission) throws ApiException, IOException, TerracottaConnectorException {
         instance(submission).addLmsExtensions(score, submission, studentSubmission);
     }

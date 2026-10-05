@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -80,16 +81,34 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
+    public Question getQuestionByUuid(UUID uuid) throws QuestionNotMatchingException {
+        return Optional.ofNullable(questionRepository.findByUuid(uuid))
+            .orElseThrow(() -> new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING));
+    }
+
+    @Override
+    public long getQuestionIdByUuid(UUID uuid) throws QuestionNotMatchingException {
+        return questionRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING));
+    }
+
+    @Override
     public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew)
         throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         if (questionDto.getQuestionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        questionDto.setAssessmentId(assessmentId);
         Question question;
 
         try {
+            // resolve the assessment's uuid from the numeric id supplied by the controller (already
+            // resolved from the path's own assessment uuid) so fromDto below can look it back up via
+            // findByUuid - mirrors the identical numeric-id-to-uuid round trip in
+            // AssessmentServiceImpl.defaultAssessment/fromDto for the treatment FK.
+            Assessment assessmentForDto = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new DataServiceException("The assessment for the question does not exist"));
+            questionDto.setAssessmentId(assessmentForDto.getUuid());
             validateQuestionType(questionDto);
             question = save(fromDto(questionDto));
 
@@ -139,11 +158,11 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     public QuestionDto toDto(Question question, Long submissionId, boolean answers, boolean showCorrectAnswer) {
         QuestionDto questionDto = new QuestionDto();
-        questionDto.setQuestionId(question.getQuestionId());
+        questionDto.setQuestionId(question.getUuid());
         questionDto.setHtml(fileStorageService.parseHTMLFiles(question.getHtml(), question.getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl()));
         questionDto.setQuestionOrder(question.getQuestionOrder());
         questionDto.setPoints(question.getPoints());
-        questionDto.setAssessmentId(question.getAssessment().getAssessmentId());
+        questionDto.setAssessmentId(question.getAssessment().getUuid());
         questionDto.setQuestionType(question.getQuestionType().name());
         questionDto.setIntegration(integrationService.toDto(question.getIntegration()));
 
@@ -182,7 +201,9 @@ public class QuestionServiceImpl implements QuestionService {
             question = new Question();
         }
 
-        question.setQuestionId(questionDto.getQuestionId());
+        // questionDto.getQuestionId() (now a uuid) is intentionally not set on a new Question here -
+        // postQuestion already rejects a create request that carries one (IdInPostException), and
+        // the real numeric id/uuid are both IDENTITY/@PrePersist generated at insert time regardless.
         question.setHtml(questionDto.getHtml());
 
         if (questionDto.getPoints() < 0) {
@@ -192,7 +213,7 @@ public class QuestionServiceImpl implements QuestionService {
         question.setPoints(questionDto.getPoints());
         question.setQuestionOrder(questionDto.getQuestionOrder());
         question.setQuestionType(questionType);
-        Optional<Assessment> assessment = assessmentRepository.findById(questionDto.getAssessmentId());
+        Optional<Assessment> assessment = Optional.ofNullable(assessmentRepository.findByUuid(questionDto.getAssessmentId()));
 
         if (assessment.isEmpty()) {
             throw new DataServiceException("The assessment for the question does not exist");
@@ -298,7 +319,7 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID questionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, questionId).toUri());
@@ -339,6 +360,10 @@ public class QuestionServiceImpl implements QuestionService {
             // AssignmentTreatmentServiceImpl.duplicateTreatment
             originalQuestion.setQuestionId(null);
             originalQuestion.setVersion(0);
+            // the detached copy still carries the ORIGINAL row's uuid; clearing it lets
+            // UuidAwareEntity's @PrePersist generate a fresh one for this new row instead of
+            // colliding with the source row's unique uuid constraint
+            originalQuestion.setUuid(null);
             originalQuestion.setAssessment(newAssessment);
             originalQuestion.setIntegration(null);
 

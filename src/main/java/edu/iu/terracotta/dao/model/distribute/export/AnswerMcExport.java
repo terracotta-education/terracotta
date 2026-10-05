@@ -16,10 +16,10 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AnswerMcExport {
 
-    private long id;
+    private String id;
     private Integer answerOrder;
     private Boolean correct;
     private String html;
-    private long questionId;
+    private String questionId;
 
 }

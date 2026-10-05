@@ -17,10 +17,12 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -40,11 +42,37 @@ import edu.iu.terracotta.exceptions.AssignmentAttemptException;
 import edu.iu.terracotta.exceptions.AssignmentLockedException;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
+import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.utils.TextConstants;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 public class QuestionSubmissionControllerTest extends BaseTest {
+
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one condition under test; condition.getConditionId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID CONDITION_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one treatment under test; treatment.getTreatmentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID TREATMENT_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one assessment under test; assessment.getAssessmentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID ASSESSMENT_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one submission under test; submission.getSubmissionId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID SUBMISSION_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one question submission under test; questionSubmission.getQuestionSubmissionId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID QUESTION_SUBMISSION_UUID = UUID.randomUUID();
+
+    // ConditionService has no mock in the BaseTest hierarchy, so it must be declared locally.
+    @Mock private ConditionService conditionService;
 
     private QuestionSubmissionController questionSubmissionController;
 
@@ -55,22 +83,28 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
         // ApiJwtService has two matching mocks in BaseServiceTest (apiJwtService and canvasApiJwtService),
         // so the controller is constructed manually rather than relying on @InjectMocks to avoid ambiguous wiring.
-        questionSubmissionController = new QuestionSubmissionController(apiJwtService, questionSubmissionService, submissionService);
+        questionSubmissionController = new QuestionSubmissionController(apiJwtService, experimentService, conditionService, questionSubmissionService, submissionService, treatmentService, assessmentService);
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), anyBoolean())).thenReturn(securedInfo);
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
-        when(questionSubmissionService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), anyLong(), anyLong(), anyLong())).thenReturn(new HttpHeaders());
+        when(questionSubmissionService.buildHeaders(any(UriComponentsBuilder.class), any(UUID.class), any(UUID.class), any(UUID.class), any(UUID.class), any(UUID.class))).thenReturn(new HttpHeaders());
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
+        when(treatmentService.getTreatmentIdByUuid(TREATMENT_UUID)).thenAnswer(invocation -> treatment.getTreatmentId());
+        when(assessmentService.getAssessmentIdByUuid(ASSESSMENT_UUID)).thenAnswer(invocation -> assessment.getAssessmentId());
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_UUID)).thenAnswer(invocation -> submission.getSubmissionId());
+        when(questionSubmissionService.getQuestionSubmissionIdByUuid(QUESTION_SUBMISSION_UUID)).thenAnswer(invocation -> questionSubmission.getQuestionSubmissionId());
     }
 
     // ---- getQuestionSubmissionsBySubmission ----
 
     @Test
     void getQuestionSubmissionsBySubmissionSuccessTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         when(questionSubmissionService.getQuestionSubmissions(1L, false, false, 1L, false)).thenReturn(List.of(dto));
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.getQuestionSubmissionsBySubmission(1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.getQuestionSubmissionsBySubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(List.of(dto), ret.getBody());
@@ -80,7 +114,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void getQuestionSubmissionsBySubmissionNoContentTest() throws Exception {
         when(questionSubmissionService.getQuestionSubmissions(1L, false, false, 1L, false)).thenReturn(Collections.emptyList());
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.getQuestionSubmissionsBySubmission(1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.getQuestionSubmissionsBySubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, ret.getStatusCode());
     }
@@ -89,7 +123,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void getQuestionSubmissionsBySubmissionUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.getQuestionSubmissionsBySubmission(1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.getQuestionSubmissionsBySubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -100,7 +134,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         when(questionSubmissionService.getQuestionSubmissions(1L, false, false, 1L, false)).thenReturn(Collections.emptyList());
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.getQuestionSubmissionsBySubmission(1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.getQuestionSubmissionsBySubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, ret.getStatusCode());
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
@@ -111,32 +145,32 @@ public class QuestionSubmissionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         doThrow(new InvalidUserException("invalid user")).when(submissionService).validateUser(anyLong(), anyString(), anyLong());
 
-        assertThrows(InvalidUserException.class, () -> questionSubmissionController.getQuestionSubmissionsBySubmission(1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest));
+        assertThrows(InvalidUserException.class, () -> questionSubmissionController.getQuestionSubmissionsBySubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, false, false, httpServletRequest));
     }
 
     @Test
     void getQuestionSubmissionsBySubmissionExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
-        assertThrows(ExperimentNotMatchingException.class, () -> questionSubmissionController.getQuestionSubmissionsBySubmission(1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> questionSubmissionController.getQuestionSubmissionsBySubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, false, false, httpServletRequest));
     }
 
     @Test
     void getQuestionSubmissionsBySubmissionSubmissionNotMatchingTest() throws Exception {
         doThrow(new SubmissionNotMatchingException("not matching")).when(apiJwtService).submissionAllowed(any(SecuredInfo.class), anyLong(), anyLong());
 
-        assertThrows(SubmissionNotMatchingException.class, () -> questionSubmissionController.getQuestionSubmissionsBySubmission(1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest));
+        assertThrows(SubmissionNotMatchingException.class, () -> questionSubmissionController.getQuestionSubmissionsBySubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, false, false, httpServletRequest));
     }
 
     // ---- getQuestionSubmission ----
 
     @Test
     void getQuestionSubmissionSuccessTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         when(questionSubmissionService.getQuestionSubmission(1L)).thenReturn(questionSubmission);
         when(questionSubmissionService.toDto(questionSubmission, false, false)).thenReturn(dto);
 
-        ResponseEntity<QuestionSubmissionDto> ret = questionSubmissionController.getQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest);
+        ResponseEntity<QuestionSubmissionDto> ret = questionSubmissionController.getQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(dto, ret.getBody());
@@ -146,7 +180,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void getQuestionSubmissionUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<QuestionSubmissionDto> ret = questionSubmissionController.getQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest);
+        ResponseEntity<QuestionSubmissionDto> ret = questionSubmissionController.getQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -157,7 +191,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         when(questionSubmissionService.getQuestionSubmission(1L)).thenReturn(questionSubmission);
 
-        questionSubmissionController.getQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest);
+        questionSubmissionController.getQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, false, false, httpServletRequest);
 
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
     }
@@ -166,18 +200,18 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void getQuestionSubmissionNotMatchingTest() throws Exception {
         doThrow(new QuestionSubmissionNotMatchingException("not matching")).when(apiJwtService).questionSubmissionAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionController.getQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, false, false, httpServletRequest));
+        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionController.getQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, false, false, httpServletRequest));
     }
 
     // ---- postQuestionSubmission ----
 
     @Test
     void postQuestionSubmissionSuccessTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
-        QuestionSubmissionDto returnedDto = QuestionSubmissionDto.builder().questionSubmissionId(1L).questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
+        QuestionSubmissionDto returnedDto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).questionId(UUID.randomUUID()).build();
         when(questionSubmissionService.postQuestionSubmissions(anyList(), eq(1L), eq(1L), eq(false))).thenReturn(List.of(returnedDto));
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(1L, 1L, 1L, 1L, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(List.of(returnedDto), ret.getBody());
@@ -186,9 +220,9 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     @Test
     void postQuestionSubmissionUnauthorizedNotFoundTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(1L, 1L, 1L, 1L, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }
@@ -196,10 +230,10 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     @Test
     void postQuestionSubmissionStudentPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         when(questionSubmissionService.postQuestionSubmissions(anyList(), eq(1L), eq(1L), eq(true))).thenReturn(List.of(requestDto));
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(1L, 1L, 1L, 1L, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
@@ -208,10 +242,10 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void postQuestionSubmissionAssignmentAttemptCaughtTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         doThrow(new AssignmentAttemptException("no more attempts")).when(questionSubmissionService).canSubmit(any(SecuredInfo.class), anyLong());
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(1L, 1L, 1L, 1L, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals("no more attempts", ret.getBody());
@@ -219,10 +253,10 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void postQuestionSubmissionAssignmentLockedCaughtTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         doThrow(new AssignmentLockedException("locked")).when(questionSubmissionService).canSubmit(any(SecuredInfo.class), anyLong());
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(1L, 1L, 1L, 1L, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals("locked", ret.getBody());
@@ -230,23 +264,23 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void postQuestionSubmissionDataServiceExceptionPropagatesTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         doThrow(new DataServiceException("failed")).when(questionSubmissionService).validateAndPrepareQuestionSubmissionList(anyList(), anyLong(), anyLong(), anyBoolean());
 
         assertThrows(
             DataServiceException.class,
-            () -> questionSubmissionController.postQuestionSubmission(1L, 1L, 1L, 1L, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest)
+            () -> questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest)
         );
     }
 
     @Test
     void postQuestionSubmissionExperimentNotMatchingTest() throws Exception {
-        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(1L).build();
+        QuestionSubmissionDto requestDto = QuestionSubmissionDto.builder().questionId(UUID.randomUUID()).build();
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
         assertThrows(
             ExperimentNotMatchingException.class,
-            () -> questionSubmissionController.postQuestionSubmission(1L, 1L, 1L, 1L, 1L, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest)
+            () -> questionSubmissionController.postQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(requestDto), UriComponentsBuilder.newInstance(), httpServletRequest)
         );
     }
 
@@ -254,10 +288,10 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void updateQuestionSubmissionSuccessTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         when(questionSubmissionService.getQuestionSubmission(1L)).thenReturn(questionSubmission);
 
-        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, dto, httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, dto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         verify(questionSubmissionService, times(1)).updateQuestionSubmissions(anyMapWithSize(1), eq(false));
@@ -266,9 +300,9 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     @Test
     void updateQuestionSubmissionUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
 
-        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, dto, httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, dto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -276,10 +310,10 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     @Test
     void updateQuestionSubmissionStudentPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         when(questionSubmissionService.getQuestionSubmission(1L)).thenReturn(questionSubmission);
 
-        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, dto, httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, dto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
@@ -288,27 +322,27 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void updateQuestionSubmissionNotMatchingTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         doThrow(new QuestionSubmissionNotMatchingException("not matching")).when(apiJwtService).questionSubmissionAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionController.updateQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, dto, httpServletRequest));
+        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionController.updateQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, dto, httpServletRequest));
     }
 
     @Test
     void updateQuestionSubmissionDataServiceExceptionTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         doThrow(new DataServiceException("failed")).when(questionSubmissionService).validateQuestionSubmission(any(QuestionSubmissionDto.class));
 
-        assertThrows(DataServiceException.class, () -> questionSubmissionController.updateQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, dto, httpServletRequest));
+        assertThrows(DataServiceException.class, () -> questionSubmissionController.updateQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, dto, httpServletRequest));
     }
 
     @Test
     void updateQuestionSubmissionAnswerNotMatchingTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         when(questionSubmissionService.getQuestionSubmission(1L)).thenReturn(questionSubmission);
         doThrow(new AnswerNotMatchingException("not matching")).when(questionSubmissionService).updateQuestionSubmissions(any(), anyBoolean());
 
-        assertThrows(AnswerNotMatchingException.class, () -> questionSubmissionController.updateQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, dto, httpServletRequest));
+        assertThrows(AnswerNotMatchingException.class, () -> questionSubmissionController.updateQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, dto, httpServletRequest));
     }
 
     // ---- updateQuestionSubmissions (bulk) ----
@@ -317,9 +351,9 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void updateQuestionSubmissionsSuccessTest() throws Exception {
         when(questionSubmission.getQuestionSubmissionId()).thenReturn(1L);
         when(questionSubmissionService.getQuestionSubmission(1L)).thenReturn(questionSubmission);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID).build();
 
-        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmissions(1L, 1L, 1L, 1L, 1L, List.of(dto), httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmissions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(dto), httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         verify(questionSubmissionService, times(1)).updateQuestionSubmissions(anyMapWithSize(1), eq(false));
@@ -328,9 +362,9 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     @Test
     void updateQuestionSubmissionsUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID).build();
 
-        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmissions(1L, 1L, 1L, 1L, 1L, List.of(dto), httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmissions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(dto), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -340,9 +374,9 @@ public class QuestionSubmissionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         when(questionSubmission.getQuestionSubmissionId()).thenReturn(1L);
         when(questionSubmissionService.getQuestionSubmission(1L)).thenReturn(questionSubmission);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID).build();
 
-        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmissions(1L, 1L, 1L, 1L, 1L, List.of(dto), httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.updateQuestionSubmissions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(dto), httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
@@ -351,36 +385,36 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
     @Test
     void updateQuestionSubmissionsNotMatchingInLoopTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID).build();
         doThrow(new QuestionSubmissionNotMatchingException("not matching")).when(apiJwtService).questionSubmissionAllowed(any(SecuredInfo.class), anyLong(), anyLong(), eq(1L));
 
-        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionController.updateQuestionSubmissions(1L, 1L, 1L, 1L, 1L, List.of(dto), httpServletRequest));
+        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionController.updateQuestionSubmissions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(dto), httpServletRequest));
     }
 
     @Test
     void updateQuestionSubmissionsWrapsUnexpectedExceptionAsDataServiceExceptionTest() throws Exception {
         when(questionSubmission.getQuestionSubmissionId()).thenReturn(1L);
         when(questionSubmissionService.getQuestionSubmission(1L)).thenReturn(questionSubmission);
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID).build();
         doThrow(new RuntimeException("boom")).when(questionSubmissionService).updateQuestionSubmissions(any(), anyBoolean());
 
-        DataServiceException ex = assertThrows(DataServiceException.class, () -> questionSubmissionController.updateQuestionSubmissions(1L, 1L, 1L, 1L, 1L, List.of(dto), httpServletRequest));
+        DataServiceException ex = assertThrows(DataServiceException.class, () -> questionSubmissionController.updateQuestionSubmissions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(dto), httpServletRequest));
         assertTrue(ex.getMessage().contains("boom"));
     }
 
     @Test
     void updateQuestionSubmissionsExperimentNotMatchingTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID).build();
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
-        assertThrows(ExperimentNotMatchingException.class, () -> questionSubmissionController.updateQuestionSubmissions(1L, 1L, 1L, 1L, 1L, List.of(dto), httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> questionSubmissionController.updateQuestionSubmissions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, List.of(dto), httpServletRequest));
     }
 
     // ---- deleteQuestionSubmission ----
 
     @Test
     void deleteQuestionSubmissionSuccessTest() throws Exception {
-        ResponseEntity<Void> ret = questionSubmissionController.deleteQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.deleteQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -389,7 +423,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void deleteQuestionSubmissionUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<Void> ret = questionSubmissionController.deleteQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.deleteQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -399,7 +433,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void deleteQuestionSubmissionNotFoundTest() throws Exception {
         doThrow(new EmptyResultDataAccessException(1)).when(questionSubmissionService).deleteById(1L);
 
-        ResponseEntity<Void> ret = questionSubmissionController.deleteQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest);
+        ResponseEntity<Void> ret = questionSubmissionController.deleteQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }
@@ -408,7 +442,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void deleteQuestionSubmissionNotMatchingTest() throws Exception {
         doThrow(new QuestionSubmissionNotMatchingException("not matching")).when(apiJwtService).questionSubmissionAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionController.deleteQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, httpServletRequest));
+        assertThrows(QuestionSubmissionNotMatchingException.class, () -> questionSubmissionController.deleteQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, httpServletRequest));
     }
 
     // ---- postFileQuestionSubmission ----
@@ -417,7 +451,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void postFileQuestionSubmissionFileEmptyTest() throws Exception {
         when(multipartFile.isEmpty()).thenReturn(true);
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, ret.getStatusCode());
         assertEquals(TextConstants.FILE_MISSING, ret.getBody());
@@ -427,17 +461,17 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void postFileQuestionSubmissionUnauthorizedNotFoundTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }
 
     @Test
     void postFileQuestionSubmissionSuccessTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         when(questionSubmissionService.handleFileQuestionSubmission(eq(multipartFile), anyString(), anyLong(), anyLong(), anyLong(), eq(false), any(SecuredInfo.class))).thenReturn(List.of(dto));
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.postFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(List.of(dto), ret.getBody());
@@ -448,7 +482,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         when(questionSubmissionService.handleFileQuestionSubmission(eq(multipartFile), anyString(), anyLong(), anyLong(), anyLong(), eq(true), any(SecuredInfo.class))).thenReturn(List.of());
 
-        questionSubmissionController.postFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
+        questionSubmissionController.postFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
 
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
         verify(questionSubmissionService, times(1)).handleFileQuestionSubmission(eq(multipartFile), anyString(), anyLong(), anyLong(), anyLong(), eq(true), any(SecuredInfo.class));
@@ -463,7 +497,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
         assertThrows(
             AssignmentAttemptException.class,
-            () -> questionSubmissionController.postFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest)
+            () -> questionSubmissionController.postFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest)
         );
     }
 
@@ -473,7 +507,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
         assertThrows(
             ExperimentNotMatchingException.class,
-            () -> questionSubmissionController.postFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest)
+            () -> questionSubmissionController.postFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest)
         );
     }
 
@@ -483,7 +517,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void putFileQuestionSubmissionFileEmptyTest() throws Exception {
         when(multipartFile.isEmpty()).thenReturn(true);
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.putFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.putFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, ret.getStatusCode());
         assertEquals(TextConstants.FILE_MISSING, ret.getBody());
@@ -493,17 +527,17 @@ public class QuestionSubmissionControllerTest extends BaseTest {
     void putFileQuestionSubmissionUnauthorizedNotFoundTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.putFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.putFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }
 
     @Test
     void putFileQuestionSubmissionSuccessTest() throws Exception {
-        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(1L).build();
+        QuestionSubmissionDto dto = QuestionSubmissionDto.builder().questionSubmissionId(UUID.randomUUID()).build();
         when(questionSubmissionService.handleFileQuestionSubmissionUpdate(eq(multipartFile), anyString(), anyLong(), anyLong(), anyLong(), anyLong(), eq(false), any(SecuredInfo.class))).thenReturn(List.of(dto));
 
-        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.putFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
+        ResponseEntity<List<QuestionSubmissionDto>> ret = questionSubmissionController.putFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(List.of(dto), ret.getBody());
@@ -514,7 +548,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         when(questionSubmissionService.handleFileQuestionSubmissionUpdate(eq(multipartFile), anyString(), anyLong(), anyLong(), anyLong(), anyLong(), eq(true), any(SecuredInfo.class))).thenReturn(List.of());
 
-        questionSubmissionController.putFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
+        questionSubmissionController.putFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
 
         verify(submissionService, times(1)).validateUser(anyLong(), anyString(), anyLong());
     }
@@ -528,7 +562,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
         assertThrows(
             QuestionSubmissionNotMatchingException.class,
-            () -> questionSubmissionController.putFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest)
+            () -> questionSubmissionController.putFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest)
         );
     }
 
@@ -538,7 +572,7 @@ public class QuestionSubmissionControllerTest extends BaseTest {
 
         assertThrows(
             ExperimentNotMatchingException.class,
-            () -> questionSubmissionController.putFileQuestionSubmission(1L, 1L, 1L, 1L, 1L, 1L, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest)
+            () -> questionSubmissionController.putFileQuestionSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, "{}", UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest)
         );
     }
 

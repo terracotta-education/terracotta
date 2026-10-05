@@ -23,7 +23,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +39,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
@@ -286,6 +290,36 @@ public class FileStorageServiceImplTest extends BaseTest {
         when(apiClient.uploadConsentFile(any(), any(), any())).thenThrow(new ApiException("boom"));
 
         assertThrows(AssignmentNotCreatedException.class, () -> fileStorageService.sendConsentFileToLms(doc, experiment, ltiUserEntity));
+    }
+
+    @Test
+    public void testRepointConsentFileInLmsPointsTheCopiedAssignmentAtTheExperiment() throws Exception {
+        ConsentDocument doc = new ConsentDocument();
+        UUID experimentUuid = UUID.randomUUID();
+        when(experiment.getUuid()).thenReturn(experimentUuid);
+        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
+        when(platformDeployment.getLocalUrl()).thenReturn("https://terracotta.example.com");
+        LmsExternalToolFields toolFields = LmsExternalToolFields.builder().url("https://terracotta.example.com/lti3?consent=true&experiment=1").resourceLinkId("lti-1.1-link-id").build();
+        LmsAssignment copied = LmsAssignment.builder().id("77").lmsExternalToolFields(toolFields).secureParams("secure-params-jwt").build();
+        when(apijwtService.unsecureToken(eq("secure-params-jwt"), any())).thenReturn(Map.of("lti_assignment_id", "lti-1.3-link-id"));
+        when(apiClient.editAssignment(ltiUserEntity, copied, "course-1")).thenReturn(Optional.of(copied));
+
+        fileStorageService.repointConsentFileInLms(doc, experiment, ltiUserEntity, copied, "course-1");
+
+        assertEquals(String.format("https://terracotta.example.com/lti3?consent=true&experiment=%s", experimentUuid), toolFields.getUrl());
+        assertEquals("77", doc.getLmsAssignmentId());
+        // the LTI 1.3 resource link ID, not Canvas's LTI 1.1 resource_link_id
+        assertEquals("lti-1.3-link-id", doc.getResourceLinkId());
+        verify(apiClient, never()).uploadConsentFile(any(), any(), any());
+    }
+
+    @Test
+    public void testRepointConsentFileInLmsApiExceptionThrowsAssignmentNotCreated() throws Exception {
+        when(ltiUserEntity.getPlatformDeployment()).thenReturn(platformDeployment);
+        LmsAssignment copied = LmsAssignment.builder().id("77").lmsExternalToolFields(LmsExternalToolFields.builder().url("x").build()).build();
+        when(apiClient.editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString())).thenThrow(new ApiException("boom"));
+
+        assertThrows(AssignmentNotCreatedException.class, () -> fileStorageService.repointConsentFileInLms(new ConsentDocument(), experiment, ltiUserEntity, copied, "course-1"));
     }
 
     @Test
@@ -572,11 +606,11 @@ public class FileStorageServiceImplTest extends BaseTest {
         when(consentDocument.isCompressed()).thenReturn(false);
         when(consentDocument.getFileUri()).thenReturn("export-consent/consent-source.pdf");
 
-        ExperimentExport experimentExport = ExperimentExport.builder().id(7L).participationType(ParticipationTypes.CONSENT).build();
+        ExperimentExport experimentExport = ExperimentExport.builder().id("7").participationType(ParticipationTypes.CONSENT).build();
         Export export = Export.builder().experiment(experimentExport).build();
         ExportDto exportDto = ExportDto.builder().build();
 
-        fileStorageService.createExperimentExportFile(exportDto, export, "myexport.zip");
+        fileStorageService.createExperimentExportFile(exportDto, export, "myexport.zip", 7L);
 
         assertNotNull(exportDto.getFile());
         assertTrue(exportDto.getFile().exists());
@@ -584,11 +618,11 @@ public class FileStorageServiceImplTest extends BaseTest {
 
     @Test
     public void testCreateExperimentExportFileNonConsentTypeSkipsConsentDocument() throws IOException {
-        ExperimentExport experimentExport = ExperimentExport.builder().id(9L).participationType(ParticipationTypes.AUTO).build();
+        ExperimentExport experimentExport = ExperimentExport.builder().id("9").participationType(ParticipationTypes.AUTO).build();
         Export export = Export.builder().experiment(experimentExport).build();
         ExportDto exportDto = ExportDto.builder().build();
 
-        fileStorageService.createExperimentExportFile(exportDto, export, "myexport2.zip");
+        fileStorageService.createExperimentExportFile(exportDto, export, "myexport2.zip", 9L);
 
         assertNotNull(exportDto.getFile());
         assertTrue(exportDto.getFile().exists());
@@ -604,6 +638,21 @@ public class FileStorageServiceImplTest extends BaseTest {
 
         assertNotNull(experimentImportEntity.getFileUri());
         assertTrue(Files.exists(experimentExportRoot.resolve(experimentImportEntity.getFileUri())));
+    }
+
+    // the File-based overload used by ExperimentCopyCandidateServiceImpl to feed an in-process
+    // export straight into the import pipeline, without a real uploaded MultipartFile
+    @Test
+    public void testSaveExperimentImportFileFromFileSuccess() throws IOException {
+        Path sourceFile = Files.createTempFile("copy-candidate-export", ".zip");
+        Files.writeString(sourceFile, "zip bytes");
+        ExperimentImport experimentImportEntity = new ExperimentImport();
+
+        fileStorageService.saveExperimentImportFile(sourceFile.toFile(), experimentImportEntity);
+
+        assertNotNull(experimentImportEntity.getFileUri());
+        assertTrue(Files.exists(experimentExportRoot.resolve(experimentImportEntity.getFileUri())));
+        assertEquals("zip bytes", Files.readString(experimentExportRoot.resolve(experimentImportEntity.getFileUri())));
     }
 
     @Test

@@ -30,7 +30,7 @@ describe("treatment store", () => {
 
   describe("createTreatment", () => {
     it("returns an existing treatment for the assignment without calling the service", async () => {
-      const existing = { treatmentId: 1, assignmentId: 42 };
+      const existing = { treatmentId: 1, assignmentId: "42" };
       store.treatments = [existing];
 
       const result = await store.createTreatment(["a", "b", "42"]);

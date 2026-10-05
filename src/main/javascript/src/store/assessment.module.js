@@ -355,7 +355,7 @@ export const assessment = defineStore("assessment", {
             ...this.assessment,
             questions:
               this.assessment.questions?.filter(
-                q => parseInt(q.questionId) !== parseInt(questionId)
+                q => q.questionId !== questionId
               ) || []
           };
 
@@ -489,15 +489,13 @@ export const assessment = defineStore("assessment", {
           await assessmentService.deleteAnswer(...payload);
 
         if (response?.status === 200) {
-          const parsedAnswerId = parseInt(answerId);
-
           this.assessment.questions =
             this.assessment.questions.map(question => ({
               ...question,
               answers:
                 question.answers?.filter(
                   answer =>
-                    parseInt(answer.answerId) !== parsedAnswerId
+                    answer.answerId !== answerId
                 ) || []
             }));
 
@@ -530,8 +528,7 @@ export const assessment = defineStore("assessment", {
 
       const index = this.assessments.findIndex(
         item =>
-          parseInt(item.assessmentId) ===
-          parseInt(assessmentData.assessmentId)
+          item.assessmentId === assessmentData.assessmentId
       );
 
       if (index >= 0) {
@@ -544,7 +541,7 @@ export const assessment = defineStore("assessment", {
     upsertQuestion(question) {
       const index = this.assessment?.questions?.findIndex(
         item =>
-          parseInt(item.questionId) === parseInt(question.questionId)
+          item.questionId === question.questionId
       );
 
       if (index >= 0) {
@@ -555,9 +552,9 @@ export const assessment = defineStore("assessment", {
     },
 
     upsertAnswer(answer) {
-      const answerQuestionId = parseInt(answer.questionId);
+      const answerQuestionId = answer.questionId;
       const question = this.assessment.questions.find(
-        q => parseInt(q.questionId) === answerQuestionId
+        q => q.questionId === answerQuestionId
       );
 
       if (!question) return;
@@ -565,7 +562,7 @@ export const assessment = defineStore("assessment", {
       if (!question.answers) question.answers = [];
 
       const index = question.answers.findIndex(
-        item => parseInt(item.answerId) === parseInt(answer.answerId)
+        item => item.answerId === answer.answerId
       );
 
       if (index >= 0) {

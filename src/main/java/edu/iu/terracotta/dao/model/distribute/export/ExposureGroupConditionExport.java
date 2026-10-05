@@ -16,9 +16,9 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExposureGroupConditionExport {
 
-    private long id;
-    private long conditionId;
-    private long groupId;
-    private long exposureId;
+    private String id;
+    private String conditionId;
+    private String groupId;
+    private String exposureId;
 
 }

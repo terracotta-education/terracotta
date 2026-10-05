@@ -16,7 +16,7 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class IntegrationClientExport {
 
-    private long id;
+    private String id;
     private String name;
     private String scoreVariable;
     private String tokenVariable;

@@ -16,9 +16,9 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConsentDocumentExport {
 
-    private long id;
+    private String id;
     private String title;
     private String html;
-    private long experimentId;
+    private String experimentId;
 
 }

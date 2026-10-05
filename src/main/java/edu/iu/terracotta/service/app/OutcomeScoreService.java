@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app;
 
 import edu.iu.terracotta.dao.entity.OutcomeScore;
+import edu.iu.terracotta.dao.exceptions.OutcomeScoreNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.OutcomeScoreDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
@@ -10,11 +11,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface OutcomeScoreService {
 
     List<OutcomeScoreDto> getOutcomeScores(Long outcomeId);
     OutcomeScore getOutcomeScore(Long id);
+    OutcomeScore getOutcomeScoreByUuid(UUID uuid) throws OutcomeScoreNotMatchingException;
+    long getOutcomeScoreIdByUuid(UUID uuid) throws OutcomeScoreNotMatchingException;
     OutcomeScoreDto postOutcomeScore(OutcomeScoreDto outcomeScoreDto, long experimentId, long outcomeId) throws IdInPostException, DataServiceException, InvalidParticipantException;
     OutcomeScoreDto toDto(OutcomeScore outcomeScore);
     OutcomeScore fromDto(OutcomeScoreDto outcomeScoreDto) throws DataServiceException;
@@ -22,7 +26,7 @@ public interface OutcomeScoreService {
     // upserts: entries with an outcomeScoreId are updated, entries without one are created; batched into a single saveAll
     void updateOutcomeScores(List<OutcomeScoreDto> outcomeScoreDtoList, long experimentId) throws DataServiceException, InvalidParticipantException;
     void deleteById(Long id);
-    void validateParticipant(Long participantId, Long experimentId) throws InvalidParticipantException;
-    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long exposureId, Long outcomeId, Long outcomeScoreId);
+    void validateParticipant(UUID participantId, Long experimentId) throws InvalidParticipantException;
+    HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID exposureId, UUID outcomeId, UUID outcomeScoreId);
 
 }

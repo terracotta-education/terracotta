@@ -193,6 +193,13 @@ public class ApiClientImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetLmsCourseIdDelegatesThroughApiUser() throws Exception {
+        when(apiClient.getLmsCourseId(ltiUserEntity, ltiContextEntity)).thenReturn(Optional.of("123"));
+
+        assertEquals(Optional.of("123"), apiClientImpl.getLmsCourseId(ltiUserEntity, ltiContextEntity));
+    }
+
+    @Test
     public void testAddLmsExtensionsDelegatesThroughSubmissionsExperiment() throws Exception {
         Score score = Score.builder().build();
 
