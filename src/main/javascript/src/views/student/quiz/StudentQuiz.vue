@@ -117,6 +117,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Swal from "sweetalert2";
 import dayjs from "@/plugins/dayjs";
+import { lockedAssignmentMessage } from "@/helpers";
 
 import StudentQuizRetakeBanner from "@/views/student/quiz/components/StudentQuizRetakeBanner.vue";
 import StudentQuizSubmissionDetails from "@/views/student/quiz/components/StudentQuizSubmissionDetails.vue";
@@ -554,6 +555,12 @@ const attempt = async (preferLmsChecks = false) => {
       if (isIntegration.value) setupIntegration(data);
     } else if (stepResponse?.status === 401 && stepResponse?.data?.toString().includes("Error 150:")) {
       await Swal.fire({ target: "#app", text: "You have no more attempts available", icon: "error", footer: errorFooter() });
+    } else if (stepResponse?.status === 401) {
+      // e.g. the assignment's "Available until" date in the LMS has passed - without this the
+      // student was left on a blank page with no idea why
+      const message = lockedAssignmentMessage(stepResponse.data?.toString())
+        || "This assignment can't be opened right now. Please contact your instructor.";
+      await Swal.fire({ target: "#app", text: message, icon: "error", footer: errorFooter() });
     }
   } finally {
     loading.value = false;
