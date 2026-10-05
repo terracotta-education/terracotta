@@ -197,7 +197,7 @@ public class Lti3Request {
         try {
             ltiRequest = getInstanceOrDie(linkId);
         } catch (Exception e) {
-            log.debug("The method getInstanceOrDie... died: [{}]", e.getMessage());
+            log.debug("No LTI request available: {}", e.getMessage());
         }
 
         return ltiRequest;
@@ -239,7 +239,7 @@ public class Lti3Request {
         }
 
         if (ltiRequest == null) {
-            throw new IllegalStateException(String.format("Invalid LTI request, cannot create LTIRequest from request: [%s]", req));
+            throw new IllegalStateException("The current request is not a valid LTI request");
         }
 
         return ltiRequest;
