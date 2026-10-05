@@ -383,8 +383,8 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
     // forever, since getCopyStatus treats IMPORTING as still IN_PROGRESS - the frontend's "your
     // experiments are being copied" alert would never clear. This must hold for ANY unexpected
     // failure in the export/import pipeline, not just the two checked exception types the
-    // surrounding try/catch was originally written for (a real incident: a NullPointerException
-    // deep in ExperimentExportServiceImpl went uncaught here and left a candidate stuck).
+    // surrounding try/catch was originally written for. This happened for real: a null pointer
+    // deep in the experiment export went uncaught here and left a candidate stuck.
     @Test
     void testRecreateForContextUnexpectedExceptionStillRecordsError() throws Exception {
         ExperimentCopyCandidate failing = pendingCandidate();

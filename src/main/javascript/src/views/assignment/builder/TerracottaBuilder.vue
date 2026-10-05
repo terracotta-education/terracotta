@@ -815,9 +815,14 @@ const buildExpandedQuestionPanelId = (questionPageIndex, questionPanelIndex) => 
   return `question-panel-${questionPageIndex}_${questionPanelIndex}`;
 };
 
-// the instructions editor leaves markup like "<p></p>" behind once cleared
+// the instructions editor leaves markup like "<p></p>" behind once cleared; read the text the
+// browser would show (trim() also drops the non-breaking spaces &nbsp; becomes)
 const hasInstructions = html => {
-  return !!(html || "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+  if (!html) {
+    return false;
+  }
+
+  return !!new DOMParser().parseFromString(html, "text/html").body.textContent.trim();
 };
 
 // another (non-integration) treatment with questions or instructions to copy over
