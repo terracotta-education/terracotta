@@ -136,7 +136,7 @@ import {
   onMounted
 } from "vue";
 
-import dayjs from "@/plugins/dayjs";
+import { lockedAssignmentMessage } from "@/helpers";
 
 defineOptions({
   name: "IntegrationResult"
@@ -196,20 +196,7 @@ const errorMessage = computed(() => {
     return "";
   }
 
-  const timestamp = rawMessage.split("::")[1];
-  const time = dayjs(Number(timestamp)).format(
-    "MMMM DD [at] h:mm A"
-  );
-
-  if (rawMessage.startsWith("Error Locked::")) {
-    return `The assignment was locked ${time}.`;
-  }
-
-  if (rawMessage.startsWith("Error Unlocked::")) {
-    return `The assignment is locked until ${time}.`;
-  }
-
-  return "";
+  return lockedAssignmentMessage(rawMessage) || "";
 });
 
 const isInvalidScore = computed(() => {

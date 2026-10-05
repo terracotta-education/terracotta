@@ -1,6 +1,7 @@
 package edu.iu.terracotta.service.app.impl;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -65,6 +66,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.GeneralSecurityException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -190,13 +192,12 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
-    private FileInfoDto uploadFile(MultipartFile file, long experimentId) {
+    private FileInfoDto uploadFile(MultipartFile file) {
         FileSubmissionLocal fileSubmissionLocal = saveConsentFile(file);
 
         FileInfoDto fileInfoDto = new FileInfoDto();
         fileInfoDto.setFileId(null);
         fileInfoDto.setDateCreated(Timestamp.valueOf(LocalDateTime.now()));
-        fileInfoDto.setExperimentId(experimentId);
         fileInfoDto.setFileType(file.getContentType());
         fileInfoDto.setSize(file.getSize());
         fileInfoDto.setDateUpdated(fileInfoDto.getDateCreated());
@@ -278,8 +279,9 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, ApiException, AssignmentNotEditedException, AssignmentNotMatchingException, IOException, TerracottaConnectorException {
-        FileInfoDto fileInfoDto = uploadFile(multipartFile, experimentId);
+        FileInfoDto fileInfoDto = uploadFile(multipartFile);
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
+        fileInfoDto.setExperimentId(experiment.getUuid());
         ConsentDocument consentDocument = experiment.getConsentDocument();
         LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         String lmsCourseId = lmsUtils.parseCourseId(
@@ -333,6 +335,45 @@ public class FileStorageServiceImpl implements FileStorageService {
         } catch (ApiException e) {
             throw new AssignmentNotCreatedException("Error 137: The consent document assignment was not created.", e);
         }
+    }
+
+    @Override
+    public void repointConsentFileInLms(ConsentDocument consentDocument, Experiment experiment, LtiUserEntity instructorUser, LmsAssignment existingLmsAssignment, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException {
+        try {
+            existingLmsAssignment.getLmsExternalToolFields().setUrl(
+                String.format(
+                    "%s/lti3?consent=true&experiment=%s",
+                    instructorUser.getPlatformDeployment().getLocalUrl(),
+                    experiment.getUuid()
+                )
+            );
+
+            LmsAssignment lmsAssignment = apiClient.editAssignment(instructorUser, existingLmsAssignment, lmsCourseId).orElse(existingLmsAssignment);
+
+            consentDocument.setLmsAssignmentId(lmsAssignment.getId());
+            consentDocument.setMetadata(lmsAssignment.getMetadata());
+            // the copied assignment keeps the resource link the LMS gave it when it copied the
+            // course - a URL-only edit doesn't change it
+            consentDocument.setResourceLinkId(ltiResourceLinkId(lmsAssignment, existingLmsAssignment, experiment.getPlatformDeployment()));
+        } catch (ApiException e) {
+            throw new AssignmentNotCreatedException("Error 137: The consent document assignment was not re-pointed.", e);
+        }
+    }
+
+    // the LTI 1.3 resource link ID the LMS's line items carry, which is what grade sync matches an
+    // assignment on - read from secure_params, the same way createAssignmentInLms does. Not the
+    // external tool attributes' resource_link_id: that's Canvas's LTI 1.1 identifier, and never
+    // matches a line item. The edit response and the earlier listing both carry secure_params.
+    private String ltiResourceLinkId(LmsAssignment lmsAssignmentReturned, LmsAssignment existingLmsAssignment, PlatformDeployment platformDeployment) throws TerracottaConnectorException {
+        String secureParams = StringUtils.hasText(lmsAssignmentReturned.getSecureParams()) ? lmsAssignmentReturned.getSecureParams() : existingLmsAssignment.getSecureParams();
+
+        if (!StringUtils.hasText(secureParams)) {
+            return null;
+        }
+
+        Object resourceLinkId = apijwtService.unsecureToken(secureParams, platformDeployment).get("lti_assignment_id");
+
+        return resourceLinkId != null ? resourceLinkId.toString() : null;
     }
 
     @Override
@@ -695,7 +736,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
-    public void createExperimentExportFile(ExportDto transferExportDto, Export export, String filename) throws IOException {
+    public void createExperimentExportFile(ExportDto transferExportDto, Export export, String filename, long experimentId) throws IOException {
         // create a directory for the export files
         String path = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH"));
         Path parentPath = Files.createDirectories(Paths.get(String.format("%s/%s/%s", experimentExportLocalPathRoot, path, filename)));
@@ -707,7 +748,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
             // experiment is a consent type, include the consent document
-            Resource consentResource = getConsentFile(export.getExperiment().getId());
+            Resource consentResource = getConsentFile(experimentId);
 
             if (consentResource != null) {
                 FileUtils.copyFile(consentResource.getFile(), new File(String.format("%s/consent/%s", parentPath.toString(), ExperimentImport.CONSENT_FILE_NAME)));
@@ -784,11 +825,22 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void saveExperimentImportFile(MultipartFile file, ExperimentImport experimentImport) throws IOException {
-        String path = String.format("%s/%s", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH")), UUID.randomUUID().toString());
+        String path = String.format("%s/%s", LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH")), UUID.randomUUID().toString());
         Path parentPath = Files.createDirectories(Paths.get(String.format("%s/%s", experimentExportLocalPathRoot, path)));
         String filename = String.format("%s.zip", UUID.randomUUID().toString());
         File storedFile = FileUtils.getFile(parentPath.toFile(), filename);
         file.transferTo(storedFile.toPath());
+
+        experimentImport.setFileUri(String.format("%s/%s", path, filename));
+    }
+
+    @Override
+    public void saveExperimentImportFile(File file, ExperimentImport experimentImport) throws IOException {
+        String path = String.format("%s/%s", LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy/MM/dd/HH")), UUID.randomUUID().toString());
+        Path parentPath = Files.createDirectories(Paths.get(String.format("%s/%s", experimentExportLocalPathRoot, path)));
+        String filename = String.format("%s.zip", UUID.randomUUID().toString());
+        File storedFile = FileUtils.getFile(parentPath.toFile(), filename);
+        FileUtils.copyFile(file, storedFile);
 
         experimentImport.setFileUri(String.format("%s/%s", path, filename));
     }

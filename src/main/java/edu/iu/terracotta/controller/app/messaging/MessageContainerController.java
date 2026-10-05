@@ -23,12 +23,14 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.messaging.container.MessageContainer;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.messaging.container.MessageContainerDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.exceptions.messaging.MessageContainerNotFoundException;
 import edu.iu.terracotta.exceptions.messaging.MessageContainerNotMatchingException;
 import edu.iu.terracotta.exceptions.messaging.MessageContainerOwnerNotMatchingException;
+import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.messaging.MessageContainerService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -44,17 +46,24 @@ public class MessageContainerController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/exposures/{exposureId}/messaging/container";
 
     private final ApiJwtService apiJwtService;
+    private final ExperimentService experimentService;
+    private final ExposureService exposureService;
     private final MessageContainerService messageContainerService;
 
     @GetMapping
-    public ResponseEntity<List<MessageContainerDto>> getAll(@PathVariable long experimentId, @PathVariable long exposureId, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<List<MessageContainerDto>> getAll(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
+        long experimentId;
+        long exposureId;
+
         try {
+            experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         } catch (BadTokenException | ExperimentNotMatchingException | ExposureNotMatchingException e) {
@@ -65,7 +74,7 @@ public class MessageContainerController {
     }
 
     @PostMapping
-    public ResponseEntity<MessageContainerDto> post(@PathVariable long experimentId, @PathVariable long exposureId, @RequestParam(name = "single", defaultValue = "false") boolean single, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessageContainerDto> post(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @RequestParam(name = "single", defaultValue = "false") boolean single, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -75,6 +84,8 @@ public class MessageContainerController {
         Exposure exposure = null;
 
         try {
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             exposure = apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         } catch (BadTokenException | ExperimentNotMatchingException | ExposureNotMatchingException e) {
@@ -85,7 +96,7 @@ public class MessageContainerController {
     }
 
     @PutMapping("/{uuid}")
-    public ResponseEntity<MessageContainerDto> put(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID uuid, @RequestBody MessageContainerDto messageContainerDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessageContainerDto> put(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID uuid, @RequestBody MessageContainerDto messageContainerDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -95,12 +106,14 @@ public class MessageContainerController {
         MessageContainer messageContainer;
 
         try {
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-            if (exposureId != messageContainerDto.getExposureId()) {
-                move(experimentId, exposureId, uuid, messageContainerDto, req);
+            if (!exposureUuid.equals(messageContainerDto.getExposureId())) {
+                move(experimentUuid, exposureUuid, uuid, messageContainerDto, req);
                 messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             }
         } catch (BadTokenException | ExperimentNotMatchingException | MessageContainerOwnerNotMatchingException | MessageContainerNotMatchingException | ExposureNotMatchingException | MessageContainerNotFoundException e) {
@@ -116,7 +129,7 @@ public class MessageContainerController {
     }
 
     @PutMapping
-    public ResponseEntity<List<MessageContainerDto>> putAll(@PathVariable long experimentId, @PathVariable long exposureId, @RequestBody List<MessageContainerDto> messageContainerDtos, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<List<MessageContainerDto>> putAll(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @RequestBody List<MessageContainerDto> messageContainerDtos, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -126,6 +139,9 @@ public class MessageContainerController {
         List<MessageContainer> messageContainers = new ArrayList<>();
 
         try {
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+
             for (MessageContainerDto messageContainerDto : messageContainerDtos) {
                 apiJwtService.messagingContainerAllowed(securedInfo, exposureId, messageContainerDto.getId());
                 messageContainers.add(apiJwtService.messagingContainerAllowed(securedInfo, exposureId, messageContainerDto.getId()));
@@ -146,7 +162,7 @@ public class MessageContainerController {
     }
 
     @DeleteMapping("/{uuid}")
-    public ResponseEntity<MessageContainerDto> delete(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID uuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessageContainerDto> delete(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID uuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -156,6 +172,8 @@ public class MessageContainerController {
         MessageContainer messageContainer;
 
         try {
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
@@ -173,7 +191,7 @@ public class MessageContainerController {
     }
 
     @PostMapping("/{uuid}/move")
-    public ResponseEntity<MessageContainerDto> move(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID uuid, @RequestBody MessageContainerDto messageContainerDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessageContainerDto> move(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID uuid, @RequestBody MessageContainerDto messageContainerDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -184,10 +202,12 @@ public class MessageContainerController {
         MessageContainer messageContainer;
 
         try {
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);
-            newExposure = apiJwtService.exposureAllowed(securedInfo, experimentId, messageContainerDto.getExposureId());
+            newExposure = apiJwtService.exposureAllowed(securedInfo, experimentId, exposureService.getExposureIdByUuid(messageContainerDto.getExposureId()));
         } catch (BadTokenException | ExperimentNotMatchingException | ExposureNotMatchingException | MessageContainerOwnerNotMatchingException | MessageContainerNotMatchingException | MessageContainerNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
@@ -201,7 +221,7 @@ public class MessageContainerController {
     }
 
     @PostMapping("/{uuid}/duplicate")
-    public ResponseEntity<MessageContainerDto> duplicate(@PathVariable long experimentId, @PathVariable long exposureId, @PathVariable UUID uuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
+    public ResponseEntity<MessageContainerDto> duplicate(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID uuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
 
         if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
@@ -212,6 +232,8 @@ public class MessageContainerController {
         MessageContainer messageContainer;
 
         try {
+            long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+            long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
             messageContainer = apiJwtService.messagingContainerAllowed(securedInfo, exposureId, uuid);
             apiJwtService.experimentAllowed(securedInfo, experimentId);
             exposure = apiJwtService.exposureAllowed(securedInfo, experimentId, exposureId);

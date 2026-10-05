@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from "pinia";
 
 import { mountComponent } from "@/test-utils/mount";
 import { experiment as useExperimentStore } from "@/store/experiment.module";
+import Highcharts from "highcharts/esm/highcharts.js";
+import zipcelx from "zipcelx";
 import Chart from "./Chart.vue";
 
 const { chartInstances, chartMock, wrapMock } = vi.hoisted(() => {
@@ -58,6 +60,13 @@ const mountChart = props => {
 
   return mountComponent(Chart, { props, pinia });
 };
+
+// Chart.vue's plain (non-setup) <script> block calls Highcharts.wrap(...) exactly once,
+// as a side effect of importing the component, before any test body runs. Vitest's default
+// `clearMocks: true` wipes every vi.fn()'s call history before each test, so that single
+// call must be captured here (during module evaluation/collection) rather than read from
+// wrapMock.mock.calls inside an it() block, where it would already have been cleared.
+const [, , wrappedGetDataRows] = wrapMock.mock.calls[0] || [];
 
 describe("Chart (OutcomeChart)", () => {
   beforeEach(() => {
@@ -172,5 +181,213 @@ describe("Chart (OutcomeChart)", () => {
     expect(firstInstance.destroy).toHaveBeenCalled();
     expect(chartMock).toHaveBeenCalledTimes(2);
     expect(chartMock.mock.calls[1][1].xAxis.categories).toEqual(["A", "B"]);
+  });
+
+  it("falls back to the 'Category' axis label when type is not condition/exposure", () => {
+    mountChart({
+      outcomeType: "STANDARD",
+      displayChartData: true,
+      graphData: [{ title: "A", mean: 0.1, scores: [] }]
+    });
+
+    const options = chartMock.mock.calls[0][1];
+
+    expect(options.xAxis.title.text).toBe("Category");
+  });
+
+  it("uses the default 0-100 y-axis range for an unrecognized outcomeType", () => {
+    mountChart({
+      type: "condition",
+      outcomeType: "SOMETHING_UNKNOWN",
+      displayChartData: true,
+      graphData: [{ title: "A", mean: 0.1, scores: [] }]
+    });
+
+    const options = chartMock.mock.calls[0][1];
+
+    expect(options.yAxis).toEqual({
+      min: 0,
+      max: 100,
+      labels: { style: { color: "#333333" } },
+      title: { text: "" }
+    });
+  });
+
+  it("computes min/max across multiple TIME_ON_TASK scores", () => {
+    mountChart({
+      type: "condition",
+      outcomeType: "TIME_ON_TASK",
+      displayChartData: true,
+      graphData: [{ title: "A", mean: 60000, scores: [30000, 600000] }]
+    });
+
+    const options = chartMock.mock.calls[0][1];
+
+    // min/max are derived from Math.ceil(milliToMinutes(score)) across all scores,
+    // exercising the reduce() comparator on both branches (>1 element required).
+    expect(options.yAxis.min).toBe(0);
+    expect(options.yAxis.max).toBe(11);
+  });
+});
+
+describe("Chart.vue module-level Highcharts patches", () => {
+  it("normalizes rows with a truthy x value when Highcharts requests data rows", () => {
+    // Highcharts.wrap is mocked out (vi.fn()), so the wrapped getDataRows
+    // implementation itself never runs unless we invoke the captured callback directly.
+    expect(wrappedGetDataRows).toBeInstanceOf(Function);
+
+    const proceed = vi.fn(() => [
+      { x: 5, 0: "old" },
+      { 0: "untouched" }
+    ]);
+
+    const rows = wrappedGetDataRows.call({}, proceed, true);
+
+    expect(proceed).toHaveBeenCalledWith(true);
+    expect(rows[0][0]).toBe(5);
+    expect(rows[1][0]).toBe("untouched");
+  });
+
+  describe("downloadXLSX", () => {
+    beforeEach(() => {
+      zipcelx.mockClear();
+      document.body.innerHTML = "";
+    });
+
+    it("uses options.exporting.filename when present", () => {
+      const context = {
+        getDataRows: vi.fn(() => [
+          ["Category", "Mean", "Percentage"],
+          ["A", 50, 40]
+        ]),
+        options: { exporting: { filename: "custom-name" } },
+        title: { textStr: "Some Title" }
+      };
+
+      Highcharts.Chart.prototype.downloadXLSX.call(context);
+
+      expect(context.getDataRows).toHaveBeenCalledWith(true);
+      expect(zipcelx).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filename: "custom-name",
+          sheet: {
+            data: [[
+              { type: "string", value: "A" },
+              { type: "number", value: 50 },
+              { type: "number", value: 40 }
+            ]]
+          }
+        })
+      );
+    });
+
+    it("falls back to a slugified chart title when no filename is configured", () => {
+      const context = {
+        getDataRows: vi.fn(() => [
+          ["Category", "Mean", "Percentage"],
+          ["A", 50, 40]
+        ]),
+        options: { exporting: {} },
+        title: { textStr: "My Chart Title" }
+      };
+
+      Highcharts.Chart.prototype.downloadXLSX.call(context);
+
+      expect(zipcelx).toHaveBeenCalledWith(
+        expect.objectContaining({ filename: "my-chart-title" })
+      );
+    });
+
+    it("falls back to 'chart' when there is neither a filename nor a title", () => {
+      const context = {
+        getDataRows: vi.fn(() => [
+          ["Category", "Mean", "Percentage"],
+          ["A", 50, 40]
+        ]),
+        options: { exporting: {} },
+        title: null
+      };
+
+      Highcharts.Chart.prototype.downloadXLSX.call(context);
+
+      expect(zipcelx).toHaveBeenCalledWith(
+        expect.objectContaining({ filename: "chart" })
+      );
+    });
+  });
+
+  it("registers a downloadXLSX export menu item whose onclick delegates to the chart instance", () => {
+    const menuItem = Highcharts.getOptions().exporting.menuItemDefinitions.downloadXLSX;
+    expect(menuItem.textKey).toBe("downloadXLSX");
+
+    const context = {
+      downloadXLSX: vi.fn()
+    };
+
+    menuItem.onclick.call(context);
+
+    expect(context.downloadXLSX).toHaveBeenCalled();
+  });
+
+  it("registers meanLine and download renderer symbols usable by Highcharts", () => {
+    const { meanLine, download } = Highcharts.Renderer.prototype.symbols;
+
+    expect(meanLine(10, 20, 30, 40)).toEqual(["M", 10, 35, "L", 50, 35]);
+
+    const downloadPath = download(0, 0, 10, 10);
+    expect(downloadPath[0]).toBe("M");
+    expect(downloadPath).toContain("L");
+  });
+});
+
+describe("Chart (OutcomeChart) exportData events callback", () => {
+  beforeEach(() => {
+    chartInstances.length = 0;
+    chartMock.mockClear();
+  });
+
+  it("relabels TIME_ON_TASK export rows and normalizes x-values", () => {
+    mountChart({
+      type: "condition",
+      outcomeType: "TIME_ON_TASK",
+      displayChartData: true,
+      graphData: [{ title: "A", mean: 60000, scores: [30000] }]
+    });
+
+    const { exportData } = chartMock.mock.calls[0][1].chart.events;
+
+    const headerRow = ["Category", "Mean", "Time"];
+    const dataRow = ["A", 2, 3];
+    dataRow.xValues = [1];
+    dataRow.x = 1;
+
+    const dataRows = [headerRow, dataRow];
+
+    exportData({ dataRows });
+
+    expect(dataRows[0][2]).toBe("Mean (ms)");
+    expect(dataRows[0][3]).toBe("Time");
+    expect(dataRows[0][4]).toBe("Time (ms)");
+    expect(dataRow.xValues[0]).toBe(0);
+    expect(dataRow.x).toBe(0);
+  });
+
+  it("leaves non-TIME_ON_TASK export rows unchanged (default switch branch)", () => {
+    mountChart({
+      type: "condition",
+      outcomeType: "STANDARD",
+      displayChartData: true,
+      graphData: [{ title: "A", mean: 0.5, scores: [0.4] }]
+    });
+
+    const { exportData } = chartMock.mock.calls[0][1].chart.events;
+
+    const headerRow = ["Category", "Mean", "Percentage"];
+    const dataRow = ["A", 50, 40];
+
+    const dataRows = [headerRow, dataRow];
+
+    expect(() => exportData({ dataRows })).not.toThrow();
+    expect(dataRows[0][2]).toBe("Percentage");
   });
 });

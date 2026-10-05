@@ -188,11 +188,10 @@ const deleteAllowed = computed(
   () => experiment.value?.exposureType === "NOSET"
 );
 
-const orderedConditions = computed(() =>
-  [...(conditions.value || [])].sort(
-    (a, b) => a.conditionId - b.conditionId
-  )
-);
+// the API already returns conditions in creation order (see
+// ConditionRepository.findByExperiment_ExperimentIdOrderByConditionIdAsc) - and now that
+// conditionId is a uuid string, the id subtraction sort this used to do would be a NaN no-op
+const orderedConditions = computed(() => conditions.value || []);
 
 const singleConditionRemainsAfterDelete =
   computed(() => conditions.value?.length === 2);

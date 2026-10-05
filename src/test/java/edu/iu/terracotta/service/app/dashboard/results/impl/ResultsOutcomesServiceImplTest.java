@@ -3,12 +3,13 @@ package edu.iu.terracotta.service.app.dashboard.results.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -80,7 +81,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -105,7 +106,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
     @Test
     public void testOutcomesNoOutcomeForId() throws OutcomeNotMatchingException {
-        when(outcomeRepository.findAllById(anyList())).thenReturn(Collections.emptyList());
+        when(outcomeRepository.findByUuid(any(UUID.class))).thenReturn(null);
 
         Exception exception = assertThrows(OutcomeNotMatchingException.class, () -> { resultsOutcomesService.outcomes(experiment, resultsOutcomesRequestDto); });
 
@@ -131,7 +132,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -162,7 +163,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -193,7 +194,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
 
         assertNotNull(ret.getConditions());
         assertNotNull(ret.getConditions().getRows());
@@ -225,7 +226,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
         assertEquals(OutcomeType.AVERAGE_ASSIGNMENT_SCORE, ret.getOutcomeType());
 
         assertNotNull(ret.getConditions());
@@ -256,7 +257,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertNotNull(ret.getExperimentId());
-        assertEquals(1L, ret.getExperimentId());
+        assertEquals(experiment.getUuid(), ret.getExperimentId());
         assertEquals(OutcomeType.TIME_ON_TASK, ret.getOutcomeType());
 
         assertNotNull(ret.getConditions());
@@ -306,7 +307,7 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
         when(resultsOutcomesRequestDto.getOutcomeIds()).thenReturn(null);
         when(resultsOutcomesRequestDto.getAlternateId()).thenReturn(alternateIdDto);
         when(alternateIdDto.getId()).thenReturn(null);
-        when(alternateIdDto.getExposures()).thenReturn(Collections.singletonList(1L));
+        when(alternateIdDto.getExposures()).thenReturn(Collections.singletonList(UUID.randomUUID()));
 
         Exception exception = assertThrows(IllegalArgumentException.class, () -> { resultsOutcomesService.outcomes(experiment, resultsOutcomesRequestDto); });
 

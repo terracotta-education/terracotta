@@ -44,11 +44,13 @@ public class ApiTokenCleanerSchedulerRunner {
     @Bean
     Task<Void> apiTokenCleanerTask(ApiTokenCleanerSchedulerService apiTokenCleanerSchedulerService) {
         if (!enabled) {
+            log.info("The API token cleaner task [{}] is disabled. Set [api.token.cleaner.scheduler.enabled] to true to enable it.", TASK_NAME);
+
             // not enabled; create one-time task to log message
             return Tasks.oneTime(API_TOKEN_CLEANER_TASK)
                 .execute(
                     (instance, ctx) -> {
-                        log.info("API token cleaner task [{}] is not enabled.", API_TOKEN_CLEANER_TASK.getTaskName());
+                        log.info("The API token cleaner task [{}] is not enabled.", TASK_NAME);
                     }
                 );
         }
@@ -60,7 +62,7 @@ public class ApiTokenCleanerSchedulerRunner {
             log.error(e.getMessage());
         }
 
-        log.info("Creating API token cleaner task [{}]", API_TOKEN_CLEANER_TASK.getTaskName());
+        log.info("Scheduled the API token cleaner task [{}] to run every [{}] minute(s)", TASK_NAME, interval);
 
         return Tasks.recurring(API_TOKEN_CLEANER_TASK, Schedules.fixedDelay(Duration.ofMinutes(interval)))
             .onDeadExecutionRevive()

@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Builder
@@ -16,10 +18,10 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TreatmentDto {
 
-    private Long treatmentId;
+    private UUID treatmentId;
     private AssessmentDto assessmentDto;
     private AssignmentDto assignmentDto;
-    private Long conditionId;
-    private Long assignmentId;
+    private UUID conditionId;
+    private UUID assignmentId;
 
 }

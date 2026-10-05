@@ -21,7 +21,7 @@ import lombok.Setter;
 public class ExperimentDataExportDto {
 
     private UUID id;
-    private long experimentId;
+    private UUID experimentId;
     private String experimentTitle;
     private ExperimentDataExportStatus status;
     private String fileContent;

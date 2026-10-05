@@ -1,6 +1,7 @@
 package edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.request;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -19,6 +20,6 @@ import lombok.Setter;
 public class AlternateIdDto {
 
     private String id;
-    private List<Long> exposures;
+    private List<UUID> exposures;
 
 }

@@ -26,7 +26,7 @@ async function create(
     {
       method: "POST",
       body: {
-        assignmentId: parseInt(assignmentId)
+        assignmentId
       }
     }
   );

@@ -11,7 +11,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Entity;
@@ -30,7 +30,7 @@ import java.util.List;
 @AllArgsConstructor
 @Table(name = "terr_exposure")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Exposure extends BaseEntity {
+public class Exposure extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

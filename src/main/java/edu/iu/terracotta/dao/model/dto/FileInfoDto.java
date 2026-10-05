@@ -1,6 +1,7 @@
 package edu.iu.terracotta.dao.model.dto;
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -20,7 +21,7 @@ import lombok.Setter;
 public class FileInfoDto {
 
     private String fileId;
-    private Long experimentId;
+    private UUID experimentId;
     private String path;
     private String url;
     private String fileType;

@@ -19,7 +19,7 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExperimentExport {
 
-    private long id;
+    private String id;
     private String title;
     private String description;
     private ExposureTypes exposureType;

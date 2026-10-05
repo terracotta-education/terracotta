@@ -84,10 +84,12 @@ import jakarta.persistence.PersistenceContext;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -192,7 +194,8 @@ public class AssignmentServiceImpl implements AssignmentService {
         validateTitle(assignmentDto.getTitle());
         validateMultipleAttemptsSettings(assignmentDto);
         validateRevealAssignmentResponsesSettings(assignmentDto);
-        assignmentDto.setExposureId(exposureId);
+        Exposure exposureForDto = exposureRepository.findById(exposureId).orElse(null);
+        assignmentDto.setExposureId(exposureForDto != null ? exposureForDto.getUuid() : null);
         Assignment assignment;
 
         try {
@@ -213,7 +216,10 @@ public class AssignmentServiceImpl implements AssignmentService {
     public Assignment fromDto(AssignmentDto assignmentDto) throws DataServiceException {
         //Note: we don't want to allow the dto to change the LmsAssignmentId or the ResourceLinkId
         Assignment assignment = new Assignment();
-        assignment.setAssignmentId(assignmentDto.getAssignmentId());
+        // assignmentDto.getAssignmentId() (now a uuid) is intentionally not set on a new
+        // Assignment here - the controller already rejects a create request that carries one
+        // (IdInPostException), and the real numeric id/uuid are both IDENTITY/@PrePersist
+        // generated at insert time regardless.
         assignment.setTitle(assignmentDto.getTitle());
         assignment.setAssignmentOrder(assignmentDto.getAssignmentOrder());
         assignment.setNumOfSubmissions(assignmentDto.getNumOfSubmissions());
@@ -226,7 +232,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setAllowStudentViewCorrectAnswers(assignmentDto.isAllowStudentViewCorrectAnswers());
         assignment.setStudentViewCorrectAnswersAfter(assignmentDto.getStudentViewCorrectAnswersAfter());
         assignment.setStudentViewCorrectAnswersBefore(assignmentDto.getStudentViewCorrectAnswersBefore());
-        Optional<Exposure> exposure = exposureRepository.findById(assignmentDto.getExposureId());
+        Optional<Exposure> exposure = Optional.ofNullable(exposureRepository.findByUuid(assignmentDto.getExposureId()));
 
         if (exposure.isEmpty()) {
             throw new DataServiceException("The exposure for the assignment does not exist");
@@ -253,13 +259,28 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
+    public Assignment getAssignmentByUuid(UUID uuid) throws AssignmentNotMatchingException {
+        return Optional.ofNullable(assignmentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
+    }
+
+    @Override
+    public long getAssignmentIdByUuid(UUID uuid) throws AssignmentNotMatchingException {
+        return assignmentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING));
+    }
+
+    @Override
     public List<AssignmentDto> updateAssignments(List<AssignmentDto> assignmentDtos, SecuredInfo securedInfo)
             throws TitleValidationException, ApiException, AssignmentNotEditedException, RevealResponsesSettingValidationException,
                     MultipleAttemptsSettingsValidationException, AssessmentNotMatchingException, AssignmentNotMatchingException, TerracottaConnectorException {
         List<AssignmentDto> updatedAssignmentDtos = new ArrayList<>();
 
+        // bulk endpoint: each item's numeric id is resolved individually rather than once up
+        // front, since each AssignmentDto in the list carries its own uuid
         for (AssignmentDto assignmentDto : assignmentDtos) {
-            updatedAssignmentDtos.add(putAssignment(assignmentDto.getAssignmentId(), assignmentDto, securedInfo));
+            long assignmentId = getAssignmentByUuid(assignmentDto.getAssignmentId()).getAssignmentId();
+            updatedAssignmentDtos.add(putAssignment(assignmentId, assignmentDto, securedInfo));
         }
 
         return updatedAssignmentDtos;
@@ -460,7 +481,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             // assignment's own start (see SubmissionServiceImpl.setAssignmentStart): overlapping
             // first launches would otherwise fail each other's version checks
             if (!participant.isTestStudent() && !experiment.get().isStarted()) {
-                experimentRepository.markStarted(experiment.get().getExperimentId(), Timestamp.valueOf(LocalDateTime.now()));
+                experimentRepository.markStarted(experiment.get().getExperimentId(), Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC)));
                 entityManager.refresh(experiment.get());
             }
 
@@ -633,7 +654,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long exposureId, long assignmentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID exposureId, UUID assignmentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experimentId}/exposures/{exposureId}/assignments/{assignmentId}")
                 .buildAndExpand(experimentId, exposureId, assignmentId).toUri());
@@ -656,6 +677,63 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
 
         return assignment;
+    }
+
+    @Override
+    public void restoreRepointedAssignmentUrlInLms(LtiUserEntity instructorUser, LmsAssignment lmsAssignment, String originalUrl, String lmsCourseId) {
+        if (lmsAssignment.getLmsExternalToolFields() == null) {
+            return;
+        }
+
+        try {
+            lmsAssignment.getLmsExternalToolFields().setUrl(originalUrl);
+            apiClient.editAssignment(instructorUser, lmsAssignment, lmsCourseId);
+        } catch (ApiException | TerracottaConnectorException _) {
+            log.warn("Error occurred while restoring repointed LMS assignment ID: [{}] in LMS Course ID: [{}]", lmsAssignment.getId(), lmsCourseId);
+        }
+    }
+
+    @Override
+    public Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException {
+        try {
+            existingLmsAssignment.getLmsExternalToolFields().setUrl(
+                String.format(
+                    "%s/lti3?experiment=%s&assignment=%s",
+                    instructorUser.getPlatformDeployment().getLocalUrl(),
+                    assignment.getExposure().getExperiment().getUuid(),
+                    assignment.getUuid()
+                )
+            );
+
+            LmsAssignment lmsAssignmentReturned = apiClient.editAssignment(instructorUser, existingLmsAssignment, lmsCourseId).orElse(existingLmsAssignment);
+            assignment.setLmsAssignmentId(lmsAssignmentReturned.getId());
+            assignment.setMetadata(lmsAssignmentReturned.getMetadata());
+
+            // the copied assignment keeps the resource link the LMS gave it when it copied the
+            // course - a URL-only edit doesn't change it
+            assignment.setResourceLinkId(ltiResourceLinkId(lmsAssignmentReturned, existingLmsAssignment, instructorUser.getPlatformDeployment()));
+        } catch (ApiException e) {
+            log.error("Repointing existing LMS assignment ID: [{}] failed", existingLmsAssignment.getId(), e);
+            throw new AssignmentNotCreatedException("Error: The assignment was not repointed in the LMS.");
+        }
+
+        return assignment;
+    }
+
+    // the LTI 1.3 resource link ID the LMS's line items carry, which is what grade sync matches an
+    // assignment on - read from secure_params, the same way createAssignmentInLms does. Not the
+    // external tool attributes' resource_link_id: that's Canvas's LTI 1.1 identifier, and never
+    // matches a line item. The edit response and the earlier listing both carry secure_params.
+    private String ltiResourceLinkId(LmsAssignment lmsAssignmentReturned, LmsAssignment existingLmsAssignment, PlatformDeployment platformDeployment) throws TerracottaConnectorException {
+        String secureParams = StringUtils.isNotBlank(lmsAssignmentReturned.getSecureParams()) ? lmsAssignmentReturned.getSecureParams() : existingLmsAssignment.getSecureParams();
+
+        if (StringUtils.isBlank(secureParams)) {
+            return null;
+        }
+
+        Object resourceLinkId = apiJwtService.unsecureToken(secureParams, platformDeployment).get("lti_assignment_id");
+
+        return resourceLinkId != null ? resourceLinkId.toString() : null;
     }
 
     @Override
@@ -746,7 +824,13 @@ public class AssignmentServiceImpl implements AssignmentService {
                 AssignmentNotCreatedException, RevealResponsesSettingValidationException,
                 MultipleAttemptsSettingsValidationException, NumberFormatException, ApiException, AssignmentNotMatchingException,
                 ExceedingLimitException, TreatmentNotMatchingException, ExposureNotMatchingException, AssignmentMoveException, AssignmentNotEditedException, QuestionNotMatchingException {
-        if (originalExposureId == targetAssignmentDto.getExposureId().longValue()) {
+        Exposure exposure = exposureRepository.findByUuid(targetAssignmentDto.getExposureId());
+
+        if (exposure == null) {
+            throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
+        }
+
+        if (originalExposureId == exposure.getExposureId()) {
             // cannot move assignment; original and target exposures are the same
             throw new AssignmentMoveException(TextConstants.UNABLE_TO_MOVE_ASSIGNMENT_EXPOSURE_SAME);
         }
@@ -757,14 +841,8 @@ public class AssignmentServiceImpl implements AssignmentService {
             throw new AssignmentNotMatchingException(TextConstants.ASSIGNMENT_NOT_MATCHING);
         }
 
-        Exposure exposure = exposureRepository.findByExposureId(targetAssignmentDto.getExposureId());
-
-        if (exposure == null) {
-            throw new ExposureNotMatchingException(TextConstants.EXPOSURE_NOT_MATCHING);
-        }
-
         assignment.setExposure(exposure);
-        assignment.setAssignmentOrder(componentUtils.calculateNextOrder(targetAssignmentDto.getExposureId(), exposure.getExperiment().getCreatedBy()));
+        assignment.setAssignmentOrder(componentUtils.calculateNextOrder(exposure.getExposureId(), exposure.getExperiment().getCreatedBy()));
         assignmentRepository.save(assignment);
 
         return assignmentTreatmentService.toAssignmentDto(assignment, false, true, securedInfo);

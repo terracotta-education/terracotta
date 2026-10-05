@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,10 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 
 @SuppressWarnings("unchecked")
 public class OutcomeServiceImplTest extends BaseTest {
+
+    // outcomeDto is a mock (see BaseModelTest), so its setter calls in postOutcome/fromDto don't
+    // feed back into its getter stubs - getExposureId() is stubbed directly here instead.
+    private static final UUID EXPOSURE_UUID = UUID.randomUUID();
 
     private OutcomeServiceImpl outcomeService;
 
@@ -75,6 +80,8 @@ public class OutcomeServiceImplTest extends BaseTest {
         when(outcome.getExternal()).thenReturn(true);
         when(outcome.getLmsType()).thenReturn(LmsType.none);
         when(outcomeDto.getOutcomeId()).thenReturn(null);
+        when(outcomeDto.getExposureId()).thenReturn(EXPOSURE_UUID);
+        when(exposureRepository.findByUuid(EXPOSURE_UUID)).thenReturn(exposure);
     }
 
     @Test
@@ -128,7 +135,7 @@ public class OutcomeServiceImplTest extends BaseTest {
 
     @Test
     public void testBuildHeaders() {
-        HttpHeaders retVal = outcomeService.buildHeaders(UriComponentsBuilder.newInstance(), 0, 0, 0);
+        HttpHeaders retVal = outcomeService.buildHeaders(UriComponentsBuilder.newInstance(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
 
         assertNotNull(retVal);
     }
@@ -145,6 +152,28 @@ public class OutcomeServiceImplTest extends BaseTest {
         Outcome retVal = outcomeService.getOutcome(0l);
 
         assertNotNull(retVal);
+    }
+
+    @Test
+    public void testGetOutcomeByUuidFound() throws Exception {
+        // outcome.getUuid() isn't globally stubbed in BaseModelTest (unlike experiment.getUuid()), so stub it locally.
+        UUID uuid = UUID.randomUUID();
+        when(outcome.getUuid()).thenReturn(uuid);
+        when(outcomeRepository.findByUuid(uuid)).thenReturn(outcome);
+
+        Outcome retVal = outcomeService.getOutcomeByUuid(uuid);
+
+        assertEquals(outcome, retVal);
+    }
+
+    @Test
+    public void testGetOutcomeByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(outcomeRepository.findByUuid(uuid)).thenReturn(null);
+
+        Exception exception = assertThrows(OutcomeNotMatchingException.class, () -> outcomeService.getOutcomeByUuid(uuid));
+
+        assertTrue(exception.getMessage().startsWith("Error 108"));
     }
 
     @Test
@@ -195,14 +224,16 @@ public class OutcomeServiceImplTest extends BaseTest {
 
     @Test
     public void testPostOutcomeIdInPost() {
-        when(outcomeDto.getOutcomeId()).thenReturn(1L);
+        when(outcomeDto.getOutcomeId()).thenReturn(UUID.randomUUID());
 
         assertThrows(IdInPostException.class, () -> outcomeService.postOutcome(outcomeDto, 0));
     }
 
     @Test
     public void testPostOutcomeExposureNotFound() {
-        when(exposureRepository.findById(anyLong())).thenReturn(Optional.empty());
+        // fromDto now resolves the exposure by the uuid on the (mock) dto rather than by the numeric
+        // id passed into postOutcome, so the "not found" case is simulated on findByUuid instead.
+        when(exposureRepository.findByUuid(EXPOSURE_UUID)).thenReturn(null);
 
         DataServiceException exception = assertThrows(DataServiceException.class, () -> outcomeService.postOutcome(outcomeDto, 0));
         assertTrue(exception.getMessage().contains("Error 105"));
@@ -395,5 +426,20 @@ public class OutcomeServiceImplTest extends BaseTest {
         return "a".repeat(256);
     }
 
+    @Test
+    public void testGetOutcomeIdByUuidFound() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        when(outcomeRepository.findIdByUuid(uuid)).thenReturn(Optional.of(42L));
+
+        assertEquals(42L, outcomeService.getOutcomeIdByUuid(uuid));
+    }
+
+    @Test
+    public void testGetOutcomeIdByUuidNotFoundThrows() {
+        UUID uuid = UUID.randomUUID();
+        when(outcomeRepository.findIdByUuid(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(OutcomeNotMatchingException.class, () -> outcomeService.getOutcomeIdByUuid(uuid));
+    }
 
 }

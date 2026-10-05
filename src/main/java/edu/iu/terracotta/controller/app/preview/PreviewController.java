@@ -18,6 +18,9 @@ import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
+import edu.iu.terracotta.service.app.ConditionService;
+import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.dao.exceptions.ExposureNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.TreatmentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.preview.TreatmentPreviewDto;
@@ -35,21 +38,33 @@ import lombok.extern.slf4j.Slf4j;
 public class PreviewController {
 
     private final ApiJwtService apiJwtService;
+    private final ExperimentService experimentService;
+    private final ConditionService conditionService;
+    private final TreatmentService treatmentService;
     private final TreatmentPreviewService treatmentPreviewService;
 
     public static final String REQUEST_ROOT = "preview/experiments/{experimentId}";
 
     @GetMapping("/conditions/{conditionId}/treatments/{treatmentId}")
-    public String getTreatmentPreview(@PathVariable long experimentId, @PathVariable long conditionId, @PathVariable long treatmentId, @RequestParam String ownerId, HttpServletRequest req)
+    public String getTreatmentPreview(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("conditionId") UUID conditionUuid, @PathVariable("treatmentId") UUID treatmentUuid, @RequestParam String ownerId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, NumberFormatException, TerracottaConnectorException, ExposureNotMatchingException, ConditionNotMatchingException, TreatmentNotMatchingException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         TreatmentPreview treatmentPreview = treatmentPreviewService.create(treatmentId, experimentId, conditionId, ownerId);
 
-        return String.format("redirect:/app/app.html?treatmentPreview=true&experiment=%s&condition=%s&treatment=%s&previewId=%s&ownerId=%s", experimentId, conditionId, treatmentId, treatmentPreview.getUuid(), ownerId);
+        // experimentUuid/conditionUuid/treatmentUuid (not the internal experimentId/conditionId/
+        // treatmentId) - this redirect builds a NEW outbound URL the browser follows directly, so
+        // it must never leak internal numeric ids, same as the DTO/controller boundary elsewhere.
+        return String.format("redirect:/app/app.html?treatmentPreview=true&experiment=%s&condition=%s&treatment=%s&previewId=%s&ownerId=%s", experimentUuid, conditionUuid, treatmentUuid, treatmentPreview.getUuid(), ownerId);
     }
 
     @GetMapping("/conditions/{conditionId}/treatments/{treatmentId}/id/{previewId}")
-    public ResponseEntity<TreatmentPreviewDto> getTreatmentPreviewId(@PathVariable long experimentId, @PathVariable long conditionId, @PathVariable long treatmentId, @PathVariable UUID previewId, @RequestParam String ownerId, HttpServletRequest req)
+    public ResponseEntity<TreatmentPreviewDto> getTreatmentPreviewId(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("conditionId") UUID conditionUuid, @PathVariable("treatmentId") UUID treatmentUuid, @PathVariable UUID previewId, @RequestParam String ownerId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, NumberFormatException, TerracottaConnectorException, ExposureNotMatchingException, ConditionNotMatchingException, TreatmentNotMatchingException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         SecuredInfo securedInfo = apiJwtService.extractValues(req,false);
 
         try {
@@ -60,8 +75,11 @@ public class PreviewController {
     }
 
     @GetMapping("/conditions/{conditionId}/treatments/{treatmentId}/complete")
-    public String getTreatmentPreviewComplete(@PathVariable long experimentId, @PathVariable long conditionId, @PathVariable long treatmentId, @RequestParam String ownerId, HttpServletRequest req)
+    public String getTreatmentPreviewComplete(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("conditionId") UUID conditionUuid, @PathVariable("treatmentId") UUID treatmentUuid, @RequestParam String ownerId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, NumberFormatException, TerracottaConnectorException, ExposureNotMatchingException, ConditionNotMatchingException, TreatmentNotMatchingException {
+        // resolving experimentId isn't otherwise consumed by this redirect, but validates that
+        // the uuid corresponds to a real experiment
+        experimentService.getExperimentIdByUuid(experimentUuid);
         return "redirect:/app/app.html?treatmentPreview=true&complete=true";
     }
 

@@ -195,6 +195,11 @@ public class OneEdTechApiClientImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetLmsCourseIdIsEmpty() throws ApiException, TerracottaConnectorException {
+        assertTrue(oneEdTechApiClient.getLmsCourseId(ltiUserEntity, ltiContextEntity).isEmpty());
+    }
+
+    @Test
     public void testListSubmissionsByOutcome() throws Exception {
         List<LmsSubmission> result = oneEdTechApiClient.listSubmissions(ltiUserEntity, outcome, "lmsCourseId");
 

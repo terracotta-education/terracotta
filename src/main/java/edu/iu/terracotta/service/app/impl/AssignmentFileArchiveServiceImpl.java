@@ -125,7 +125,7 @@ public class AssignmentFileArchiveServiceImpl implements AssignmentFileArchiveSe
     @Override
     public AssignmentFileArchiveDto toDto(AssignmentFileArchive assignmentFileArchive, boolean includeFileContent) throws IOException {
         return AssignmentFileArchiveDto.builder()
-            .assignmentId(assignmentFileArchive.getAssignmentId())
+            .assignmentId(assignmentFileArchive.getAssignment().getUuid())
             .assignmentTitle(assignmentFileArchive.getAssignment().getTitle())
             .experimentTitle(assignmentFileArchive.getExperimentTitle())
             .id(assignmentFileArchive.getUuid())

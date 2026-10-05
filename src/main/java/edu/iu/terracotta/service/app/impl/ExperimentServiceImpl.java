@@ -36,12 +36,14 @@ import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
+import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
+import edu.iu.terracotta.utils.TextConstants;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +65,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -80,6 +83,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     private final PlatformDeploymentRepository platformDeploymentRepository;
     private final AssignmentService assignmentService;
     private final AssignmentAsyncService assignmentAsyncService;
+    private final ExperimentCopyCandidateService experimentCopyCandidateService;
     private final ConditionService conditionService;
     private final ExposureService exposureService;
     private final FeatureService featureService;
@@ -104,7 +108,13 @@ public class ExperimentServiceImpl implements ExperimentService {
         // sync data with LMS, if configured
         if (syncWithLms) {
             try {
-                assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
+                // deferred while copied experiments are still being recreated in this context -
+                // see NoticeController's identical guard (a copied assignment's URL still carries
+                // the source course's old IDs until recreation re-points it, so this would mark
+                // it obsolete)
+                if (!experimentCopyCandidateService.hasUnfinishedForContext(securedInfo.getContextId())) {
+                    assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
+                }
 
                 if (CollectionUtils.isNotEmpty(experiments)) {
                     participantAsyncService.updateParticipantData(securedInfo);
@@ -120,6 +130,18 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Override
     public Experiment getExperiment(long experimentId) {
         return experimentRepository.findByExperimentId(experimentId);
+    }
+
+    @Override
+    public Experiment getExperimentByUuid(UUID uuid) throws ExperimentNotMatchingException {
+        return Optional.ofNullable(experimentRepository.findByUuid(uuid))
+            .orElseThrow(() -> new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING));
+    }
+
+    @Override
+    public long getExperimentIdByUuid(UUID uuid) throws ExperimentNotMatchingException {
+        return experimentRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new ExperimentNotMatchingException(TextConstants.EXPERIMENT_NOT_MATCHING));
     }
 
     @Override
@@ -258,9 +280,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     @Override
     public ExperimentDto toDto(Experiment experiment, boolean conditions, boolean exposures, boolean participants, SecuredInfo securedInfo) {
         ExperimentDto experimentDto = new ExperimentDto();
-        experimentDto.setExperimentId(experiment.getExperimentId());
-        experimentDto.setContextId(experiment.getLtiContextEntity().getContextId());
-        experimentDto.setPlatformDeploymentId(experiment.getPlatformDeployment().getKeyId());
+        experimentDto.setExperimentId(experiment.getUuid());
         experimentDto.setTitle(experiment.getTitle());
         experimentDto.setDescription(experiment.getDescription());
         experimentDto.setExposureType(experiment.getExposureType().name());
@@ -350,7 +370,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 
         if (consentDocument != null) {
             ConsentDto consentDto = new ConsentDto();
-            consentDto.setConsentDocumentId(consentDocument.getConsentDocumentId());
+            consentDto.setConsentDocumentId(consentDocument.getUuid());
             consentDto.setFilePointer(consentDocument.getFilePointer());
             consentDto.setTitle(consentDocument.getTitle());
             consentDto.setHtml(fileStorageService.parseHTMLFiles(consentDocument.getHtml(), experiment.getPlatformDeployment().getLocalUrl()));
@@ -368,8 +388,11 @@ public class ExperimentServiceImpl implements ExperimentService {
 
     @Override
     public Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException {
+        // experimentDto.getExperimentId() (now a uuid) is intentionally not set on a new
+        // Experiment here - the controller already rejects a create request that carries one
+        // (IdInPostException), and the real numeric id/uuid are both IDENTITY/@PrePersist
+        // generated at insert time regardless.
         Experiment experiment = new Experiment();
-        experiment.setExperimentId(experimentDto.getExperimentId());
         Optional<LtiContextEntity> ltiContextEntity = ltiContextRepository.findById(experimentDto.getContextId());
 
         if (ltiContextEntity.isEmpty()) {
@@ -471,7 +494,7 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiment/{id}").buildAndExpand(experimentId).toUri());
 

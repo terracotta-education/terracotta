@@ -11,7 +11,7 @@ import org.hibernate.annotations.OnDeleteAction;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import edu.iu.terracotta.connectors.generic.dao.entity.BaseEntity;
+import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,7 +34,7 @@ import jakarta.persistence.UniqueConstraint;
         @UniqueConstraint(columnNames = {"condition_condition_id", "group_group_id", "exposure_exposure_id"})
     }
 )
-public class ExposureGroupCondition extends BaseEntity {
+public class ExposureGroupCondition extends UuidAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

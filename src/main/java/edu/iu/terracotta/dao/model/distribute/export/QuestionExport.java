@@ -18,14 +18,14 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QuestionExport {
 
-    private long id;
+    private String id;
     private Float points;
     private Integer questionOrder;
     private String html;
     private QuestionTypes questionType;
     private RegradeOption regradeOption;
     private boolean randomizeAnswers;
-    private long assessmentId;
-    private Long integrationId;
+    private String assessmentId;
+    private String integrationId;
 
 }

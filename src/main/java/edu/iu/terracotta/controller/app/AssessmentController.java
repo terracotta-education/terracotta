@@ -7,6 +7,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.entity.RegradeDetails;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
@@ -23,8 +24,11 @@ import edu.iu.terracotta.exceptions.NegativePointsException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.service.app.ConditionService;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.TreatmentService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +53,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
+import java.util.UUID;
 import java.util.List;
 
 @Slf4j
@@ -61,16 +66,22 @@ public class AssessmentController {
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments";
 
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
+    private final ConditionService conditionService;
     private final AssessmentService assessmentService;
     private final SubmissionService submissionService;
+    private final TreatmentService treatmentService;
 
     @GetMapping
-    public ResponseEntity<List<AssessmentDto>> getAssessmentByTreatment(@PathVariable long experimentId,
-                                                                        @PathVariable long conditionId,
-                                                                        @PathVariable long treatmentId,
+    public ResponseEntity<List<AssessmentDto>> getAssessmentByTreatment(@PathVariable("experimentId") UUID experimentUuid,
+                                                                        @PathVariable("conditionId") UUID conditionUuid,
+                                                                        @PathVariable("treatmentId") UUID treatmentUuid,
                                                                         @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
                                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, TreatmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -90,16 +101,21 @@ public class AssessmentController {
     }
 
     @GetMapping(value = "/{assessmentId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AssessmentDto> getAssessment(@PathVariable long experimentId,
-                                                       @PathVariable long conditionId,
-                                                       @PathVariable long treatmentId,
-                                                       @PathVariable long assessmentId,
+    public ResponseEntity<AssessmentDto> getAssessment(@PathVariable("experimentId") UUID experimentUuid,
+                                                       @PathVariable("conditionId") UUID conditionUuid,
+                                                       @PathVariable("treatmentId") UUID treatmentUuid,
+                                                       @PathVariable("assessmentId") UUID assessmentUuid,
                                                        @RequestParam(name = "questions", defaultValue = "false") boolean questions,
                                                        @RequestParam(name = "answers", defaultValue = "false") boolean answers,
                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
-                                                       @RequestParam(name = "submission_id", required = false) Long submissionId,
+                                                       @RequestParam(name = "submission_id", required = false) UUID submissionUuid,
                                                        HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, AssessmentNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, SubmissionNotMatchingException, NoSubmissionsException, NumberFormatException, TerracottaConnectorException {
+        Long submissionId = submissionUuid != null ? submissionService.getSubmissionIdByUuid(submissionUuid) : null;
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -126,14 +142,17 @@ public class AssessmentController {
     }
 
     @PostMapping
-    public ResponseEntity<AssessmentDto> postAssessment(@PathVariable long experimentId,
-                                                        @PathVariable long conditionId,
-                                                        @PathVariable long treatmentId,
+    public ResponseEntity<AssessmentDto> postAssessment(@PathVariable("experimentId") UUID experimentUuid,
+                                                        @PathVariable("conditionId") UUID conditionUuid,
+                                                        @PathVariable("treatmentId") UUID treatmentUuid,
                                                         @RequestBody AssessmentDto assessmentDto,
                                                         UriComponentsBuilder ucBuilder,
                                                         HttpServletRequest req)
-            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, ConditionNotMatchingException,
             TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
@@ -143,22 +162,26 @@ public class AssessmentController {
         }
 
         AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId, securedInfo);
-        log.debug("Created assessment ID: [{}] for treatment ID: [{}]", returnedDto.getAssessmentId(), treatmentId);
-        HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, returnedDto.getAssessmentId());
+        log.debug("Created assessment ID: [{}] for treatment ID: [{}]", returnedDto.getAssessmentId(), treatmentUuid);
+        HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, returnedDto.getAssessmentId());
 
         return new ResponseEntity<>(returnedDto, headers, HttpStatus.CREATED);
     }
 
     @PutMapping("/{assessmentId}")
-    public ResponseEntity<AssessmentDto> putAssessment(@PathVariable long experimentId,
-                                                 @PathVariable long conditionId,
-                                                 @PathVariable long treatmentId,
-                                                 @PathVariable long assessmentId,
+    public ResponseEntity<AssessmentDto> putAssessment(@PathVariable("experimentId") UUID experimentUuid,
+                                                 @PathVariable("conditionId") UUID conditionUuid,
+                                                 @PathVariable("treatmentId") UUID treatmentUuid,
+                                                 @PathVariable("assessmentId") UUID assessmentUuid,
                                                  @RequestBody AssessmentDto assessmentDto,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, TitleValidationException, RevealResponsesSettingValidationException,
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, BadTokenException, ConditionNotMatchingException, TitleValidationException, RevealResponsesSettingValidationException,
             MultipleAttemptsSettingsValidationException, IdInPostException, DataServiceException, NegativePointsException, QuestionNotMatchingException,
             MultipleChoiceLimitReachedException, IntegrationClientNotFoundException, IntegrationNotFoundException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -168,19 +191,23 @@ public class AssessmentController {
         }
 
         AssessmentDto updatedAssessmentDto = assessmentService.putAssessment(assessmentId, assessmentDto, true, securedInfo);
-        log.debug("Updated assessment ID: [{}]", assessmentId);
+        log.debug("Updated assessment ID: [{}]", assessmentUuid);
 
         return new ResponseEntity<>(updatedAssessmentDto, HttpStatus.OK);
     }
 
     @Transactional
     @DeleteMapping("/{assessmentId}")
-    public ResponseEntity<Void> deleteAssessment(@PathVariable long experimentId,
-                                                 @PathVariable long conditionId,
-                                                 @PathVariable long treatmentId,
-                                                 @PathVariable long assessmentId,
+    public ResponseEntity<Void> deleteAssessment(@PathVariable("experimentId") UUID experimentUuid,
+                                                 @PathVariable("conditionId") UUID conditionUuid,
+                                                 @PathVariable("treatmentId") UUID treatmentUuid,
+                                                 @PathVariable("assessmentId") UUID assessmentUuid,
                                                  HttpServletRequest req)
-            throws ExperimentNotMatchingException, AssessmentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, TreatmentNotMatchingException, AssessmentNotMatchingException, BadTokenException, ConditionNotMatchingException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         log.debug("Deleting assessment with id: {}", assessmentId);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -202,14 +229,18 @@ public class AssessmentController {
     }
 
     @PostMapping("/{assessmentId}/regrade")
-    public ResponseEntity<Void> regrade(@PathVariable long experimentId,
-                                                @PathVariable long conditionId,
-                                                @PathVariable long treatmentId,
-                                                @PathVariable long assessmentId,
+    public ResponseEntity<Void> regrade(@PathVariable("experimentId") UUID experimentUuid,
+                                                @PathVariable("conditionId") UUID conditionUuid,
+                                                @PathVariable("treatmentId") UUID treatmentUuid,
+                                                @PathVariable("assessmentId") UUID assessmentUuid,
                                                 @RequestBody RegradeDetails regradeDetails,
                                                 HttpServletRequest req)
-        throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException,
+        throws ExperimentNotMatchingException, TreatmentNotMatchingException, BadTokenException, ConditionNotMatchingException,
             TitleValidationException, AssessmentNotMatchingException, IdInPostException, DataServiceException, ConnectionException, ApiException, IOException, NumberFormatException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
         log.debug("Regrading questions for assessment ID: {}", assessmentId);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);

@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,14 @@ import edu.iu.terracotta.utils.TextConstants;
 
 public class ParticipantControllerTest extends BaseTest {
 
+    // the uuid path variable for the one experiment under test; experiment.getExperimentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one participant under test; participant.getParticipantId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID PARTICIPANT_UUID = UUID.randomUUID();
+
     private ParticipantController participantController;
 
     @BeforeEach
@@ -45,9 +54,11 @@ public class ParticipantControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        participantController = new ParticipantController(participantService, apiJwtService);
+        participantController = new ParticipantController(participantService, apiJwtService, experimentService);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(participantService.getParticipantIdByUuid(PARTICIPANT_UUID)).thenAnswer(invocation -> participant.getParticipantId());
     }
 
     @Test
@@ -56,7 +67,7 @@ public class ParticipantControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(participantService.getParticipants(1L, USER_ID, false, securedInfo, true)).thenReturn(List.of(participantDto));
 
-        ResponseEntity<List<ParticipantDto>> response = participantController.allParticipantsByExperiment(1L, true, httpServletRequest);
+        ResponseEntity<List<ParticipantDto>> response = participantController.allParticipantsByExperiment(EXPERIMENT_UUID, true, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
@@ -68,7 +79,7 @@ public class ParticipantControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(participantService.getParticipants(1L, USER_ID, true, securedInfo, false)).thenReturn(Collections.emptyList());
 
-        ResponseEntity<List<ParticipantDto>> response = participantController.allParticipantsByExperiment(1L, false, httpServletRequest);
+        ResponseEntity<List<ParticipantDto>> response = participantController.allParticipantsByExperiment(EXPERIMENT_UUID, false, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
@@ -77,7 +88,7 @@ public class ParticipantControllerTest extends BaseTest {
     void allParticipantsByExperimentPermissionDeniedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<List<ParticipantDto>> response = participantController.allParticipantsByExperiment(1L, false, httpServletRequest);
+        ResponseEntity<List<ParticipantDto>> response = participantController.allParticipantsByExperiment(EXPERIMENT_UUID, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -87,17 +98,17 @@ public class ParticipantControllerTest extends BaseTest {
     void allParticipantsByExperimentPropagatesExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("no match")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 
-        assertThrows(ExperimentNotMatchingException.class, () -> participantController.allParticipantsByExperiment(1L, false, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> participantController.allParticipantsByExperiment(EXPERIMENT_UUID, false, httpServletRequest));
     }
 
     @Test
     void getParticipantHappyPathTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        when(participantService.getParticipant(2L, 1L, USER_ID, false)).thenReturn(participant);
+        when(participantService.getParticipant(1L, 1L, USER_ID, false)).thenReturn(participant);
         when(participantService.toDto(participant, securedInfo)).thenReturn(participantDto);
 
-        ResponseEntity<ParticipantDto> response = participantController.getParticipant(1L, 2L, httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.getParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
@@ -107,7 +118,7 @@ public class ParticipantControllerTest extends BaseTest {
     void getParticipantPermissionDeniedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ParticipantDto> response = participantController.getParticipant(1L, 2L, httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.getParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -116,9 +127,10 @@ public class ParticipantControllerTest extends BaseTest {
     void postParticipantHappyPathTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(participantService.postParticipant(participantDto, 1L, securedInfo)).thenReturn(participantDto);
-        when(participantService.buildHeaders(any(UriComponentsBuilder.class), eq(1L), eq(1L))).thenReturn(new HttpHeaders());
+        UUID participantId = participantDto.getParticipantId();
+        when(participantService.buildHeaders(any(UriComponentsBuilder.class), eq(EXPERIMENT_UUID), eq(participantId))).thenReturn(new HttpHeaders());
 
-        ResponseEntity<ParticipantDto> response = participantController.postParticipant(1L, participantDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.postParticipant(EXPERIMENT_UUID, participantDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
@@ -128,7 +140,7 @@ public class ParticipantControllerTest extends BaseTest {
     void postParticipantPermissionDeniedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ParticipantDto> response = participantController.postParticipant(1L, participantDto, UriComponentsBuilder.newInstance(), httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.postParticipant(EXPERIMENT_UUID, participantDto, UriComponentsBuilder.newInstance(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -137,17 +149,17 @@ public class ParticipantControllerTest extends BaseTest {
     void postParticipantPropagatesTerracottaConnectorExceptionTest() throws Exception {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenThrow(new TerracottaConnectorException("boom"));
 
-        assertThrows(TerracottaConnectorException.class, () -> participantController.postParticipant(1L, participantDto, UriComponentsBuilder.newInstance(), httpServletRequest));
+        assertThrows(TerracottaConnectorException.class, () -> participantController.postParticipant(EXPERIMENT_UUID, participantDto, UriComponentsBuilder.newInstance(), httpServletRequest));
     }
 
     @Test
     void updateParticipantInstructorHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        when(participantService.getParticipant(2L, 1L, USER_ID, false)).thenReturn(participant);
+        when(participantService.getParticipant(1L, 1L, USER_ID, false)).thenReturn(participant);
         when(participantService.changeParticipant(anyMap(), eq(1L), eq(securedInfo))).thenReturn(List.of(participant));
         when(participantService.toDto(participant, securedInfo)).thenReturn(participantDto);
 
-        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(1L, 2L, participantDto, httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, participantDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
@@ -157,11 +169,11 @@ public class ParticipantControllerTest extends BaseTest {
     void updateParticipantLearnerHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
-        when(participantService.getParticipant(2L, 1L, USER_ID, true)).thenReturn(participant);
+        when(participantService.getParticipant(1L, 1L, USER_ID, true)).thenReturn(participant);
         when(participantService.changeConsent(participantDto, securedInfo, 1L)).thenReturn(participant);
         when(participantService.toDto(participant, securedInfo)).thenReturn(participantDto);
 
-        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(1L, 2L, participantDto, httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, participantDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
@@ -172,10 +184,10 @@ public class ParticipantControllerTest extends BaseTest {
     void updateParticipantLearnerAlreadyStartedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
-        when(participantService.getParticipant(2L, 1L, USER_ID, true)).thenReturn(participant);
+        when(participantService.getParticipant(1L, 1L, USER_ID, true)).thenReturn(participant);
         doThrow(new ParticipantAlreadyStartedException("started")).when(participantService).changeConsent(participantDto, securedInfo, 1L);
 
-        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(1L, 2L, participantDto, httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, participantDto, httpServletRequest);
         // body is actually a plain String in this branch (controller uses a raw ResponseEntity), so
         // keep the reference as Object here - calling .toString() through the ParticipantDto-typed
         // getter would insert a checkcast to ParticipantDto and throw a ClassCastException at runtime.
@@ -192,12 +204,12 @@ public class ParticipantControllerTest extends BaseTest {
         // actual consent decision from being recorded - the two are independent outcomes
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(apiJwtService.isLearner(securedInfo)).thenReturn(true);
-        when(participantService.getParticipant(2L, 1L, USER_ID, true)).thenReturn(participant);
+        when(participantService.getParticipant(1L, 1L, USER_ID, true)).thenReturn(participant);
         doThrow(new ConnectionException("lms down")).when(participantService).postConsentSubmission(participant, securedInfo);
         when(participantService.changeConsent(participantDto, securedInfo, 1L)).thenReturn(participant);
         when(participantService.toDto(participant, securedInfo)).thenReturn(participantDto);
 
-        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(1L, 2L, participantDto, httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, participantDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(participantDto, response.getBody());
@@ -209,7 +221,7 @@ public class ParticipantControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(apiJwtService.isLearner(securedInfo)).thenReturn(false);
 
-        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(1L, 2L, participantDto, httpServletRequest);
+        ResponseEntity<ParticipantDto> response = participantController.updateParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, participantDto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -218,9 +230,10 @@ public class ParticipantControllerTest extends BaseTest {
     @Test
     void updateParticipantsHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(participantService.getParticipantIdByUuid(participantDto.getParticipantId())).thenAnswer(invocation -> participant.getParticipantId());
         when(participantService.getParticipant(1L, 1L, USER_ID, false)).thenReturn(participant);
 
-        ResponseEntity<Void> response = participantController.updateParticipants(1L, List.of(participantDto), httpServletRequest);
+        ResponseEntity<Void> response = participantController.updateParticipants(EXPERIMENT_UUID, List.of(participantDto), httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNull(response.getBody());
@@ -230,7 +243,7 @@ public class ParticipantControllerTest extends BaseTest {
     void updateParticipantsPermissionDeniedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = participantController.updateParticipants(1L, List.of(participantDto), httpServletRequest);
+        ResponseEntity<Void> response = participantController.updateParticipants(EXPERIMENT_UUID, List.of(participantDto), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -238,18 +251,19 @@ public class ParticipantControllerTest extends BaseTest {
     @Test
     void updateParticipantsWrapsUnexpectedExceptionTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(participantService.getParticipantIdByUuid(participantDto.getParticipantId())).thenAnswer(invocation -> participant.getParticipantId());
         when(participantService.getParticipant(1L, 1L, USER_ID, false)).thenReturn(participant);
         doThrow(new RuntimeException("db fail")).when(participantService).changeParticipant(anyMap(), eq(1L), eq(securedInfo));
 
-        assertThrows(DataServiceException.class, () -> participantController.updateParticipants(1L, List.of(participantDto), httpServletRequest));
+        assertThrows(DataServiceException.class, () -> participantController.updateParticipants(EXPERIMENT_UUID, List.of(participantDto), httpServletRequest));
     }
 
     @Test
     void deleteParticipantHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
-        when(participantService.getParticipant(2L, 1L, USER_ID, false)).thenReturn(participant);
+        when(participantService.getParticipant(1L, 1L, USER_ID, false)).thenReturn(participant);
 
-        ResponseEntity<Void> response = participantController.deleteParticipant(1L, 2L, httpServletRequest);
+        ResponseEntity<Void> response = participantController.deleteParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(participant).setDropped(true);
@@ -260,7 +274,7 @@ public class ParticipantControllerTest extends BaseTest {
     void deleteParticipantPermissionDeniedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = participantController.deleteParticipant(1L, 2L, httpServletRequest);
+        ResponseEntity<Void> response = participantController.deleteParticipant(EXPERIMENT_UUID, PARTICIPANT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }

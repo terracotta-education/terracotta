@@ -7,10 +7,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.AnswerEssaySubmission;
 
+import java.util.UUID;
 import java.util.List;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface AnswerEssaySubmissionRepository extends JpaRepository<AnswerEssaySubmission, Long> {
+
+    AnswerEssaySubmission findByUuid(UUID uuid);
 
     List<AnswerEssaySubmission> findByQuestionSubmission_QuestionSubmissionId(Long questionSubmissionId);
     List<AnswerEssaySubmission> findByQuestionSubmission_QuestionSubmissionIdIn(List<Long> questionSubmissionIds);

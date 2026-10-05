@@ -9,11 +9,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.AnswerMc;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface AnswerMcRepository extends JpaRepository<AnswerMc, Long> {
+
+    AnswerMc findByUuid(UUID uuid);
+
+
+    @Query("select e.answerMcId from AnswerMc e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
 
     List<AnswerMc> findByQuestion_QuestionId(Long questionId);
     @Query("SELECT a FROM AnswerMc a WHERE a.question.assessment.treatment.condition.experiment.experimentId = :experimentId")

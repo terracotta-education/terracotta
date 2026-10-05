@@ -1,6 +1,7 @@
 export * from "./api.service";
 export * from "./user.service";
 export * from "./experiment.service";
+export * from "./experiment-copy-candidate.service";
 export * from "./assignment.service";
 export * from "./assessment.service";
 export * from "./condition.service";

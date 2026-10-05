@@ -11,9 +11,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
@@ -31,9 +33,31 @@ import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
+import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.utils.TextConstants;
 
 public class AssessmentControllerTest extends BaseTest {
+
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one condition under test; condition.getConditionId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID CONDITION_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one treatment under test; treatment.getTreatmentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID TREATMENT_UUID = UUID.randomUUID();
+
+    // the uuid path variable for the one assessment under test; assessment.getAssessmentId()
+    // (the mock's globally-stubbed return value, see BaseModelTest) is what it resolves to
+    private static final UUID ASSESSMENT_UUID = UUID.randomUUID();
+
+    // the uuid query param used for tests that resolve to a submission id of 5L via
+    // submissionService.getSubmissionByUuid (stubbed in beforeEach below)
+    private static final UUID SUBMISSION_UUID = UUID.randomUUID();
+
+    // ConditionService has no mock in the BaseTest hierarchy, so it must be declared locally.
+    @Mock private ConditionService conditionService;
 
     private AssessmentController assessmentController;
 
@@ -43,7 +67,7 @@ public class AssessmentControllerTest extends BaseTest {
     private final long assessmentId = 1L;
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws Exception {
         MockitoAnnotations.openMocks(this);
 
         setup();
@@ -51,7 +75,14 @@ public class AssessmentControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        assessmentController = new AssessmentController(apiJwtService, assessmentService, submissionService);
+        assessmentController = new AssessmentController(apiJwtService, experimentService, conditionService, assessmentService, submissionService, treatmentService);
+
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(conditionService.getConditionIdByUuid(CONDITION_UUID)).thenAnswer(invocation -> condition.getConditionId());
+        when(treatmentService.getTreatmentIdByUuid(TREATMENT_UUID)).thenAnswer(invocation -> treatment.getTreatmentId());
+        when(assessmentService.getAssessmentIdByUuid(ASSESSMENT_UUID)).thenAnswer(invocation -> assessment.getAssessmentId());
+        when(submissionService.getSubmissionIdByUuid(SUBMISSION_UUID)).thenAnswer(invocation -> submission.getSubmissionId());
+        when(submission.getSubmissionId()).thenReturn(5L);
     }
 
     private void stubAuthorized() throws Exception {
@@ -68,7 +99,7 @@ public class AssessmentControllerTest extends BaseTest {
         List<AssessmentDto> list = List.of(assessmentDto);
         when(assessmentService.getAllAssessmentsByTreatment(treatmentId, false, securedInfo)).thenReturn(list);
 
-        ResponseEntity<List<AssessmentDto>> response = assessmentController.getAssessmentByTreatment(experimentId, conditionId, treatmentId, false, httpServletRequest);
+        ResponseEntity<List<AssessmentDto>> response = assessmentController.getAssessmentByTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, false, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(list, response.getBody());
@@ -79,7 +110,7 @@ public class AssessmentControllerTest extends BaseTest {
         stubAuthorized();
         when(assessmentService.getAllAssessmentsByTreatment(treatmentId, false, securedInfo)).thenReturn(List.of());
 
-        ResponseEntity<List<AssessmentDto>> response = assessmentController.getAssessmentByTreatment(experimentId, conditionId, treatmentId, false, httpServletRequest);
+        ResponseEntity<List<AssessmentDto>> response = assessmentController.getAssessmentByTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, false, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
@@ -89,7 +120,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<List<AssessmentDto>> response = assessmentController.getAssessmentByTreatment(experimentId, conditionId, treatmentId, false, httpServletRequest);
+        ResponseEntity<List<AssessmentDto>> response = assessmentController.getAssessmentByTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -102,7 +133,7 @@ public class AssessmentControllerTest extends BaseTest {
         // BUG/design smell: getAssessmentByTreatment has no try/catch of its own, so this checked
         // exception (declared "throws") propagates straight out of the controller method with no
         // permission check having happened yet.
-        assertThrows(ExperimentNotMatchingException.class, () -> assessmentController.getAssessmentByTreatment(experimentId, conditionId, treatmentId, false, httpServletRequest));
+        assertThrows(ExperimentNotMatchingException.class, () -> assessmentController.getAssessmentByTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, false, httpServletRequest));
     }
 
     @Test
@@ -110,7 +141,7 @@ public class AssessmentControllerTest extends BaseTest {
         stubAuthorized();
         when(assessmentService.getAllAssessmentsByTreatment(treatmentId, false, securedInfo)).thenThrow(new AssessmentNotMatchingException("no match"));
 
-        assertThrows(AssessmentNotMatchingException.class, () -> assessmentController.getAssessmentByTreatment(experimentId, conditionId, treatmentId, false, httpServletRequest));
+        assertThrows(AssessmentNotMatchingException.class, () -> assessmentController.getAssessmentByTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, false, httpServletRequest));
     }
 
     // getAssessment
@@ -121,7 +152,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(assessmentService.getAssessment(assessmentId)).thenReturn(assessment);
         when(assessmentService.toDto(eq(assessment), isNull(), anyBoolean(), anyBoolean(), anyBoolean(), eq(false), eq(securedInfo))).thenReturn(assessmentDto);
 
-        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(experimentId, conditionId, treatmentId, assessmentId, true, true, true, null, httpServletRequest);
+        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, true, true, true, null, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(assessmentDto, response.getBody());
@@ -134,7 +165,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(assessmentService.getAssessment(assessmentId)).thenReturn(assessment);
         when(assessmentService.toDto(eq(assessment), eq(5L), anyBoolean(), anyBoolean(), anyBoolean(), eq(true), eq(securedInfo))).thenReturn(assessmentDto);
 
-        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(experimentId, conditionId, treatmentId, assessmentId, false, false, false, 5L, httpServletRequest);
+        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, SUBMISSION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(submissionService, times(1)).getSubmission(experimentId, securedInfo.getUserId(), 5L, true);
@@ -145,7 +176,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(experimentId, conditionId, treatmentId, assessmentId, false, false, false, null, httpServletRequest);
+        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, null, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -155,7 +186,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         org.mockito.Mockito.doThrow(new AssessmentNotMatchingException("no match")).when(apiJwtService).assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        assertThrows(AssessmentNotMatchingException.class, () -> assessmentController.getAssessment(experimentId, conditionId, treatmentId, assessmentId, false, false, false, null, httpServletRequest));
+        assertThrows(AssessmentNotMatchingException.class, () -> assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, null, httpServletRequest));
     }
 
     @Test
@@ -164,7 +195,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(submissionService.getSubmission(eq(experimentId), any(), eq(5L), eq(true))).thenThrow(new NoSubmissionsException("not the student's submission"));
 
-        assertThrows(NoSubmissionsException.class, () -> assessmentController.getAssessment(experimentId, conditionId, treatmentId, assessmentId, false, false, false, 5L, httpServletRequest));
+        assertThrows(NoSubmissionsException.class, () -> assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, SUBMISSION_UUID, httpServletRequest));
     }
 
     @Test
@@ -172,7 +203,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         org.mockito.Mockito.doThrow(new SubmissionNotMatchingException("no match")).when(apiJwtService).submissionAllowed(securedInfo, assessmentId, 5L);
 
-        assertThrows(SubmissionNotMatchingException.class, () -> assessmentController.getAssessment(experimentId, conditionId, treatmentId, assessmentId, false, false, false, 5L, httpServletRequest));
+        assertThrows(SubmissionNotMatchingException.class, () -> assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, SUBMISSION_UUID, httpServletRequest));
     }
 
     // postAssessment
@@ -182,9 +213,9 @@ public class AssessmentControllerTest extends BaseTest {
         stubAuthorized();
         UriComponentsBuilder ucBuilder = UriComponentsBuilder.newInstance();
         when(assessmentService.postAssessment(assessmentDto, treatmentId, securedInfo)).thenReturn(assessmentDto);
-        when(assessmentService.buildHeaders(ucBuilder, experimentId, conditionId, treatmentId, assessmentDto.getAssessmentId())).thenReturn(new HttpHeaders());
+        when(assessmentService.buildHeaders(ucBuilder, EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, assessmentDto.getAssessmentId())).thenReturn(new HttpHeaders());
 
-        ResponseEntity<AssessmentDto> response = assessmentController.postAssessment(experimentId, conditionId, treatmentId, assessmentDto, ucBuilder, httpServletRequest);
+        ResponseEntity<AssessmentDto> response = assessmentController.postAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, assessmentDto, ucBuilder, httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(assessmentDto, response.getBody());
@@ -201,7 +232,7 @@ public class AssessmentControllerTest extends BaseTest {
         // `new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, ...)` whose body is a String, not an
         // AssessmentDto. Reading it through the method's declared ResponseEntity<AssessmentDto> generic
         // would make javac insert a checkcast to AssessmentDto on getBody() and throw ClassCastException.
-        ResponseEntity response = assessmentController.postAssessment(experimentId, conditionId, treatmentId, assessmentDto, ucBuilder, httpServletRequest);
+        ResponseEntity response = assessmentController.postAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, assessmentDto, ucBuilder, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -213,7 +244,7 @@ public class AssessmentControllerTest extends BaseTest {
         UriComponentsBuilder ucBuilder = UriComponentsBuilder.newInstance();
         when(assessmentService.postAssessment(assessmentDto, treatmentId, securedInfo)).thenThrow(new TitleValidationException("bad title"));
 
-        assertThrows(TitleValidationException.class, () -> assessmentController.postAssessment(experimentId, conditionId, treatmentId, assessmentDto, ucBuilder, httpServletRequest));
+        assertThrows(TitleValidationException.class, () -> assessmentController.postAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, assessmentDto, ucBuilder, httpServletRequest));
     }
 
     @Test
@@ -222,7 +253,7 @@ public class AssessmentControllerTest extends BaseTest {
         org.mockito.Mockito.doThrow(new TreatmentNotMatchingException("no match")).when(apiJwtService).treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
         UriComponentsBuilder ucBuilder = UriComponentsBuilder.newInstance();
 
-        assertThrows(TreatmentNotMatchingException.class, () -> assessmentController.postAssessment(experimentId, conditionId, treatmentId, assessmentDto, ucBuilder, httpServletRequest));
+        assertThrows(TreatmentNotMatchingException.class, () -> assessmentController.postAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, assessmentDto, ucBuilder, httpServletRequest));
     }
 
     // putAssessment
@@ -232,7 +263,7 @@ public class AssessmentControllerTest extends BaseTest {
         stubAuthorized();
         when(assessmentService.putAssessment(assessmentId, assessmentDto, true, securedInfo)).thenReturn(assessmentDto);
 
-        ResponseEntity<AssessmentDto> response = assessmentController.putAssessment(experimentId, conditionId, treatmentId, assessmentId, assessmentDto, httpServletRequest);
+        ResponseEntity<AssessmentDto> response = assessmentController.putAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, assessmentDto, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(assessmentDto, response.getBody());
@@ -245,7 +276,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
         // Raw ResponseEntity for the same reason as postAssessmentUnauthorizedTest above.
-        ResponseEntity response = assessmentController.putAssessment(experimentId, conditionId, treatmentId, assessmentId, assessmentDto, httpServletRequest);
+        ResponseEntity response = assessmentController.putAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, assessmentDto, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -256,7 +287,7 @@ public class AssessmentControllerTest extends BaseTest {
         stubAuthorized();
         when(assessmentService.putAssessment(assessmentId, assessmentDto, true, securedInfo)).thenThrow(new RevealResponsesSettingValidationException("bad setting"));
 
-        assertThrows(RevealResponsesSettingValidationException.class, () -> assessmentController.putAssessment(experimentId, conditionId, treatmentId, assessmentId, assessmentDto, httpServletRequest));
+        assertThrows(RevealResponsesSettingValidationException.class, () -> assessmentController.putAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, assessmentDto, httpServletRequest));
     }
 
     // deleteAssessment
@@ -265,7 +296,7 @@ public class AssessmentControllerTest extends BaseTest {
     void deleteAssessmentTest() throws Exception {
         stubAuthorized();
 
-        ResponseEntity<Void> response = assessmentController.deleteAssessment(experimentId, conditionId, treatmentId, assessmentId, httpServletRequest);
+        ResponseEntity<Void> response = assessmentController.deleteAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(assessmentService, times(1)).deleteById(assessmentId);
@@ -276,7 +307,7 @@ public class AssessmentControllerTest extends BaseTest {
         stubAuthorized();
         org.mockito.Mockito.doThrow(new EmptyResultDataAccessException(1)).when(assessmentService).deleteById(assessmentId);
 
-        ResponseEntity<Void> response = assessmentController.deleteAssessment(experimentId, conditionId, treatmentId, assessmentId, httpServletRequest);
+        ResponseEntity<Void> response = assessmentController.deleteAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
@@ -290,7 +321,7 @@ public class AssessmentControllerTest extends BaseTest {
         // Raw ResponseEntity: deleteAssessment declares ResponseEntity<Void> but its unauthorized branch
         // returns a raw ResponseEntity with a String body, so getBody() through the Void generic would
         // insert a checkcast to Void and throw ClassCastException against the actual String body.
-        ResponseEntity response = assessmentController.deleteAssessment(experimentId, conditionId, treatmentId, assessmentId, httpServletRequest);
+        ResponseEntity response = assessmentController.deleteAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
@@ -301,7 +332,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         org.mockito.Mockito.doThrow(new AssessmentNotMatchingException("no match")).when(apiJwtService).assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        assertThrows(AssessmentNotMatchingException.class, () -> assessmentController.deleteAssessment(experimentId, conditionId, treatmentId, assessmentId, httpServletRequest));
+        assertThrows(AssessmentNotMatchingException.class, () -> assessmentController.deleteAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, httpServletRequest));
     }
 
     // regrade
@@ -310,7 +341,7 @@ public class AssessmentControllerTest extends BaseTest {
     void regradeTest() throws Exception {
         stubAuthorized();
 
-        ResponseEntity<Void> response = assessmentController.regrade(experimentId, conditionId, treatmentId, assessmentId, regradeDetails, httpServletRequest);
+        ResponseEntity<Void> response = assessmentController.regrade(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, regradeDetails, httpServletRequest);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
         verify(assessmentService, times(1)).regradeQuestions(regradeDetails, assessmentId);
@@ -321,7 +352,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
 
-        ResponseEntity<Void> response = assessmentController.regrade(experimentId, conditionId, treatmentId, assessmentId, regradeDetails, httpServletRequest);
+        ResponseEntity<Void> response = assessmentController.regrade(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, regradeDetails, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
@@ -331,7 +362,7 @@ public class AssessmentControllerTest extends BaseTest {
         stubAuthorized();
         org.mockito.Mockito.doThrow(new ConnectionException("down")).when(assessmentService).regradeQuestions(regradeDetails, assessmentId);
 
-        assertThrows(ConnectionException.class, () -> assessmentController.regrade(experimentId, conditionId, treatmentId, assessmentId, regradeDetails, httpServletRequest));
+        assertThrows(ConnectionException.class, () -> assessmentController.regrade(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, regradeDetails, httpServletRequest));
     }
 
     @Test
@@ -339,7 +370,7 @@ public class AssessmentControllerTest extends BaseTest {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         org.mockito.Mockito.doThrow(new TreatmentNotMatchingException("no match")).when(apiJwtService).treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        assertThrows(TreatmentNotMatchingException.class, () -> assessmentController.regrade(experimentId, conditionId, treatmentId, assessmentId, regradeDetails, httpServletRequest));
+        assertThrows(TreatmentNotMatchingException.class, () -> assessmentController.regrade(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, regradeDetails, httpServletRequest));
     }
 
 }

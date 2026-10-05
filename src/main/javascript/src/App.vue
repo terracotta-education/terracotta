@@ -334,9 +334,20 @@ const clearStaleStorageExceptDrafts = () => {
 // public/js/integrations/resize/ already use on the OTHER side of a similar handshake
 // (an embedded integration tool reporting ITS size to Terracotta), for consistency.
 let frameResizeObserver = null;
+let swalPopupMutationObserver = null;
+let observedSwalPopup = null;
 
 const notifyParentOfHeight = () => {
-  const height = Math.max(document.body.offsetHeight, document.documentElement.offsetHeight);
+  // SweetAlert2 renders its dialog as a `position: fixed` overlay appended to <body> -
+  // fixed-position content is excluded from the normal document flow, so a modal taller
+  // than the current viewport (e.g. a long checkbox list) never changes document.body's
+  // own offsetHeight. Without accounting for it here too, the outer LTI iframe never
+  // grows to fit, leaving the modal clipped/scrolling inside whatever height the iframe
+  // already happened to be. The popup element itself isn't clipped by its fixed
+  // ancestor's overflow, so its own offsetHeight still reflects its true, unclamped size.
+  const swalPopup = document.querySelector(".swal2-popup");
+  const swalHeight = swalPopup ? swalPopup.offsetHeight + 96 : 0;
+  const height = Math.max(document.body.offsetHeight, document.documentElement.offsetHeight, swalHeight);
 
   window.parent.postMessage({ subject: "lti.frameResize", height }, "*");
 };
@@ -349,11 +360,41 @@ const startFrameResizeReporting = () => {
   notifyParentOfHeight();
   frameResizeObserver = new ResizeObserver(notifyParentOfHeight);
   frameResizeObserver.observe(document.body);
+
+  // the ResizeObserver above never fires for a Swal popup's own size changes (see
+  // notifyParentOfHeight) - watch for one being added/removed and observe/unobserve it
+  // directly with the same ResizeObserver, so its appearance and any subsequent content
+  // changes (e.g. a validation message appearing) still trigger a height report.
+  swalPopupMutationObserver = new MutationObserver(() => {
+    const popup = document.querySelector(".swal2-popup");
+
+    if (popup === observedSwalPopup) {
+      return;
+    }
+
+    if (observedSwalPopup) {
+      frameResizeObserver.unobserve(observedSwalPopup);
+    }
+
+    observedSwalPopup = popup;
+
+    if (popup) {
+      frameResizeObserver.observe(popup);
+    }
+
+    // don't rely solely on ResizeObserver's own initial-observe notification here - report
+    // immediately too, so the popup's appearance/removal is reflected without delay
+    notifyParentOfHeight();
+  });
+  swalPopupMutationObserver.observe(document.body, { childList: true });
 };
 
 const stopFrameResizeReporting = () => {
   frameResizeObserver?.disconnect();
   frameResizeObserver = null;
+  swalPopupMutationObserver?.disconnect();
+  swalPopupMutationObserver = null;
+  observedSwalPopup = null;
 };
 
 const stopTokenMonitoring = () => {

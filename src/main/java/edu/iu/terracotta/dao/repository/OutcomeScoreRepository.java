@@ -10,10 +10,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import edu.iu.terracotta.dao.entity.OutcomeScore;
 
+import java.util.Optional;
+import java.util.UUID;
 import java.util.List;
 
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface OutcomeScoreRepository extends JpaRepository<OutcomeScore, Long> {
+
+    OutcomeScore findByUuid(UUID uuid);
+
+
+    @Query("select e.outcomeScoreId from OutcomeScore e where e.uuid = ?1")
+
+    Optional<Long> findIdByUuid(UUID uuid);
 
     List<OutcomeScore> findByOutcome_OutcomeId(Long outcomeId);
     @Query("SELECT s FROM OutcomeScore s WHERE s.outcome.exposure.experiment.experimentId = :experimentId")

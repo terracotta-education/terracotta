@@ -116,6 +116,21 @@ describe("Integrations", () => {
     expect(reattemptButton).toBeUndefined();
   });
 
+  it("explains a locked assignment when no more attempts are available", () => {
+    const wrapper = mountComponent(Integrations, {
+      props: {
+        integrationData: buildIntegrationData({
+          preview: false,
+          status: "ERROR",
+          moreAttemptsAvailable: false,
+          errorMessage: "Assignment was locked at 2026-10-01T04:59:59Z"
+        })
+      }
+    });
+
+    expect(wrapper.text()).toMatch(/This assignment was locked on .+\./);
+  });
+
   it("dispatches integrations_reattempt when the reattempt button is clicked", async () => {
     const integrationData = buildIntegrationData({
       preview: false,

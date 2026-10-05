@@ -6,12 +6,15 @@ import org.springframework.transaction.annotation.Transactional;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Optional;
 
 @Transactional
 @SuppressWarnings({"PMD.MethodNamingConventions"})
 public interface PlatformDeploymentRepository extends JpaRepository<PlatformDeployment, Long> {
+
+    PlatformDeployment findByUuid(UUID uuid);
 
     Optional<PlatformDeployment> findByKeyId(long keyId);
     List<PlatformDeployment> findByIss(String iss);

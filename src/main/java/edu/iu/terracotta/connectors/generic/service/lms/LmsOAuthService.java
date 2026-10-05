@@ -71,6 +71,15 @@ public interface LmsOAuthService<T> {
      */
     boolean isAccessTokenAvailable(LtiUserEntity user);
 
+    /**
+     * Like isAccessTokenAvailable, but confirms with the LMS that the token still works instead of
+     * trusting a locally cached expiry, so a token revoked out-of-band is caught. Costs a round
+     * trip to the LMS, so only use it where acting on a dead token would be expensive.
+     */
+    default boolean isAccessTokenValid(LtiUserEntity user) {
+        return isAccessTokenAvailable(user);
+    }
+
     RestTemplate createRestTemplate();
 
 }

@@ -43,11 +43,13 @@ public class MessagingSchedulerRunner {
     @Bean
     Task<Void> messagingSchedulerSendTask(MessagingSchedulerService messagingSchedulerService) {
         if (!enabled) {
+            log.info("The messaging send task [{}] is disabled. Set [app.messaging.scheduler.enabled] to true to enable it.", TASK_NAME);
+
             // not enabled; create one-time task to log message
             return Tasks.oneTime(MESSAGING_SEND_TASK)
                 .execute(
                     (instance, ctx) -> {
-                        log.info("Messaging send task [{}] in not enabled.", MESSAGING_SEND_TASK);
+                        log.info("The messaging send task [{}] is not enabled.", TASK_NAME);
                     }
                 );
         }
@@ -59,7 +61,7 @@ public class MessagingSchedulerRunner {
             log.error(e.getMessage());
         }
 
-        log.info("Creating messaging send task [{}]", MESSAGING_SEND_TASK);
+        log.info("Scheduled the messaging send task [{}] to run every [{}] minute(s)", TASK_NAME, interval);
 
         return Tasks.recurring(MESSAGING_SEND_TASK, Schedules.fixedDelay(Duration.ofMinutes(interval)))
             .onDeadExecutionRevive()

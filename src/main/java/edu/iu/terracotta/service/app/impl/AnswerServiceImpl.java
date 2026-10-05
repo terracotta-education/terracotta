@@ -5,6 +5,7 @@ import edu.iu.terracotta.dao.entity.AnswerMcSubmissionOption;
 import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.QuestionMc;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.exceptions.AnswerNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.AnswerDto;
 import edu.iu.terracotta.dao.model.enums.QuestionTypes;
@@ -29,6 +30,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import jakarta.persistence.EntityManager;
@@ -80,7 +82,7 @@ public class AnswerServiceImpl implements AnswerService {
 
         // check for any missing answers and add them to the list as well
         for (AnswerMc answerMc : answerList) {
-            if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getAnswerMcId()))) {
+            if (answerDtoList.stream().noneMatch(a -> a.getAnswerId().equals(answerMc.getUuid()))) {
                 answerDtoList.add(toDtoMC(answerMc, answerOrder, showCorrectAnswer));
                 answerOrder++;
             }
@@ -102,7 +104,10 @@ public class AnswerServiceImpl implements AnswerService {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        answerDto.setQuestionId(questionId);
+        // questionId here is a bare numeric path parameter with no entity in scope; resolve the
+        // question's uuid for the dto's own (now uuid) FK field - fromDtoMC below re-resolves the
+        // entity from that uuid via questionRepository.findByUuid(...)
+        answerDto.setQuestionId(questionRepository.findById(questionId).map(Question::getUuid).orElse(null));
         answerDto.setAnswerType(getQuestionType(questionId));
 
         if (!QuestionTypes.MC.toString().equals(answerDto.getAnswerType())) {
@@ -124,13 +129,13 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public AnswerDto toDtoMC(AnswerMc answer, int answerOrder, boolean showCorrectAnswer) {
         AnswerDto answerDto = new AnswerDto();
-        answerDto.setAnswerId(answer.getAnswerMcId());
+        answerDto.setAnswerId(answer.getUuid());
         answerDto.setHtml(fileStorageService.parseHTMLFiles(
             answer.getHtml(),
             answer.getQuestion().getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment().getLocalUrl())
         );
         answerDto.setAnswerOrder(answerOrder);
-        answerDto.setQuestionId(answer.getQuestion().getQuestionId());
+        answerDto.setQuestionId(answer.getQuestion().getUuid());
         answerDto.setAnswerType(QuestionTypes.MC.toString());
 
         if (showCorrectAnswer) {
@@ -145,17 +150,19 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public AnswerMc fromDtoMC(AnswerDto answerDto) throws DataServiceException {
         AnswerMc answer = new AnswerMc();
-        answer.setAnswerMcId(answerDto.getAnswerId());
+        // answerDto.getAnswerId() is intentionally not assigned here: the numeric id is
+        // generated at insert time, and (post-uuid-migration) the incoming dto's answerId
+        // is a client-supplied uuid that would collide with the entity's own generated uuid.
         answer.setHtml(answerDto.getHtml());
         answer.setCorrect(answerDto.getCorrect());
         answer.setAnswerOrder(answerDto.getAnswerOrder());
-        Optional<Question> question = questionRepository.findById(answerDto.getQuestionId());
+        Question question = questionRepository.findByUuid(answerDto.getQuestionId());
 
-        if (question.isEmpty()) {
+        if (question == null) {
             throw new DataServiceException("The question for the answer does not exist");
         }
 
-        answer.setQuestion(question.get());
+        answer.setQuestion(question);
 
         return answer;
     }
@@ -167,6 +174,18 @@ public class AnswerServiceImpl implements AnswerService {
     @Override
     public AnswerMc findByAnswerId(Long answerId) {
         return answerMcRepository.findByAnswerMcId(answerId);
+    }
+
+    @Override
+    public AnswerMc getAnswerMcByUuid(UUID uuid) throws AnswerNotMatchingException {
+        return Optional.ofNullable(answerMcRepository.findByUuid(uuid))
+            .orElseThrow(() -> new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING));
+    }
+
+    @Override
+    public long getAnswerMcIdByUuid(UUID uuid) throws AnswerNotMatchingException {
+        return answerMcRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new AnswerNotMatchingException(TextConstants.ANSWER_NOT_MATCHING));
     }
 
     @Override
@@ -217,7 +236,7 @@ public class AnswerServiceImpl implements AnswerService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, Long experimentId, Long conditionId, Long treatmentId, Long assessmentId, Long questionId, Long answerId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID questionId, UUID answerId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path(
                 "/api/experiments/{experimentId}/conditions/{conditionId}/treatments/{treatmentId}/assessments/{assessmentId}/questions/{questionId}/answers/{answerId}")
@@ -246,6 +265,10 @@ public class AnswerServiceImpl implements AnswerService {
                     // AssignmentTreatmentServiceImpl.duplicateTreatment
                     answerMc.setAnswerMcId(null);
                     answerMc.setVersion(0);
+                    // the detached copy still carries the ORIGINAL row's uuid; clearing it lets
+                    // UuidAwareEntity's @PrePersist generate a fresh one for this new row instead
+                    // of colliding with the source row's unique uuid constraint
+                    answerMc.setUuid(null);
                     answerMc.setQuestion(newQuestion);
 
                     return saveMC(answerMc);

@@ -33,6 +33,7 @@ import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImportError;
+import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
 import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationClient;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
@@ -71,58 +72,84 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
 
     @Override
     public ImportDto preprocess(MultipartFile file, SecuredInfo securedInfo) throws ExperimentImportException {
-        LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
-        LtiContextEntity context = ltiContextRepository.findById(securedInfo.getContextId())
-            .orElseThrow(() -> new ExperimentImportException(String.format("Context ID: [%s] not found", securedInfo.getContextId())));
+        ExperimentImport experimentImport = buildExperimentImport(file.getOriginalFilename(), securedInfo);
 
         try {
-            ExperimentImport experimentImport = ExperimentImport.builder()
-                    .context(context)
-                    .fileName(file.getOriginalFilename())
-                    .owner(owner)
-                    .status(ExperimentImportStatus.PROCESSING)
-                    .build();
-
             fileStorageService.saveExperimentImportFile(file, experimentImport);
-            experimentImport = experimentImportRepository.save(experimentImport);
 
-            // validate(...) saves the entity again partway through (to persist the source title) -
-            // capture its returned reference rather than the one passed in, otherwise the stale,
-            // pre-validation version number below gets handed to the async process(...) call, which
-            // then fails to save its own final status update with an optimistic-locking error
-            experimentImport = validate(experimentImport);
-
-            if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
-                // validation errors exists; skip processing
-                for (ExperimentImportError experimentImportError : experimentImport.getErrors()) {
-                    experimentImportError.setExperimentImport(experimentImport);
-                    experimentImportErrorRepository.save(experimentImportError);
-                }
-
-                experimentImport.setStatus(ExperimentImportStatus.ERROR);
-                experimentImport = experimentImportRepository.save(experimentImport);
-
-                return toDto(experimentImport);
-            }
-
-            ImportDto importDto = toDto(experimentImport);
-
-            // this request's Hibernate session stays open for its whole duration
-            // (open-in-view) - detach this entity before handing it off to the async import
-            // so nothing else on this same request thread can touch it again while
-            // process(...) is concurrently finalizing it on its own, separate thread and
-            // persistence context
-            entityManager.detach(experimentImport);
-
-            // start async import processing
-            experimentImportAsyncService.process(experimentImport, securedInfo);
-
-            return importDto;
+            return finishPreprocess(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
         } catch (Exception e) {
             String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
             log.error(error, e);
             throw new ExperimentImportException(error, e);
         }
+    }
+
+    @Override
+    public ImportDto preprocessFromFile(File file, String originalFilename, SecuredInfo securedInfo, LmsRepointTargets repointTargets, boolean notifyOwnerOnLmsFailure) throws ExperimentImportException {
+        ExperimentImport experimentImport = buildExperimentImport(originalFilename, securedInfo);
+
+        try {
+            fileStorageService.saveExperimentImportFile(file, experimentImport);
+
+            return finishPreprocess(experimentImport, securedInfo, repointTargets, notifyOwnerOnLmsFailure, true);
+        } catch (Exception e) {
+            String error = String.format("Error importing experiment: owner ID: [%s], content ID: [%s]", securedInfo.getUserId(), securedInfo.getContextId());
+            log.error(error, e);
+            throw new ExperimentImportException(error, e);
+        }
+    }
+
+    private ExperimentImport buildExperimentImport(String fileName, SecuredInfo securedInfo) throws ExperimentImportException {
+        LtiUserEntity owner = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+        LtiContextEntity context = ltiContextRepository.findById(securedInfo.getContextId())
+            .orElseThrow(() -> new ExperimentImportException(String.format("Context ID: [%s] not found", securedInfo.getContextId())));
+
+        return ExperimentImport.builder()
+            .context(context)
+            .fileName(fileName)
+            .owner(owner)
+            .status(ExperimentImportStatus.PROCESSING)
+            .build();
+    }
+
+    private ImportDto finishPreprocess(ExperimentImport experimentImport, SecuredInfo securedInfo, LmsRepointTargets repointTargets, boolean notifyOwnerOnLmsFailure, boolean keepSourceTitle) {
+        experimentImport = experimentImportRepository.save(experimentImport);
+
+        // validate(...) saves the entity again partway through (to persist the source title) -
+        // capture its returned reference rather than the one passed in, otherwise the stale,
+        // pre-validation version number below gets handed to the async process(...) call, which
+        // then fails to save its own final status update with an optimistic-locking error
+        experimentImport = validate(experimentImport);
+
+        if (CollectionUtils.isNotEmpty(experimentImport.getErrors())) {
+            // validation errors exists; skip processing
+            for (ExperimentImportError experimentImportError : experimentImport.getErrors()) {
+                experimentImportError.setExperimentImport(experimentImport);
+                experimentImportErrorRepository.save(experimentImportError);
+            }
+
+            experimentImport.setStatus(ExperimentImportStatus.ERROR);
+            experimentImport = experimentImportRepository.save(experimentImport);
+
+            return toDto(experimentImport);
+        }
+
+        ImportDto importDto = toDto(experimentImport);
+
+        // the caller's Hibernate session can stay open well past this call (open-in-view, or a
+        // recreation still working through more copy candidates after this one), tracking this
+        // experimentImport as managed the entire time.
+        // Detach this entity before handing it off to the async import, so nothing later in
+        // this same request (e.g. processing the next candidate) can cause this session to
+        // flush a change to this same row while process(...) is concurrently finalizing it on
+        // its own, separate thread and persistence context.
+        entityManager.detach(experimentImport);
+
+        // start async import processing
+        experimentImportAsyncService.process(experimentImport, securedInfo, repointTargets, notifyOwnerOnLmsFailure, keepSourceTitle);
+
+        return importDto;
     }
 
     @Override
@@ -208,7 +235,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             }
 
             // ["component": ["imported id"]]
-            Map<Class<? extends BaseEntity>, List<Long>> idMap = prepareIdMap(export.get());
+            Map<Class<? extends BaseEntity>, List<String>> idMap = prepareIdMap(export.get());
 
             consentDocument(export.get(), experimentImport, export.get().getImportDirectory());
             experiment(export.get(), experimentImport);
@@ -237,8 +264,8 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         return experimentImport;
     }
 
-    private Map<Class<? extends BaseEntity>, List<Long>> prepareIdMap(Export export) {
-        Map<Class<? extends BaseEntity>, List<Long>> idMap = new HashMap<>();
+    private Map<Class<? extends BaseEntity>, List<String>> prepareIdMap(Export export) {
+        Map<Class<? extends BaseEntity>, List<String>> idMap = new HashMap<>();
         idMap.put(
             AnswerMc.class,
             CollectionUtils.emptyIfNull(export.getAnswersMc()).stream().map(answerMc -> answerMc.getId()).toList()
@@ -379,7 +406,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         }
     }
 
-    private void conditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void conditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getConditions()).stream()
             .forEach(
                 condition -> {
@@ -398,7 +425,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void exposures(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void exposures(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getExposures()).stream()
             .forEach(
                 exposure -> {
@@ -417,7 +444,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void groups(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void groups(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getGroups()).stream()
             .forEach(
                 group -> {
@@ -436,7 +463,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void exposureGroupConditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void exposureGroupConditions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getExposureGroupConditions()).stream()
             .forEach(
                 exposureGroupCondition -> {
@@ -462,7 +489,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void assignments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void assignments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getAssignments()).stream()
             .forEach(
                 assignment -> {
@@ -481,7 +508,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void treatments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void treatments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getTreatments()).stream()
             .forEach(
                 treatment -> {
@@ -500,7 +527,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void assessments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void assessments(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getAssessments()).stream()
             .forEach(
                 assessment -> {
@@ -512,7 +539,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void questions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void questions(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getQuestions()).stream()
             .forEach(
                 question -> {
@@ -542,7 +569,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
         // integration clients require no validation
     }
 
-    private void integrationConfigurations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void integrationConfigurations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getIntegrationConfigurations()).stream()
             .forEach(
                 integrationConfiguration -> {
@@ -554,7 +581,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void integrations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void integrations(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getIntegrations()).stream()
             .forEach(
                 integration -> {
@@ -573,7 +600,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void answerMcs(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void answerMcs(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         CollectionUtils.emptyIfNull(export.getAnswersMc()).stream()
             .forEach(
                 answerMc -> {
@@ -592,7 +619,7 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
             );
     }
 
-    private void outcomes(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<Long>> idMap) {
+    private void outcomes(Export export, ExperimentImport experimentImport, Map<Class<? extends BaseEntity>, List<String>> idMap) {
         // process only non-external outcomes
         idMap.put(Outcome.class, new ArrayList<>());
         CollectionUtils.emptyIfNull(export.getOutcomes()).stream()

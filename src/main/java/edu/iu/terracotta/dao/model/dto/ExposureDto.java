@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -18,8 +19,8 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ExposureDto {
 
-    private Long exposureId;
-    private Long experimentId;
+    private UUID exposureId;
+    private UUID experimentId;
     private String title;
     private List<GroupConditionDto> groupConditionList;
 

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,10 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public class AssignmentControllerTest extends BaseTest {
 
+    private static final UUID EXPERIMENT_UUID = UUID.randomUUID();
+    private static final UUID EXPOSURE_UUID = UUID.randomUUID();
+    private static final UUID ASSIGNMENT_UUID = UUID.randomUUID();
+
     private AssignmentController assignmentController;
 
     @BeforeEach
@@ -46,9 +51,12 @@ public class AssignmentControllerTest extends BaseTest {
         // manual construction: ApiJwtService is also implemented by canvasApiJwtService in
         // BaseServiceTest, so @InjectMocks constructor-injection (type-only matching) could wire
         // the wrong candidate.
-        assignmentController = new AssignmentController(assignmentService, assignmentTreatmentService, apiJwtService);
+        assignmentController = new AssignmentController(assignmentService, assignmentTreatmentService, apiJwtService, experimentService, exposureService);
 
         when(apiJwtService.extractValues(any(HttpServletRequest.class), eq(false))).thenReturn(securedInfo);
+        when(experimentService.getExperimentIdByUuid(EXPERIMENT_UUID)).thenAnswer(invocation -> experiment.getExperimentId());
+        when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
+        when(assignmentService.getAssignmentIdByUuid(ASSIGNMENT_UUID)).thenAnswer(invocation -> assignment.getAssignmentId());
     }
 
     @Test
@@ -56,7 +64,7 @@ public class AssignmentControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(assignmentService.getAssignments(anyLong(), anyBoolean(), anyBoolean(), any(SecuredInfo.class))).thenReturn(List.of(assignmentDto));
 
-        ResponseEntity<List<AssignmentDto>> ret = assignmentController.allAssignmentsByExposure(1, 1, false, false, httpServletRequest);
+        ResponseEntity<List<AssignmentDto>> ret = assignmentController.allAssignmentsByExposure(EXPERIMENT_UUID, EXPOSURE_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(1, ret.getBody().size());
@@ -67,7 +75,7 @@ public class AssignmentControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(assignmentService.getAssignments(anyLong(), anyBoolean(), anyBoolean(), any(SecuredInfo.class))).thenReturn(List.of());
 
-        ResponseEntity<List<AssignmentDto>> ret = assignmentController.allAssignmentsByExposure(1, 1, false, false, httpServletRequest);
+        ResponseEntity<List<AssignmentDto>> ret = assignmentController.allAssignmentsByExposure(EXPERIMENT_UUID, EXPOSURE_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.NO_CONTENT, ret.getStatusCode());
     }
@@ -76,7 +84,7 @@ public class AssignmentControllerTest extends BaseTest {
     void allAssignmentsByExposureUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<AssignmentDto>> ret = assignmentController.allAssignmentsByExposure(1, 1, false, false, httpServletRequest);
+        ResponseEntity<List<AssignmentDto>> ret = assignmentController.allAssignmentsByExposure(EXPERIMENT_UUID, EXPOSURE_UUID, false, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -86,7 +94,7 @@ public class AssignmentControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         doThrow(new AssessmentNotMatchingException("no match")).when(assignmentService).getAssignments(anyLong(), anyBoolean(), anyBoolean(), any(SecuredInfo.class));
 
-        assertThrows(AssessmentNotMatchingException.class, () -> assignmentController.allAssignmentsByExposure(1, 1, false, false, httpServletRequest));
+        assertThrows(AssessmentNotMatchingException.class, () -> assignmentController.allAssignmentsByExposure(EXPERIMENT_UUID, EXPOSURE_UUID, false, false, httpServletRequest));
     }
 
     @Test
@@ -94,7 +102,7 @@ public class AssignmentControllerTest extends BaseTest {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(assignmentService.getAssignment(anyLong())).thenReturn(assignment);
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.getAssignment(1, 1, 1, false, httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.getAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, false, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(assignmentDto, ret.getBody());
@@ -104,7 +112,7 @@ public class AssignmentControllerTest extends BaseTest {
     void getAssignmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.getAssignment(1, 1, 1, false, httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.getAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, false, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
@@ -113,17 +121,18 @@ public class AssignmentControllerTest extends BaseTest {
     void getAssignmentPropagatesAssignmentNotMatchingTest() throws Exception {
         doThrow(new AssignmentNotMatchingException("no match")).when(apiJwtService).assignmentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        assertThrows(AssignmentNotMatchingException.class, () -> assignmentController.getAssignment(1, 1, 1, false, httpServletRequest));
+        assertThrows(AssignmentNotMatchingException.class, () -> assignmentController.getAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, false, httpServletRequest));
     }
 
     @Test
     void postAssignmentHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
-        AssignmentDto returnedDto = AssignmentDto.builder().assignmentId(10L).build();
+        UUID returnedAssignmentUuid = UUID.randomUUID();
+        AssignmentDto returnedDto = AssignmentDto.builder().assignmentId(returnedAssignmentUuid).build();
         when(assignmentService.postAssignment(any(AssignmentDto.class), anyLong(), anyLong(), any(SecuredInfo.class))).thenReturn(returnedDto);
-        when(assignmentService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), eq(10L))).thenReturn(new HttpHeaders());
+        when(assignmentService.buildHeaders(any(UriComponentsBuilder.class), eq(EXPERIMENT_UUID), eq(EXPOSURE_UUID), eq(returnedAssignmentUuid))).thenReturn(new HttpHeaders());
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.postAssignment(1, 1, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.postAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(returnedDto, ret.getBody());
@@ -133,7 +142,7 @@ public class AssignmentControllerTest extends BaseTest {
     void postAssignmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.postAssignment(1, 1, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.postAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -147,16 +156,16 @@ public class AssignmentControllerTest extends BaseTest {
         AssignmentDto dto = AssignmentDto.builder().build();
         UriComponentsBuilder ucBuilder = mock(UriComponentsBuilder.class);
 
-        assertThrows(TitleValidationException.class, () -> assignmentController.postAssignment(1, 1, dto, ucBuilder, httpServletRequest));
+        assertThrows(TitleValidationException.class, () -> assignmentController.postAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, dto, ucBuilder, httpServletRequest));
     }
 
     @Test
     void updateAssignmentHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
-        AssignmentDto updatedDto = AssignmentDto.builder().assignmentId(1L).build();
+        AssignmentDto updatedDto = AssignmentDto.builder().assignmentId(ASSIGNMENT_UUID).build();
         when(assignmentService.putAssignment(anyLong(), any(AssignmentDto.class), any(SecuredInfo.class))).thenReturn(updatedDto);
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.updateAssignment(1, 1, 1, AssignmentDto.builder().build(), httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.updateAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, AssignmentDto.builder().build(), httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(updatedDto, ret.getBody());
@@ -166,7 +175,7 @@ public class AssignmentControllerTest extends BaseTest {
     void updateAssignmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.updateAssignment(1, 1, 1, AssignmentDto.builder().build(), httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.updateAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, AssignmentDto.builder().build(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -179,16 +188,16 @@ public class AssignmentControllerTest extends BaseTest {
 
         AssignmentDto dto = AssignmentDto.builder().build();
 
-        assertThrows(AssignmentNotEditedException.class, () -> assignmentController.updateAssignment(1, 1, 1, dto, httpServletRequest));
+        assertThrows(AssignmentNotEditedException.class, () -> assignmentController.updateAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, dto, httpServletRequest));
     }
 
     @Test
     void updateAssignmentsHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
-        List<AssignmentDto> input = List.of(AssignmentDto.builder().assignmentId(1L).build());
+        List<AssignmentDto> input = List.of(AssignmentDto.builder().assignmentId(ASSIGNMENT_UUID).build());
         when(assignmentService.updateAssignments(any(), any(SecuredInfo.class))).thenReturn(input);
 
-        ResponseEntity<List<AssignmentDto>> ret = assignmentController.updateAssignments(1, 1, input, httpServletRequest);
+        ResponseEntity<List<AssignmentDto>> ret = assignmentController.updateAssignments(EXPERIMENT_UUID, EXPOSURE_UUID, input, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(input, ret.getBody());
@@ -198,7 +207,7 @@ public class AssignmentControllerTest extends BaseTest {
     void updateAssignmentsUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<List<AssignmentDto>> ret = assignmentController.updateAssignments(1, 1, List.of(), httpServletRequest);
+        ResponseEntity<List<AssignmentDto>> ret = assignmentController.updateAssignments(EXPERIMENT_UUID, EXPOSURE_UUID, List.of(), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -208,16 +217,16 @@ public class AssignmentControllerTest extends BaseTest {
     void updateAssignmentsPropagatesAssignmentNotMatchingTest() throws Exception {
         doThrow(new AssignmentNotMatchingException("no match")).when(apiJwtService).assignmentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
-        List<AssignmentDto> input = List.of(AssignmentDto.builder().assignmentId(1L).build());
+        List<AssignmentDto> input = List.of(AssignmentDto.builder().assignmentId(ASSIGNMENT_UUID).build());
 
-        assertThrows(AssignmentNotMatchingException.class, () -> assignmentController.updateAssignments(1, 1, input, httpServletRequest));
+        assertThrows(AssignmentNotMatchingException.class, () -> assignmentController.updateAssignments(EXPERIMENT_UUID, EXPOSURE_UUID, input, httpServletRequest));
     }
 
     @Test
     void deleteAssignmentHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
 
-        ResponseEntity<Void> ret = assignmentController.deleteAssignment(1, 1, 1, httpServletRequest);
+        ResponseEntity<Void> ret = assignmentController.deleteAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
     }
@@ -226,7 +235,7 @@ public class AssignmentControllerTest extends BaseTest {
     void deleteAssignmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<Void> ret = assignmentController.deleteAssignment(1, 1, 1, httpServletRequest);
+        ResponseEntity<Void> ret = assignmentController.deleteAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -237,7 +246,7 @@ public class AssignmentControllerTest extends BaseTest {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         doThrow(new EmptyResultDataAccessException(1)).when(assignmentService).deleteById(anyLong(), any(SecuredInfo.class));
 
-        ResponseEntity<Void> ret = assignmentController.deleteAssignment(1, 1, 1, httpServletRequest);
+        ResponseEntity<Void> ret = assignmentController.deleteAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, ret.getStatusCode());
     }
@@ -246,17 +255,18 @@ public class AssignmentControllerTest extends BaseTest {
     void deleteAssignmentPropagatesExperimentLockedTest() throws Exception {
         doThrow(new ExperimentLockedException("locked")).when(apiJwtService).experimentLocked(anyLong(), eq(true));
 
-        assertThrows(ExperimentLockedException.class, () -> assignmentController.deleteAssignment(1, 1, 1, httpServletRequest));
+        assertThrows(ExperimentLockedException.class, () -> assignmentController.deleteAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, httpServletRequest));
     }
 
     @Test
     void duplicateAssignmentHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
-        AssignmentDto returnedDto = AssignmentDto.builder().assignmentId(20L).build();
+        UUID returnedAssignmentUuid = UUID.randomUUID();
+        AssignmentDto returnedDto = AssignmentDto.builder().assignmentId(returnedAssignmentUuid).build();
         when(assignmentService.duplicateAssignment(anyLong(), any(SecuredInfo.class))).thenReturn(returnedDto);
-        when(assignmentService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), eq(20L))).thenReturn(new HttpHeaders());
+        when(assignmentService.buildHeaders(any(UriComponentsBuilder.class), eq(EXPERIMENT_UUID), eq(EXPOSURE_UUID), eq(returnedAssignmentUuid))).thenReturn(new HttpHeaders());
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.duplicateAssignment(1, 1, 1, mock(UriComponentsBuilder.class), httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.duplicateAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, mock(UriComponentsBuilder.class), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(returnedDto, ret.getBody());
@@ -266,7 +276,7 @@ public class AssignmentControllerTest extends BaseTest {
     void duplicateAssignmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.duplicateAssignment(1, 1, 1, mock(UriComponentsBuilder.class), httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.duplicateAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, mock(UriComponentsBuilder.class), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -279,17 +289,18 @@ public class AssignmentControllerTest extends BaseTest {
 
         UriComponentsBuilder ucBuilder = mock(UriComponentsBuilder.class);
 
-        assertThrows(AssignmentNotCreatedException.class, () -> assignmentController.duplicateAssignment(1, 1, 1, ucBuilder, httpServletRequest));
+        assertThrows(AssignmentNotCreatedException.class, () -> assignmentController.duplicateAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, ucBuilder, httpServletRequest));
     }
 
     @Test
     void moveAssignmentHappyPathTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
-        AssignmentDto returnedDto = AssignmentDto.builder().assignmentId(30L).build();
+        UUID returnedAssignmentUuid = UUID.randomUUID();
+        AssignmentDto returnedDto = AssignmentDto.builder().assignmentId(returnedAssignmentUuid).build();
         when(assignmentService.moveAssignment(anyLong(), any(AssignmentDto.class), anyLong(), anyLong(), any(SecuredInfo.class))).thenReturn(returnedDto);
-        when(assignmentService.buildHeaders(any(UriComponentsBuilder.class), anyLong(), anyLong(), eq(30L))).thenReturn(new HttpHeaders());
+        when(assignmentService.buildHeaders(any(UriComponentsBuilder.class), eq(EXPERIMENT_UUID), eq(EXPOSURE_UUID), eq(returnedAssignmentUuid))).thenReturn(new HttpHeaders());
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.moveAssignment(1, 1, 1, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.moveAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(returnedDto, ret.getBody());
@@ -299,7 +310,7 @@ public class AssignmentControllerTest extends BaseTest {
     void moveAssignmentUnauthorizedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
 
-        ResponseEntity<AssignmentDto> ret = assignmentController.moveAssignment(1, 1, 1, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
+        ResponseEntity<AssignmentDto> ret = assignmentController.moveAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
 
         assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
         assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
@@ -313,7 +324,7 @@ public class AssignmentControllerTest extends BaseTest {
         AssignmentDto dto = AssignmentDto.builder().build();
         UriComponentsBuilder ucBuilder = mock(UriComponentsBuilder.class);
 
-        assertThrows(AssignmentMoveException.class, () -> assignmentController.moveAssignment(1, 1, 1, dto, ucBuilder, httpServletRequest));
+        assertThrows(AssignmentMoveException.class, () -> assignmentController.moveAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, dto, ucBuilder, httpServletRequest));
     }
 
 }

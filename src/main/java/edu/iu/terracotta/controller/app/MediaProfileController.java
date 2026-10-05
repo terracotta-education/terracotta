@@ -3,6 +3,8 @@ package edu.iu.terracotta.controller.app;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
+import edu.iu.terracotta.dao.exceptions.ConditionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.QuestionNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.SubmissionNotMatchingException;
@@ -14,7 +16,13 @@ import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.ParameterMissingException;
+import edu.iu.terracotta.service.app.ConditionService;
+import edu.iu.terracotta.service.app.AssessmentService;
+import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.MediaService;
+import edu.iu.terracotta.service.app.QuestionService;
+import edu.iu.terracotta.service.app.SubmissionService;
+import edu.iu.terracotta.service.app.TreatmentService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 @Controller
@@ -39,19 +48,31 @@ public class MediaProfileController {
 
     private final MediaService mediaService;
     private final ApiJwtService apijwtService;
+    private final ExperimentService experimentService;
+    private final ConditionService conditionService;
+    private final TreatmentService treatmentService;
+    private final AssessmentService assessmentService;
+    private final QuestionService questionService;
+    private final SubmissionService submissionService;
 
     @PostMapping
-    public ResponseEntity postMediaEvent(@PathVariable long experimentId,
-                                         @PathVariable long conditionId,
-                                         @PathVariable long treatmentId,
-                                         @PathVariable long assessmentId,
-                                         @PathVariable long submissionId,
-                                         @PathVariable long questionId,
+    public ResponseEntity postMediaEvent(@PathVariable("experimentId") UUID experimentUuid,
+                                         @PathVariable("conditionId") UUID conditionUuid,
+                                         @PathVariable("treatmentId") UUID treatmentUuid,
+                                         @PathVariable("assessmentId") UUID assessmentUuid,
+                                         @PathVariable("submissionId") UUID submissionUuid,
+                                         @PathVariable("questionId") UUID questionUuid,
                                          @RequestBody MediaEventDto mediaEventDto,
                                          UriComponentsBuilder ucBuilder,
                                          HttpServletRequest req)
-            throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, IdInPostException, DataServiceException,
-            TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException, QuestionNotMatchingException, NumberFormatException, TerracottaConnectorException {
+            throws ExperimentNotMatchingException, BadTokenException, ConditionNotMatchingException, ExperimentLockedException, IdInPostException, DataServiceException,
+            TreatmentNotMatchingException, ParameterMissingException, SubmissionNotMatchingException, NoSubmissionsException, QuestionNotMatchingException, AssessmentNotMatchingException, NumberFormatException, TerracottaConnectorException {
+        long submissionId = submissionService.getSubmissionIdByUuid(submissionUuid);
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long conditionId = conditionService.getConditionIdByUuid(conditionUuid);
+        long treatmentId = treatmentService.getTreatmentIdByUuid(treatmentUuid);
+        long assessmentId = assessmentService.getAssessmentIdByUuid(assessmentUuid);
+        long questionId = questionService.getQuestionIdByUuid(questionUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);

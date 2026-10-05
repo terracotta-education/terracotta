@@ -16,10 +16,10 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConditionExport {
 
-    private long id;
+    private String id;
     private String name;
     private Boolean defaultCondition;
     private Float distributionPct;
-    private long experimentId;
+    private String experimentId;
 
 }

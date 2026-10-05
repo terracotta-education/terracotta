@@ -84,6 +84,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -91,6 +92,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -186,17 +188,36 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
+    public Submission getSubmissionByUuid(UUID uuid) throws SubmissionNotMatchingException {
+        return Optional.ofNullable(submissionRepository.findByUuid(uuid))
+            .orElseThrow(() -> new SubmissionNotMatchingException(TextConstants.SUBMISSION_NOT_MATCHING));
+    }
+
+    @Override
+    public long getSubmissionIdByUuid(UUID uuid) throws SubmissionNotMatchingException {
+        return submissionRepository.findIdByUuid(uuid)
+            .orElseThrow(() -> new SubmissionNotMatchingException(TextConstants.SUBMISSION_NOT_MATCHING));
+    }
+
+    @Override
     public SubmissionDto postSubmission(SubmissionDto submissionDto, long experimentId, SecuredInfo securedInfo, long assessmentId, boolean student)
             throws IdInPostException, ParticipantNotMatchingException, InvalidUserException, DataServiceException, IntegrationTokenNotFoundException {
         if (submissionDto.getSubmissionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
         }
 
-        submissionDto.setAssessmentId(assessmentId);
-        validateDto(experimentId, securedInfo.getUserId(), submissionDto);
         Submission submission;
 
         try {
+            // resolve the assessment's uuid from the numeric id supplied by the controller (already
+            // resolved from the path's own assessment uuid) so fromDto below can look it back up via
+            // findByUuid - mirrors the identical numeric-id-to-uuid round trip in
+            // AssessmentServiceImpl.defaultAssessment/fromDto for the treatment FK.
+            submissionDto.setAssessmentId(
+                assessmentRepository.findUuidByAssessmentId(assessmentId)
+                    .orElseThrow(() -> new DataServiceException("The assessment for the submission does not exist."))
+            );
+            validateDto(experimentId, securedInfo.getUserId(), submissionDto);
             submission = fromDto(submissionDto, student);
         } catch (DataServiceException ex) {
             throw new DataServiceException(String.format("Error 105: Unable to create Submission: %s", ex.getMessage()), ex);
@@ -242,12 +263,12 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public SubmissionDto toDto(Submission submission, boolean questionSubmissions, boolean submissionComments) {
         SubmissionDto submissionDto = SubmissionDto.builder().build();
-        submissionDto.setSubmissionId(submission.getSubmissionId());
-        submissionDto.setParticipantId(submission.getParticipant().getParticipantId());
-        submissionDto.setAssessmentId(submission.getAssessment().getAssessmentId());
-        submissionDto.setConditionId(submission.getAssessment().getTreatment().getCondition().getConditionId());
-        submissionDto.setTreatmentId(submission.getAssessment().getTreatment().getTreatmentId());
-        submissionDto.setExperimentId(submission.getAssessment().getTreatment().getCondition().getExperiment().getExperimentId());
+        submissionDto.setSubmissionId(submission.getUuid());
+        submissionDto.setParticipantId(submission.getParticipant().getUuid());
+        submissionDto.setAssessmentId(submission.getAssessment().getUuid());
+        submissionDto.setConditionId(submission.getAssessment().getTreatment().getCondition().getUuid());
+        submissionDto.setTreatmentId(submission.getAssessment().getTreatment().getUuid());
+        submissionDto.setExperimentId(submission.getAssessment().getTreatment().getCondition().getExperiment().getUuid());
         submissionDto.setCalculatedGrade(submission.getCalculatedGrade());
         submissionDto.setAlteredCalculatedGrade(submission.getAlteredCalculatedGrade());
         submissionDto.setTotalAlteredGrade(submission.getTotalAlteredGrade());
@@ -339,7 +360,10 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException {
         Submission submission = new Submission();
-        submission.setSubmissionId(submissionDto.getSubmissionId());
+
+        // submissionDto.getSubmissionId() (now a uuid) is intentionally not set on a new Submission here -
+        // postSubmission already rejects a create request that carries one (IdInPostException), and
+        // the real numeric id/uuid are both IDENTITY/@PrePersist generated at insert time regardless.
 
         if (!student) {  //Students can't post a submissions and change the grades.
             submission.setCalculatedGrade(submissionDto.getCalculatedGrade());
@@ -350,7 +374,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         submission.setDateSubmitted(submissionDto.getDateSubmitted());
         submission.setLateSubmission(submissionDto.isLateSubmission());
-        Optional<Participant> participant = participantRepository.findById(submissionDto.getParticipantId());
+        Optional<Participant> participant = participantRepository.findByUuid(submissionDto.getParticipantId());
 
         if (participant.isEmpty()) {
             throw new DataServiceException("The participant for the submission does not exist.");
@@ -358,7 +382,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         submission.setParticipant(participant.get());
 
-        Optional<Assessment> assessment = assessmentRepository.findById(submissionDto.getAssessmentId());
+        Optional<Assessment> assessment = Optional.ofNullable(assessmentRepository.findByUuid(submissionDto.getAssessmentId()));
 
         if (assessment.isEmpty()) {
             throw new DataServiceException("The assessment for the submission does not exist.");
@@ -408,7 +432,13 @@ public class SubmissionServiceImpl implements SubmissionService {
                 submission.get().setLateSubmission(true);
             }
 
-            submission.get().setDateSubmitted(getLastUpdatedTimeForSubmission(submission.get()));
+            Timestamp lastUpdated = getLastUpdatedTimeForSubmission(submission.get());
+            Timestamp now = Timestamp.from(Instant.now());
+
+            // answers saved outside the assignment's current availability window (e.g. before it was
+            // closed and re-opened) but submitted while it's open are dated now, so a submission is
+            // never dated outside the window and isn't rejected below for it
+            submission.get().setDateSubmitted(!datesAllowed(lastUpdated, securedInfo) && datesAllowed(now, securedInfo) ? now : lastUpdated);
         }
 
         if (datesAllowed(submission.get().getDateSubmitted(), securedInfo)) {
@@ -418,6 +448,11 @@ public class SubmissionServiceImpl implements SubmissionService {
         } else {
             throw new AssignmentDatesException("Error 128: LMS Assignment is locked, we can not generate/grade a submission with a date later than the lock date");
         }
+    }
+
+    @Override
+    public boolean lastSavedWithinAvailability(Submission submission, SecuredInfo securedInfo) {
+        return datesAllowed(getLastUpdatedTimeForSubmission(submission), securedInfo);
     }
 
     private boolean datesAllowed(Timestamp timestamp, SecuredInfo securedInfo) {
@@ -770,7 +805,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new ParticipantNotMatchingException(TextConstants.PARTICIPANT_NOT_MATCHING);
         }
 
-        submissionDto.setParticipantId(participant.getParticipantId());
+        submissionDto.setParticipantId(participant.getUuid());
 
         if (submissionDto.getAlteredCalculatedGrade() != null || submissionDto.getTotalAlteredGrade() != null) {
             throw new InvalidUserException(TextConstants.NOT_ENOUGH_PERMISSIONS + " Students cannot alter the grades.");
@@ -789,7 +824,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, long experimentId, long conditionId, long treatmentId, long assessmentId, long submissionId) {
+    public HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId, UUID conditionId, UUID treatmentId, UUID assessmentId, UUID submissionId) {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/api/experiments/{experiment_id}/conditions/{condition_id}/treatments/{treatment_id}/assessments/{assessment_id}/submissions/{submission_id}")
                 .buildAndExpand(experimentId, conditionId, treatmentId, assessmentId, submissionId).toUri());
@@ -870,7 +905,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         // not a load-modify-save: every student's launch loads the assignment before any of them
         // has marked it started, so when several first launches overlap, all but one of those
         // saves would fail their version check and fail the student's launch with it
-        if (assignmentRepository.markStarted(assignment.getAssignmentId(), Timestamp.valueOf(LocalDateTime.now())) == 0) {
+        if (assignmentRepository.markStarted(assignment.getAssignmentId(), Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC))) == 0) {
             log.debug("Assignment ID: [{}] was already started by a concurrent launch", assignment.getAssignmentId());
         }
 

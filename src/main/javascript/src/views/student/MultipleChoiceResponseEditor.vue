@@ -76,7 +76,7 @@ const props = defineProps({
     default: () => []
   },
   modelValue: {
-    type: [Number, String, null],
+    type: String,
     default: null
   },
   responses: {

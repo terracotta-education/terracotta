@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.model.dto.dashboard;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import edu.iu.terracotta.dao.model.dto.dashboard.results.outcomes.ResultsOutcomesDto;
@@ -16,7 +18,7 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 @JsonInclude(NON_NULL)
 public class ResultsDashboardDto {
 
-    private long experimentId;
+    private UUID experimentId;
     private ResultsOutcomesDto outcomes;
     private ResultsOverviewDto overview;
 

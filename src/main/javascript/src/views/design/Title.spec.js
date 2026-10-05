@@ -130,6 +130,56 @@ describe("DesignTitle", () => {
     );
   });
 
+  it("disables the Next button when the title is too long", () => {
+    experimentStore.setExperiment({ experimentId: 1, title: "a".repeat(256) });
+
+    const wrapper = mount();
+
+    expect(wrapper.findComponent({ name: "VBtn" }).props("disabled")).toBe(
+      true
+    );
+  });
+
+  it("does not save a blank title on submit", async () => {
+    experimentStore.setExperiment({ experimentId: 1, title: "   " });
+
+    const wrapper = mount();
+
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+
+    expect(experimentService.update).not.toHaveBeenCalled();
+    expect(Swal.fire).toHaveBeenCalledWith("Title is required");
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("saveExit does not save a blank title", async () => {
+    navigationStore.saveEditMode({ callerPage: { name: "ExperimentSummary" } });
+
+    const wrapper = mount();
+
+    await wrapper.vm.saveExit();
+    await flushPromises();
+
+    expect(experimentService.update).not.toHaveBeenCalled();
+    expect(Swal.fire).toHaveBeenCalledWith("Title is required");
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("saveExit does not save a title that is too long", async () => {
+    experimentStore.setExperiment({ experimentId: 1, title: "a".repeat(256) });
+
+    const wrapper = mount();
+
+    await wrapper.vm.saveExit();
+    await flushPromises();
+
+    expect(experimentService.update).not.toHaveBeenCalled();
+    expect(Swal.fire).toHaveBeenCalledWith(
+      "A maximum of 255 characters is allowed"
+    );
+  });
+
   it("saveExit saves and routes to the edit-mode caller page when in edit mode", async () => {
     experimentService.update.mockResolvedValue({ status: 200 });
     experimentStore.setExperiment({ experimentId: 1, title: "A great study" });

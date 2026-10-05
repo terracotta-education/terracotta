@@ -109,11 +109,11 @@ const alertStatuses = computed(() => {
 });
 
 const experimentId = computed(() => {
-  return Number.parseInt(route.params.experimentId, 10);
+  return route.params.experimentId;
 });
 
 const exposureId = computed(() => {
-  return Number.parseInt(route.params.exposureId, 10);
+  return route.params.exposureId;
 });
 
 const conditionIds = computed(() => {
