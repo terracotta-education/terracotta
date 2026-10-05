@@ -51,15 +51,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
-@SuppressWarnings({"unchecked"})
+@SuppressWarnings({"unchecked", "PMD.GuardLogStatement"})
 @RequestMapping(value = StepsController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class StepsController {
 
@@ -307,6 +309,10 @@ public class StepsController {
 
             return new ResponseEntity<>(assessmentDto, HttpStatus.OK);
         } catch (Exception e) {
+            // the student is shown this message; log it too, since nothing else records why
+            // their assignment wouldn't open
+            log.warn("Couldn't show an assignment for experiment ID: [{}], LMS assignment ID: [{}], user ID: [{}]: {}", experimentId, securedInfo.getLmsAssignmentId(), securedInfo.getUserId(), e.getMessage());
+
             return new ResponseEntity<>(e.getMessage(), HttpStatus.UNAUTHORIZED);
         }
     }

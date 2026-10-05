@@ -820,6 +820,15 @@ public class AssessmentServiceImpl implements AssessmentService {
                         );
 
                     if (answerSubmissionCount.get() == assessment.getQuestions().size()) {
+                        if (!submissionService.lastSavedWithinAvailability(submission, securedInfo)) {
+                            // saved outside the current availability window (e.g. before the
+                            // assignment was closed and re-opened): left unfinished for the student
+                            // to continue and submit, rather than submitted with a date outside the
+                            // window - which the date check would also reject, failing this view
+                            log.info("Leaving submission ID: [{}] for assessment ID: [{}] unfinished: its answers were saved outside the assignment's current availability dates", submission.getSubmissionId(), assessment.getAssessmentId());
+                            continue;
+                        }
+
                         // all questions have an answer; finalize and grade
                         submissionService.finalizeAndGrade(
                             submission.getSubmissionId(),

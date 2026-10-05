@@ -19,6 +19,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
@@ -664,6 +666,42 @@ public class SubmissionServiceImplTest extends BaseTest {
         ArgumentCaptor<Timestamp> captor = ArgumentCaptor.forClass(Timestamp.class);
         verify(submission).setDateSubmitted(captor.capture());
         assertEquals(t.getTime() + 1, captor.getValue().getTime());
+    }
+
+    // answers saved before the assignment was re-opened with a later "Available from" date, then
+    // submitted while it's open: dated now instead of rejected for falling outside the window
+    @Test
+    public void testFinalizeAndGradeDatesASubmissionNowWhenItsAnswersWereSavedBeforeTheWindowOpened() throws Exception {
+        long now = System.currentTimeMillis();
+        Timestamp savedBeforeReopen = new Timestamp(now - 1_000_000L);
+        Timestamp reopened = new Timestamp(now - 10_000L);
+        AtomicReference<Timestamp> dateSubmitted = new AtomicReference<>();
+        when(submission.getDateSubmitted()).thenAnswer(invocation -> dateSubmitted.get());
+        doAnswer(invocation -> { dateSubmitted.set(invocation.getArgument(0)); return null; }).when(submission).setDateSubmitted(any());
+        when(submission.getUpdatedAt()).thenReturn(savedBeforeReopen);
+        when(submission.getCreatedAt()).thenReturn(new Timestamp(now - 2_000_000L));
+        when(questionSubmission.getUpdatedAt()).thenReturn(savedBeforeReopen);
+        when(securedInfo.getUnlockAt()).thenReturn(reopened);
+        when(assignment.getResourceLinkId()).thenReturn(RESOURCE_LINK_ID);
+
+        submissionService.finalizeAndGrade(1L, securedInfo, true);
+
+        assertTrue(dateSubmitted.get().after(reopened));
+        verify(submissionRepository).saveAndFlush(submission);
+    }
+
+    @Test
+    public void testLastSavedWithinAvailability() {
+        Timestamp saved = new Timestamp(System.currentTimeMillis() - 1_000_000L);
+        when(submission.getUpdatedAt()).thenReturn(saved);
+        when(submission.getCreatedAt()).thenReturn(new Timestamp(saved.getTime() - 1_000L));
+        when(questionSubmission.getUpdatedAt()).thenReturn(saved);
+
+        assertTrue(submissionService.lastSavedWithinAvailability(submission, securedInfo));
+
+        when(securedInfo.getUnlockAt()).thenReturn(new Timestamp(saved.getTime() + 500_000L));
+
+        assertFalse(submissionService.lastSavedWithinAvailability(submission, securedInfo));
     }
 
     // datesAllowed (public overload)

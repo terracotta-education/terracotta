@@ -41,6 +41,13 @@ public interface SubmissionService {
     Submission fromDto(SubmissionDto submissionDto, boolean student) throws DataServiceException;
     void deleteById(Long id) throws EmptyResultDataAccessException;
     void finalizeAndGrade(Long submissionId, SecuredInfo securedInfo, boolean student) throws DataServiceException, IOException, AssignmentDatesException, ConnectionException, ApiException, TerracottaConnectorException;
+
+    /**
+     * Whether an unsubmitted attempt's answers were last saved inside the assignment's current
+     * availability window - false when, say, they were saved before the assignment was closed and
+     * then re-opened with a new "Available from" date.
+     */
+    boolean lastSavedWithinAvailability(Submission submission, SecuredInfo securedInfo);
     void grade(Long submissionId, SecuredInfo securedInfo) throws DataServiceException;
     void sendSubmissionGradeToLmsWithLti(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException, IOException, ApiException, TerracottaConnectorException;
     // fetches AGS tokens once per platform deployment instead of once per submission
