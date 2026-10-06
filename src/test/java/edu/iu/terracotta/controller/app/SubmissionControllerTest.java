@@ -32,7 +32,6 @@ import edu.iu.terracotta.dao.model.dto.SubmissionDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.utils.TextConstants;
 
 public class SubmissionControllerTest extends BaseTest {
 

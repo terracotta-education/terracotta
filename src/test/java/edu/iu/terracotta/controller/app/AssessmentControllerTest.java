@@ -34,7 +34,6 @@ import edu.iu.terracotta.exceptions.NoSubmissionsException;
 import edu.iu.terracotta.exceptions.RevealResponsesSettingValidationException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.utils.TextConstants;
 
 public class AssessmentControllerTest extends BaseTest {
 

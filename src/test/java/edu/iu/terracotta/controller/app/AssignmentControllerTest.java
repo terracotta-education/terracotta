@@ -32,7 +32,6 @@ import edu.iu.terracotta.dao.model.dto.AssignmentDto;
 import edu.iu.terracotta.exceptions.AssignmentMoveException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.utils.TextConstants;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class AssignmentControllerTest extends BaseTest {

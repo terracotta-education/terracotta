@@ -31,7 +31,6 @@ import edu.iu.terracotta.dao.exceptions.OutcomeScoreNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.OutcomeScoreDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.InvalidParticipantException;
-import edu.iu.terracotta.utils.TextConstants;
 
 public class OutcomeScoreControllerTest extends BaseTest {
 

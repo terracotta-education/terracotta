@@ -34,7 +34,6 @@ import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.OutcomeDto;
 import edu.iu.terracotta.dao.model.dto.OutcomePotentialDto;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.utils.TextConstants;
 
 public class OutcomeControllerTest extends BaseTest {
 

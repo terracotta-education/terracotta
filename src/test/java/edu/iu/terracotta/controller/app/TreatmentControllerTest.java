@@ -31,7 +31,6 @@ import edu.iu.terracotta.dao.model.dto.TreatmentDto;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.utils.TextConstants;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class TreatmentControllerTest extends BaseTest {

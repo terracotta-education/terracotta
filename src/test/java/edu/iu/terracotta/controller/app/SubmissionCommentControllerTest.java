@@ -38,7 +38,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
-import edu.iu.terracotta.utils.TextConstants;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class SubmissionCommentControllerTest extends BaseTest {
