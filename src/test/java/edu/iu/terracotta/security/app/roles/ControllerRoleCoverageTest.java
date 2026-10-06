@@ -87,6 +87,26 @@ class ControllerRoleCoverageTest {
         );
     }
 
+    // the annotations name roles in @PreAuthorize strings, which can't reference ApiRole - so a
+    // role renamed there would otherwise only show up as endpoints refusing everyone
+    @Test
+    void roleAnnotationsOnlyNameRolesTheFilterGrants() {
+        List<String> granted = Arrays.stream(ApiRole.values()).map(Enum::name).toList();
+
+        for (Class<? extends Annotation> annotation : List.of(InstructorOrHigher.class, LearnerOrHigher.class)) {
+            String expression = annotation.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class).value();
+            java.util.regex.Matcher roles = java.util.regex.Pattern.compile("'([A-Z_]+)'").matcher(expression);
+            int count = 0;
+
+            while (roles.find()) {
+                count++;
+                assertTrue(granted.contains(roles.group(1)), annotation.getSimpleName() + " names role " + roles.group(1) + ", which ApiRole doesn't grant");
+            }
+
+            assertTrue(count > 0, annotation.getSimpleName() + " names no roles: " + expression);
+        }
+    }
+
     // the roles these annotations check are only granted by the /api token filter
     // (ApiOAuthProviderProcessingFilter), so outside /api they'd refuse every caller
     @Test

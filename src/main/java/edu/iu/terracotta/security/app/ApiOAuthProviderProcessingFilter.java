@@ -9,11 +9,11 @@ import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.api.ApiTokenService;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
-import edu.iu.terracotta.security.app.roles.ApiRoles;
+import edu.iu.terracotta.security.app.roles.ApiRole;
 
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -26,7 +26,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -40,7 +40,6 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
-    private static final String ROLE_PREFIX = "ROLE_";
 
     private final boolean allowQueryParam;
 
@@ -138,23 +137,16 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
      * A token whose values can't be read gets no roles, so any role-annotated endpoint refuses it.
      */
     private void authenticate(Jws<Claims> tokenClaims) {
-        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        List<GrantedAuthority> authorities = List.of();
         String principal = tokenClaims.getPayload().getSubject();
 
         try {
             SecuredInfo securedInfo = apiJwtService.extractValues(tokenClaims);
 
-            if (apiJwtService.isAdmin(securedInfo)) {
-                authorities.add(new SimpleGrantedAuthority(ROLE_PREFIX + ApiRoles.ADMIN));
-            }
-
-            if (apiJwtService.isInstructor(securedInfo)) {
-                authorities.add(new SimpleGrantedAuthority(ROLE_PREFIX + ApiRoles.INSTRUCTOR));
-            }
-
-            if (apiJwtService.isLearner(securedInfo)) {
-                authorities.add(new SimpleGrantedAuthority(ROLE_PREFIX + ApiRoles.LEARNER));
-            }
+            authorities = Arrays.stream(ApiRole.values())
+                .filter(role -> role.isGrantedTo(securedInfo, apiJwtService))
+                .map(ApiRole::authority)
+                .toList();
 
             if (securedInfo != null && securedInfo.getUserId() != null) {
                 principal = securedInfo.getUserId();
