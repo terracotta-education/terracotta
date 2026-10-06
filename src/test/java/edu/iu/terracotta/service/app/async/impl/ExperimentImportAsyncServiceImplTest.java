@@ -2,6 +2,7 @@ package edu.iu.terracotta.service.app.async.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,6 +29,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -585,6 +587,28 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
         verify(consentDocumentRepository).save(any(ConsentDocument.class));
         verify(fileStorageService).sendConsentFileToLms(any(ConsentDocument.class), any(Experiment.class), eq(ltiUserEntity));
+        verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
+    }
+
+    // the source experiment chose consent but never had a document uploaded: recreated the same
+    // way, rather than failing for a consent PDF there never was
+    @Test
+    void testProcessConsentParticipationTypeWithoutAConsentDocument() throws IOException, AssignmentNotCreatedException, TerracottaConnectorException {
+        Export export = fullExport();
+        export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
+        export.setConsentDocument(null);
+        writeExportJson(export);
+        when(assignmentService.createAssignmentInLms(any(), any(), anyLong(), anyString())).thenReturn(assignment);
+
+        experimentImportAsyncServiceImpl.process(experimentImport, securedInfo, LmsRepointTargets.none(), false, false);
+
+        ArgumentCaptor<Experiment> experimentCaptor = ArgumentCaptor.forClass(Experiment.class);
+        verify(experimentRepository, org.mockito.Mockito.atLeastOnce()).save(experimentCaptor.capture());
+        assertEquals(ParticipationTypes.CONSENT, experimentCaptor.getAllValues().get(0).getParticipationType());
+        assertNull(experimentCaptor.getAllValues().get(0).getConsentDocument());
+        verify(consentDocumentRepository, never()).save(any(ConsentDocument.class));
+        verify(fileStorageService, never()).sendConsentFileToLms(any(), any(), any());
+        verify(experimentImport, never()).addErrorMessage(anyString());
         verify(experimentImport).setStatus(edu.iu.terracotta.dao.model.enums.distribute.ExperimentImportStatus.COMPLETE);
     }
 
