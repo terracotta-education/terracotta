@@ -1,0 +1,259 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <!--
+        2026/09/15-01 used to create a BEFORE INSERT trigger per uuid table, so rows inserted by
+        older code during a rolling deploy still got a uuid. Every entity sets its own uuid before
+        insert (UuidAwareEntity), so they're no longer needed - and creating them required SUPER or
+        log_bin_trust_function_creators=1 on a server with binary logging. They were removed from
+        15-01; these drop them from any database that already ran it. Each only runs where its
+        trigger exists, so a database that never had them needs no trigger privilege at all.
+    -->
+    <changeSet author="rlong" id="1759708800000-01">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_submission_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_submission_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-02">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_experiment_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_experiment_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-03">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_assessment_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_assessment_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-04">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_treatment_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_treatment_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-05">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_condition_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_condition_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-06">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_exposure_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_exposure_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-07">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_question_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_question_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-08">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_assignment_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_assignment_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-09">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_group_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_group_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-10">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_outcome_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_outcome_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-11">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_outcome_score_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_outcome_score_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-12">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_admin_user_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_admin_user_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-13">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_consent_document_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_consent_document_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-14">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_exposure_group_condition_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_exposure_group_condition_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-15">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_question_submission_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_question_submission_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-16">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_question_submission_comment_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_question_submission_comment_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-17">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_submission_comment_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_submission_comment_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-18">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_answer_mc_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_answer_mc_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-19">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_answer_essay_submission_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_answer_essay_submission_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-20">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_answer_file_submission_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_answer_file_submission_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-21">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_answer_mc_submission_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_answer_mc_submission_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-22">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_terr_answer_mc_submission_option_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_terr_answer_mc_submission_option_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-23">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_lti_context_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_lti_context_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-24">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_lti_user_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_lti_user_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-25">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_lti_tool_deployment_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_lti_tool_deployment_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-26">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_lti_result_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_lti_result_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-27">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_lti_membership_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_lti_membership_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-28">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_iss_configuration_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_iss_configuration_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-29">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_lti_link_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_lti_link_uuid;</sql>
+    </changeSet>
+    <changeSet author="rlong" id="1759708800000-30">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = 'trg_api_one_use_token_uuid'
+            </sqlCheck>
+        </preConditions>
+        <sql>DROP TRIGGER trg_api_one_use_token_uuid;</sql>
+    </changeSet>
+</databaseChangeLog>
