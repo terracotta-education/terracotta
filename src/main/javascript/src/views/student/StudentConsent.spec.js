@@ -117,6 +117,20 @@ describe("StudentConsent", () => {
     expect(wrapper.text()).toContain("no matter your response to the following question");
   });
 
+  // switching an experiment to informed consent used to reset consent to false but stamp a date
+  // given - which showed "do not agree to participate" on an "Invalid Date" on first launch
+  it("does not say the student declined when they're unconsented but only have a date given", async () => {
+    const wrapper = await mountAndLoad({
+      source: "CONSENT",
+      consent: false,
+      dateGiven: "2024-01-01T00:00:00.000Z",
+      dateRevoked: null
+    });
+
+    expect(wrapper.text()).not.toContain("You responded");
+    expect(wrapper.text()).not.toContain("Invalid Date");
+  });
+
   it("does not show either alert for a fresh, unstarted, unconsented participant", async () => {
     const wrapper = await mountAndLoad();
 
