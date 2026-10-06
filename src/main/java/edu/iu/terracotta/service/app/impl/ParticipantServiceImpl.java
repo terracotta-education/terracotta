@@ -1025,8 +1025,14 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         while (CollectionUtils.isNotEmpty(participants)) {
             for (Participant participant : participants) {
+                // matches ParticipantConsentUtils.resetConsentIfExperimentNotStarted: only AUTO
+                // (consent true) gets a date given; CONSENT (false) starts unanswered and MANUAL
+                // (null) has no consent process, so neither has a date. A date given on an
+                // unconsented participant read as an answered "do not agree" on the student's
+                // consent page.
                 participant.setConsent(consent);
-                participant.setDateGiven(consent == null ? null : Timestamp.from(Instant.now()));
+                participant.setDateGiven(BooleanUtils.isTrue(consent) ? Timestamp.from(Instant.now()) : null);
+                participant.setDateRevoked(null);
             }
 
             participantRepository.saveAll(participants);

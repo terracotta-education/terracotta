@@ -151,12 +151,17 @@ const hasConsentedAlready = computed(() => {
     return false;
   }
 
+  // an answer is the date that matches it: given for "agree", revoked for "do not agree". Either
+  // date alone used to count, so a participant reset to unanswered but still carrying a date
+  // given was told they'd responded "do not agree" on an "Invalid Date"
+  const answeredDate = participant.value.consent
+    ? participant.value.dateGiven
+    : participant.value.dateRevoked;
+
   return (
     ["CONSENT", "REVOKED"].includes(participant.value.source) &&
-    (
-      participant.value.dateGiven !== null ||
-      participant.value.dateRevoked !== null
-    )
+    answeredDate != null &&
+    dayjs(answeredDate).isValid()
   );
 });
 

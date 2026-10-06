@@ -1,0 +1,30 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <!--
+        Switching an experiment's participation type to informed consent set every existing
+        participant's consent to false but also stamped date_given, so a student who had never
+        answered was shown "You responded 'do not agree to participate'" on their consent page.
+        Nothing else leaves a participant unconsented with a date given and no date revoked, so
+        this clears date_given on exactly those rows, back to unanswered.
+    -->
+    <changeSet author="rlong" id="1759766400000-01">
+        <sql>
+            UPDATE
+                terr_participant
+            SET
+                date_given = NULL
+            WHERE
+                consent = 0
+                AND date_given IS NOT NULL
+                AND date_revoked IS NULL;
+        </sql>
+    </changeSet>
+</databaseChangeLog>

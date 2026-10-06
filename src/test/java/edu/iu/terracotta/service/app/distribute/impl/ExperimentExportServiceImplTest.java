@@ -90,6 +90,18 @@ class ExperimentExportServiceImplTest extends BaseTest {
         assertEquals("Course Title", export.getOrigin().getCourseTitle());
     }
 
+    // consent type chosen but no document uploaded yet - this NPE'd and failed course copies
+    @Test
+    void testExportConsentExperimentWithoutAConsentDocument() throws ExperimentExportException, IOException {
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
+        when(experiment.getConsentDocument()).thenReturn(null);
+
+        Export export = captureExport();
+
+        assertNull(export.getConsentDocument());
+        assertEquals(ParticipationTypes.CONSENT, export.getExperiment().getParticipationType());
+    }
+
     @Test
     void testExportWithConsentDocument() throws ExperimentExportException, IOException {
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);

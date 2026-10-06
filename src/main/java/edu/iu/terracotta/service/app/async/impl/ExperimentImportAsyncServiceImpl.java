@@ -307,6 +307,13 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         idMap.put(ConsentDocument.class, new HashMap<>());
 
         if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
+            if (export.getConsentDocument() == null) {
+                // consent type, but the source experiment had no consent document uploaded yet -
+                // recreated the same way, for the instructor to upload one later
+                log.info("Experiment import ID: [{}] has a consent participation type but no consent document; importing without one.", experimentImport.getId());
+                return;
+            }
+
             // experiment is consent type; process consent file
             File consentFile = FileUtils.getFile(importDirectory, String.format("/consent/%s", ExperimentImport.CONSENT_FILE_NAME));
 
@@ -344,7 +351,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
         Experiment experiment = experimentRepository.save(
             Experiment.builder()
                 .consentDocument(
-                    ParticipationTypes.CONSENT == export.getExperiment().getParticipationType() ?
+                    ParticipationTypes.CONSENT == export.getExperiment().getParticipationType() && export.getConsentDocument() != null ?
                         (ConsentDocument) idMap.get(ConsentDocument.class).get(export.getConsentDocument().getId())
                         :
                         null
