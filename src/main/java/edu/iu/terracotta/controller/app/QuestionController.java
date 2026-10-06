@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -25,7 +27,6 @@ import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.TreatmentService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -68,6 +69,7 @@ public class QuestionController {
     private final AssessmentService assessmentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<QuestionDto>> getQuestionsByAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                                       @PathVariable("conditionId") UUID conditionUuid,
                                                                       @PathVariable("treatmentId") UUID treatmentUuid,
@@ -82,10 +84,6 @@ public class QuestionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         List<QuestionDto> questionList = questionService.getQuestions(assessmentId);
 
         if (questionList.isEmpty()) {
@@ -96,6 +94,7 @@ public class QuestionController {
     }
 
     @GetMapping("/{questionId}")
+    @LearnerOrHigher
     public ResponseEntity<QuestionDto> getQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                    @PathVariable("conditionId") UUID conditionUuid,
                                                    @PathVariable("treatmentId") UUID treatmentUuid,
@@ -114,16 +113,13 @@ public class QuestionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         QuestionDto questionDto = questionService.toDto(questionService.getQuestion(questionId), answers, apijwtService.isInstructorOrHigher(securedInfo));
 
         return new ResponseEntity<>(questionDto, HttpStatus.OK);
     }
 
     @PostMapping
+    @InstructorOrHigher
     public ResponseEntity<QuestionDto> postQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                     @PathVariable("conditionId") UUID conditionUuid,
                                                     @PathVariable("treatmentId") UUID treatmentUuid,
@@ -142,10 +138,6 @@ public class QuestionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         QuestionDto returnedDto = questionService.postQuestion(questionDto, assessmentId, answers, true);
         log.debug("Created question ID: [{}] for assessment ID: [{}]", returnedDto.getQuestionId(), assessmentUuid);
         HttpHeaders headers = questionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, returnedDto.getQuestionId());
@@ -154,6 +146,7 @@ public class QuestionController {
     }
 
     @PutMapping
+    @InstructorOrHigher
     public ResponseEntity<Void> updateQuestions(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                 @PathVariable("treatmentId") UUID treatmentUuid,
@@ -168,10 +161,6 @@ public class QuestionController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         Map<Question, QuestionDto> map = new HashMap<>();
 
@@ -192,6 +181,7 @@ public class QuestionController {
     }
 
     @PutMapping("/{questionId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> updateQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable("conditionId") UUID conditionUuid,
                                                @PathVariable("treatmentId") UUID treatmentUuid,
@@ -211,10 +201,6 @@ public class QuestionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         Map<Question, QuestionDto> map = new HashMap<>();
         Question question = questionService.getQuestion(questionId);
         map.put(question, questionDto);
@@ -225,6 +211,7 @@ public class QuestionController {
     }
 
     @DeleteMapping("/{questionId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable("conditionId") UUID conditionUuid,
                                                @PathVariable("treatmentId") UUID treatmentUuid,
@@ -242,10 +229,6 @@ public class QuestionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         try {
             questionService.deleteById(questionId);
         } catch (EmptyResultDataAccessException e) {
@@ -257,6 +240,7 @@ public class QuestionController {
     }
 
     @DeleteMapping
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteQuestions(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable("conditionId") UUID conditionUuid,
                                                @PathVariable("treatmentId") UUID treatmentUuid,
@@ -271,10 +255,6 @@ public class QuestionController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         for (QuestionDto questionDto : questionDtoList) {
             long itemQuestionId = questionService.getQuestionIdByUuid(questionDto.getQuestionId());

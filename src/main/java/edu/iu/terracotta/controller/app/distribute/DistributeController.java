@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -49,7 +51,6 @@ import edu.iu.terracotta.service.app.async.ExperimentCopyRecreationAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 import edu.iu.terracotta.service.app.distribute.ExperimentExportService;
 import edu.iu.terracotta.service.app.distribute.ExperimentImportService;
-import edu.iu.terracotta.utils.TextConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,14 +72,11 @@ public class DistributeController {
     private final ExperimentCopyRecreationAsyncService experimentCopyRecreationAsyncService;
 
     @GetMapping("/{id}/export")
+    @LearnerOrHigher
     public ResponseEntity<Resource> export(@PathVariable("id") UUID uuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         long id = experimentService.getExperimentIdByUuid(uuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         Experiment experiment = apijwtService.experimentAllowed(securedInfo, id);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             ExportDto transferExportDto = exportService.export(experiment);
@@ -100,13 +98,10 @@ public class DistributeController {
     }
 
     @PostMapping("/import")
+    @InstructorOrHigher
     public ResponseEntity<ImportDto> importExperiment(@RequestParam("file") MultipartFile file, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ApiException, IOException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         if (!Strings.CI.containsAny(file.getContentType(),"application/zip", "application/x-zip-compressed")) {
             String error = String.format("Invalid MIME type: [%s] for file: [%s]", file.getContentType(), file.getOriginalFilename());
@@ -123,15 +118,12 @@ public class DistributeController {
     }
 
     @GetMapping("/import/{id}/poll")
+    @InstructorOrHigher
     public ResponseEntity<ImportDto> poll(@PathVariable UUID id, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException, ExperimentImportNotFoundException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         ExperimentImport experimentImport = apijwtService.experimentImportAllowed(securedInfo, id);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             return new ResponseEntity<>(importService.toDto(experimentImport), HttpStatus.OK);
@@ -141,14 +133,11 @@ public class DistributeController {
     }
 
     @GetMapping("/import/poll")
+    @InstructorOrHigher
     public ResponseEntity<List<ImportDto>> pollAll(HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
                 TerracottaConnectorException, IOException, ExposureNotMatchingException, ExperimentImportNotFoundException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             return new ResponseEntity<>(importService.getAll(securedInfo), HttpStatus.OK);
@@ -158,14 +147,11 @@ public class DistributeController {
     }
 
     @PutMapping("/import/{id}/acknowledge")
+    @InstructorOrHigher
     public ResponseEntity<ImportDto> acknowledgeError(@PathVariable UUID id, @RequestParam ExperimentImportStatus status, HttpServletRequest req)
         throws ExperimentNotMatchingException, BadTokenException, IOException, ExposureNotMatchingException, NumberFormatException, TerracottaConnectorException, ExperimentImportNotFoundException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         ExperimentImport experimentImport = apijwtService.experimentImportAllowed(securedInfo, id);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             return new ResponseEntity<>(importService.acknowledge(experimentImport, status), HttpStatus.OK);
@@ -176,23 +162,17 @@ public class DistributeController {
     }
 
     @GetMapping("/copy-status")
+    @InstructorOrHigher
     public ResponseEntity<CopyStatusDto> copyStatus(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         return new ResponseEntity<>(experimentCopyCandidateService.getCopyStatus(securedInfo), HttpStatus.OK);
     }
 
     @PostMapping("/copy-status/acknowledge")
+    @InstructorOrHigher
     public ResponseEntity<Void> acknowledgeCopyStatus(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         experimentCopyCandidateService.acknowledgeCopyStatus(securedInfo);
 
@@ -202,12 +182,9 @@ public class DistributeController {
     // an instructor launching into a course whose copied experiments failed to recreate (e.g. after
     // following the failure email's instructions to re-approve LMS access) tries again as themselves
     @PostMapping("/copy-status/retry")
+    @InstructorOrHigher
     public ResponseEntity<CopyStatusDto> retryCopy(HttpServletRequest req) throws BadTokenException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         if (experimentCopyCandidateService.hasFailedForContext(securedInfo.getContextId()) && !experimentCopyCandidateService.hasLmsAuthorization(securedInfo)) {
             // a retry now could only fail again on the missing token, and the failure alert would

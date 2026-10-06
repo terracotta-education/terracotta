@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -16,7 +18,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,14 +54,11 @@ public class ConditionController {
     private final ExperimentService experimentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<ConditionDto>> allConditionsByExperiment(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         List<ConditionDto> conditionDtoList = conditionService.findAllByExperimentId(experimentId);
 
@@ -72,6 +70,7 @@ public class ConditionController {
     }
 
     @GetMapping("/{conditionId}")
+    @LearnerOrHigher
     public ResponseEntity<ConditionDto> getCondition(@PathVariable("experimentId") UUID experimentUuid,
                                                      @PathVariable("conditionId") UUID conditionUuid,
                                                      HttpServletRequest req)
@@ -82,14 +81,11 @@ public class ConditionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         return new ResponseEntity<>(conditionService.getCondition(conditionId), HttpStatus.OK);
     }
 
     @PostMapping
+    @InstructorOrHigher
     public ResponseEntity<ConditionDto> postCondition(@PathVariable("experimentId") UUID experimentUuid,
                                                       @RequestBody(required = false) ConditionDto conditionDto,
                                                       HttpServletRequest req)
@@ -98,10 +94,6 @@ public class ConditionController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         if (conditionDto == null) {
             conditionDto = ConditionDto.builder().build();
@@ -114,6 +106,7 @@ public class ConditionController {
     }
 
     @PutMapping("/{conditionId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> updateCondition(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                 @RequestBody ConditionDto conditionDto,
@@ -124,10 +117,6 @@ public class ConditionController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         Map<Condition, ConditionDto> map = new HashMap<>();
         Condition condition = conditionService.findByConditionId(conditionId);
@@ -140,6 +129,7 @@ public class ConditionController {
     }
 
     @PutMapping
+    @InstructorOrHigher
     public ResponseEntity<Void> updateConditions(@PathVariable("experimentId") UUID experimentUuid,
                                                  @RequestBody List<ConditionDto> conditionDtoList,
                                                  HttpServletRequest req)
@@ -148,10 +138,6 @@ public class ConditionController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         conditionService.validateConditionNames(conditionDtoList,experimentId,true);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         Map<Condition, ConditionDto> map = new HashMap<>();
 
@@ -173,6 +159,7 @@ public class ConditionController {
     }
 
     @DeleteMapping("/{conditionId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteCondition(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("conditionId") UUID conditionUuid,
                                                  HttpServletRequest req)
@@ -184,10 +171,6 @@ public class ConditionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionsLocked(experimentId,true);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         if (conditionService.isDefaultCondition(conditionId)) {
             return new ResponseEntity("Error 118: Cannot delete default condition. Another condition must be selected as the default condition before this condition can be deleted.", HttpStatus.CONFLICT);

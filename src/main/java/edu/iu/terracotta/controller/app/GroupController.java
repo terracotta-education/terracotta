@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -13,7 +15,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.GroupService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,15 +51,12 @@ public class GroupController {
     private final ExperimentService experimentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<GroupDto>> allGroupsByExperiment(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         List<GroupDto> groupList = groupService.getGroups(experimentId, securedInfo);
 
@@ -70,6 +68,7 @@ public class GroupController {
     }
 
     @GetMapping("/{groupId}")
+    @LearnerOrHigher
     public ResponseEntity<GroupDto> getGroup(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("groupId") UUID groupUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
@@ -78,16 +77,13 @@ public class GroupController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         GroupDto groupDto = groupService.toDto(groupService.getGroup(groupId), securedInfo);
 
         return new ResponseEntity<>(groupDto, HttpStatus.OK);
     }
 
     @PostMapping
+    @InstructorOrHigher
     public ResponseEntity<GroupDto> postGroup(@PathVariable("experimentId") UUID experimentUuid,
                                                     @RequestBody GroupDto groupDto,
                                                     UriComponentsBuilder ucBuilder,
@@ -98,10 +94,6 @@ public class GroupController {
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         GroupDto returnedDto = groupService.postGroup(groupDto, experimentId, securedInfo);
         log.debug("Created group ID: [{}] for experiment ID: [{}]", returnedDto.getGroupId(), experimentUuid);
         HttpHeaders headers = groupService.buildHeaders(ucBuilder, experimentUuid, returnedDto.getGroupId());
@@ -110,6 +102,7 @@ public class GroupController {
     }
 
     @PostMapping("/create")
+    @InstructorOrHigher
     public ResponseEntity<Void> createGroups(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, DataServiceException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
@@ -117,16 +110,13 @@ public class GroupController {
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         groupService.createAndAssignGroupsToConditionsAndExposures(experimentId, securedInfo, false);
 
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @PutMapping("/{groupId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> updateGroup(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable("groupId") UUID groupUuid,
                                                @RequestBody GroupDto groupDto,
@@ -138,10 +128,6 @@ public class GroupController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         groupService.updateGroup(groupId, groupDto);
         log.debug("Updated group ID: [{}]", groupUuid);
 
@@ -149,6 +135,7 @@ public class GroupController {
     }
 
     @DeleteMapping("/{groupId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteGroup(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("groupId") UUID groupUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, GroupNotMatchingException, ExperimentLockedException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
@@ -157,10 +144,6 @@ public class GroupController {
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.groupAllowed(securedInfo, experimentId, groupId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             groupService.deleteById(groupId);

@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -22,7 +24,6 @@ import edu.iu.terracotta.service.app.QuestionSubmissionCommentService;
 import edu.iu.terracotta.service.app.QuestionSubmissionService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -64,6 +65,7 @@ public class QuestionSubmissionCommentController {
     private final AssessmentService assessmentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<QuestionSubmissionCommentDto>> getQuestionSubmissionComments(@PathVariable("experimentId") UUID experimentUuid,
                                                                                             @PathVariable("conditionId") UUID conditionUuid,
                                                                                             @PathVariable("treatmentId") UUID treatmentUuid,
@@ -84,10 +86,6 @@ public class QuestionSubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -102,6 +100,7 @@ public class QuestionSubmissionCommentController {
     }
 
     @GetMapping("/{questionSubmissionCommentId}")
+    @LearnerOrHigher
     public ResponseEntity<QuestionSubmissionCommentDto> getQuestionSubmissionComment(@PathVariable("experimentId") UUID experimentUuid,
                                                                                      @PathVariable("conditionId") UUID conditionUuid,
                                                                                      @PathVariable("treatmentId") UUID treatmentUuid,
@@ -125,10 +124,6 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -139,6 +134,7 @@ public class QuestionSubmissionCommentController {
     }
 
     @PostMapping
+    @LearnerOrHigher
     public ResponseEntity<QuestionSubmissionCommentDto> postQuestionSubmissionComment(@PathVariable("experimentId") UUID experimentUuid,
                                                                                       @PathVariable("conditionId") UUID conditionUuid,
                                                                                       @PathVariable("treatmentId") UUID treatmentUuid,
@@ -161,10 +157,6 @@ public class QuestionSubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -177,6 +169,7 @@ public class QuestionSubmissionCommentController {
     }
 
     @PutMapping("/{questionSubmissionCommentId}")
+    @LearnerOrHigher
     public ResponseEntity<Void> updateQuestionSubmissionComment(@PathVariable("experimentId") UUID experimentUuid,
                                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                                 @PathVariable("treatmentId") UUID treatmentUuid,
@@ -200,10 +193,6 @@ public class QuestionSubmissionCommentController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -215,6 +204,7 @@ public class QuestionSubmissionCommentController {
     }
 
     @DeleteMapping("/{questionSubmissionCommentId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteQuestionSubmissionComment(@PathVariable("experimentId") UUID experimentUuid,
                                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                                 @PathVariable("treatmentId") UUID treatmentUuid,
@@ -237,10 +227,6 @@ public class QuestionSubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.questionSubmissionCommentAllowed(securedInfo, questionSubmissionId, questionSubmissionCommentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             questionSubmissionCommentService.deleteById(questionSubmissionCommentId);

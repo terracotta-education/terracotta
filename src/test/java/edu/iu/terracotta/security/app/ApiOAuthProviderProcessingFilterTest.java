@@ -1,5 +1,8 @@
 package edu.iu.terracotta.security.app;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -14,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import org.springframework.security.core.context.SecurityContextHolder;
 import edu.iu.terracotta.connectors.generic.service.api.ApiTokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -206,6 +211,68 @@ public class ApiOAuthProviderProcessingFilterTest extends BaseTest {
 
         verify(httpResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(filterChain, never()).doFilter(any(), any());
+    }
+
+    // the roles the controllers' role annotations check, as seen while the request is handled
+    private java.util.Set<String> rolesDuringRequest() throws Exception {
+        java.util.Set<String> roles = new java.util.HashSet<>();
+
+        filter.doFilter(httpRequest, httpResponse, (req, res) -> {
+            org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            authentication.getAuthorities().forEach(authority -> roles.add(authority.getAuthority()));
+        });
+
+        return roles;
+    }
+
+    private void validToken(SecuredInfo tokenValues) throws Exception {
+        filter = new ApiOAuthProviderProcessingFilter(apiJwtService, apiTokenService);
+        when(httpRequest.getHeader("Authorization")).thenReturn("Bearer abc123");
+        when(apiJwtService.validateToken("abc123")).thenReturn(jws);
+        when(claims.getIssuer()).thenReturn("TERRACOTTA");
+        when(apiJwtService.extractValues(jws)).thenReturn(tokenValues);
+    }
+
+    @Test
+    void testDoFilterGrantsTheRolesTheTokenHas() throws Exception {
+        SecuredInfo tokenValues = SecuredInfo.builder().userId("user-1").build();
+        validToken(tokenValues);
+        when(apiJwtService.isInstructor(tokenValues)).thenReturn(true);
+        when(apiJwtService.isLearner(tokenValues)).thenReturn(true);
+
+        assertEquals(java.util.Set.of("ROLE_INSTRUCTOR", "ROLE_LEARNER"), rolesDuringRequest());
+    }
+
+    @Test
+    void testDoFilterGrantsAdmin() throws Exception {
+        SecuredInfo tokenValues = SecuredInfo.builder().userId("user-1").build();
+        validToken(tokenValues);
+        when(apiJwtService.isAdmin(tokenValues)).thenReturn(true);
+
+        assertEquals(java.util.Set.of("ROLE_ADMIN"), rolesDuringRequest());
+    }
+
+    // still authenticated (it has a valid token), just with no role - so any role-annotated
+    // endpoint refuses it
+    @Test
+    void testDoFilterGrantsNoRolesWhenTheTokenValuesCantBeRead() throws Exception {
+        validToken(null);
+        when(apiJwtService.extractValues(jws)).thenThrow(new RuntimeException("unreadable"));
+
+        assertTrue(rolesDuringRequest().isEmpty());
+    }
+
+    @Test
+    void testDoFilterClearsTheRolesEvenWhenTheRequestFails() throws Exception {
+        SecuredInfo tokenValues = SecuredInfo.builder().userId("user-1").build();
+        validToken(tokenValues);
+        when(apiJwtService.isInstructor(tokenValues)).thenReturn(true);
+
+        assertThrows(jakarta.servlet.ServletException.class, () -> filter.doFilter(httpRequest, httpResponse, (req, res) -> {
+            throw new jakarta.servlet.ServletException("boom");
+        }));
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
 }

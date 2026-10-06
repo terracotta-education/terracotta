@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import edu.iu.terracotta.security.app.roles.RoleCheckedInHandler;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -38,6 +39,7 @@ public class AdminController {
 
     @Deprecated
     @PostMapping
+    @RoleCheckedInHandler("Terracotta admin is a database lookup (isTerracottaAdmin), not a token role")
     public ResponseEntity<Void> resyncTargetUris(@PathVariable long id, @RequestBody Map<String, String> options, HttpServletRequest req)
             throws DataServiceException, ConnectionException, IOException, ApiException, NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);

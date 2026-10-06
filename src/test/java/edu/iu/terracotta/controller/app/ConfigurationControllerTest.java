@@ -35,16 +35,6 @@ public class ConfigurationControllerTest extends BaseTest {
     }
 
     @Test
-    void getUnauthorizedTest() throws NumberFormatException, TerracottaConnectorException {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ConfigurationDto> ret = configurationController.get(httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertNull(ret.getBody());
-    }
-
-    @Test
     void getOkTest() throws NumberFormatException, TerracottaConnectorException {
         ConfigurationDto configurationDto = ConfigurationDto.builder()
             .helpUrl("http://help.example.com")

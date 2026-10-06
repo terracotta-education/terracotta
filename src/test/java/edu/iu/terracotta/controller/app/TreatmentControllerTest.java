@@ -88,15 +88,6 @@ public class TreatmentControllerTest extends BaseTest {
     }
 
     @Test
-    void allTreatmentsByConditionUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<List<TreatmentDto>> ret = treatmentController.allTreatmentsByCondition(EXPERIMENT_UUID, CONDITION_UUID, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void allTreatmentsByConditionExperimentNotMatchingTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("experiment not matching")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
@@ -109,15 +100,6 @@ public class TreatmentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(treatmentDto, ret.getBody());
-    }
-
-    @Test
-    void getTreatmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<TreatmentDto> ret = treatmentController.getTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
 
     @Test
@@ -136,16 +118,6 @@ public class TreatmentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(treatmentDto, ret.getBody());
-    }
-
-    @Test
-    void postTreatmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<TreatmentDto> ret = treatmentController.postTreatment(EXPERIMENT_UUID, CONDITION_UUID, treatmentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test
@@ -173,16 +145,6 @@ public class TreatmentControllerTest extends BaseTest {
     }
 
     @Test
-    void updateTreatmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<Void> ret = treatmentController.updateTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, treatmentDto, true, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
-    }
-
-    @Test
     void updateTreatmentNotMatchingTest() throws Exception {
         doThrow(new TreatmentNotMatchingException("treatment not matching")).when(apiJwtService).treatmentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
@@ -194,16 +156,6 @@ public class TreatmentControllerTest extends BaseTest {
         ResponseEntity<Void> ret = treatmentController.deleteTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
-    }
-
-    @Test
-    void deleteTreatmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<Void> ret = treatmentController.deleteTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test
@@ -231,16 +183,6 @@ public class TreatmentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(treatmentDto, ret.getBody());
-    }
-
-    @Test
-    void duplicateTreatmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<TreatmentDto> ret = treatmentController.duplicateTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, UriComponentsBuilder.newInstance(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test

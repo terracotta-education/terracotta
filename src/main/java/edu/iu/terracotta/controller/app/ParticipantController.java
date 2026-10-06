@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -58,6 +60,7 @@ public class ParticipantController {
     private final ExperimentService experimentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<ParticipantDto>> allParticipantsByExperiment(@PathVariable("experimentId") UUID experimentUuid,
                                                                             @RequestParam(defaultValue = "false") boolean refresh,
                                                                             HttpServletRequest req)
@@ -66,10 +69,6 @@ public class ParticipantController {
 
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         List<ParticipantDto> participantDtos = participantService.getParticipants(
             experimentId,
@@ -87,6 +86,7 @@ public class ParticipantController {
     }
 
     @GetMapping("/{participantId}")
+    @LearnerOrHigher
     public ResponseEntity<ParticipantDto> getParticipant(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("participantId") UUID participantUuid,
                                                         HttpServletRequest req)
@@ -96,10 +96,6 @@ public class ParticipantController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         ParticipantDto participantDto = participantService.toDto(
             participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(),
@@ -111,6 +107,7 @@ public class ParticipantController {
     }
 
     @PostMapping
+    @LearnerOrHigher
     public ResponseEntity<ParticipantDto> postParticipant(@PathVariable("experimentId") UUID experimentUuid,
                                                          @RequestBody ParticipantDto participantDto,
                                                          UriComponentsBuilder ucBuilder,
@@ -120,10 +117,6 @@ public class ParticipantController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         ParticipantDto returnedDto = participantService.postParticipant(participantDto, experimentId, securedInfo);
         log.debug("Created participant ID: [{}] for experiment ID: [{}]", returnedDto.getParticipantId(), experimentUuid);
         HttpHeaders headers = participantService.buildHeaders(ucBuilder, experimentUuid, returnedDto.getParticipantId());
@@ -132,6 +125,7 @@ public class ParticipantController {
     }
 
     @PutMapping("/{participantId}")
+    @LearnerOrHigher
     public ResponseEntity<ParticipantDto> updateParticipant(@PathVariable("experimentId") UUID experimentUuid,
                                                   @PathVariable("participantId") UUID participantUuid,
                                                   @RequestBody ParticipantDto participantDto,
@@ -192,6 +186,7 @@ public class ParticipantController {
     }
 
     @PutMapping
+    @InstructorOrHigher
     public ResponseEntity<Void> updateParticipants(@PathVariable("experimentId") UUID experimentUuid,
                                                    @RequestBody List<ParticipantDto> participantDtoList,
                                                    HttpServletRequest req)
@@ -199,10 +194,6 @@ public class ParticipantController {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         Map<Participant, ParticipantDto> participantMap = new HashMap<>();
 
@@ -224,6 +215,7 @@ public class ParticipantController {
     }
 
     @DeleteMapping("/{participantId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteParticipant(@PathVariable("experimentId") UUID experimentUuid,
                                                   @PathVariable("participantId") UUID participantUuid,
                                                   HttpServletRequest req)
@@ -233,10 +225,6 @@ public class ParticipantController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.participantAllowed(securedInfo, experimentId, participantId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), false);
         // soft delete

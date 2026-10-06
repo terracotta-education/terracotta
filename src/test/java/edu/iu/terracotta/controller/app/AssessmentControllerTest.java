@@ -116,16 +116,6 @@ public class AssessmentControllerTest extends BaseTest {
     }
 
     @Test
-    void getAssessmentByTreatmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<AssessmentDto>> response = assessmentController.getAssessmentByTreatment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void getAssessmentByTreatmentPropagatesExperimentNotMatchingTest() throws Exception {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         when(apiJwtService.experimentAllowed(securedInfo, experimentId)).thenThrow(new ExperimentNotMatchingException("no match"));
@@ -172,16 +162,6 @@ public class AssessmentControllerTest extends BaseTest {
     }
 
     @Test
-    void getAssessmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<AssessmentDto> response = assessmentController.getAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, false, false, false, null, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void getAssessmentPropagatesAssessmentNotMatchingTest() throws Exception {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         org.mockito.Mockito.doThrow(new AssessmentNotMatchingException("no match")).when(apiJwtService).assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -222,23 +202,6 @@ public class AssessmentControllerTest extends BaseTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
-    void postAssessmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-        UriComponentsBuilder ucBuilder = UriComponentsBuilder.newInstance();
-
-        // Declared as raw ResponseEntity on purpose: the controller's unauthorized branch returns a raw
-        // `new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, ...)` whose body is a String, not an
-        // AssessmentDto. Reading it through the method's declared ResponseEntity<AssessmentDto> generic
-        // would make javac insert a checkcast to AssessmentDto on getBody() and throw ClassCastException.
-        ResponseEntity response = assessmentController.postAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, assessmentDto, ucBuilder, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void postAssessmentPropagatesTitleValidationTest() throws Exception {
         stubAuthorized();
         UriComponentsBuilder ucBuilder = UriComponentsBuilder.newInstance();
@@ -267,19 +230,6 @@ public class AssessmentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(assessmentDto, response.getBody());
-    }
-
-    @Test
-    @SuppressWarnings("rawtypes")
-    void putAssessmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        // Raw ResponseEntity for the same reason as postAssessmentUnauthorizedTest above.
-        ResponseEntity response = assessmentController.putAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, assessmentDto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
     }
 
     @Test
@@ -313,21 +263,6 @@ public class AssessmentControllerTest extends BaseTest {
     }
 
     @Test
-    @SuppressWarnings("rawtypes")
-    void deleteAssessmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        // Raw ResponseEntity: deleteAssessment declares ResponseEntity<Void> but its unauthorized branch
-        // returns a raw ResponseEntity with a String body, so getBody() through the Void generic would
-        // insert a checkcast to Void and throw ClassCastException against the actual String body.
-        ResponseEntity response = assessmentController.deleteAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void deleteAssessmentPropagatesAssessmentNotMatchingTest() throws Exception {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         org.mockito.Mockito.doThrow(new AssessmentNotMatchingException("no match")).when(apiJwtService).assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
@@ -345,16 +280,6 @@ public class AssessmentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
         verify(assessmentService, times(1)).regradeQuestions(regradeDetails, assessmentId);
-    }
-
-    @Test
-    void regradeUnauthorizedTest() throws Exception {
-        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = assessmentController.regrade(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, regradeDetails, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test

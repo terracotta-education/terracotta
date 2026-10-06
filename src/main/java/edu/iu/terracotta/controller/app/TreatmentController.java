@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -29,7 +31,6 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.TreatmentService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -69,6 +70,7 @@ public class TreatmentController {
     private final TreatmentService treatmentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<TreatmentDto>> allTreatmentsByCondition(@PathVariable("experimentId") UUID experimentUuid,
                                                                        @PathVariable("conditionId") UUID conditionUuid,
                                                                        @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
@@ -80,10 +82,6 @@ public class TreatmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId,conditionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         List<TreatmentDto> treatmentList = treatmentService.getTreatments(conditionId, submissions, securedInfo);
 
         if (treatmentList.isEmpty()) {
@@ -94,6 +92,7 @@ public class TreatmentController {
     }
 
     @GetMapping("/{treatmentId}")
+    @LearnerOrHigher
     public ResponseEntity<TreatmentDto> getTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                      @PathVariable("conditionId") UUID conditionUuid,
                                                      @PathVariable("treatmentId") UUID treatmentUuid,
@@ -107,16 +106,13 @@ public class TreatmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         TreatmentDto treatmentDto = assignmentTreatmentService.toTreatmentDto(treatmentService.getTreatment(treatmentId), submissions, true, securedInfo);
 
         return new ResponseEntity<>(treatmentDto, HttpStatus.OK);
     }
 
     @PostMapping
+    @InstructorOrHigher
     public ResponseEntity<TreatmentDto> postTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                       @PathVariable("conditionId") UUID conditionUuid,
                                                       @RequestBody TreatmentDto treatmentDto,
@@ -129,10 +125,6 @@ public class TreatmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         TreatmentDto returnedDto = treatmentService.postTreatment(treatmentDto, conditionId, securedInfo);
         log.debug("Created treatment ID: [{}] for condition ID: [{}]", returnedDto.getTreatmentId(), conditionUuid);
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, returnedDto.getTreatmentId());
@@ -141,6 +133,7 @@ public class TreatmentController {
     }
 
     @PutMapping("/{treatmentId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> updateTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                 @PathVariable("treatmentId") UUID treatmentUuid,
@@ -158,10 +151,6 @@ public class TreatmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         TreatmentDto updatedTreatmentDto = treatmentService.putTreatment(treatmentDto, treatmentId, securedInfo, questions);
         log.debug("Updated treatment ID: [{}]", treatmentUuid);
 
@@ -169,6 +158,7 @@ public class TreatmentController {
     }
 
     @DeleteMapping("/{treatmentId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                 @PathVariable("treatmentId") UUID treatmentUuid,
@@ -182,10 +172,6 @@ public class TreatmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         try {
             treatmentService.deleteById(treatmentId);
             return new ResponseEntity<>(HttpStatus.OK);
@@ -196,6 +182,7 @@ public class TreatmentController {
     }
 
     @PostMapping("/{treatmentId}/duplicate")
+    @InstructorOrHigher
     public ResponseEntity<TreatmentDto> duplicateTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                           @PathVariable("conditionId") UUID conditionUuid,
                                                           @PathVariable("treatmentId") UUID treatmentUuid,
@@ -211,10 +198,6 @@ public class TreatmentController {
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.conditionAllowed(securedInfo, experimentId, conditionId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         TreatmentDto returnedDto = assignmentTreatmentService.duplicateTreatment(treatmentId, securedInfo);
         HttpHeaders headers = treatmentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, returnedDto.getTreatmentId());

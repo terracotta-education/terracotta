@@ -2,6 +2,8 @@ package edu.iu.terracotta.controller.app;
 
 import com.google.common.net.HttpHeaders;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -53,6 +55,7 @@ public class ConsentFileController {
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(rollbackFor = {AssignmentNotCreatedException.class, ApiException.class})
+    @InstructorOrHigher
     public ResponseEntity<FileInfoDto> postConsent(@RequestParam("consent") MultipartFile file,
                                                           @PathVariable("experimentId") UUID experimentUuid,
                                                           @RequestParam(defaultValue = "Invitation to Participate in a Research Study") String title,
@@ -62,10 +65,6 @@ public class ConsentFileController {
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         if (!MediaType.APPLICATION_PDF_VALUE.equals(file.getContentType())) {
             throw new BadConsentFileTypeException(TextConstants.BAD_CONSENT_FILETYPE);
         }
@@ -74,14 +73,11 @@ public class ConsentFileController {
     }
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<Resource> getConsent(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         Resource resource = fileStorageService.getConsentFile(experimentId);
         String contentType = null;

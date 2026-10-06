@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -22,7 +24,6 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.AnswerService;
 import edu.iu.terracotta.service.app.QuestionService;
 import edu.iu.terracotta.service.app.TreatmentService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,6 +71,7 @@ public class AnswerController {
     private final AssessmentService assessmentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<AnswerDto>> getAnswersByQuestion(@PathVariable("experimentId") UUID experimentUuid,
                                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                                 @PathVariable("treatmentId") UUID treatmentUuid,
@@ -87,10 +89,6 @@ public class AnswerController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         if (answerService.getQuestionType(questionId).equals(QuestionTypes.MC.toString())) {
             List<AnswerDto> answerDtoList = answerService.findAllByQuestionIdMC(questionId, false);
 
@@ -105,6 +103,7 @@ public class AnswerController {
     }
 
     @GetMapping("/{answerId}")
+    @LearnerOrHigher
     public ResponseEntity<AnswerDto> getAnswer(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable("conditionId") UUID conditionUuid,
                                                @PathVariable("treatmentId") UUID treatmentUuid,
@@ -125,10 +124,6 @@ public class AnswerController {
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerService.getQuestionType(questionId), answerId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         String answerType = answerService.getQuestionType(questionId);
 
         if (answerType.equals(QuestionTypes.MC.toString())) {
@@ -139,6 +134,7 @@ public class AnswerController {
     }
 
     @PostMapping
+    @InstructorOrHigher
     public ResponseEntity<AnswerDto> postAnswer(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                 @PathVariable("treatmentId") UUID treatmentUuid,
@@ -158,10 +154,6 @@ public class AnswerController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         AnswerDto returnedMcdDto = answerService.postAnswerMC(answerDto, questionId);
         log.debug("Created answer ID: [{}] for question ID: [{}]", returnedMcdDto.getAnswerId(), questionUuid);
         HttpHeaders mcHeaders = answerService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, questionUuid, returnedMcdDto.getAnswerId());
@@ -170,6 +162,7 @@ public class AnswerController {
     }
 
     @PutMapping
+    @InstructorOrHigher
     public ResponseEntity<List<AnswerDto>> updateAnswers(@PathVariable("experimentId") UUID experimentUuid,
                                               @PathVariable("conditionId") UUID conditionUuid,
                                               @PathVariable("treatmentId") UUID treatmentUuid,
@@ -187,10 +180,6 @@ public class AnswerController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         String answerType = answerService.getQuestionType(questionId);
 
@@ -217,6 +206,7 @@ public class AnswerController {
     }
 
     @PutMapping("/{answerId}")
+    @InstructorOrHigher
     public ResponseEntity<AnswerDto> updateAnswer(@PathVariable("experimentId") UUID experimentUuid,
                                              @PathVariable("conditionId") UUID conditionUuid,
                                              @PathVariable("treatmentId") UUID treatmentUuid,
@@ -239,10 +229,6 @@ public class AnswerController {
         String answerType = questionService.findByQuestionId(questionId).getQuestionType().toString();
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!QuestionTypes.MC.toString().equals(answerType)) {
             return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);
         }
@@ -262,6 +248,7 @@ public class AnswerController {
     }
 
     @DeleteMapping("/{answerId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteAnswer(@PathVariable("experimentId") UUID experimentUuid,
                                              @PathVariable("conditionId") UUID conditionUuid,
                                              @PathVariable("treatmentId") UUID treatmentUuid,
@@ -282,10 +269,6 @@ public class AnswerController {
         apijwtService.questionAllowed(securedInfo, assessmentId, questionId);
         String answerType = questionService.findByQuestionId(questionId).getQuestionType().toString();
         apijwtService.answerAllowed(securedInfo, assessmentId, questionId, answerType, answerId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         if (!answerType.equals(QuestionTypes.MC.toString())) {
             return new ResponseEntity("Error 103: Answer type not supported.", HttpStatus.BAD_REQUEST);

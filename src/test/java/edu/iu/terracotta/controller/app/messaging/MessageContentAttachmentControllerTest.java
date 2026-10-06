@@ -64,16 +64,6 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
     }
 
     @Test
-    void testGetUnauthorizedWhenNotInstructor() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_UUID, EXPOSURE_UUID, containerUuid, messageUuid, contentUuid, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        verify(apiJwtService, never()).messagingContainerAllowed(any(), org.mockito.ArgumentMatchers.anyLong(), any());
-    }
-
-    @Test
     void testGetUnauthorizedWhenContainerNotFound() throws Exception {
         doThrow(new MessageContainerNotFoundException("container not found")).when(apiJwtService).messagingContainerAllowed(securedInfo, EXPOSURE_ID, containerUuid);
 

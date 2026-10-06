@@ -90,16 +90,6 @@ public class GroupControllerTest extends BaseTest {
     }
 
     @Test
-    void testAllGroupsByExperimentUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<GroupDto>> response = groupController.allGroupsByExperiment(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNull(response.getBody());
-    }
-
-    @Test
     void testAllGroupsByExperimentPropagatesExperimentNotMatching() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, EXPERIMENT_ID);
 
@@ -117,19 +107,6 @@ public class GroupControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(groupDto, response.getBody());
-    }
-
-    @Test
-    void testGetGroupUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        // controller builds this branch's response with a raw ResponseEntity carrying a String body
-        // even though the method is declared to return ResponseEntity<GroupDto>; getBody() is only
-        // safe here because we don't force it through a GroupDto-typed reference (see final report).
-        ResponseEntity<GroupDto> response = groupController.getGroup(EXPERIMENT_UUID, GROUP_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
     }
 
     @Test
@@ -154,17 +131,6 @@ public class GroupControllerTest extends BaseTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(returnedDto, response.getBody());
         assertEquals(headers, response.getHeaders());
-    }
-
-    @Test
-    void testPostGroupUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-        GroupDto requestDto = GroupDto.builder().name("new group").build();
-
-        ResponseEntity<GroupDto> response = groupController.postGroup(EXPERIMENT_UUID, requestDto, UriComponentsBuilder.newInstance(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
     }
 
     @Test
@@ -195,16 +161,6 @@ public class GroupControllerTest extends BaseTest {
     }
 
     @Test
-    void testCreateGroupsUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = groupController.createGroups(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void testCreateGroupsPropagatesDataServiceException() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new DataServiceException("bad data")).when(groupService).createAndAssignGroupsToConditionsAndExposures(EXPERIMENT_ID, securedInfo, false);
@@ -221,17 +177,6 @@ public class GroupControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(groupService).updateGroup(GROUP_ID, groupDto);
-    }
-
-    @Test
-    void testUpdateGroupUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-        GroupDto groupDto = GroupDto.builder().groupId(GROUP_UUID).name("updated").build();
-
-        ResponseEntity<Void> response = groupController.updateGroup(EXPERIMENT_UUID, GROUP_UUID, groupDto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
     }
 
     @Test
@@ -261,16 +206,6 @@ public class GroupControllerTest extends BaseTest {
         ResponseEntity<Void> response = groupController.deleteGroup(EXPERIMENT_UUID, GROUP_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-    }
-
-    @Test
-    void testDeleteGroupUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = groupController.deleteGroup(EXPERIMENT_UUID, GROUP_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
     }
 
     @Test

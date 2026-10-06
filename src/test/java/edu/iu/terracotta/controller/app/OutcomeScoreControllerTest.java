@@ -88,16 +88,6 @@ public class OutcomeScoreControllerTest extends BaseTest {
     }
 
     @Test
-    void testGetAllOutcomeScoresByOutcomeUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<OutcomeScoreDto>> response = outcomeScoreController.getAllOutcomeScoresByOutcome(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void testGetAllOutcomeScoresByOutcomeNotMatching() throws Exception {
         doThrow(new OutcomeNotMatchingException("error")).when(apiJwtService).outcomeAllowed(securedInfo, 1L, 1L, 1L);
 
@@ -114,15 +104,6 @@ public class OutcomeScoreControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(dto, response.getBody());
-    }
-
-    @Test
-    void testGetOutcomeScoreUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<OutcomeScoreDto> response = outcomeScoreController.getOutcomeScore(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, OUTCOME_SCORE_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -145,15 +126,6 @@ public class OutcomeScoreControllerTest extends BaseTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(returnedDto, response.getBody());
         assertEquals(headers, response.getHeaders());
-    }
-
-    @Test
-    void testPostOutcomeScoreUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<OutcomeScoreDto> response = outcomeScoreController.postOutcomeScore(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, OutcomeScoreDto.builder().build(), UriComponentsBuilder.newInstance(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -193,16 +165,6 @@ public class OutcomeScoreControllerTest extends BaseTest {
     }
 
     @Test
-    void testUpdateOutcomeScoresUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-        OutcomeScoreDto dto = OutcomeScoreDto.builder().outcomeScoreId(OUTCOME_SCORE_UUID).build();
-
-        ResponseEntity<Void> response = outcomeScoreController.updateOutcomeScores(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, List.of(dto), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void testUpdateOutcomeScoresInvalidParticipantPropagates() throws Exception {
         doThrow(new InvalidParticipantException("error")).when(outcomeScoreService).updateOutcomeScores(any(), anyLong());
         OutcomeScoreDto dto = OutcomeScoreDto.builder().outcomeScoreId(OUTCOME_SCORE_UUID).build();
@@ -235,15 +197,6 @@ public class OutcomeScoreControllerTest extends BaseTest {
     }
 
     @Test
-    void testUpdateOutcomeScoreUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = outcomeScoreController.updateOutcomeScore(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, OUTCOME_SCORE_UUID, OutcomeScoreDto.builder().build(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void testUpdateOutcomeScoreNotMatching() throws Exception {
         doThrow(new OutcomeScoreNotMatchingException("error")).when(apiJwtService).outcomeScoreAllowed(securedInfo, 1L, 1L);
 
@@ -264,15 +217,6 @@ public class OutcomeScoreControllerTest extends BaseTest {
         ResponseEntity<Void> response = outcomeScoreController.deleteOutcomeScore(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, OUTCOME_SCORE_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-    }
-
-    @Test
-    void testDeleteOutcomeScoreUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = outcomeScoreController.deleteOutcomeScore(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, OUTCOME_SCORE_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test

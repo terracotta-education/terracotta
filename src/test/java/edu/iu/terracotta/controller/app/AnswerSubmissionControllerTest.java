@@ -157,17 +157,6 @@ public class AnswerSubmissionControllerTest extends BaseTest {
     }
 
     @Test
-    void testGetAnswerSubmissionsByQuestionIdUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<AnswerSubmissionDto>> response = answerSubmissionController.getAnswerSubmissionsByQuestionId(
-            EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        verify(answerSubmissionService, never()).getAnswerSubmissions(anyLong(), anyString());
-    }
-
-    @Test
     void testGetAnswerSubmissionsByQuestionIdAsLearnerValidatesUser() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         when(answerSubmissionService.getAnswerSubmissions(QUESTION_SUBMISSION_ID, ANSWER_TYPE)).thenReturn(List.of());
@@ -208,17 +197,6 @@ public class AnswerSubmissionControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(dto, response.getBody());
-    }
-
-    @Test
-    void testGetAnswerSubmissionUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<AnswerSubmissionDto> response = answerSubmissionController.getAnswerSubmission(
-            EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, ANSWER_SUBMISSION_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNull(response.getBody());
     }
 
     @Test
@@ -268,19 +246,6 @@ public class AnswerSubmissionControllerTest extends BaseTest {
         assertEquals(returnedList, response.getBody());
         verify(apiJwtService, times(1)).questionSubmissionAllowed(securedInfo, ASSESSMENT_ID, SUBMISSION_ID, QUESTION_SUBMISSION_ID);
         verify(apiJwtService, times(1)).questionSubmissionAllowed(securedInfo, ASSESSMENT_ID, SUBMISSION_ID, QUESTION_SUBMISSION_ID_2);
-    }
-
-    @Test
-    void testPostAnswerSubmissionsUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-        List<AnswerSubmissionDto> requestList = List.of(AnswerSubmissionDto.builder().questionSubmissionId(QUESTION_SUBMISSION_UUID).build());
-
-        ResponseEntity<List<AnswerSubmissionDto>> response = answerSubmissionController.postAnswerSubmissions(
-            EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, requestList, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-        verify(answerSubmissionService, never()).postAnswerSubmissions(any());
     }
 
     @Test
@@ -342,18 +307,6 @@ public class AnswerSubmissionControllerTest extends BaseTest {
     }
 
     @Test
-    void testUpdateAnswerSubmissionUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-        AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(ANSWER_SUBMISSION_UUID).build();
-
-        ResponseEntity<Void> response = answerSubmissionController.updateAnswerSubmission(
-            EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, ANSWER_SUBMISSION_UUID, dto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        verify(answerSubmissionService, never()).updateAnswerSubmission(any(), anyLong(), anyString());
-    }
-
-    @Test
     void testUpdateAnswerSubmissionAsLearnerValidatesUser() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
         AnswerSubmissionDto dto = AnswerSubmissionDto.builder().answerSubmissionId(ANSWER_SUBMISSION_UUID).build();
@@ -410,18 +363,6 @@ public class AnswerSubmissionControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(answerSubmissionService, times(1)).deleteAnswerSubmission(ANSWER_SUBMISSION_ID, ANSWER_TYPE);
-    }
-
-    @Test
-    void testDeleteAnswerSubmissionUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = answerSubmissionController.deleteAnswerSubmission(
-            EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, ANSWER_SUBMISSION_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-        verify(answerSubmissionService, never()).deleteAnswerSubmission(anyLong(), anyString());
     }
 
     @Test
@@ -490,19 +431,6 @@ public class AnswerSubmissionControllerTest extends BaseTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
         assertEquals(returnedDto, response.getBody().get(0));
-    }
-
-    @Test
-    void testPostFileAnswerSubmissionUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<AnswerSubmissionDto>> response = answerSubmissionController.postFileAnswerSubmission(
-            EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, dtoJson(QUESTION_SUBMISSION_UUID),
-            UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-        verify(answerSubmissionService, never()).handleFileAnswerSubmission(any(), any());
     }
 
     @Test
@@ -590,19 +518,6 @@ public class AnswerSubmissionControllerTest extends BaseTest {
     }
 
     @Test
-    void testPutFileAnswerSubmissionUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<AnswerSubmissionDto>> response = answerSubmissionController.putFileAnswerSubmission(
-            EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, ANSWER_SUBMISSION_UUID, dtoJson(QUESTION_SUBMISSION_UUID),
-            UriComponentsBuilder.newInstance(), multipartFile, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-        verify(answerSubmissionService, never()).handleFileAnswerSubmissionUpdate(any(), any());
-    }
-
-    @Test
     void testPutFileAnswerSubmissionPropagatesAssessmentNotMatching() throws Exception {
         doThrow(new AssessmentNotMatchingException("not matching")).when(apiJwtService)
             .assessmentAllowed(securedInfo, EXPERIMENT_ID, CONDITION_ID, TREATMENT_ID, ASSESSMENT_ID);
@@ -633,18 +548,6 @@ public class AnswerSubmissionControllerTest extends BaseTest {
         assertEquals(realFile.length(), response.getHeaders().getContentLength());
         assertEquals("attachment; filename=\"answer.txt\"; filename*=UTF-8''answer.txt", response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
         assertTrue(response.getBody() instanceof InputStreamResource);
-    }
-
-    @Test
-    void testDownloadFileAnswerSubmissionUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Resource> response = answerSubmissionController.downloadFileAnswerSubmission(
-            EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, ANSWER_SUBMISSION_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-        verify(answerSubmissionService, never()).getFileResponseDto(anyLong());
     }
 
     @Test

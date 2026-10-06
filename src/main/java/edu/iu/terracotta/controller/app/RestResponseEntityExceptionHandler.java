@@ -58,6 +58,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -75,6 +77,17 @@ public class RestResponseEntityExceptionHandler
         extends ResponseEntityExceptionHandler {
 
     public static final String LMS_REAUTHORIZATION_HEADER = "X-Terracotta-Lms-Reauthorization";
+
+    // an endpoint's role annotation (edu.iu.terracotta.security.app.roles) refused the caller -
+    // answered the way the controllers' own role checks always have. A request with no
+    // authentication at all can't reach a controller under /api (ApiOAuthProviderProcessingFilter
+    // stops it first), but is answered the same way rather than as a 500 if it ever does
+    @ExceptionHandler({ AccessDeniedException.class, AuthenticationCredentialsNotFoundException.class })
+    protected ResponseEntity<Object> handleAccessDeniedException(Exception ex, WebRequest request) {
+        log.debug("Role check refused {}: {}", request.getDescription(false), ex.getMessage());
+
+        return handleExceptionInternal(ex, TextConstants.NOT_ENOUGH_PERMISSIONS, new HttpHeaders(), HttpStatus.UNAUTHORIZED, request);
+    }
 
     // another request changed the same row first (e.g. two overlapping saves of the same
     // assignments). The transaction has already rolled back, so nothing was half-written - this is

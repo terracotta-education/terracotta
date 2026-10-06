@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -40,14 +41,11 @@ public class ResultsDashboardController {
     private final ResultsDashboardService resultsDashboardService;
 
     @GetMapping("/overview")
+    @InstructorOrHigher
     public ResponseEntity<ResultsDashboardDto> getOverview(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             return new ResponseEntity<>(resultsDashboardService.overview(experimentId, securedInfo), HttpStatus.OK);
@@ -58,15 +56,12 @@ public class ResultsDashboardController {
     }
 
     @PostMapping("/outcomes")
+    @InstructorOrHigher
     public ResponseEntity<ResultsDashboardDto> postComparison(@PathVariable("experimentId") UUID experimentUuid, @RequestBody ResultsOutcomesRequestDto resultsOutcomesRequestDto, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, OutcomeNotMatchingException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             return new ResponseEntity<>(resultsDashboardService.outcomes(experimentId, resultsOutcomesRequestDto), HttpStatus.OK);

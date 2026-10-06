@@ -84,16 +84,6 @@ public class AssignmentFileArchiveControllerTest extends BaseTest {
     }
 
     @Test
-    void testFilesUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<AssignmentFileArchiveDto> response = assignmentFileArchiveController.files(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNull(response.getBody());
-    }
-
-    @Test
     void testFilesPropagatesExperimentNotMatching() throws Exception {
         doThrow(new ExperimentNotMatchingException("not matching")).when(apiJwtService).experimentAllowed(securedInfo, EXPERIMENT_ID);
 
@@ -117,15 +107,6 @@ public class AssignmentFileArchiveControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(dto, response.getBody());
-    }
-
-    @Test
-    void testPollUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<AssignmentFileArchiveDto> response = assignmentFileArchiveController.poll(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -181,30 +162,12 @@ public class AssignmentFileArchiveControllerTest extends BaseTest {
     }
 
     @Test
-    void testRetrieveUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Resource> response = assignmentFileArchiveController.retrieve(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, FILE_ID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void testErrorAcknowledgeSuccess() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
         ResponseEntity<Void> response = assignmentFileArchiveController.errorAcknowledge(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, FILE_ID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    @Test
-    void testErrorAcknowledgeUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = assignmentFileArchiveController.errorAcknowledge(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, FILE_ID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test

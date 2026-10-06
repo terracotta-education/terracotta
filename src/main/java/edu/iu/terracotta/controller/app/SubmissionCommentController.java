@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -23,7 +25,6 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.SubmissionCommentService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -65,6 +66,7 @@ public class SubmissionCommentController {
     private final AssessmentService assessmentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<SubmissionCommentDto>> getSubmissionCommentsBySubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                                                         @PathVariable("treatmentId") UUID treatmentUuid,
@@ -82,10 +84,6 @@ public class SubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -100,6 +98,7 @@ public class SubmissionCommentController {
     }
 
     @GetMapping("/{submissionCommentId}")
+    @LearnerOrHigher
     public ResponseEntity<SubmissionCommentDto> getSubmissionComment(@PathVariable("experimentId") UUID experimentUuid,
                                                                      @PathVariable("conditionId") UUID conditionUuid,
                                                                      @PathVariable("treatmentId") UUID treatmentUuid,
@@ -119,10 +118,6 @@ public class SubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionCommentAllowed(securedInfo, assessmentId, submissionId, submissionCommentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -133,6 +128,7 @@ public class SubmissionCommentController {
     }
 
     @PostMapping
+    @LearnerOrHigher
     public ResponseEntity<SubmissionCommentDto> postSubmissionComment(@PathVariable("experimentId") UUID experimentUuid,
                                                                       @PathVariable("conditionId") UUID conditionUuid,
                                                                       @PathVariable("treatmentId") UUID treatmentUuid,
@@ -152,10 +148,6 @@ public class SubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -168,6 +160,7 @@ public class SubmissionCommentController {
     }
 
     @PutMapping("/{submissionCommentId}")
+    @LearnerOrHigher
     public ResponseEntity<Void> updateSubmissionComment(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                         @PathVariable("treatmentId") UUID treatmentUuid,
@@ -188,10 +181,6 @@ public class SubmissionCommentController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionCommentAllowed(securedInfo, assessmentId, submissionId, submissionCommentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -210,6 +199,7 @@ public class SubmissionCommentController {
     }
 
     @DeleteMapping("/{submissionCommentId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteSubmissionComment(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                         @PathVariable("treatmentId") UUID treatmentUuid,
@@ -228,10 +218,6 @@ public class SubmissionCommentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionCommentAllowed(securedInfo, assessmentId, submissionId, submissionCommentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             submissionCommentService.deleteById(submissionCommentId);

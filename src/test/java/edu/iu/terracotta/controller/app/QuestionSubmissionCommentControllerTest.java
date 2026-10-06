@@ -116,16 +116,6 @@ public class QuestionSubmissionCommentControllerTest extends BaseTest {
     }
 
     @Test
-    void getQuestionSubmissionCommentsUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<List<QuestionSubmissionCommentDto>> ret = questionSubmissionCommentController.getQuestionSubmissionComments(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
-    }
-
-    @Test
     void getQuestionSubmissionCommentsStudentValidatesUserTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
         when(questionSubmissionCommentService.getQuestionSubmissionComments(anyLong())).thenReturn(List.of(questionSubmissionCommentDto));
@@ -163,15 +153,6 @@ public class QuestionSubmissionCommentControllerTest extends BaseTest {
     }
 
     @Test
-    void getQuestionSubmissionCommentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<QuestionSubmissionCommentDto> ret = questionSubmissionCommentController.getQuestionSubmissionComment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, QUESTION_SUBMISSION_COMMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void getQuestionSubmissionCommentNotMatchingTest() throws Exception {
         doThrow(new QuestionSubmissionCommentNotMatchingException("comment not matching")).when(apiJwtService).questionSubmissionCommentAllowed(any(SecuredInfo.class), anyLong(), anyLong());
 
@@ -187,16 +168,6 @@ public class QuestionSubmissionCommentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(questionSubmissionCommentDto, ret.getBody());
-    }
-
-    @Test
-    void postQuestionSubmissionCommentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<QuestionSubmissionCommentDto> ret = questionSubmissionCommentController.postQuestionSubmissionComment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, questionSubmissionCommentDto, UriComponentsBuilder.newInstance(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test
@@ -233,16 +204,6 @@ public class QuestionSubmissionCommentControllerTest extends BaseTest {
     }
 
     @Test
-    void updateQuestionSubmissionCommentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<Void> ret = questionSubmissionCommentController.updateQuestionSubmissionComment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, QUESTION_SUBMISSION_COMMENT_UUID, questionSubmissionCommentDto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        verify(questionSubmissionCommentService, never()).updateQuestionSubmissionComment(any(), anyLong(), anyLong(), anyLong(), any());
-    }
-
-    @Test
     void updateQuestionSubmissionCommentDataServiceExceptionTest() throws Exception {
         doThrow(new DataServiceException("data service exception")).when(questionSubmissionCommentService).updateQuestionSubmissionComment(any(QuestionSubmissionCommentDto.class), anyLong(), anyLong(), anyLong(), any(SecuredInfo.class));
 
@@ -261,16 +222,6 @@ public class QuestionSubmissionCommentControllerTest extends BaseTest {
         ResponseEntity<Void> ret = questionSubmissionCommentController.deleteQuestionSubmissionComment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, QUESTION_SUBMISSION_COMMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
-    }
-
-    @Test
-    void deleteQuestionSubmissionCommentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<Void> ret = questionSubmissionCommentController.deleteQuestionSubmissionComment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, QUESTION_SUBMISSION_UUID, QUESTION_SUBMISSION_COMMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test

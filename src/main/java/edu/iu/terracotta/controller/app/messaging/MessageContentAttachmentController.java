@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -47,12 +48,9 @@ public class MessageContentAttachmentController {
     private final MessageContentAttachmentService messageContentAttachmentService;
 
     @GetMapping
+    @InstructorOrHigher
     public ResponseEntity<List<MessageContentAttachmentDto>> get(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID contentUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
-
-        if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         MessageContent messageContent;
         long experimentId;

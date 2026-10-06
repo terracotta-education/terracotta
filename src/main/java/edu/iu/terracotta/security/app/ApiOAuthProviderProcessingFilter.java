@@ -7,8 +7,14 @@ import io.jsonwebtoken.security.SecurityException;
 import lombok.extern.slf4j.Slf4j;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.api.ApiTokenService;
+import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.security.app.roles.ApiRoles;
 
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
@@ -20,6 +26,8 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -32,6 +40,7 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
     private static final String JWT_REQUEST_HEADER_NAME = "Authorization";
     private static final String JWT_BEARER_TYPE = "Bearer";
     private static final String QUERY_PARAM_NAME = "token";
+    private static final String ROLE_PREFIX = "ROLE_";
 
     private final boolean allowQueryParam;
 
@@ -80,7 +89,9 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
 
             // Second, as the state is something that we have created, it should be in our list of states.
 
-            if (StringUtils.hasText(token) && !validateAndConsumeToken(token)) {
+            Jws<Claims> tokenClaims = StringUtils.hasText(token) ? validateAndConsumeToken(token) : null;
+
+            if (StringUtils.hasText(token) && tokenClaims == null) {
                 // validateToken(...) returns null (rather than throwing) for a token that fails
                 // validation without raising ExpiredJwtException/SecurityException here - see
                 // ApiJwtServiceImpl.validateToken, which catches ExpiredJwtException internally
@@ -93,8 +104,15 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
                 return;
             }
 
-            filterChain.doFilter(servletRequest, servletResponse);
-            this.resetAuthenticationAfterRequest();
+            if (tokenClaims != null) {
+                authenticate(tokenClaims);
+            }
+
+            try {
+                filterChain.doFilter(servletRequest, servletResponse);
+            } finally {
+                this.resetAuthenticationAfterRequest();
+            }
         } catch (ExpiredJwtException e) {
             log.warn("Security exception for user {} - {}", e.getClaims().getSubject(), e.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -110,19 +128,56 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
     }
 
     private void resetAuthenticationAfterRequest() {
-        SecurityContextHolder.getContext().setAuthentication(null);
+        SecurityContextHolder.clearContext();
     }
 
     /**
-     * @return false if the token failed validation and the caller should respond 401; true if
+     * Grants the request the Spring Security roles its token's LTI roles map to, which the
+     * controllers' role annotations (InstructorOrHigher, LearnerOrHigher) check. Uses the same
+     * ApiJwtService checks the controllers used to call themselves, so the result is identical.
+     * A token whose values can't be read gets no roles, so any role-annotated endpoint refuses it.
+     */
+    private void authenticate(Jws<Claims> tokenClaims) {
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        String principal = tokenClaims.getPayload().getSubject();
+
+        try {
+            SecuredInfo securedInfo = apiJwtService.extractValues(tokenClaims);
+
+            if (apiJwtService.isAdmin(securedInfo)) {
+                authorities.add(new SimpleGrantedAuthority(ROLE_PREFIX + ApiRoles.ADMIN));
+            }
+
+            if (apiJwtService.isInstructor(securedInfo)) {
+                authorities.add(new SimpleGrantedAuthority(ROLE_PREFIX + ApiRoles.INSTRUCTOR));
+            }
+
+            if (apiJwtService.isLearner(securedInfo)) {
+                authorities.add(new SimpleGrantedAuthority(ROLE_PREFIX + ApiRoles.LEARNER));
+            }
+
+            if (securedInfo != null && securedInfo.getUserId() != null) {
+                principal = securedInfo.getUserId();
+            }
+        } catch (TerracottaConnectorException | RuntimeException e) {
+            log.warn("Couldn't read the roles from an API token; granting none: {}", e.getMessage());
+        }
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(principal, null, authorities));
+        SecurityContextHolder.setContext(securityContext);
+    }
+
+    /**
+     * @return null if the token failed validation and the caller should respond 401; its claims if
      *         the request may proceed. Throws IllegalStateException for the issuer/one-use
      *         failures, matching doFilter's existing catch handling for those.
      */
-    private boolean validateAndConsumeToken(String token) {
+    private Jws<Claims> validateAndConsumeToken(String token) {
         Jws<Claims> tokenClaims = apiJwtService.validateToken(token);
 
         if (tokenClaims == null) {
-            return false;
+            return null;
         }
 
         if (!"TERRACOTTA".equals(tokenClaims.getPayload().getIssuer())) {
@@ -135,7 +190,7 @@ public class ApiOAuthProviderProcessingFilter extends GenericFilterBean {
             throw new IllegalStateException("OneUse token does not exist or has been already used");
         }
 
-        return true;
+        return tokenClaims;
     }
 
     private String extractJwtStringValue(HttpServletRequest request) {

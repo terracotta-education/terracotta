@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -54,6 +55,7 @@ public class AssignmentFileArchiveController {
     private final AssignmentService assignmentService;
 
     @GetMapping
+    @InstructorOrHigher
     public ResponseEntity<AssignmentFileArchiveDto> files(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -68,14 +70,11 @@ public class AssignmentFileArchiveController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         return new ResponseEntity<>(assignmentFileArchiveService.process(assignment, securedInfo), HttpStatus.ACCEPTED);
     }
 
     @GetMapping("/poll")
+    @InstructorOrHigher
     public ResponseEntity<AssignmentFileArchiveDto> poll(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -91,10 +90,6 @@ public class AssignmentFileArchiveController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         try {
             return new ResponseEntity<>(assignmentFileArchiveService.poll(assignment, securedInfo, createNewOnOutdated), HttpStatus.OK);
         } catch (AssignmentFileArchiveNotFoundException e) {
@@ -103,6 +98,7 @@ public class AssignmentFileArchiveController {
     }
 
     @GetMapping("/{fileId}/retrieve")
+    @InstructorOrHigher
     public ResponseEntity<Resource> retrieve(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -117,10 +113,6 @@ public class AssignmentFileArchiveController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         AssignmentFileArchiveDto assignmentFileArchiveDto = assignmentFileArchiveService.retrieve(fileId, assignment, securedInfo);
 
@@ -138,6 +130,7 @@ public class AssignmentFileArchiveController {
     }
 
     @PutMapping("/{fileId}/error/acknowledge")
+    @InstructorOrHigher
     public ResponseEntity<Void> errorAcknowledge(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -152,10 +145,6 @@ public class AssignmentFileArchiveController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             assignmentFileArchiveService.errorAcknowledge(fileId, assignment);

@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -16,7 +18,6 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,6 +56,7 @@ public class OutcomeScoreController {
     private final OutcomeService outcomeService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<OutcomeScoreDto>> getAllOutcomeScoresByOutcome(@PathVariable("experimentId") UUID experimentUuid,
                                                                               @PathVariable("exposureId") UUID exposureUuid,
                                                                               @PathVariable("outcomeId") UUID outcomeUuid,
@@ -68,10 +70,6 @@ public class OutcomeScoreController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         List<OutcomeScoreDto> outcomeScoreList = outcomeScoreService.getOutcomeScores(outcomeId);
 
         if (outcomeScoreList.isEmpty()) {
@@ -82,6 +80,7 @@ public class OutcomeScoreController {
     }
 
     @GetMapping("/{outcomeScoreId}")
+    @LearnerOrHigher
     public ResponseEntity<OutcomeScoreDto> getOutcomeScore(@PathVariable("experimentId") UUID experimentUuid,
                                                            @PathVariable("exposureId") UUID exposureUuid,
                                                            @PathVariable("outcomeId") UUID outcomeUuid,
@@ -97,16 +96,13 @@ public class OutcomeScoreController {
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
         apijwtService.outcomeScoreAllowed(securedInfo, outcomeId, outcomeScoreId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         OutcomeScoreDto outcomeScoreDto = outcomeScoreService.toDto(outcomeScoreService.getOutcomeScore(outcomeScoreId));
 
         return new ResponseEntity<>(outcomeScoreDto, HttpStatus.OK);
     }
 
     @PostMapping
+    @InstructorOrHigher
     public ResponseEntity<OutcomeScoreDto> postOutcomeScore(@PathVariable("experimentId") UUID experimentUuid,
                                                             @PathVariable("exposureId") UUID exposureUuid,
                                                             @PathVariable("outcomeId") UUID outcomeUuid,
@@ -121,10 +117,6 @@ public class OutcomeScoreController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         OutcomeScoreDto returnedDto = outcomeScoreService.postOutcomeScore(outcomeScoreDto, experimentId, outcomeId);
         log.debug("Created outcome score ID: [{}] for outcome ID: [{}]", returnedDto.getOutcomeScoreId(), outcomeUuid);
         HttpHeaders headers = outcomeScoreService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, outcomeUuid, returnedDto.getOutcomeScoreId());
@@ -133,6 +125,7 @@ public class OutcomeScoreController {
     }
 
     @PutMapping
+    @InstructorOrHigher
     public ResponseEntity<Void> updateOutcomeScores(@PathVariable("experimentId") UUID experimentUuid,
                                                      @PathVariable("exposureId") UUID exposureUuid,
                                                      @PathVariable("outcomeId") UUID outcomeUuid,
@@ -145,10 +138,6 @@ public class OutcomeScoreController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         for (OutcomeScoreDto outcomeScoreDto : outcomeScoreDtoList) {
             if (outcomeScoreDto.getOutcomeScoreId() != null) {
@@ -171,6 +160,7 @@ public class OutcomeScoreController {
     }
 
     @PutMapping("/{outcomeScoreId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> updateOutcomeScore(@PathVariable("experimentId") UUID experimentUuid,
                                               @PathVariable("exposureId") UUID exposureUuid,
                                               @PathVariable("outcomeId") UUID outcomeUuid,
@@ -187,10 +177,6 @@ public class OutcomeScoreController {
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
         apijwtService.outcomeScoreAllowed(securedInfo, outcomeId, outcomeScoreId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         outcomeScoreService.updateOutcomeScore(outcomeScoreId, outcomeScoreDto);
         log.debug("Updated outcome score ID: [{}]", outcomeScoreUuid);
 
@@ -198,6 +184,7 @@ public class OutcomeScoreController {
     }
 
     @DeleteMapping("/{outcomeScoreId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteOutcomeScore(@PathVariable("experimentId") UUID experimentUuid,
                                                    @PathVariable("exposureId") UUID exposureUuid,
                                                    @PathVariable("outcomeId") UUID outcomeUuid,
@@ -212,10 +199,6 @@ public class OutcomeScoreController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.outcomeAllowed(securedInfo, experimentId, exposureId, outcomeId);
         apijwtService.outcomeScoreAllowed(securedInfo, outcomeId, outcomeScoreId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             outcomeScoreService.deleteById(outcomeScoreId);

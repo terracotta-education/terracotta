@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -52,14 +53,11 @@ public class ExperimentDataExportController {
     private final ExperimentDataExportService experimentDataExportService;
 
     @GetMapping
+    @InstructorOrHigher
     public ResponseEntity<ExperimentDataExportDto> process(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             return new ResponseEntity<>(experimentDataExportService.process(apijwtService.experimentAllowed(securedInfo, experimentId), securedInfo), HttpStatus.ACCEPTED);
@@ -69,14 +67,11 @@ public class ExperimentDataExportController {
     }
 
     @GetMapping("/poll")
+    @InstructorOrHigher
     public ResponseEntity<ExperimentDataExportDto> poll(@PathVariable("experimentId") UUID experimentUuid, @RequestParam(defaultValue = "false") boolean createNewOnOutdated, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException, AssignmentFileArchiveNotFoundException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             Experiment experiment = apijwtService.experimentAllowed(securedInfo, experimentId);
@@ -90,13 +85,10 @@ public class ExperimentDataExportController {
     // sends a placeholder "0" for that segment, so it's taken as an opaque String and never
     // resolved (binding it as a UUID would reject the placeholder before this method even ran)
     @PostMapping("/poll/list")
+    @InstructorOrHigher
     public ResponseEntity<List<ExperimentDataExportDto>> pollList(@PathVariable("experimentId") String ignoredExperimentId, @RequestParam(defaultValue = "false") boolean createNewOnOutdated, @RequestBody List<UUID> experimentUuids, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException, AssignmentFileArchiveNotFoundException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             List<Experiment> experiments = new ArrayList<>();
@@ -113,14 +105,11 @@ public class ExperimentDataExportController {
     }
 
     @GetMapping("/{fileId}/retrieve")
+    @InstructorOrHigher
     public ResponseEntity<Resource> retrieve(@PathVariable("experimentId") UUID experimentUuid, @PathVariable UUID fileId, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         ExperimentDataExportDto experimentDataExportDto;
 
@@ -144,14 +133,11 @@ public class ExperimentDataExportController {
     }
 
     @PutMapping("/{fileId}/acknowledge")
+    @InstructorOrHigher
     public ResponseEntity<ExperimentDataExportDto> errorAcknowledge(@PathVariable("experimentId") UUID experimentUuid, @PathVariable UUID fileId, @RequestParam ExperimentDataExportStatus status, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, IOException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             experimentDataExportService.acknowledge(fileId, apijwtService.experimentAllowed(securedInfo, experimentId), status);

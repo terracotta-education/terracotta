@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -26,7 +28,6 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.AssignmentTreatmentService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -68,6 +69,7 @@ public class AssignmentController {
     private final ExposureService exposureService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<AssignmentDto>> allAssignmentsByExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                                         @PathVariable("exposureId") UUID exposureUuid,
                                                                         @RequestParam(name = "submissions", defaultValue = "false") boolean submissions,
@@ -80,10 +82,6 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         List<AssignmentDto> assignments = assignmentService.getAssignments(exposureId, submissions, includeDeleted, securedInfo);
 
         if (assignments.isEmpty()) {
@@ -94,6 +92,7 @@ public class AssignmentController {
     }
 
     @GetMapping("/{assignmentId}")
+    @LearnerOrHigher
     public ResponseEntity<AssignmentDto> getAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -107,10 +106,6 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         AssignmentDto assignmentDto = assignmentTreatmentService.toAssignmentDto(assignmentService.getAssignment(assignmentId), submissions, true, securedInfo);
 
         return new ResponseEntity<>(assignmentDto, HttpStatus.OK);
@@ -118,6 +113,7 @@ public class AssignmentController {
 
     @PostMapping
     @Transactional(rollbackFor = { AssignmentNotCreatedException.class })
+    @InstructorOrHigher
     public ResponseEntity<AssignmentDto> postAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("exposureId") UUID exposureUuid,
                                                         @RequestBody AssignmentDto assignmentDto,
@@ -133,10 +129,6 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         AssignmentDto returnedDto = assignmentService.postAssignment(assignmentDto, experimentId, exposureId, securedInfo);
         log.debug("Created assignment ID: [{}] for exposure ID: [{}]", returnedDto.getAssignmentId(), exposureUuid);
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, returnedDto.getAssignmentId());
@@ -146,6 +138,7 @@ public class AssignmentController {
 
     @PutMapping("/{assignmentId}")
     @Transactional(rollbackFor = { AssignmentNotEditedException.class, ApiException.class })
+    @InstructorOrHigher
     public ResponseEntity<AssignmentDto> updateAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("exposureId") UUID exposureUuid,
                                                  @PathVariable("assignmentId") UUID assignmentUuid,
@@ -161,10 +154,6 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         AssignmentDto updatedAssignmentDto = assignmentService.putAssignment(assignmentId, assignmentDto, securedInfo);
         log.debug("Updated assignment ID: [{}]", assignmentUuid);
 
@@ -173,6 +162,7 @@ public class AssignmentController {
 
     @PutMapping
     @Transactional(rollbackFor = { AssignmentNotEditedException.class, ApiException.class })
+    @InstructorOrHigher
     public ResponseEntity<List<AssignmentDto>> updateAssignments(@PathVariable("experimentId") UUID experimentUuid,
                                                                  @PathVariable("exposureId") UUID exposureUuid,
                                                                  @RequestBody List<AssignmentDto> assignmentDtos,
@@ -193,10 +183,6 @@ public class AssignmentController {
             apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
         }
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         List<AssignmentDto> updatedAssignmentDtos = assignmentService.updateAssignments(assignmentDtos, securedInfo);
         log.debug("Updated assignment IDs: {} for exposure ID: [{}]", updatedAssignmentDtos.stream().map(AssignmentDto::getAssignmentId).toList(), exposureUuid);
 
@@ -205,6 +191,7 @@ public class AssignmentController {
 
     @DeleteMapping("/{assignmentId}")
     @Transactional(rollbackFor = { AssignmentNotEditedException.class, ApiException.class })
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("exposureId") UUID exposureUuid,
                                                  @PathVariable("assignmentId") UUID assignmentUuid,
@@ -218,10 +205,6 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         try {
             assignmentService.deleteById(assignmentId, securedInfo);
             return new ResponseEntity<>(HttpStatus.OK);
@@ -233,6 +216,7 @@ public class AssignmentController {
 
     @Transactional
     @PostMapping("/{assignmentId}/duplicate")
+    @InstructorOrHigher
     public ResponseEntity<AssignmentDto> duplicateAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("exposureId") UUID exposureUuid,
                                                         @PathVariable("assignmentId") UUID assignmentUuid,
@@ -251,10 +235,6 @@ public class AssignmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         AssignmentDto returnedDto = assignmentService.duplicateAssignment(assignmentId, securedInfo);
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, returnedDto.getAssignmentId());
 
@@ -263,6 +243,7 @@ public class AssignmentController {
 
     @PostMapping("/{assignmentId}/move")
     @Transactional(rollbackFor = { AssignmentNotCreatedException.class, ApiException.class, AssignmentNotEditedException.class })
+    @InstructorOrHigher
     public ResponseEntity<AssignmentDto> moveAssignment(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("exposureId") UUID exposureUuid,
                                                         @PathVariable("assignmentId") UUID assignmentUuid,
@@ -280,10 +261,6 @@ public class AssignmentController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         AssignmentDto returnedDto = assignmentService.moveAssignment(assignmentId, assignmentDto, experimentId, exposureId, securedInfo);
         HttpHeaders headers = assignmentService.buildHeaders(ucBuilder, experimentUuid, exposureUuid, returnedDto.getAssignmentId());

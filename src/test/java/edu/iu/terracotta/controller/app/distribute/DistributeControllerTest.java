@@ -102,15 +102,6 @@ public class DistributeControllerTest extends BaseTest {
     }
 
     @Test
-    void exportUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Resource> ret = distributeController.export(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void exportFileNullTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         ExportDto exportDto = ExportDto.builder().file(null).build();
@@ -155,15 +146,6 @@ public class DistributeControllerTest extends BaseTest {
     }
 
     @Test
-    void importExperimentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ImportDto> ret = distributeController.importExperiment(multipartFile, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void importExperimentInvalidMimeTypeTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(multipartFile.getContentType()).thenReturn("text/plain");
@@ -199,15 +181,6 @@ public class DistributeControllerTest extends BaseTest {
     }
 
     @Test
-    void pollUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ImportDto> ret = distributeController.poll(UUID.randomUUID(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void pollSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(experimentImportService.toDto(experimentImport)).thenReturn(importDto);
@@ -237,15 +210,6 @@ public class DistributeControllerTest extends BaseTest {
     }
 
     @Test
-    void pollAllUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<ImportDto>> ret = distributeController.pollAll(httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void pollAllSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(experimentImportService.getAll(securedInfo)).thenReturn(List.of(importDto));
@@ -264,15 +228,6 @@ public class DistributeControllerTest extends BaseTest {
         ResponseEntity<List<ImportDto>> ret = distributeController.pollAll(httpServletRequest);
 
         assertEquals(HttpStatus.BAD_REQUEST, ret.getStatusCode());
-    }
-
-    @Test
-    void acknowledgeErrorUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ImportDto> ret = distributeController.acknowledgeError(UUID.randomUUID(), ExperimentImportStatus.ERROR_ACKNOWLEDGED, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
 
     @Test
@@ -306,14 +261,6 @@ public class DistributeControllerTest extends BaseTest {
     }
 
     @Test
-    void copyStatusUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.copyStatus(httpServletRequest).getStatusCode());
-        verify(experimentCopyCandidateService, never()).getCopyStatus(any());
-    }
-
-    @Test
     void copyStatusSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         CopyStatusDto copyStatus = CopyStatusDto.builder().status(ExperimentCopyStatus.COMPLETE).build();
@@ -326,27 +273,11 @@ public class DistributeControllerTest extends BaseTest {
     }
 
     @Test
-    void acknowledgeCopyStatusUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.acknowledgeCopyStatus(httpServletRequest).getStatusCode());
-        verify(experimentCopyCandidateService, never()).acknowledgeCopyStatus(any());
-    }
-
-    @Test
     void acknowledgeCopyStatusSuccessTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
 
         assertEquals(HttpStatus.OK, distributeController.acknowledgeCopyStatus(httpServletRequest).getStatusCode());
         verify(experimentCopyCandidateService).acknowledgeCopyStatus(securedInfo);
-    }
-
-    @Test
-    void retryCopyUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, distributeController.retryCopy(httpServletRequest).getStatusCode());
-        verify(experimentCopyCandidateService, never()).resetFailedForRetry(anyLong());
     }
 
     @Test

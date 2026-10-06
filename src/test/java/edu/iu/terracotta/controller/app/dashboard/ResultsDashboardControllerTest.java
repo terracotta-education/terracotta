@@ -64,16 +64,6 @@ public class ResultsDashboardControllerTest extends BaseTest {
     }
 
     @Test
-    void getOverviewUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        verify(resultsDashboardService, never()).overview(anyLong(), any(SecuredInfo.class));
-    }
-
-    @Test
     void getOverviewServiceExceptionTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(resultsDashboardService.overview(1L, securedInfo)).thenThrow(new RuntimeException("boom"));
@@ -101,15 +91,6 @@ public class ResultsDashboardControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(experimentUuid, response.getBody().getExperimentId());
-    }
-
-    @Test
-    void postComparisonUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(EXPERIMENT_UUID, resultsOutcomesRequestDto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test

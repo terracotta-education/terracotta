@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -29,7 +31,6 @@ import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -73,6 +74,7 @@ public class AssessmentController {
     private final TreatmentService treatmentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<AssessmentDto>> getAssessmentByTreatment(@PathVariable("experimentId") UUID experimentUuid,
                                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                                         @PathVariable("treatmentId") UUID treatmentUuid,
@@ -87,10 +89,6 @@ public class AssessmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         List<AssessmentDto> assessmentDtoList = assessmentService.getAllAssessmentsByTreatment(treatmentId, submissions, securedInfo);
 
         if (assessmentDtoList.isEmpty()) {
@@ -101,6 +99,7 @@ public class AssessmentController {
     }
 
     @GetMapping(value = "/{assessmentId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @LearnerOrHigher
     public ResponseEntity<AssessmentDto> getAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("conditionId") UUID conditionUuid,
                                                        @PathVariable("treatmentId") UUID treatmentUuid,
@@ -125,10 +124,6 @@ public class AssessmentController {
             apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
         }
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         boolean isStudent = !apijwtService.isInstructorOrHigher(securedInfo);
 
         if (isStudent && submissionId != null) {
@@ -142,6 +137,7 @@ public class AssessmentController {
     }
 
     @PostMapping
+    @InstructorOrHigher
     public ResponseEntity<AssessmentDto> postAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                         @PathVariable("treatmentId") UUID treatmentUuid,
@@ -157,10 +153,6 @@ public class AssessmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         AssessmentDto returnedDto = assessmentService.postAssessment(assessmentDto, treatmentId, securedInfo);
         log.debug("Created assessment ID: [{}] for treatment ID: [{}]", returnedDto.getAssessmentId(), treatmentUuid);
         HttpHeaders headers = assessmentService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, returnedDto.getAssessmentId());
@@ -169,6 +161,7 @@ public class AssessmentController {
     }
 
     @PutMapping("/{assessmentId}")
+    @InstructorOrHigher
     public ResponseEntity<AssessmentDto> putAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("conditionId") UUID conditionUuid,
                                                  @PathVariable("treatmentId") UUID treatmentUuid,
@@ -186,10 +179,6 @@ public class AssessmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         AssessmentDto updatedAssessmentDto = assessmentService.putAssessment(assessmentId, assessmentDto, true, securedInfo);
         log.debug("Updated assessment ID: [{}]", assessmentUuid);
 
@@ -198,6 +187,7 @@ public class AssessmentController {
 
     @Transactional
     @DeleteMapping("/{assessmentId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("conditionId") UUID conditionUuid,
                                                  @PathVariable("treatmentId") UUID treatmentUuid,
@@ -214,10 +204,6 @@ public class AssessmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         try {
             assessmentService.deleteById(assessmentId);
         } catch (EmptyResultDataAccessException ex) {
@@ -229,6 +215,7 @@ public class AssessmentController {
     }
 
     @PostMapping("/{assessmentId}/regrade")
+    @InstructorOrHigher
     public ResponseEntity<Void> regrade(@PathVariable("experimentId") UUID experimentUuid,
                                                 @PathVariable("conditionId") UUID conditionUuid,
                                                 @PathVariable("treatmentId") UUID treatmentUuid,
@@ -246,10 +233,6 @@ public class AssessmentController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.treatmentAllowed(securedInfo, experimentId, conditionId, treatmentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         assessmentService.regradeQuestions(regradeDetails, assessmentId);
 

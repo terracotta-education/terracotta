@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
@@ -24,7 +26,6 @@ import edu.iu.terracotta.service.app.AssessmentService;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.TreatmentService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -69,6 +70,7 @@ public class SubmissionController {
     private final AssessmentService assessmentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<SubmissionDto>> getSubmissionsByAssessment(@PathVariable("experimentId") UUID experimentUuid,
                                                                           @PathVariable("conditionId") UUID conditionUuid,
                                                                           @PathVariable("treatmentId") UUID treatmentUuid,
@@ -84,10 +86,6 @@ public class SubmissionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
         List<SubmissionDto> submissionDtoList = submissionService.getSubmissions(experimentId, securedInfo.getUserId(), assessmentId, student);
 
@@ -99,6 +97,7 @@ public class SubmissionController {
     }
 
     @GetMapping("/{submissionId}")
+    @LearnerOrHigher
     public ResponseEntity<SubmissionDto> getSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("conditionId") UUID conditionUuid,
                                                        @PathVariable("treatmentId") UUID treatmentUuid,
@@ -118,10 +117,6 @@ public class SubmissionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
         Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
 
@@ -129,6 +124,7 @@ public class SubmissionController {
     }
 
     @PostMapping
+    @LearnerOrHigher
     public ResponseEntity<SubmissionDto> postSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                         @PathVariable("treatmentId") UUID treatmentUuid,
@@ -150,10 +146,6 @@ public class SubmissionController {
             return new ResponseEntity("Error 128: Assignment locked", HttpStatus.UNAUTHORIZED);
         }
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
         SubmissionDto returnedDto = submissionService.postSubmission(submissionDto, experimentId, securedInfo, assessmentId, student);
         log.debug("Created submission ID: [{}] for assessment ID: [{}] and participant ID: [{}]", returnedDto.getSubmissionId(), assessmentUuid, returnedDto.getParticipantId());
@@ -163,6 +155,7 @@ public class SubmissionController {
     }
 
     @PutMapping("/{submissionId}")
+    @LearnerOrHigher
     public ResponseEntity<Void> updateSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("conditionId") UUID conditionUuid,
                                                  @PathVariable("treatmentId") UUID treatmentUuid,
@@ -182,10 +175,6 @@ public class SubmissionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         boolean student = !apijwtService.isInstructorOrHigher(securedInfo);
         Map<Submission, SubmissionDto> map = new HashMap<>();
         Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
@@ -197,6 +186,7 @@ public class SubmissionController {
     }
 
     @PutMapping
+    @InstructorOrHigher
     public ResponseEntity<Void> updateSubmissions(@PathVariable("experimentId") UUID experimentUuid,
                                                   @PathVariable("conditionId") UUID conditionUuid,
                                                   @PathVariable("treatmentId") UUID treatmentUuid,
@@ -211,10 +201,6 @@ public class SubmissionController {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         Map<Submission, SubmissionDto> map = new HashMap<>();
 
@@ -235,6 +221,7 @@ public class SubmissionController {
     }
 
     @DeleteMapping("/{submissionId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                  @PathVariable("conditionId") UUID conditionUuid,
                                                  @PathVariable("treatmentId") UUID treatmentUuid,
@@ -251,10 +238,6 @@ public class SubmissionController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.submissionAllowed(securedInfo, assessmentId, submissionId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             submissionService.deleteById(submissionId);

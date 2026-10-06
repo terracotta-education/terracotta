@@ -76,15 +76,6 @@ public class ExperimentDataExportControllerTest extends BaseTest {
     }
 
     @Test
-    void testProcessUnauthorizedBelowInstructor() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ExperimentDataExportDto> response = experimentDataExportController.process(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void testProcessServiceExceptionIsBadRequest() throws Exception {
         when(experimentDataExportService.process(experiment, securedInfo)).thenThrow(new ExperimentDataExportException("failed to process"));
 
@@ -102,15 +93,6 @@ public class ExperimentDataExportControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(experimentDataExportDto, response.getBody());
-    }
-
-    @Test
-    void testPollUnauthorizedBelowInstructor() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ExperimentDataExportDto> response = experimentDataExportController.poll(EXPERIMENT_UUID, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -135,16 +117,6 @@ public class ExperimentDataExportControllerTest extends BaseTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(List.of(experimentDataExportDto), response.getBody());
         verify(apiJwtService).experimentAllowed(securedInfo, EXPERIMENT_ID);
-    }
-
-    @Test
-    void testPollListUnauthorizedBelowInstructor() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<ExperimentDataExportDto>> response = experimentDataExportController.pollList("0", false, List.of(EXPERIMENT_UUID), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        verify(experimentDataExportService, never()).poll(anyList(), any(), anyBoolean());
     }
 
     @Test
@@ -190,15 +162,6 @@ public class ExperimentDataExportControllerTest extends BaseTest {
     }
 
     @Test
-    void testRetrieveUnauthorizedBelowInstructor() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Resource> response = experimentDataExportController.retrieve(EXPERIMENT_UUID, FILE_ID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void testRetrieveServiceExceptionIsBadRequest() throws Exception {
         when(experimentDataExportService.retrieve(FILE_ID, experiment, securedInfo)).thenThrow(new ExperimentDataExportException("failed to retrieve"));
 
@@ -213,16 +176,6 @@ public class ExperimentDataExportControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(experimentDataExportService).acknowledge(FILE_ID, experiment, ExperimentDataExportStatus.ERROR_ACKNOWLEDGED);
-    }
-
-    @Test
-    void testErrorAcknowledgeUnauthorizedBelowInstructor() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ExperimentDataExportDto> response = experimentDataExportController.errorAcknowledge(EXPERIMENT_UUID, FILE_ID, ExperimentDataExportStatus.ERROR_ACKNOWLEDGED, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        verify(experimentDataExportService, never()).acknowledge(any(), any(), any());
     }
 
     @Test

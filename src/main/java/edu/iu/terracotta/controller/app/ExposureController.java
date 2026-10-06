@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -14,7 +16,6 @@ import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.ExperimentService;
 import edu.iu.terracotta.service.app.ExposureService;
-import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,15 +52,12 @@ public class ExposureController {
     private final ExperimentService experimentService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<List<ExposureDto>> allExposuresByExperiment(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req,false);
         apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         List<ExposureDto> exposureList = exposureService.getExposures(experimentId);
 
@@ -71,6 +69,7 @@ public class ExposureController {
     }
 
     @GetMapping("/{exposureId}")
+    @LearnerOrHigher
     public ResponseEntity<ExposureDto> getExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                    @PathVariable("exposureId") UUID exposureUuid,
                                                    HttpServletRequest req)
@@ -81,16 +80,13 @@ public class ExposureController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         ExposureDto exposureDto = exposureService.toDto(exposureService.getExposure(exposureId));
 
         return new ResponseEntity<>(exposureDto, HttpStatus.OK);
     }
 
     @PostMapping
+    @InstructorOrHigher
     public ResponseEntity<ExposureDto> postExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                     @RequestBody ExposureDto exposureDto,
                                                     UriComponentsBuilder ucBuilder,
@@ -101,10 +97,6 @@ public class ExposureController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         ExposureDto returnedDto = exposureService.postExposure(exposureDto, experimentId);
         log.debug("Created exposure ID: [{}] for experiment ID: [{}]", returnedDto.getExposureId(), experimentUuid);
         HttpHeaders headers = exposureService.buildHeaders(ucBuilder, experimentUuid, returnedDto.getExposureId());
@@ -113,6 +105,7 @@ public class ExposureController {
     }
 
     @PostMapping("/create")
+    @InstructorOrHigher
     public ResponseEntity<Void> createExposures(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
             throws ExperimentNotMatchingException, BadTokenException, ExperimentLockedException, DataServiceException, ExperimentStartedException, NumberFormatException, TerracottaConnectorException {
 
@@ -121,16 +114,13 @@ public class ExposureController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.experimentLocked(experimentId,true);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         exposureService.createExposures(experimentId);
 
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @PutMapping("/{exposureId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> updateExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable("exposureId") UUID exposureUuid,
                                                @RequestBody ExposureDto exposureDto,
@@ -142,10 +132,6 @@ public class ExposureController {
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         exposureService.updateExposure(exposureId, exposureDto);
         log.debug("Updated exposure ID: [{}]", exposureUuid);
 
@@ -153,6 +139,7 @@ public class ExposureController {
     }
 
     @DeleteMapping("/{exposureId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteExposure(@PathVariable("experimentId") UUID experimentUuid,
                                                @PathVariable("exposureId") UUID exposureUuid,
                                                HttpServletRequest req)
@@ -163,10 +150,6 @@ public class ExposureController {
         apijwtService.experimentLocked(experimentId,true);
         apijwtService.experimentAllowed(securedInfo, experimentId);
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             exposureService.deleteById(exposureId);
