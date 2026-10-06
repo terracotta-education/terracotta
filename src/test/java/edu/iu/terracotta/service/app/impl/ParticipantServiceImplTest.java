@@ -1255,6 +1255,8 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(true);
+        verify(participant).setDateGiven(any(Timestamp.class));
+        verify(participant).setDateRevoked(null);
         verify(participantRepository).saveAll(List.of(participant));
     }
 
@@ -1266,6 +1268,9 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(false);
+        // back to unanswered: a date given here read as an answered "do not agree" to the student
+        verify(participant).setDateGiven(null);
+        verify(participant).setDateRevoked(null);
     }
 
     @Test
@@ -1276,6 +1281,8 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(participantService, never()).refreshParticipants(anyLong());
         verify(participant).setConsent(null);
+        verify(participant).setDateGiven(null);
+        verify(participant).setDateRevoked(null);
     }
 
     @Test
