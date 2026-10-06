@@ -15,35 +15,12 @@
         value="(UUID_TO_BIN(UUID()))"
         dbms="mysql"
     />
-    <!--
-        Deployment prerequisite for the CREATE TRIGGER changesets below: on a MySQL server with
-        binary logging enabled, creating a trigger that calls a non-deterministic function
-        (UUID()) requires either the SUPER privilege or log_bin_trust_function_creators=1.
-        Managed services (RDS/Aurora) never grant SUPER, so set that parameter to 1 in the
-        instance's parameter group before deploying; otherwise the migration stops at the first
-        trigger changeset (ERROR 1419) with the schema half-applied. A column DEFAULT was not an
-        option here: MySQL rejects a non-deterministic DEFAULT expression outright under binlog.
-    -->
     <changeSet author="rlong" id="1757937600000-01">
         <addColumn tableName="terr_submission">
             <column name="uuid" type="BINARY(16)" afterColumn="submission_id">
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-01-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_submission_uuid BEFORE INSERT ON terr_submission
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_submission_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-02">
         <sql>
@@ -68,20 +45,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-05-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_experiment_uuid BEFORE INSERT ON terr_experiment
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_experiment_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-06">
         <sql>
             UPDATE
@@ -104,20 +67,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-09-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_assessment_uuid BEFORE INSERT ON terr_assessment
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_assessment_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-10">
         <sql>
@@ -142,20 +91,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-13-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_treatment_uuid BEFORE INSERT ON terr_treatment
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_treatment_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-14">
         <sql>
             UPDATE
@@ -178,20 +113,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-17-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_condition_uuid BEFORE INSERT ON terr_condition
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_condition_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-18">
         <sql>
@@ -216,20 +137,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-21-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_exposure_uuid BEFORE INSERT ON terr_exposure
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_exposure_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-22">
         <sql>
             UPDATE
@@ -252,20 +159,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-25-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_question_uuid BEFORE INSERT ON terr_question
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_question_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-26">
         <sql>
@@ -290,20 +183,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-29-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_assignment_uuid BEFORE INSERT ON terr_assignment
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_assignment_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-30">
         <sql>
             UPDATE
@@ -326,20 +205,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-33-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_group_uuid BEFORE INSERT ON terr_group
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_group_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-34">
         <sql>
@@ -364,20 +229,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-37-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_outcome_uuid BEFORE INSERT ON terr_outcome
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_outcome_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-38">
         <sql>
             UPDATE
@@ -400,20 +251,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-41-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_outcome_score_uuid BEFORE INSERT ON terr_outcome_score
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_outcome_score_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-42">
         <sql>
@@ -438,20 +275,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-45-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_admin_user_uuid BEFORE INSERT ON terr_admin_user
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_admin_user_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-46">
         <sql>
             UPDATE
@@ -474,20 +297,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-49-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_consent_document_uuid BEFORE INSERT ON terr_consent_document
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_consent_document_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-50">
         <sql>
@@ -512,20 +321,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-53-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_exposure_group_condition_uuid BEFORE INSERT ON terr_exposure_group_condition
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_exposure_group_condition_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-54">
         <sql>
             UPDATE
@@ -548,20 +343,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-57-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_question_submission_uuid BEFORE INSERT ON terr_question_submission
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_question_submission_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-58">
         <sql>
@@ -586,20 +367,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-61-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_question_submission_comment_uuid BEFORE INSERT ON terr_question_submission_comment
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_question_submission_comment_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-62">
         <sql>
             UPDATE
@@ -622,20 +389,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-65-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_submission_comment_uuid BEFORE INSERT ON terr_submission_comment
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_submission_comment_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-66">
         <sql>
@@ -660,20 +413,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-69-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_answer_mc_uuid BEFORE INSERT ON terr_answer_mc
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_answer_mc_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-70">
         <sql>
             UPDATE
@@ -696,20 +435,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-73-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_answer_essay_submission_uuid BEFORE INSERT ON terr_answer_essay_submission
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_answer_essay_submission_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-74">
         <sql>
@@ -734,20 +459,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-77-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_answer_file_submission_uuid BEFORE INSERT ON terr_answer_file_submission
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_answer_file_submission_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-78">
         <sql>
             UPDATE
@@ -770,20 +481,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-81-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_answer_mc_submission_uuid BEFORE INSERT ON terr_answer_mc_submission
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_answer_mc_submission_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-82">
         <sql>
@@ -808,20 +505,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-85-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_terr_answer_mc_submission_option_uuid BEFORE INSERT ON terr_answer_mc_submission_option
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_terr_answer_mc_submission_option_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-86">
         <sql>
             UPDATE
@@ -844,20 +527,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-89-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_lti_context_uuid BEFORE INSERT ON lti_context
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_lti_context_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-90">
         <sql>
@@ -882,20 +551,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-93-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_lti_user_uuid BEFORE INSERT ON lti_user
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_lti_user_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-94">
         <sql>
             UPDATE
@@ -918,20 +573,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-97-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_lti_tool_deployment_uuid BEFORE INSERT ON lti_tool_deployment
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_lti_tool_deployment_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-98">
         <sql>
@@ -956,20 +597,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-101-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_lti_result_uuid BEFORE INSERT ON lti_result
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_lti_result_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-102">
         <sql>
             UPDATE
@@ -992,20 +619,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-105-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_lti_membership_uuid BEFORE INSERT ON lti_membership
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_lti_membership_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-106">
         <sql>
@@ -1030,20 +643,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-109-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_iss_configuration_uuid BEFORE INSERT ON iss_configuration
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_iss_configuration_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-110">
         <sql>
             UPDATE
@@ -1067,20 +666,6 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="rlong" id="1757937600000-113-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_lti_link_uuid BEFORE INSERT ON lti_link
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_lti_link_uuid;
-        </rollback>
-    </changeSet>
     <changeSet author="rlong" id="1757937600000-114">
         <sql>
             UPDATE
@@ -1103,20 +688,6 @@
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-    </changeSet>
-    <changeSet author="rlong" id="1757937600000-117-trigger">
-        <sql splitStatements="false" stripComments="false">
-            CREATE TRIGGER trg_api_one_use_token_uuid BEFORE INSERT ON api_one_use_token
-            FOR EACH ROW
-            BEGIN
-                IF NEW.uuid IS NULL THEN
-                    SET NEW.uuid = (UUID_TO_BIN(UUID()));
-                END IF;
-            END;
-        </sql>
-        <rollback>
-            DROP TRIGGER trg_api_one_use_token_uuid;
-        </rollback>
     </changeSet>
     <changeSet author="rlong" id="1757937600000-118">
         <sql>
