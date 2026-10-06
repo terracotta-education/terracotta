@@ -32,6 +32,7 @@ import edu.iu.terracotta.dao.model.distribute.export.AssessmentExport;
 import edu.iu.terracotta.dao.model.distribute.export.AssignmentExport;
 import edu.iu.terracotta.dao.model.distribute.export.ConditionExport;
 import edu.iu.terracotta.dao.model.distribute.export.Export;
+import edu.iu.terracotta.dao.model.distribute.export.ConsentDocumentExport;
 import edu.iu.terracotta.dao.model.distribute.export.ExperimentExport;
 import edu.iu.terracotta.dao.model.distribute.export.ExposureExport;
 import edu.iu.terracotta.dao.model.distribute.export.ExposureGroupConditionExport;
@@ -446,6 +447,30 @@ class ExperimentImportServiceImplTest extends BaseTest {
         verify(experimentImport, never()).addErrorMessage(anyString());
     }
 
+    // set to consent before a consent document was uploaded: exported with no document and no
+    // consent.pdf, which validation used to reject - failing course copy for the experiment
+    @Test
+    void testValidateConsentExperimentWithoutAConsentDocument() throws IOException {
+        Export export = fullExport();
+        export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
+        export.setConsentDocument(null);
+        writeExportJson(export);
+
+        experimentImportService.validate(experimentImport);
+
+        verify(experimentImport, never()).setStatus(ExperimentImportStatus.ERROR);
+        verify(experimentImport, never()).addErrorMessage(anyString());
+    }
+
+    @Test
+    void testValidateConsentExperimentWithADocumentStillRequiresItsFile() throws IOException {
+        Export export = fullExport();
+        export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
+        export.setConsentDocument(ConsentDocumentExport.builder().id("200").experimentId(export.getExperiment().getId()).title("Consent").html("<p>consent</p>").build());
+
+        assertValidationError(export, String.format("No consent PDF file [%s] found for experiment with consent participation type.", ExperimentImport.CONSENT_FILE_NAME));
+    }
+
     // export id/FK fields are plain strings - fullExport() above uses old-style numeric strings
     // (as a pre-uuid export file would still contain), this proves a new-style export using real
     // uuid strings validates identically, since the cross-referencing is format-agnostic
@@ -504,14 +529,6 @@ class ExperimentImportServiceImplTest extends BaseTest {
         experimentImportService.validate(experimentImport);
 
         verify(experimentImport, never()).setStatus(ExperimentImportStatus.ERROR);
-    }
-
-    @Test
-    void testValidateConsentDocumentMissing() throws IOException {
-        Export export = fullExport();
-        export.getExperiment().setParticipationType(ParticipationTypes.CONSENT);
-
-        assertValidationError(export, String.format("No consent PDF file [%s] found for experiment with consent participation type.", ExperimentImport.CONSENT_FILE_NAME));
     }
 
     @Test
