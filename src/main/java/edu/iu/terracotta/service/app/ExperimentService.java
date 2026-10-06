@@ -32,7 +32,6 @@ public interface ExperimentService {
     Experiment fromDto(ExperimentDto experimentDto) throws DataServiceException;
     void deleteById(Long id, SecuredInfo securedInfo) throws EmptyResultDataAccessException, IOException, TerracottaConnectorException;
     ExperimentDto fillContextInfo(ExperimentDto experimentDto, SecuredInfo securedInfo);
-    void deleteConsentDocument(ConsentDocument consentDocument);
     ExperimentDto getEmptyExperiment(SecuredInfo securedInfo, ExperimentDto experimentDto);
     void copyDto(ExperimentDto existingEmpty, ExperimentDto experimentDto);
     HttpHeaders buildHeaders(UriComponentsBuilder ucBuilder, UUID experimentId);
