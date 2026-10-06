@@ -6,14 +6,11 @@ import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
-import edu.iu.terracotta.dao.entity.ConsentDocument;
-import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.FileInfoDto;
-import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.exceptions.BadConsentFileTypeException;
 import edu.iu.terracotta.exceptions.BadTokenException;
 import edu.iu.terracotta.service.app.ExperimentService;
@@ -28,7 +25,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,7 +37,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.util.Optional;
 
 @Slf4j
 @Controller
@@ -52,7 +47,6 @@ public class ConsentFileController {
 
     public static final String REQUEST_ROOT = "api/experiments/{experimentId}/consent";
 
-    private final ExperimentRepository experimentRepository;
     private final ApiJwtService apijwtService;
     private final ExperimentService experimentService;
     private final FileStorageService fileStorageService;
@@ -106,33 +100,6 @@ public class ConsentFileController {
             .contentType(MediaType.parseMediaType(contentType))
             .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(resource.getFilename(), StandardCharsets.UTF_8).build().toString())
             .body(resource);
-    }
-
-    @DeleteMapping
-    public ResponseEntity<Void> deleteConsent(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req) throws ExperimentNotMatchingException, BadTokenException, NumberFormatException, TerracottaConnectorException {
-        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
-        SecuredInfo securedInfo = apijwtService.extractValues(req,false);
-        apijwtService.experimentAllowed(securedInfo, experimentId);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
-        fileStorageService.deleteConsentFile(experimentId);
-
-        Optional<Experiment> experimentOptional = experimentRepository.findById(experimentId);
-
-        if (experimentOptional.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.OK);
-        }
-
-        Experiment experiment = experimentOptional.get();
-        ConsentDocument consentDocument = experiment.getConsentDocument();
-        experiment.setConsentDocument(null);
-        experimentRepository.saveAndFlush(experiment);
-        experimentService.deleteConsentDocument(consentDocument);
-
-        return new ResponseEntity<>(HttpStatus.OK);
     }
 
 }

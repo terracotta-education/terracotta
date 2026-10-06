@@ -1,6 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -11,7 +12,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +53,6 @@ public class ConsentFileControllerTest extends BaseTest {
         // on @InjectMocks, which non-deterministically wired the wrong mock and left apiJwtService
         // calls silently unstubbed.
         consentFileController = new ConsentFileController(
-            experimentRepository,
             apiJwtService,
             experimentService,
             fileStorageService
@@ -152,40 +151,15 @@ public class ConsentFileControllerTest extends BaseTest {
         assertThrows(BadTokenException.class, () -> consentFileController.getConsent(EXPERIMENT_UUID, httpServletRequest));
     }
 
+    // there used to be a DELETE /consent here, allowed to any learner and with no participation
+    // type check - a student could remove the consent document from an informed consent
+    // experiment. Nothing in the app called it; replacing a document is an upload.
     @Test
-    void testDeleteConsentSuccessWithExperiment() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
-        when(experimentRepository.findById(1L)).thenReturn(Optional.of(experiment));
+    void testHasNoDeleteEndpoint() {
+        boolean hasDelete = java.util.Arrays.stream(ConsentFileController.class.getDeclaredMethods())
+            .anyMatch(method -> method.isAnnotationPresent(org.springframework.web.bind.annotation.DeleteMapping.class));
 
-        ResponseEntity<Void> response = consentFileController.deleteConsent(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    @Test
-    void testDeleteConsentSuccessWithoutExperiment() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
-        when(experimentRepository.findById(1L)).thenReturn(Optional.empty());
-
-        ResponseEntity<Void> response = consentFileController.deleteConsent(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    @Test
-    void testDeleteConsentUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = consentFileController.deleteConsent(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
-    void testDeleteConsentPropagatesTerracottaConnectorException() throws Exception {
-        when(apiJwtService.extractValues(any(), eq(false))).thenThrow(new TerracottaConnectorException("connector down"));
-
-        assertThrows(TerracottaConnectorException.class, () -> consentFileController.deleteConsent(EXPERIMENT_UUID, httpServletRequest));
+        assertFalse(hasDelete);
     }
 
 }

@@ -458,11 +458,6 @@ public class ExperimentServiceImpl implements ExperimentService {
     }
 
     @Override
-    public void deleteConsentDocument(ConsentDocument consentDocument) {
-        consentDocumentRepository.delete(consentDocument);
-    }
-
-    @Override
     public ExperimentDto getEmptyExperiment(SecuredInfo securedInfo, ExperimentDto experimentDto) {
         if (StringUtils.isNotBlank(experimentDto.getTitle())) {
             return null;
