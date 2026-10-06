@@ -51,6 +51,7 @@ import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.dao.entity.FileSubmissionLocal;
 import edu.iu.terracotta.dao.model.distribute.export.Export;
+import edu.iu.terracotta.dao.model.distribute.export.ConsentDocumentExport;
 import edu.iu.terracotta.dao.model.distribute.export.ExperimentExport;
 import edu.iu.terracotta.dao.model.dto.FileInfoDto;
 import edu.iu.terracotta.dao.model.dto.distribute.ExportDto;
@@ -607,13 +608,32 @@ public class FileStorageServiceImplTest extends BaseTest {
         when(consentDocument.getFileUri()).thenReturn("export-consent/consent-source.pdf");
 
         ExperimentExport experimentExport = ExperimentExport.builder().id("7").participationType(ParticipationTypes.CONSENT).build();
-        Export export = Export.builder().experiment(experimentExport).build();
+        Export export = Export.builder()
+            .experiment(experimentExport)
+            .consentDocument(ConsentDocumentExport.builder().id("70").experimentId("7").title("Consent").html("<p>consent</p>").build())
+            .build();
         ExportDto exportDto = ExportDto.builder().build();
 
         fileStorageService.createExperimentExportFile(exportDto, export, "myexport.zip", 7L);
 
         assertNotNull(exportDto.getFile());
         assertTrue(exportDto.getFile().exists());
+        verify(consentDocumentRepository).findByExperiment_ExperimentId(7L);
+    }
+
+    // set to consent before a document was uploaded: exported without one (no file to include),
+    // where looking the file up threw Error 126 and failed the course copy
+    @Test
+    public void testCreateExperimentExportFileConsentTypeWithoutAConsentDocument() throws IOException {
+        ExperimentExport experimentExport = ExperimentExport.builder().id("8").participationType(ParticipationTypes.CONSENT).build();
+        Export export = Export.builder().experiment(experimentExport).build();
+        ExportDto exportDto = ExportDto.builder().build();
+
+        fileStorageService.createExperimentExportFile(exportDto, export, "myexport3.zip", 8L);
+
+        assertNotNull(exportDto.getFile());
+        assertTrue(exportDto.getFile().exists());
+        verify(consentDocumentRepository, never()).findByExperiment_ExperimentId(anyLong());
     }
 
     @Test
