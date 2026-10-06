@@ -156,11 +156,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             Optional<ConsentDocument> consentDocument = consentDocumentRepository.findByExperiment_ExperimentId(experimentId);
 
             if (consentDocument.isEmpty()) {
-                throw new MyFileNotFoundException("Error 126: Consent file not found for experiment ID: '{}'" + experimentId);
-            }
-
-            if (consentDocument.isEmpty()) {
-                return null;
+                throw new MyFileNotFoundException(String.format("Error 126: Consent file not found for experiment ID: [%s]", experimentId));
             }
 
             final File consentFile;
@@ -188,7 +184,7 @@ public class FileStorageServiceImpl implements FileStorageService {
 
             return new UrlResource(consentFile.toPath().toUri());
         } catch (MalformedURLException ex) {
-            throw new MyFileNotFoundException("Error 126: Consent file not found for experiment ID: '{}'" + experimentId, ex);
+            throw new MyFileNotFoundException(String.format("Error 126: Consent file not found for experiment ID: [%s]", experimentId), ex);
         }
     }
 
@@ -746,8 +742,10 @@ public class FileStorageServiceImpl implements FileStorageService {
             .build()
             .writeValue(jsonFile, export);
 
-        if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
-            // experiment is a consent type, include the consent document
+        if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT && export.getConsentDocument() != null) {
+            // experiment is a consent type with a consent document, include its file; one set to
+            // consent before a document was uploaded exports without one (see
+            // ExperimentExportServiceImpl.consentDocumentExport) and has no file to include
             Resource consentResource = getConsentFile(experimentId);
 
             if (consentResource != null) {
