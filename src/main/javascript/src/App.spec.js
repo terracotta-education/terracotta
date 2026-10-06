@@ -212,6 +212,32 @@ describe("App", () => {
     expect(clearIntervalSpy).toHaveBeenCalled();
   });
 
+  it("tells a student to re-open the assignment when their session expires", async () => {
+    const { apiStore } = await mountApp();
+    apiStore.apiToken = expiredToken();
+    apiStore.userInfo = "Learner";
+
+    apiStore.markSessionExpired();
+    await flushPromises();
+
+    expect(Swal.fire).toHaveBeenCalledWith(
+      "Your session has expired. Please return to your course and re-open this assignment to continue."
+    );
+  });
+
+  it("tells an instructor to re-launch Terracotta when their session expires", async () => {
+    const { apiStore } = await mountApp();
+    apiStore.apiToken = expiredToken();
+    apiStore.userInfo = "Instructor";
+
+    apiStore.markSessionExpired();
+    await flushPromises();
+
+    expect(Swal.fire).toHaveBeenCalledWith(
+      "Your session has expired. Please return to your course and re-launch Terracotta to continue."
+    );
+  });
+
   it("does nothing when there is no apiToken yet", async () => {
     await mountApp();
 
