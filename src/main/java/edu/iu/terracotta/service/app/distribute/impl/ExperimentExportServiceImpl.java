@@ -197,6 +197,11 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             return null;
         }
 
+        if (experiment.getConsentDocument() == null) {
+            // consent type chosen, but no consent document uploaded yet - exported without one
+            return null;
+        }
+
         return ConsentDocumentExport.builder()
             .experimentId(experiment.getUuid().toString())
             .html(experiment.getConsentDocument().getHtml())
