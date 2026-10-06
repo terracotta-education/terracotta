@@ -80,18 +80,6 @@ describe("consentService", () => {
     expect(result).toEqual({ consentDocumentId: 1 });
   });
 
-  it("delete removes the consent document", async () => {
-    fetch.mockResolvedValue(mockResponse({ status: 204, text: "" }));
-
-    const result = await consentService.delete(1);
-
-    expect(fetch).toHaveBeenCalledWith(
-      "https://example.com/api/experiments/1/consent",
-      expect.objectContaining({ method: "DELETE" })
-    );
-    expect(result).toEqual([]);
-  });
-
   it("getConsentFile fetches the file and returns a base64 payload", async () => {
     fetch.mockResolvedValue(mockResponse({ status: 200 }));
 

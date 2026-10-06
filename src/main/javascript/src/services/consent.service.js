@@ -5,7 +5,6 @@ import { api } from "@/store/api.module";
 export const consentService = {
   create,
   update,
-  delete: deleteConsent,
   getConsentFile
 };
 
@@ -69,15 +68,6 @@ async function getConsentFile(experimentId) {
   );
 
   return handleResponseFile(response);
-}
-
-async function deleteConsent(experimentId) {
-  return request(
-    `/api/experiments/${experimentId}/consent`,
-    {
-      method: "DELETE"
-    }
-  );
 }
 
 async function request(path, options = {}) {

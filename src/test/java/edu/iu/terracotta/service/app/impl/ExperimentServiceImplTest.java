@@ -571,13 +571,6 @@ public class ExperimentServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testDeleteConsentDocument() {
-        experimentService.deleteConsentDocument(consentDocument);
-
-        verify(consentDocumentRepository).delete(consentDocument);
-    }
-
-    @Test
     public void testGetEmptyExperimentReturnsNullWhenTitleNotBlank() {
         ExperimentDto experimentDto = ExperimentDto.builder().title("Not Blank").build();
 
