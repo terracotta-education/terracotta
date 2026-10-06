@@ -383,7 +383,9 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
     }
 
     private void consentDocument(Export export, ExperimentImport experimentImport, File importDirectory) {
-        if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT) {
+        // a consent experiment without a consent document (set to consent before one was uploaded)
+        // is exported without one and has no consent file to require
+        if (export.getExperiment().getParticipationType() == ParticipationTypes.CONSENT && export.getConsentDocument() != null) {
             // experiment is consent type; process consent file
             File consentFile = FileUtils.getFile(importDirectory, String.format("/consent/%s", ExperimentImport.CONSENT_FILE_NAME));
 
