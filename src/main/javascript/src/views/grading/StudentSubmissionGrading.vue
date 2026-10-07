@@ -4,8 +4,6 @@
     v-if="isSaving"
     :display="true"
     :message="'Saving submission grades. Please wait.'"
-    :containerStyles="pageLoadingContainerStyles"
-    :spinnerStyles="pageLoadingSpinnerStyles"
   />
   <v-row
     class="header-row"
@@ -800,16 +798,6 @@ const scoreTooltipActivator = {
 const tooltipStyles = {
   "font-size": "20px",
   "vertical-align": "top"
-};
-
-const pageLoadingContainerStyles = {
-  "z-index": 1000,
-  position: "relative",
-  padding: 0
-};
-
-const pageLoadingSpinnerStyles = {
-  "margin-top": "200px"
 };
 
 const currentAttemptTypeChanged = computed(() => {
