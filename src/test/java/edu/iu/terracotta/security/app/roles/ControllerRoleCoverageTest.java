@@ -14,6 +14,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -33,6 +36,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 class ControllerRoleCoverageTest {
 
     private static final Path SNAPSHOT = Paths.get("src/test/resources/controller-roles.txt");
+    // a role named in a @PreAuthorize expression, e.g. 'INSTRUCTOR'
+    private static final Pattern QUOTED_ROLE = Pattern.compile("'([A-Z_]+)'");
     private static final List<Class<? extends Annotation>> ROLE_ANNOTATIONS = List.of(
         InstructorOrHigher.class,
         LearnerOrHigher.class,
@@ -94,8 +99,8 @@ class ControllerRoleCoverageTest {
         List<String> granted = Arrays.stream(ApiRole.values()).map(Enum::name).toList();
 
         for (Class<? extends Annotation> annotation : List.of(InstructorOrHigher.class, LearnerOrHigher.class)) {
-            String expression = annotation.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class).value();
-            java.util.regex.Matcher roles = java.util.regex.Pattern.compile("'([A-Z_]+)'").matcher(expression);
+            String expression = annotation.getAnnotation(PreAuthorize.class).value();
+            Matcher roles = QUOTED_ROLE.matcher(expression);
             int count = 0;
 
             while (roles.find()) {
