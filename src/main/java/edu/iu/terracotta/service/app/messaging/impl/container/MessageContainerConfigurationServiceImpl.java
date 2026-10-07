@@ -23,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement"})
 public class MessageContainerConfigurationServiceImpl implements MessageContainerConfigurationService {
 
     private final MessageContainerConfigurationRepository containerConfigurationRepository;

@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = ConfigurationController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ConfigurationController {
 

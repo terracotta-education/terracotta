@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 @Slf4j
-@SuppressWarnings("{PMD.GuardLogStatement}")
+@SuppressWarnings("PMD.GuardLogStatement")
 public class BrightspaceMessengerServiceImpl implements BrightspaceMessengerService {
 
     private RestClient restClient;

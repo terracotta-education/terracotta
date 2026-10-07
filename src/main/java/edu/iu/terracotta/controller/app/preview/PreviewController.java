@@ -34,7 +34,6 @@ import lombok.extern.slf4j.Slf4j;
 @Controller
 @RequiredArgsConstructor
 @RequestMapping(PreviewController.REQUEST_ROOT)
-@SuppressWarnings({"PMD.GuardLogStatement"})
 public class PreviewController {
 
     private final ApiJwtService apiJwtService;

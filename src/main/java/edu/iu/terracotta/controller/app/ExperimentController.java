@@ -46,7 +46,7 @@ import java.util.UUID;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = ExperimentController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ExperimentController {
 

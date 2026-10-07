@@ -18,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @UtilityClass
-@SuppressWarnings("PMD.GuardLogStatement")
 public class HttpParameterBuilder {
 
     public static String buildParameters(Map<String, List<String>> parameters) {

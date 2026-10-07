@@ -40,7 +40,7 @@ import java.util.List;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@SuppressWarnings({"rawtypes", "unchecked", "PMD.GuardLogStatement"})
+@SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = GroupController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class GroupController {
 

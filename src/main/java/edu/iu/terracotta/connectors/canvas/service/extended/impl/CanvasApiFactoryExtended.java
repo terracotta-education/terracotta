@@ -106,7 +106,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-@SuppressWarnings({"PMD.GuardLogStatement", "rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class CanvasApiFactoryExtended {
 
     public static final Integer CANVAS_API_VERSION = 1;
