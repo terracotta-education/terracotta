@@ -11,10 +11,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,8 @@ public class ResultsOutcomesTimeOnTaskServiceImplTest extends BaseTest {
     private Map<Long, List<Assessment>> allAssessmentsByAssignment;
     private Map<Long, List<Treatment>> allTreatmentsByAssignment;
     private List<Participant> experimentConsentedParticipants;
+
+    private static final double ONE_MINUTE_MS = 60_000d;
 
     @BeforeEach
     public void beforeEach() throws NoSubmissionsException {
@@ -97,6 +101,48 @@ public class ResultsOutcomesTimeOnTaskServiceImplTest extends BaseTest {
 
         assertNotNull(ret);
         assertEquals(2, ret.getRows().size());
+    }
+
+    @Test
+    void testConditionsCountsTimeOnTaskForConsentedParticipants() {
+        stubOneMinuteSubmission(participant.getUuid());
+
+        OutcomesConditions ret = resultsOutcomesTimeOnTaskService.conditions(experiment, exposureIds, experimentAssignments, allAssessmentsByAssignment, experimentConsentedParticipants, allTreatmentsByAssignment, experimentTreatments);
+
+        assertTrue(ret.getRows().stream().anyMatch(row -> row.getNumber() > 0 && row.getScores().contains(ONE_MINUTE_MS)));
+    }
+
+    @Test
+    void testConditionsSkipsSubmissionsFromParticipantsWhoHaventConsented() {
+        stubOneMinuteSubmission(UUID.randomUUID());
+
+        OutcomesConditions ret = resultsOutcomesTimeOnTaskService.conditions(experiment, exposureIds, experimentAssignments, allAssessmentsByAssignment, experimentConsentedParticipants, allTreatmentsByAssignment, experimentTreatments);
+
+        assertTrue(ret.getRows().stream().allMatch(row -> row.getNumber() == 0));
+    }
+
+    @Test
+    void testExposuresCountsTimeOnTaskForConsentedParticipants() {
+        stubOneMinuteSubmission(participant.getUuid());
+
+        OutcomesExposures ret = resultsOutcomesTimeOnTaskService.exposures(experiment, exposureIds, experimentAssignments, allAssessmentsByAssignment, experimentConsentedParticipants, experimentExposures);
+
+        assertTrue(ret.getRows().stream().anyMatch(row -> row.getNumber() > 0 && row.getScores().contains(ONE_MINUTE_MS)));
+    }
+
+    @Test
+    void testExposuresSkipsSubmissionsFromParticipantsWhoHaventConsented() {
+        stubOneMinuteSubmission(UUID.randomUUID());
+
+        OutcomesExposures ret = resultsOutcomesTimeOnTaskService.exposures(experiment, exposureIds, experimentAssignments, allAssessmentsByAssignment, experimentConsentedParticipants, experimentExposures);
+
+        assertTrue(ret.getRows().stream().allMatch(row -> row.getNumber() == 0));
+    }
+
+    private void stubOneMinuteSubmission(UUID participantUuid) {
+        when(submissionDto.getParticipantId()).thenReturn(participantUuid);
+        when(submissionDto.getDateCreated()).thenReturn(new Timestamp(0));
+        when(submissionDto.getDateSubmitted()).thenReturn(new Timestamp((long) ONE_MINUTE_MS));
     }
 
     @Test
