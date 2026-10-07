@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -114,8 +115,9 @@ public class ResultsOutcomesTimeOnTaskServiceImpl implements ResultsOutcomesTime
 
     private void conditionScores(OutcomesConditionBuilder outcomesCondition, List<Assessment> assessments, Experiment experiment, List<Participant> experimentConsentedParticipants) {
         List<Double> scores = new ArrayList<>();
-        Set<Long> consentedParticipantIds = experimentConsentedParticipants.stream()
-            .map(Participant::getParticipantId)
+        // submissions identify their participant by uuid
+        Set<UUID> consentedParticipantUuids = experimentConsentedParticipants.stream()
+            .map(Participant::getUuid)
             .collect(Collectors.toSet());
 
         for (Assessment assessment : assessments) {
@@ -124,7 +126,7 @@ public class ResultsOutcomesTimeOnTaskServiceImpl implements ResultsOutcomesTime
                 List<SubmissionDto> submissions = submissionService.getSubmissions(experiment.getExperimentId(), null, assessment.getAssessmentId(), false);
 
                 submissions.stream()
-                    .filter(submission -> consentedParticipantIds.contains(submission.getParticipantId()))
+                    .filter(submission -> consentedParticipantUuids.contains(submission.getParticipantId()))
                     .filter(submission -> submission.getDateSubmitted() != null)
                     .forEach(
                         submission -> {
@@ -156,8 +158,9 @@ public class ResultsOutcomesTimeOnTaskServiceImpl implements ResultsOutcomesTime
     @Override
     public OutcomesExposures exposures(Experiment experiment, List<Long> exposureIds, List<Assignment> experimentAssignments, Map<Long, List<Assessment>> allAssessmentsByAssignment, List<Participant> experimentConsentedParticipants, List<Exposure> experimentExposures) {
         Map<String, List<Double>> exposuresScores = new HashMap<>();
-        Set<Long> consentedParticipantIds = experimentConsentedParticipants.stream()
-            .map(Participant::getParticipantId)
+        // submissions identify their participant by uuid
+        Set<UUID> consentedParticipantUuids = experimentConsentedParticipants.stream()
+            .map(Participant::getUuid)
             .collect(Collectors.toSet());
 
         exposureIds.forEach(
@@ -170,7 +173,7 @@ public class ResultsOutcomesTimeOnTaskServiceImpl implements ResultsOutcomesTime
                         List<SubmissionDto> submissions = submissionService.getSubmissions(experiment.getExperimentId(), null, assessment.getAssessmentId(), false);
 
                         submissions.stream()
-                            .filter(submission -> consentedParticipantIds.contains(submission.getParticipantId()))
+                            .filter(submission -> consentedParticipantUuids.contains(submission.getParticipantId()))
                             .filter(submission -> submission.getDateSubmitted() != null)
                             .forEach(
                                 submission -> {
