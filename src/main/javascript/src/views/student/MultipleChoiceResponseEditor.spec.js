@@ -148,4 +148,58 @@ describe("MultipleChoiceResponseEditor", () => {
     expect(wrapper.text()).not.toContain("Correct Response");
     expect(wrapper.findComponent({ name: "ResponseRow" }).props("correct")).toBe(null);
   });
+
+  it("selects an answer when its text is clicked", async () => {
+    const wrapper = mountComponent(MultipleChoiceResponseEditor, {
+      props: { answers, modelValue: null, readonly: false }
+    });
+
+    await wrapper.findAll(".selectable-row")[1].find("span").trigger("click");
+
+    expect(wrapper.emitted("update:modelValue")).toEqual([[2]]);
+    expect(wrapper.findAll("input[type=\"radio\"]")[1].element.checked).toBe(true);
+  });
+
+  it("selects an answer when anywhere on its row is clicked", async () => {
+    const wrapper = mountComponent(MultipleChoiceResponseEditor, {
+      props: { answers, modelValue: null, readonly: false }
+    });
+
+    await wrapper.findAll(".selectable-row")[0].trigger("click");
+
+    expect(wrapper.emitted("update:modelValue")).toEqual([[1]]);
+  });
+
+  it("reports one change when the radio itself is clicked", async () => {
+    const wrapper = mountComponent(MultipleChoiceResponseEditor, {
+      props: { answers, modelValue: null, readonly: false }
+    });
+
+    // a real click: the click event bubbles to the row, then the radio's change fires
+    await wrapper.findAll("input[type=\"radio\"]")[1].trigger("click");
+
+    expect(wrapper.emitted("update:modelValue")).toEqual([[2]]);
+  });
+
+  it("doesn't report a change when the selected answer's row is clicked again", async () => {
+    const wrapper = mountComponent(MultipleChoiceResponseEditor, {
+      props: { answers, modelValue: 2, readonly: false }
+    });
+
+    await wrapper.findAll(".selectable-row")[1].trigger("click");
+
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+  });
+
+  it("ignores row clicks when readonly", async () => {
+    const wrapper = mountComponent(MultipleChoiceResponseEditor, {
+      props: { answers: answers.map(answer => ({ ...answer, studentResponse: false })), readonly: true }
+    });
+
+    expect(wrapper.find(".selectable-row").exists()).toBe(false);
+
+    await wrapper.findAll("span")[0].trigger("click");
+
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+  });
 });
