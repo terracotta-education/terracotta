@@ -422,8 +422,11 @@ watch(() => apiStore.sessionExpired, async expired => {
   stopTokenMonitoring();
   await nextTick(); // let StudentQuiz.vue's draft-save watcher react first
 
+  // students get back in through the assignment; instructors relaunch Terracotta itself
   await Swal.fire(
-    "Your session has expired. Please return to your course and re-open this assignment to continue."
+    userInfo.value === "Instructor"
+      ? "Your session has expired. Please return to your course and re-launch Terracotta to continue."
+      : "Your session has expired. Please return to your course and re-open this assignment to continue."
   );
 });
 

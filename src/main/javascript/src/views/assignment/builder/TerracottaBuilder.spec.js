@@ -257,6 +257,36 @@ describe("TerracottaBuilder", () => {
     expect(wrapper.findComponent(TreatmentEditorTab).props("treatmentOptionSelected")).toBe(false);
   });
 
+  it("keeps the treatment mode picked while the rest of the page is still loading", async () => {
+    const { exposuresService } = await import("@/services");
+    let resolveExposures;
+    exposuresService.getAll.mockReturnValue(
+      new Promise(resolve => { resolveExposures = resolve; })
+    );
+
+    const wrapper = mountComponent(TerracottaBuilder, {
+      pinia,
+      props: { experiment: experimentProp() },
+      global: {
+        stubs: {
+          BuilderHeader: true,
+          TreatmentEditorTab: true,
+          TreatmentSettings: true
+        }
+      }
+    });
+    await flushPromises();
+
+    // the assessment has loaded and the mode selector is showing, but the copy list hasn't
+    wrapper.findComponent(TreatmentEditorTab).vm.$emit("add-terracotta-builder");
+    await flushPromises();
+
+    resolveExposures([]);
+    await flushPromises();
+
+    expect(wrapper.findComponent(TreatmentEditorTab).props("treatmentOptionSelected")).toBe(true);
+  });
+
   it("handleAddQuestion creates the question and, for MC, also creates two blank options", async () => {
     const { assessmentService } = await import("@/services");
     assessmentService.createQuestion.mockResolvedValue({

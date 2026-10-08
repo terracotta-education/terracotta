@@ -37,6 +37,7 @@ import { participants as participantsModule } from "@/store/participants.module"
 import { api as apiModule } from "@/store/api.module";
 import { assessment as assessmentModule } from "@/store/assessment.module";
 import { mountComponent } from "@/test-utils/mount";
+import PageLoading from "@/components/PageLoading.vue";
 import StudentSubmissionGrading from "./StudentSubmissionGrading.vue";
 
 function flushPromises() {
@@ -325,5 +326,30 @@ describe("StudentSubmissionGrading", () => {
       step: "student_submission",
       parameters: { submissionIds: "900" }
     });
+  });
+
+  it("covers the page with the standard loading overlay while saving", async () => {
+    let finishSave;
+    submissionService.updateSubmissions.mockReturnValue(new Promise(resolve => { finishSave = resolve; }));
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    const saving = wrapper.vm.saveExit();
+    await wrapper.vm.$nextTick();
+
+    const overlay = wrapper.findComponent(PageLoading);
+    expect(overlay.exists()).toBe(true);
+    expect(overlay.props("message")).toBe("Saving submission grades. Please wait.");
+    // no style overrides, so it keeps PageLoading's full-page, greyed-out backdrop like every other use
+    expect(overlay.props("containerStyles")).toBe("");
+    expect(overlay.props("spinnerStyles")).toBe("");
+
+    finishSave({ status: 200 });
+    await saving;
+    await flushPromises();
   });
 });
