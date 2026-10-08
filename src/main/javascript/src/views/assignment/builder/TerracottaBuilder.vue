@@ -982,7 +982,12 @@ onMounted(async () => {
     getAssignmentDetails()
   ]);
   findAssignmentsAvailableToCopy();
-  treatmentOptionSelected.value = questions.value.length > 0;
+
+  // the builder is already showing while the copy list loads, so don't undo a mode the
+  // instructor picked in the meantime
+  if (questions.value.length > 0) {
+    treatmentOptionSelected.value = true;
+  }
 
   widenContainer();
   deleteAttributesFromObservedElement(

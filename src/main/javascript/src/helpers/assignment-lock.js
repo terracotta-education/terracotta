@@ -13,13 +13,13 @@ const formatDate = iso => dayjs(iso).format("MMMM D [at] h:mm A");
  */
 export function lockedAssignmentMessage(message) {
   const text = typeof message === "string" ? message : "";
-  const lockedAt = text.match(LOCKED_AT);
+  const lockedAt = LOCKED_AT.exec(text);
 
   if (lockedAt && dayjs(lockedAt[1]).isValid()) {
     return `This assignment was locked on ${formatDate(lockedAt[1])}.`;
   }
 
-  const lockedUntil = text.match(LOCKED_UNTIL);
+  const lockedUntil = LOCKED_UNTIL.exec(text);
 
   if (lockedUntil && dayjs(lockedUntil[1]).isValid()) {
     return `This assignment is locked until ${formatDate(lockedUntil[1])}.`;
