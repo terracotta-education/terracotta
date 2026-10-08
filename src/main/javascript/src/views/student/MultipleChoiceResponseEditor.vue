@@ -5,7 +5,12 @@
       :key="answer.answerId"
       :correct="getColor(answer)"
     >
-      <div class="d-flex justify-space-between align-center w-100">
+      <!-- clicking anywhere on an answer's row (its text included) selects it -->
+      <div
+        :class="{ 'selectable-row': !readonly }"
+        class="d-flex justify-space-between align-center w-100"
+        @click="selectAnswer(answer)"
+      >
         <div class="question-input">
           <v-radio-group
             v-if="!readonly"
@@ -111,6 +116,15 @@ const emitValueChanged = value => {
   emit("update:modelValue", response.value);
 };
 
+const selectAnswer = answer => {
+  // a click on the radio itself reaches the row too; don't report the same answer twice
+  if (props.readonly || response.value === answer.answerId) {
+    return;
+  }
+
+  emitValueChanged(answer.answerId);
+};
+
 const getColor = answer => {
   if (props.readonly) {
     if (answer.correct) {
@@ -146,6 +160,10 @@ const getColor = answer => {
 
 .radioButton {
   margin-top: 2px;
+}
+
+.selectable-row {
+  cursor: pointer;
 }
 
 .w-100 {
