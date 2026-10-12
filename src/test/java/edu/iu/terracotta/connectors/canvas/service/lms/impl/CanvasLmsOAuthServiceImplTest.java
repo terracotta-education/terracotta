@@ -578,21 +578,53 @@ public class CanvasLmsOAuthServiceImplTest {
         verify(apiTokenRepository, times(1)).save(any(ApiTokenEntity.class));
     }
 
+    // a refresh that fails without Canvas rejecting the token (here a bare 400 with no
+    // invalid_grant) keeps the token, so the launch goes ahead instead of prompting re-authorization
     @Test
-    public void testIsAccessTokenAvailableReturnsFalseWhenRefreshFails() {
-        ApiTokenEntity token = ApiTokenEntity.builder()
+    public void testIsAccessTokenAvailableKeepsTheTokenWhenRefreshFailsTemporarily() {
+        ApiTokenEntity token = expiredTokenWithScopes();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(token));
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenReturn(new ResponseEntity<CanvasApiToken>(HttpStatus.BAD_REQUEST));
+
+        assertTrue(canvasLmsOAuthService.isAccessTokenAvailable(user));
+        verify(apiTokenRepository, never()).save(any(ApiTokenEntity.class));
+        verify(apiTokenRepository, never()).delete(any(ApiTokenEntity.class));
+    }
+
+    @Test
+    public void testIsAccessTokenAvailableKeepsTheTokenWhenCanvasIsDown() {
+        ApiTokenEntity token = expiredTokenWithScopes();
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(token));
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any())).thenThrow(
+            HttpServerErrorException.create(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", new HttpHeaders(), new byte[0], StandardCharsets.UTF_8)
+        );
+
+        assertTrue(canvasLmsOAuthService.isAccessTokenAvailable(user));
+        verify(apiTokenRepository, never()).delete(any(ApiTokenEntity.class));
+    }
+
+    // a refresh token Canvas rejected is removed, so the user is sent to authorize again
+    @Test
+    public void testIsAccessTokenAvailableReturnsFalseWhenCanvasRejectsTheRefreshToken() {
+        ApiTokenEntity token = expiredTokenWithScopes();
+        // found by the check and by the refresh, then gone once the refresh has removed it
+        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(token), Optional.of(token), Optional.empty());
+        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any())).thenThrow(invalidGrant());
+
+        assertFalse(canvasLmsOAuthService.isAccessTokenAvailable(user));
+        verify(apiTokenRepository).delete(token);
+    }
+
+    private ApiTokenEntity expiredTokenWithScopes() {
+        when(apiScopeService.getNecessaryScopes(1L)).thenReturn(Set.of("scope1", "scope2"));
+
+        return ApiTokenEntity.builder()
             .accessToken("stale-access-token")
             .refreshToken("refresh-token")
             .expiresAt(Timestamp.from(Instant.now().minus(1, ChronoUnit.MINUTES)))
             .scopes("scope1 scope2")
             .user(user)
             .build();
-        when(apiTokenRepository.findByUser(user)).thenReturn(Optional.of(token));
-        when(apiScopeService.getNecessaryScopes(1L)).thenReturn(Set.of("scope1", "scope2"));
-        when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), any(Class.class))).thenReturn(new ResponseEntity<CanvasApiToken>(HttpStatus.BAD_REQUEST));
-
-        assertFalse(canvasLmsOAuthService.isAccessTokenAvailable(user));
-        verify(apiTokenRepository, never()).save(any(ApiTokenEntity.class));
     }
 
     @Test
