@@ -206,9 +206,20 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
                     return true;
                 });
             } catch (LmsOAuthException e) {
-                log.error(MessageFormat.format("Failed to refresh the token for user ID {0}", user.getUserId()), e);
+                if (apiTokenRepository.findByUser(user).isEmpty()) {
+                    // Canvas rejected the refresh token, and refreshAccessToken removed it: the
+                    // user has to authorize again
+                    log.error(MessageFormat.format("Failed to refresh the token for user ID {0}", user.getUserId()), e);
 
-                return false;
+                    return false;
+                }
+
+                // a network error, timeout or Canvas 5xx: the token is still good, so don't send
+                // the user through re-authorization over it. The next API call or launch refreshes
+                // it again.
+                log.warn("Couldn't refresh the Canvas token for user ID: [{}], keeping it and trying again on next use: {}", user.getUserId(), e.getMessage());
+
+                return true;
             }
         }
     }
