@@ -145,6 +145,44 @@ describe("AssignmentScores", () => {
     });
   }
 
+  it("labels each condition's table when the assignment has several treatments", async () => {
+    experimentModule().setExperiment({
+      experimentId: 1,
+      conditions: [
+        { conditionId: 10, name: "Control" },
+        { conditionId: 20, name: "Worked examples" }
+      ]
+    });
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 3,
+      title: "Assignment 1",
+      treatments: [
+        { ...treatmentNoFile, conditionId: 10, assessmentDto: { ...treatmentNoFile.assessmentDto, title: null } },
+        { ...treatmentFile, conditionId: 20, assessmentDto: { ...treatmentFile.assessmentDto, title: null } }
+      ]
+    });
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findAll("h3").map(heading => heading.text())).toEqual(["Control", "Worked examples"]);
+  });
+
+  it("leaves out the heading for a lone table whose assessment has no title", async () => {
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 3,
+      title: "Assignment 1",
+      treatments: [{ ...treatmentNoFile, conditionId: 10, assessmentDto: { ...treatmentNoFile.assessmentDto, title: null } }]
+    });
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findAll("h3")).toHaveLength(0);
+  });
+
   it("shows a loading spinner before data resolves", () => {
     const wrapper = mount();
 
