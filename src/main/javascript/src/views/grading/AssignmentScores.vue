@@ -93,8 +93,9 @@
       :key="selectedTreatment.treatmentId"
       class="mt-6"
     >
-      <h3>
-        {{ selectedTreatment.assessmentDto?.title }}
+      <!-- one table per condition's treatment: label which condition each one is -->
+      <h3 v-if="treatmentHeading(selectedTreatment)">
+        {{ treatmentHeading(selectedTreatment) }}
       </h3>
       <form
         @submit.prevent="saveExit"
@@ -379,6 +380,20 @@ const loadData = async () => {
 const selectedAssignmentTreatments = computed(() => {
   return assignment.value?.treatments || [];
 });
+
+const conditionNamesById = computed(() => {
+  return new Map((experiment.value?.conditions || []).map(condition => [condition.conditionId, condition.name]));
+});
+
+// with several conditions, each gets its own table, so name the condition; a lone table keeps
+// the assessment's title, if it has one
+const treatmentHeading = treatment => {
+  if (selectedAssignmentTreatments.value.length > 1) {
+    return conditionNamesById.value.get(treatment.conditionId) || treatment.assessmentDto?.title || "";
+  }
+
+  return treatment.assessmentDto?.title || "";
+};
 
 const hasFileSubmissionQuestions = computed(() => {
   return assignment.value?.treatments?.some(t =>
