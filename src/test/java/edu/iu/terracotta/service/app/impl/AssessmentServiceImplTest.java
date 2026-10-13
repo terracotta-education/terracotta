@@ -85,6 +85,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @SuppressWarnings({"PMD.AvoidAccessibilityAlteration"})
 public class AssessmentServiceImplTest extends BaseTest {
@@ -317,6 +318,20 @@ public class AssessmentServiceImplTest extends BaseTest {
         Exception exception = assertThrows(ExperimentNotMatchingException.class, () -> { assessmentService.viewAssessment(1l, securedInfo); });
 
         assertEquals(TextConstants.EXPERIMENT_NOT_MATCHING, exception.getMessage());
+    }
+
+    // an INTEGRATION question can exist without its integration record; listing assignments used
+    // to fail with an NPE on getIntegration().getLaunchUrl() for the whole experiment
+    @Test
+    public void testToDtoIntegrationQuestionWithoutIntegration() throws AssessmentNotMatchingException {
+        when(assessment.isIntegration()).thenReturn(true);
+        when(assessment.getIntegration()).thenReturn(null);
+
+        AssessmentDto assessmentDto = assessmentService.toDto(assessment, false, false, false, false, securedInfo);
+
+        assertNotNull(assessmentDto);
+        assertNull(assessmentDto.getIntegrationPreviewUrl());
+        verifyNoInteractions(integrationLaunchParameterService, integrationService);
     }
 
     @Test
