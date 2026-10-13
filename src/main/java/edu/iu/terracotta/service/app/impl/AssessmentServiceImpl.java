@@ -17,6 +17,7 @@ import edu.iu.terracotta.dao.entity.RegradeDetails;
 import edu.iu.terracotta.dao.entity.RetakeDetails;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.Treatment;
+import edu.iu.terracotta.dao.entity.integrations.Integration;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
@@ -271,23 +272,30 @@ public class AssessmentServiceImpl implements AssessmentService {
             )
         );
 
-        if (assessment.isIntegration()) {
+        Integration integration = assessment.getIntegration();
+
+        if (assessment.isIntegration() && integration == null) {
+            // an integration question whose integration record is missing (seen on copied and
+            // imported experiments): show the assessment without a preview rather than failing
+            // the whole assignment list over it
+            log.warn("Assessment ID: [{}] has an integration question but no integration; showing it without a preview", assessment.getAssessmentId());
+        } else if (assessment.isIntegration()) {
             // is integration-type assessment; set preview url
             assessmentDto.setIntegrationPreviewUrl(
                 String.format(
                     "%s%s",
-                    assessment.getIntegration().getLaunchUrl(),
-                    integrationLaunchParameterService.buildPreviewQueryString(assessment.getIntegration())
+                    integration.getLaunchUrl(),
+                    integrationLaunchParameterService.buildPreviewQueryString(integration)
                 )
             );
 
             try {
                 // check if launch url can be embedded in an iframe
-                if (StringUtils.isBlank(assessment.getIntegration().getLaunchUrl())) {
+                if (StringUtils.isBlank(integration.getLaunchUrl())) {
                     throw new IntegrationUrlIframeInvalidException("Integration launch URL is blank");
                 }
 
-                integrationService.validateIntegrationUrlIframe(assessment.getIntegration().getLaunchUrl(), securedInfo);
+                integrationService.validateIntegrationUrlIframe(integration.getLaunchUrl(), securedInfo);
                 assessmentDto.setIntegrationUrlValid(true);
             } catch (IntegrationUrlIframeInvalidException e) {
                 // launchUrl is not valid for iframe embedding
