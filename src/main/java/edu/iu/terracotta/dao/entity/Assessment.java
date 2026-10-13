@@ -126,11 +126,13 @@ public class Assessment extends UuidAwareEntity {
             return false;
         }
 
-        if (isIntegration()) {
-            if (Strings.CS.equals(getIntegration().getConfiguration().getClient().getName(), "Qualtrics")) {
-                // Qualtrics integrations never see feedback
-                return false;
-            }
+        Integration integration = getIntegration();
+
+        // an integration question can be missing its integration record; treat that as "not Qualtrics"
+        if (integration != null && integration.getConfiguration() != null && integration.getConfiguration().getClient() != null
+                && Strings.CS.equals(integration.getConfiguration().getClient().getName(), "Qualtrics")) {
+            // Qualtrics integrations never see feedback
+            return false;
         }
 
         Timestamp now = Timestamp.from(Instant.now());
