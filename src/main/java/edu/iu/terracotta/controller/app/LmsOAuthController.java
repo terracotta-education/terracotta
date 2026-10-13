@@ -54,12 +54,21 @@ public class LmsOAuthController {
             return TextConstants.OAUTH2_ERROR;
         }
 
+        if (state == null || state.isBlank()) {
+            // the LMS always returns a state (with a code or an error), so this is someone opening
+            // or refreshing this address directly, not a return from authorization
+            log.warn("Ignoring a /oauth_response request with no OAuth2 state (code {}); it isn't a return from LMS authorization", code == null ? "missing" : "present");
+            model.addAttribute(TextConstants.ERROR, "Error getting LMS API access token: \"OAuth2 request doesn't contain the expected state\"");
+            return TextConstants.OAUTH2_ERROR;
+        }
+
         Optional<Jws<Claims>> claims = Optional.empty();
 
         try {
             claims = apijwtService.validateStateForAPITokenRequest(state);
         } catch (Throwable t) {
-            log.error("Failed to validate the state claims", t);
+            // a forged, tampered or expired state - the reason is enough, the stack trace adds nothing
+            log.warn("Couldn't validate the OAuth2 state on /oauth_response: {}", t.getMessage());
             model.addAttribute(TextConstants.ERROR, "Error getting LMS API access token: Could not validate the OAuth2 request state");
             return TextConstants.OAUTH2_ERROR;
         }
