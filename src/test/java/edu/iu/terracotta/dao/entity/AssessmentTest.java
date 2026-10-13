@@ -195,6 +195,20 @@ public class AssessmentTest {
         assertTrue(assessment.canViewResponses());
     }
 
+    @Test
+    public void testCanViewResponsesTrueWhenIntegrationQuestionHasNoIntegration() {
+        Question question = Question.builder()
+            .questionType(QuestionTypes.INTEGRATION)
+            .build();
+        Assessment assessment = Assessment.builder()
+            .allowStudentViewResponses(true)
+            .questions(List.of(question))
+            .build();
+
+        assertTrue(assessment.isIntegration());
+        assertTrue(assessment.canViewResponses());
+    }
+
     // canViewCorrectAnswers
 
     @Test
