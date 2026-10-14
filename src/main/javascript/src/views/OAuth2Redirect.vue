@@ -59,14 +59,28 @@
             </li>
           </ul>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions
+          class="flex-column align-start"
+        >
+          <!-- opens in its own window: inside this frame the LMS can lose track of the request
+               (third-party cookie rules) and show "Must submit new OAuth2 request". If the popup
+               is blocked, the link itself opens the page in a new tab instead. -->
           <v-btn
             :href="lmsApiOAuthURL"
+            target="_blank"
             class="redirect-button"
             elevation="0"
+            @click="openAuthorization"
           >
             Go to the {{ lmsTitle }} Authorization Page
           </v-btn>
+          <p
+            v-if="waiting"
+            class="authorization-waiting"
+            role="status"
+          >
+            Finish authorizing in the window that opened. This page continues on its own once you're done.
+          </p>
         </v-card-actions>
       </v-card>
     </v-col>
@@ -75,15 +89,26 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
+import { useRouter } from "vue-router";
 
 import ToolTip from "@/components/ToolTip.vue";
 import { api } from "@/store/api.module";
 import terracottaLogo from "@/assets/terracotta_logo.svg";
 import { configuration } from "@/store/configuration.module";
+import { lmsAuthorizationService } from "@/services";
+
+const AUTHORIZATION_WINDOW_NAME = "terracotta-lms-authorization";
+const POLL_INTERVAL_MS = 2000;
+const POLL_LIMIT_MS = 15 * 60 * 1000;
 
 const apiStore = api();
 const configurationStore = configuration();
+const router = useRouter();
+
+const waiting = ref(false);
+let pollTimer = null;
+let pollStartedAt = 0;
 
 const lmsApiOAuthURL = computed(() => {
   return apiStore.lmsApiOAuthURL;
@@ -96,6 +121,58 @@ const configurations = computed(() => {
 const lmsTitle = computed(() => {
   return configurations.value?.lmsTitle || "LMS";
 });
+
+const stopPolling = () => {
+  clearTimeout(pollTimer);
+  pollTimer = null;
+};
+
+// the authorization window can't reliably message this frame (the LMS may cut the opener link),
+// so ask the server until the new token shows up
+const checkAuthorization = async () => {
+  const { authorized } = await lmsAuthorizationService.getAuthorization();
+
+  if (!pollTimer) {
+    return; // left the page while the request was in flight
+  }
+
+  if (authorized) {
+    stopPolling();
+    waiting.value = false;
+    apiStore.setLmsApiOAuthURL("");
+    await router.replace({ name: "Home" });
+    return;
+  }
+
+  if (Date.now() - pollStartedAt >= POLL_LIMIT_MS) {
+    stopPolling();
+    waiting.value = false;
+    return;
+  }
+
+  pollTimer = setTimeout(checkAuthorization, POLL_INTERVAL_MS);
+};
+
+const openAuthorization = event => {
+  if (!lmsApiOAuthURL.value) {
+    return;
+  }
+
+  const authorizationWindow = window.open(lmsApiOAuthURL.value, AUTHORIZATION_WINDOW_NAME, "popup,width=900,height=760");
+
+  if (authorizationWindow) {
+    event.preventDefault();
+  }
+
+  waiting.value = true;
+
+  if (!pollTimer) {
+    pollStartedAt = Date.now();
+    pollTimer = setTimeout(checkAuthorization, POLL_INTERVAL_MS);
+  }
+};
+
+onBeforeUnmount(stopPolling);
 </script>
 
 <style lang="scss" scoped>
@@ -132,6 +209,12 @@ const lmsTitle = computed(() => {
     text-transform: none;
     color: rgba(35, 48, 80, 0.87);
   }
+}
+.authorization-waiting {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.6);
 }
 .permission-list {
   li {

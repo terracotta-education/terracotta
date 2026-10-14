@@ -86,6 +86,9 @@ public class LmsOAuthController {
         // Lti3Controller#home and for the same reason - see lti3Launch.html
         model.addAttribute("token", apijwtService.buildJwt(platformDeploymentId, userKey, claims.get().getPayload()));
         model.addAttribute("lmsApiOAuthUrl", null);
+        // authorization normally runs in a window the frame opened; the page closes it and the
+        // frame, which polls for the new token, carries on
+        model.addAttribute("authorizationWindow", true);
 
         return "lti3Launch";
     }
