@@ -36,6 +36,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiOneUseTokenRep
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymentRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
+import edu.iu.terracotta.connectors.generic.service.api.impl.LmsOAuthState;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiDataService;
 
 import edu.iu.terracotta.dao.entity.Assignment;
@@ -395,7 +396,8 @@ public class OneEdTechApiJwtServiceImpl implements ApiJwtService {
 
     @Override
     public String generateStateForAPITokenRequest(Lti3Request lti3Request) throws GeneralSecurityException, IOException {
-        return buildJwt(false, ISSUER_LMS_OAUTH_API_TOKEN_REQUEST, lti3Request);
+        // only who is authorizing: the LMS stores the state in its session (see LmsOAuthState)
+        return LmsOAuthState.build(ltiDataService.getOwnPrivateKey(), ISSUER_LMS_OAUTH_API_TOKEN_REQUEST, lti3Request.getKey().getKeyId(), lti3Request.getUser().getUserKey());
     }
 
     @Override
