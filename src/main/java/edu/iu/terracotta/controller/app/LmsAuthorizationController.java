@@ -16,6 +16,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthService;
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
@@ -35,13 +36,9 @@ public class LmsAuthorizationController {
     private final LtiUserRepository ltiUserRepository;
 
     @GetMapping
+    @InstructorOrHigher
     public ResponseEntity<Map<String, Boolean>> getAuthorization(HttpServletRequest req) throws TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         LtiUserEntity user = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
         LmsOAuthService<?> lmsOAuthService = lmsOAuthServiceManager.getLmsOAuthService(securedInfo.getPlatformDeploymentId());
 

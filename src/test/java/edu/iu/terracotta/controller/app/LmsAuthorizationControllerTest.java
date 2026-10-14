@@ -1,7 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
@@ -38,7 +37,6 @@ public class LmsAuthorizationControllerTest extends BaseTest {
         lmsAuthorizationController = new LmsAuthorizationController(apiJwtService, lmsOAuthServiceManager, ltiUserRepository);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(securedInfo.getUserId()).thenReturn("user1");
         when(securedInfo.getPlatformDeploymentId()).thenReturn(1L);
         when(ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId("user1", 1L)).thenReturn(ltiUserEntity);
@@ -83,17 +81,6 @@ public class LmsAuthorizationControllerTest extends BaseTest {
         ResponseEntity<Map<String, Boolean>> response = lmsAuthorizationController.getAuthorization(httpServletRequest);
 
         assertEquals(Map.of("authorized", false), response.getBody());
-    }
-
-    @Test
-    void unauthorizedForLearners() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Map<String, Boolean>> response = lmsAuthorizationController.getAuthorization(httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNull(response.getBody());
-        verify(lmsOAuthService, never()).isAccessTokenAvailable(any(LtiUserEntity.class));
     }
 
 }

@@ -71,6 +71,7 @@ GroupController#deleteGroup(UUID,UUID,HttpServletRequest) -> InstructorOrHigher
 GroupController#getGroup(UUID,UUID,HttpServletRequest) -> LearnerOrHigher
 GroupController#postGroup(UUID,GroupDto,UriComponentsBuilder,HttpServletRequest) -> InstructorOrHigher
 GroupController#updateGroup(UUID,UUID,GroupDto,HttpServletRequest) -> InstructorOrHigher
+LmsAuthorizationController#getAuthorization(HttpServletRequest) -> InstructorOrHigher
 MediaProfileController#postMediaEvent(UUID,UUID,UUID,UUID,UUID,UUID,MediaEventDto,UriComponentsBuilder,HttpServletRequest) -> NoRoleRequired
 MessageContainerController#delete(UUID,UUID,UUID,HttpServletRequest) -> InstructorOrHigher
 MessageContainerController#duplicate(UUID,UUID,UUID,HttpServletRequest) -> InstructorOrHigher
