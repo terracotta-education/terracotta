@@ -139,6 +139,7 @@ public class LmsOAuthControllerTest extends BaseTest {
         assertEquals("lti3Launch", result);
         verify(model).addAttribute("token", "finalToken");
         verify(model).addAttribute("lmsApiOAuthUrl", null);
+        verify(model).addAttribute("authorizationWindow", true);
     }
 
     @Test
