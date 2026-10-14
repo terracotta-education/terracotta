@@ -1,7 +1,5 @@
 package edu.iu.terracotta.controller.app;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.text.MessageFormat;
 import java.util.Optional;
 
@@ -38,7 +36,7 @@ public class LmsOAuthController {
     private final ApiJwtService apijwtService;
 
     @GetMapping("/oauth_response")
-    public String handleOauthResponse(HttpServletRequest req, Model model) throws GeneralSecurityException, IOException, LmsOAuthException, TerracottaConnectorException {
+    public String handleOauthResponse(HttpServletRequest req, Model model) throws TerracottaConnectorException {
         String code = req.getParameter("code");
         log.debug("/oauth_response: code={}", code);
 
@@ -82,15 +80,9 @@ public class LmsOAuthController {
             return TextConstants.OAUTH2_ERROR;
         }
 
-        // delivered via the response body rather than a redirect's query string, same as
-        // Lti3Controller#home and for the same reason - see lti3Launch.html
-        model.addAttribute("token", apijwtService.buildJwt(platformDeploymentId, userKey, claims.get().getPayload()));
-        model.addAttribute("lmsApiOAuthUrl", null);
-        // authorization normally runs in a window the frame opened; the page closes it and the
-        // frame, which polls for the new token, carries on
-        model.addAttribute("authorizationWindow", true);
-
-        return "lti3Launch";
+        // authorization runs in a popup or tab opened from the Terracotta frame, which is polling for
+        // this token and continues on its own; this page only has to close or explain that window
+        return "lmsAuthorized";
     }
 
 }

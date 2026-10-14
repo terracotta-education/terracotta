@@ -125,7 +125,18 @@ describe("OAuth2Redirect", () => {
     expect(replace).toHaveBeenCalledWith({ name: "Home" });
   });
 
-  it("doesn't start a second poll when the button is clicked again", async () => {
+  it("checks for authorization as soon as the page opens, without a click", async () => {
+    // e.g. the instructor right-clicked the button and authorized in a new tab
+    getAuthorization.mockResolvedValueOnce({ authorized: true });
+    await mountWithUrl();
+
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(getAuthorization).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith({ name: "Home" });
+  });
+
+  it("keeps a single poll running when the button is clicked again", async () => {
     vi.spyOn(window, "open").mockReturnValue({});
     const wrapper = await mountWithUrl();
 
@@ -136,12 +147,18 @@ describe("OAuth2Redirect", () => {
     expect(getAuthorization).toHaveBeenCalledTimes(1);
   });
 
-  it("stops waiting after fifteen minutes", async () => {
+  it("stops checking fifteen minutes after the last click", async () => {
     vi.spyOn(window, "open").mockReturnValue({});
     const wrapper = await mountWithUrl();
 
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
     await wrapper.find(".redirect-button").trigger("click");
-    await vi.advanceTimersByTimeAsync(15 * 60 * 1000 + 2000);
+    // the click restarted the window: still waiting past fifteen minutes from mount
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+
+    expect(wrapper.find(".authorization-waiting").exists()).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 2000);
     const calls = getAuthorization.mock.calls.length;
     await vi.advanceTimersByTimeAsync(10000);
 
@@ -149,11 +166,19 @@ describe("OAuth2Redirect", () => {
     expect(wrapper.find(".authorization-waiting").exists()).toBe(false);
   });
 
+  it("stops checking fifteen minutes after the page opens when nothing is clicked", async () => {
+    await mountWithUrl();
+
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000 + 2000);
+    const calls = getAuthorization.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(10000);
+
+    expect(getAuthorization).toHaveBeenCalledTimes(calls);
+  });
+
   it("stops polling when the page is left", async () => {
-    vi.spyOn(window, "open").mockReturnValue({});
     const wrapper = await mountWithUrl();
 
-    await wrapper.find(".redirect-button").trigger("click");
     wrapper.unmount();
     await vi.advanceTimersByTimeAsync(10000);
 

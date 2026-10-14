@@ -11,26 +11,17 @@
   sessionStorage is per-tab and never sent on subsequent requests (unlike a cookie or URL param),
   so it doesn't reintroduce the header-size or URL/access-log exposure problem this replaces.
 -->
-<p id="authorized" hidden>Terracotta is authorized. You can close this window and return to your course.</p>
 <script th:inline="javascript">
     /*<![CDATA[*/
-    // returning from LMS authorization in the window the Terracotta frame opened: the frame is
-    // already waiting for the new token, so just close. Without an opener (a plain new tab, or the
-    // LMS cut the link) fall through and open Terracotta here, as a launch would.
-    if (/*[[${authorizationWindow}]]*/ false && window.opener) {
-        document.getElementById("authorized").hidden = false;
-        window.close();
-    } else {
-        sessionStorage.setItem("ltiToken", /*[[${token}]]*/ "");
+    sessionStorage.setItem("ltiToken", /*[[${token}]]*/ "");
 
-        var lmsApiOAuthUrl = /*[[${lmsApiOAuthUrl}]]*/ null;
+    var lmsApiOAuthUrl = /*[[${lmsApiOAuthUrl}]]*/ null;
 
-        if (lmsApiOAuthUrl) {
-            sessionStorage.setItem("lmsApiOAuthUrl", lmsApiOAuthUrl);
-        }
-
-        window.location.replace("/app/app.html");
+    if (lmsApiOAuthUrl) {
+        sessionStorage.setItem("lmsApiOAuthUrl", lmsApiOAuthUrl);
     }
+
+    window.location.replace("/app/app.html");
     /*]]>*/
 </script>
 </body>

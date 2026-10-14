@@ -89,7 +89,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import ToolTip from "@/components/ToolTip.vue";
@@ -127,8 +127,18 @@ const stopPolling = () => {
   pollTimer = null;
 };
 
+// (re)starts the fifteen minute window, so a click late in it still gets a full wait
+const startPolling = () => {
+  pollStartedAt = Date.now();
+
+  if (!pollTimer) {
+    pollTimer = setTimeout(checkAuthorization, POLL_INTERVAL_MS);
+  }
+};
+
 // the authorization window can't reliably message this frame (the LMS may cut the opener link),
-// so ask the server until the new token shows up
+// so ask the server until the new token shows up. This runs from the moment the page opens, so it
+// also catches authorizing in a tab opened by right click, which never fires the click handler.
 const checkAuthorization = async () => {
   const { authorized } = await lmsAuthorizationService.getAuthorization();
 
@@ -165,13 +175,10 @@ const openAuthorization = event => {
   }
 
   waiting.value = true;
-
-  if (!pollTimer) {
-    pollStartedAt = Date.now();
-    pollTimer = setTimeout(checkAuthorization, POLL_INTERVAL_MS);
-  }
+  startPolling();
 };
 
+onMounted(startPolling);
 onBeforeUnmount(stopPolling);
 </script>
 
