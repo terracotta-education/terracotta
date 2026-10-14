@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Terracotta is authorized</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 48px 24px;
+            background: #fdf5f2;
+            color: rgba(35, 48, 80, 0.87);
+            font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 16px;
+            line-height: 24px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            line-height: 32px;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+<!--
+  Shown when the LMS returns from authorization. The authorization page saved the session the
+  Terracotta frame had before it left for the LMS (see OAuth2Redirect.vue); with it, Terracotta
+  picks up where it was. Without it (authorization opened in another tab, say), there's nothing
+  to resume, so ask for a relaunch.
+-->
+<h1>Terracotta is authorized</h1>
+<p id="relaunch" hidden>Return to your course and open Terracotta again.</p>
+<script>
+    var resumable = false;
+
+    try {
+        resumable = !!sessionStorage.getItem("lmsAuthorizationResume");
+    } catch (e) {
+        // storage blocked: nothing to resume
+    }
+
+    if (resumable) {
+        window.location.replace("/app/app.html");
+    } else {
+        document.getElementById("relaunch").hidden = false;
+    }
+</script>
+</body>
+</html>
