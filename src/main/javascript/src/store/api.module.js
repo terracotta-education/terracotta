@@ -151,6 +151,27 @@ export const api = defineStore("api", {
       this.lmsApiOAuthURL = url || "";
     },
 
+    // back from LMS authorization: carry on with the session the frame had before it left, since
+    // the LMS's return carries no launch to start a new one from
+    resumeSession({ ltiToken, apiToken } = {}) {
+      if (!apiToken) {
+        return false;
+      }
+
+      try {
+        this.applyDecodedToken(jwtDecode(apiToken));
+      } catch (error) {
+        console.error("api/resumeSession | catch", error);
+        return false;
+      }
+
+      this.ltiToken = ltiToken || "";
+      this.apiToken = apiToken;
+      this.lmsApiOAuthURL = "";
+
+      return true;
+    },
+
     reset() {
       this.ltiToken = "";
       this.apiToken = "";
