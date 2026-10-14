@@ -13,7 +13,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.security.GeneralSecurityException;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -132,14 +131,11 @@ public class LmsOAuthControllerTest extends BaseTest {
     void handleOauthResponseHappyPathTest() throws Exception {
         stubValidClaims();
         when(lmsOAuthService.fetchAndSaveAccessToken(ltiUserEntity, "code123")).thenReturn(apiTokenEntity);
-        when(apiJwtService.buildJwt(1L, "user1", claims)).thenReturn("finalToken");
 
         String result = lmsOAuthController.handleOauthResponse(httpServletRequest, model);
 
-        assertEquals("lti3Launch", result);
-        verify(model).addAttribute("token", "finalToken");
-        verify(model).addAttribute("lmsApiOAuthUrl", null);
-        verify(model).addAttribute("authorizationWindow", true);
+        assertEquals("lmsAuthorized", result);
+        verify(lmsOAuthService).fetchAndSaveAccessToken(ltiUserEntity, "code123");
     }
 
     @Test
@@ -151,15 +147,6 @@ public class LmsOAuthControllerTest extends BaseTest {
         when(lmsOAuthServiceManager.getLmsOAuthService(anyLong())).thenThrow(new TerracottaConnectorException("boom"));
 
         assertThrows(TerracottaConnectorException.class, () -> lmsOAuthController.handleOauthResponse(httpServletRequest, model));
-    }
-
-    @Test
-    void handleOauthResponseBuildJwtThrowsTest() throws Exception {
-        stubValidClaims();
-        when(lmsOAuthService.fetchAndSaveAccessToken(ltiUserEntity, "code123")).thenReturn(apiTokenEntity);
-        when(apiJwtService.buildJwt(anyLong(), anyString(), any(Claims.class))).thenThrow(new GeneralSecurityException("boom"));
-
-        assertThrows(GeneralSecurityException.class, () -> lmsOAuthController.handleOauthResponse(httpServletRequest, model));
     }
 
     private void stubValidClaims() throws TerracottaConnectorException {
