@@ -585,6 +585,25 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         assertEquals(JwtClaim.ISSUER_LMS_OAUTH_API_TOKEN_REQUEST.key(), claims.getPayload().getIssuer());
     }
 
+    // the LMS keeps the state in its session, which Canvas stores in a size-limited cookie
+    @Test
+    public void testGenerateStateForAPITokenRequestCarriesOnlyWhoIsAuthorizing() throws Exception {
+        when(lti3Request.getLtiRoles()).thenReturn(List.of(
+            "http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor",
+            "http://purl.imsglobal.org/vocab/lis/v2/institution/person#Administrator",
+            "http://purl.imsglobal.org/vocab/lis/v2/system/person#SysAdmin"));
+
+        String state = canvasApiJWTService.generateStateForAPITokenRequest(lti3Request);
+        String launchToken = canvasApiJWTService.buildJwt(false, lti3Request);
+        Claims claims = canvasApiJWTService.validateToken(state).getPayload();
+
+        assertEquals(platformDeployment.getKeyId(), claims.get(JwtClaim.PLATFORM_DEPLOYMENT_ID.key(), Long.class));
+        assertEquals("userKey", claims.get(JwtClaim.USER_ID.key(), String.class));
+        assertNull(claims.get(JwtClaim.ROLES.key()));
+        assertNull(claims.get(JwtClaim.NONCE.key()));
+        assertTrue(state.length() < launchToken.length() / 2, () -> "state " + state.length() + " vs launch token " + launchToken.length());
+    }
+
     /* ***************** validateStateForAPITokenRequest ***************** */
 
     @Test
