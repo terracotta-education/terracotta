@@ -64,6 +64,7 @@
             :href="lmsApiOAuthURL"
             class="redirect-button"
             elevation="0"
+            @click="saveSessionForReturn"
           >
             Go to the {{ lmsTitle }} Authorization Page
           </v-btn>
@@ -96,6 +97,19 @@ const configurations = computed(() => {
 const lmsTitle = computed(() => {
   return configurations.value?.lmsTitle || "LMS";
 });
+
+// the LMS's return from authorization says only who authorized, so keep this session for the
+// return page (lmsAuthorized.html) to hand back to the app - see main.js
+const saveSessionForReturn = () => {
+  try {
+    sessionStorage.setItem("lmsAuthorizationResume", JSON.stringify({
+      ltiToken: apiStore.ltiToken,
+      apiToken: apiStore.apiToken
+    }));
+  } catch (error) {
+    console.error("OAuth2Redirect | couldn't save the session for the return", error);
+  }
+};
 </script>
 
 <style lang="scss" scoped>

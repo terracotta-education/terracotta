@@ -40,6 +40,10 @@ const tokenParam = sessionStorage.getItem("ltiToken");
 sessionStorage.removeItem("ltiToken");
 const lmsApiOAuthURL = sessionStorage.getItem("lmsApiOAuthUrl");
 sessionStorage.removeItem("lmsApiOAuthUrl");
+// saved by OAuth2Redirect before the frame left for LMS authorization; lmsAuthorized.html sends
+// the frame back here with it
+const lmsAuthorizationResume = sessionStorage.getItem("lmsAuthorizationResume");
+sessionStorage.removeItem("lmsAuthorizationResume");
 
 const integration = {
   integration: getBooleanParam("integration"),
@@ -77,6 +81,12 @@ const initializeStore = async () => {
 
   if (tokenParam) {
         operations.push(api(pinia).setLtiToken(tokenParam));
+  } else if (lmsAuthorizationResume) {
+    try {
+      api(pinia).resumeSession(JSON.parse(lmsAuthorizationResume));
+    } catch (error) {
+      console.error("main | couldn't resume the session after LMS authorization", error);
+    }
   }
 
   if (lmsApiOAuthURL) {
