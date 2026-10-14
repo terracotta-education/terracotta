@@ -266,6 +266,39 @@ describe("api store", () => {
     expect(store.lmsApiOAuthURL).toBe("");
   });
 
+  describe("resumeSession", () => {
+    it("restores the session saved before LMS authorization and clears the pending authorization", () => {
+      store.setLmsApiOAuthURL("https://lms.example.com");
+
+      const resumed = store.resumeSession({ ltiToken: "lti", apiToken: instructorToken });
+
+      expect(resumed).toBe(true);
+      expect(store.ltiToken).toBe("lti");
+      expect(store.apiToken).toBe(instructorToken);
+      expect(store.userInfo).toBe("Instructor");
+      expect(store.aud).toBe("https://example.com");
+      expect(store.lmsApiOAuthURL).toBe("");
+      expect(apiService.getApiToken).not.toHaveBeenCalled();
+    });
+
+    it("leaves the store alone without an API token", () => {
+      store.setLmsApiOAuthURL("https://lms.example.com");
+
+      expect(store.resumeSession({ ltiToken: "lti" })).toBe(false);
+      expect(store.resumeSession()).toBe(false);
+      expect(store.ltiToken).toBe("");
+      expect(store.lmsApiOAuthURL).toBe("https://lms.example.com");
+    });
+
+    it("leaves the store alone when the token can't be decoded", () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      expect(store.resumeSession({ ltiToken: "lti", apiToken: "not-a-jwt" })).toBe(false);
+      expect(store.apiToken).toBe("");
+      consoleSpy.mockRestore();
+    });
+  });
+
   it("reset clears all fields", async () => {
     apiService.getApiToken.mockResolvedValue(learnerToken);
     await store.setLtiToken(instructorToken);
