@@ -40,6 +40,19 @@ describe("OAuth2Redirect", () => {
     );
   });
 
+  it("saves the current session for the return from authorization when the button is clicked", async () => {
+    const wrapper = mountComponent(OAuth2Redirect);
+    api().$patch({ ltiToken: "lti", apiToken: "api" });
+    sessionStorage.removeItem("lmsAuthorizationResume");
+
+    // jsdom can't navigate, so stop the link itself
+    wrapper.find(".redirect-button").element.addEventListener("click", event => event.preventDefault());
+    await wrapper.find(".redirect-button").trigger("click");
+
+    expect(JSON.parse(sessionStorage.getItem("lmsAuthorizationResume"))).toEqual({ ltiToken: "lti", apiToken: "api" });
+    sessionStorage.removeItem("lmsAuthorizationResume");
+  });
+
   it("renders a tooltip explaining each requested permission", () => {
     const wrapper = mountComponent(OAuth2Redirect);
 

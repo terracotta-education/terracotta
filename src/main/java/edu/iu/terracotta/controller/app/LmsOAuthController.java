@@ -1,7 +1,5 @@
 package edu.iu.terracotta.controller.app;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.text.MessageFormat;
 import java.util.Optional;
 
@@ -38,7 +36,7 @@ public class LmsOAuthController {
     private final ApiJwtService apijwtService;
 
     @GetMapping("/oauth_response")
-    public String handleOauthResponse(HttpServletRequest req, Model model) throws GeneralSecurityException, IOException, LmsOAuthException, TerracottaConnectorException {
+    public String handleOauthResponse(HttpServletRequest req, Model model) throws TerracottaConnectorException {
         String code = req.getParameter("code");
         log.debug("/oauth_response: code={}", code);
 
@@ -82,12 +80,10 @@ public class LmsOAuthController {
             return TextConstants.OAUTH2_ERROR;
         }
 
-        // delivered via the response body rather than a redirect's query string, same as
-        // Lti3Controller#home and for the same reason - see lti3Launch.html
-        model.addAttribute("token", apijwtService.buildJwt(platformDeploymentId, userKey, claims.get().getPayload()));
-        model.addAttribute("lmsApiOAuthUrl", null);
-
-        return "lti3Launch";
+        // the state only says who authorized (it has to stay small, see LmsOAuthState), so there's no
+        // launch to rebuild a session from: the page resumes the session the frame had before it
+        // went to the LMS
+        return "lmsAuthorized";
     }
 
 }
