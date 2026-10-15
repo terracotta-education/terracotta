@@ -92,6 +92,8 @@ describe("OAuth2Redirect", () => {
     expect(open).toHaveBeenCalledWith(AUTH_URL, "terracotta-lms-authorization", expect.stringContaining("popup"));
     expect(event.defaultPrevented).toBe(true);
     expect(wrapper.find(".authorization-waiting").exists()).toBe(true);
+    // a status message screen readers announce
+    expect(wrapper.find(".authorization-waiting").element.tagName).toBe("OUTPUT");
   });
 
   it("lets the link open a new tab when the popup is blocked, and still waits", async () => {
