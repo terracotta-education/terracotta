@@ -73,6 +73,39 @@ describe("CopyFromDialog", () => {
     expect(wrapper.find("#treatment-option-selected").element.value).toBe("2");
   });
 
+  describe("treatments with no content", () => {
+    const withEmpty = [
+      { treatmentId: 1, conditionName: "Condition A", conditionColor: "blue" },
+      { treatmentId: 2, conditionName: "Condition B", conditionColor: "red", disabled: true },
+      { treatmentId: 3, conditionName: "Condition C", conditionColor: "green", disabled: true }
+    ];
+
+    it("lists them disabled, with a tooltip saying why", () => {
+      const wrapper = mountComponent(CopyFromDialog, {
+        props: { assignmentName: "Quiz 1", treatments: withEmpty }
+      });
+
+      const radios = wrapper.findAllComponents({ name: "VRadio" });
+      expect(radios.map(radio => radio.props("disabled"))).toEqual([false, true, true]);
+
+      const tooltips = wrapper.findAllComponents({ name: "VTooltip" });
+      expect(tooltips.map(tooltip => tooltip.props("disabled"))).toEqual([true, false, false]);
+      expect(tooltips[1].props("text")).toBe("This treatment has no content.");
+      // and for screen readers, which don't get the tooltip on a disabled radio
+      expect(wrapper.findAll(".d-sr-only").map(el => el.text())).toEqual(["This treatment has no content.", "This treatment has no content."]);
+    });
+
+    it("selects the one treatment that has content", async () => {
+      const wrapper = mountComponent(CopyFromDialog, {
+        props: { assignmentName: "Quiz 1", treatments: withEmpty }
+      });
+
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find("#treatment-option-selected").element.value).toBe("1");
+    });
+  });
+
   it("leaves no treatment selected by default when there are multiple treatments", () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {

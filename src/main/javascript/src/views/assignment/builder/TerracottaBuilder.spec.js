@@ -566,6 +566,14 @@ describe("TerracottaBuilder", () => {
       expect(text).not.toContain("Only One Version");
     });
 
+    it("lists the empty treatments too, disabled, and leaves out integrations", async () => {
+      const integration = { treatmentId: 104, conditionId: 104, assessmentDto: { integration: true, questions: [{ questionId: 2 }] } };
+      const text = await openDialog({ treatments: [copyable(101), empty(102), empty(103), integration] });
+
+      expect(text.match(/This treatment has no content\./g)).toHaveLength(2);
+      expect(document.querySelectorAll("#dialog-copy-from").length).toBe(0);
+    });
+
     it("calls a single-version assignment's treatment the only version", async () => {
       const text = await openDialog({ treatments: [copyable(101)] });
 
