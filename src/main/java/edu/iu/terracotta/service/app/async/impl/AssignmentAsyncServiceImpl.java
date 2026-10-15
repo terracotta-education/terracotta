@@ -412,6 +412,18 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             answerFileSubmissions.stream()
                 .forEach(
                     answerFileSubmission -> {
+                        // the participant's files, if they're in the archive at all: only consenting
+                        // participants are, but everyone in the course can submit
+                        Map<String, File> userQuestionFileMap = userQuestionFiles.get(
+                            participantNameMap.get(
+                                answerFileSubmission.getQuestionSubmission().getSubmission().getParticipant().getParticipantId()
+                            )
+                        );
+
+                        if (userQuestionFileMap == null) {
+                            return;
+                        }
+
                         File file = fileStorageService.getFileSubmissionLocal(answerFileSubmission.getAnswerFileSubmissionId());
 
                         if (file != null) {
@@ -427,12 +439,6 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                             try {
                                 Path renamedFilePath = Files.move(file.toPath(), updatedPath, StandardCopyOption.REPLACE_EXISTING);
 
-                                // get the user's file map
-                                Map<String, File> userQuestionFileMap = userQuestionFiles.get(
-                                    participantNameMap.get(
-                                        answerFileSubmission.getQuestionSubmission().getSubmission().getParticipant().getParticipantId()
-                                    )
-                                );
                                 // add the question and file mapping
                                 userQuestionFileMap.put(StringUtils.substring(Jsoup.parse(fileQuestion.getHtml()).text(), 0, 50), renamedFilePath.toFile());
                             } catch (IOException e) {

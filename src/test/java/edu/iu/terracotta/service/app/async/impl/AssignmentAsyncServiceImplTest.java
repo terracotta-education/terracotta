@@ -3,10 +3,12 @@ package edu.iu.terracotta.service.app.async.impl;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -38,6 +40,8 @@ import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
@@ -514,8 +518,9 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(assignmentFileArchiveRepository).save(archive);
     }
 
+    // everyone in the course can submit, but only consenting participants are in the archive
     @Test
-    void testProcessAssignmentFileArchiveNoConsentingParticipantsThrowsNpe() throws IOException {
+    void testProcessAssignmentFileArchiveSkipsFilesOfParticipantsWithoutConsent() throws IOException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         when(question.getHtml()).thenReturn("<p>Upload your file</p>");
         when(participant.getConsent()).thenReturn(false);
@@ -534,7 +539,53 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
 
         AssignmentFileArchive archive = buildAssignmentFileArchive();
 
-        assertThrows(NullPointerException.class, () -> assignmentAsyncService.processAssignmentFileArchive(archive));
+        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+
+        // nothing to archive, and the participant's stored file is left as it was
+        assertEquals(AssignmentFileArchiveStatus.ERROR, archive.getStatus());
+        verify(fileStorageService, never()).getFileSubmissionLocal(anyLong());
+        assertTrue(Files.exists(sourceFile));
+        verify(assignmentFileArchiveRepository).save(archive);
+    }
+
+    @Test
+    void testProcessAssignmentFileArchiveIncludesOnlyConsentingParticipants() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+        when(participant2.getConsent()).thenReturn(false);
+        when(participant2.getParticipantId()).thenReturn(2L);
+        when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(List.of(participant, participant2));
+
+        Path sourceFile = tempDir.resolve("original.dat");
+        Files.writeString(sourceFile, "file contents");
+
+        Submission unconsentedSubmission = mock(Submission.class);
+        when(unconsentedSubmission.getParticipant()).thenReturn(participant2);
+        QuestionSubmission unconsentedQuestionSubmission = mock(QuestionSubmission.class);
+        when(unconsentedQuestionSubmission.getSubmission()).thenReturn(unconsentedSubmission);
+
+        AnswerFileSubmission consented = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            .fileName("renamed.txt")
+            .questionSubmission(questionSubmission)
+            .build();
+        AnswerFileSubmission unconsented = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(2L)
+            .fileName("other.txt")
+            .questionSubmission(unconsentedQuestionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(consented, unconsented));
+        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
+        when(fileStorageService.compressDirectory(anyString(), eq(""), eq(AssignmentFileArchive.COMPRESSED_FILE_EXTENSION), eq(false))).thenReturn(true);
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assignmentAsyncService.processAssignmentFileArchive(archive);
+
+        assertEquals(AssignmentFileArchiveStatus.READY, archive.getStatus());
+        verify(fileStorageService, never()).getFileSubmissionLocal(2L);
+        verify(fileStorageService).saveAssignmentFileArchive(eq(archive), any(File.class));
     }
 
     @Test
