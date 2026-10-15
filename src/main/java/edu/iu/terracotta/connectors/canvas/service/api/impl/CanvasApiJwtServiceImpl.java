@@ -412,7 +412,7 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
             MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_LOGIN_ID.key(1), ""),
             MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_USER_NAME.key(1), ""),
             MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_COURSE_ID.key(1), ""),
-            MapUtils.getString(lti3Request.getLtiCustom(), CanvasJwtClaim.CANVAS_ASSIGNMENT_ID.key(1), ""),
+            lmsAssignmentId(lti3Request.getLtiCustom()),
             MapUtils.getString(lti3Request.getLtiCustom(), JwtClaim.DUE_AT.key(), ""),
             MapUtils.getString(lti3Request.getLtiCustom(), JwtClaim.LOCK_AT.key(), ""),
             MapUtils.getString(lti3Request.getLtiCustom(), JwtClaim.UNLOCK_AT.key(), ""),
@@ -684,6 +684,17 @@ public class CanvasApiJwtServiceImpl implements ApiJwtService {
      * URLs from before this migration). Existing LMS-stored launch URLs must keep working
      * indefinitely, so this dual-format resolution can never be removed.
      */
+    /**
+     * The Canvas assignment the launch came from, or "" when it didn't come from one (e.g. the
+     * course navigation link). Canvas leaves $Canvas.assignment.id unreplaced outside an
+     * assignment, and that literal mustn't look like an assignment to the frontend.
+     */
+    private String lmsAssignmentId(Map<String, Object> ltiCustom) {
+        String canvasAssignmentId = MapUtils.getString(ltiCustom, CanvasJwtClaim.CANVAS_ASSIGNMENT_ID.key(1), "");
+
+        return StringUtils.isNumeric(canvasAssignmentId) ? canvasAssignmentId : "";
+    }
+
     private UUID resolveExperimentUuid(String experimentIdText) {
         if (StringUtils.isBlank(experimentIdText)) {
             return null;

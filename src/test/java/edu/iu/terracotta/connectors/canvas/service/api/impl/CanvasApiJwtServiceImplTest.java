@@ -203,6 +203,27 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         assertFalse(claims.containsKey("studentAttempts"));
     }
 
+    // a launch from an assignment carries its Canvas ID
+    @Test
+    public void testBuildJwtKeepsTheCanvasAssignmentIdOfAnAssignmentLaunch() throws GeneralSecurityException, IOException, TerracottaConnectorException {
+        customVars.put("canvas_assignment_id", "58313");
+
+        Map<String, Object> claims = canvasApiJWTService.unsecureToken(canvasApiJWTService.buildJwt(false, lti3Request), platformDeployment);
+
+        assertEquals("58313", claims.get(JwtClaim.LMS_ASSIGNMENT_ID.key()));
+    }
+
+    // a launch from the course navigation link isn't from an assignment, and Canvas leaves the
+    // variable unreplaced; the frontend must not treat that as an assignment to open
+    @Test
+    public void testBuildJwtLeavesOutAnUnreplacedCanvasAssignmentId() throws GeneralSecurityException, IOException, TerracottaConnectorException {
+        customVars.put("canvas_assignment_id", "$Canvas.assignment.id");
+
+        Map<String, Object> claims = canvasApiJWTService.unsecureToken(canvasApiJWTService.buildJwt(false, lti3Request), platformDeployment);
+
+        assertEquals("", claims.get(JwtClaim.LMS_ASSIGNMENT_ID.key()));
+    }
+
     // assignment context, test with allowed_attempts = null
     @Test
     public void testBuildJwtWithNullAllowedAttemptsCustomVariable() throws GeneralSecurityException, IOException, TerracottaConnectorException {
