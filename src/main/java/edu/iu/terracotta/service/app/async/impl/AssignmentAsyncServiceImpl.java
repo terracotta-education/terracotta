@@ -397,7 +397,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         }
 
         // {particpantId: {questionId: file}}
-        Map<String, Map<String, File>> userQuestionFiles = new HashMap<>();
+        Map<String, Map<String, ArchiveFile>> userQuestionFiles = new HashMap<>();
 
         participantNameMap.entrySet().stream()
             .forEach(
@@ -414,7 +414,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                     answerFileSubmission -> {
                         // the participant's files, if they're in the archive at all: only consenting
                         // participants are, but everyone in the course can submit
-                        Map<String, File> userQuestionFileMap = userQuestionFiles.get(
+                        Map<String, ArchiveFile> userQuestionFileMap = userQuestionFiles.get(
                             participantNameMap.get(
                                 answerFileSubmission.getQuestionSubmission().getSubmission().getParticipant().getParticipantId()
                             )
@@ -426,24 +426,16 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
 
                         File file = fileStorageService.getFileSubmissionLocal(answerFileSubmission.getAnswerFileSubmissionId());
 
-                        if (file != null) {
-                            // rename file to actual file name
-                            Path updatedPath = Path.of(
-                                String.format(
-                                    "%s/%s",
-                                    StringUtils.substringBeforeLast(file.toPath().toString(), "/"),
-                                    answerFileSubmission.getFileName()
-                                )
+                        if (file != null && !file.isFile()) {
+                            log.error("Submitted file for answer file submission ID: [{}] not found at: [{}]; leaving it out of the archive", answerFileSubmission.getAnswerFileSubmissionId(), file.toPath());
+                        } else if (file != null) {
+                            // add the question and file mapping. The file isn't renamed here: for an
+                            // uncompressed submission it's the stored file itself, so it gets its
+                            // original name only when it's copied into the archive below
+                            userQuestionFileMap.put(
+                                StringUtils.substring(Jsoup.parse(fileQuestion.getHtml()).text(), 0, 50),
+                                new ArchiveFile(file, answerFileSubmission.getFileName())
                             );
-
-                            try {
-                                Path renamedFilePath = Files.move(file.toPath(), updatedPath, StandardCopyOption.REPLACE_EXISTING);
-
-                                // add the question and file mapping
-                                userQuestionFileMap.put(StringUtils.substring(Jsoup.parse(fileQuestion.getHtml()).text(), 0, 50), renamedFilePath.toFile());
-                            } catch (IOException e) {
-                                log.error("Error renaming file: [{}] to: [{}]", file.toPath(), updatedPath, e);
-                            }
                         }
                     }
                 );
@@ -479,13 +471,14 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                                         // create question directory in participant directory
                                         String participantQuestionDir = Files.createDirectories(Path.of(String.format("%s/%s", participantDir, userQuestion.getKey()))).toFile().getAbsolutePath();
 
-                                        File file = userQuestion.getValue();
+                                        ArchiveFile archiveFile = userQuestion.getValue();
                                         Files.copy(
-                                            file.toPath(),
+                                            archiveFile.source().toPath(),
                                             Paths.get(
                                                 participantQuestionDir,
-                                                file.getName()
-                                            )
+                                                archiveFile.fileName()
+                                            ),
+                                            StandardCopyOption.REPLACE_EXISTING
                                         );
                                     } catch (IOException e) {
                                         log.error("Error copying file for user ID: [{}] and question ID: [{}]", userQuestionFile.getKey(), userQuestion.getKey(), e);
@@ -539,6 +532,21 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         }
 
         assignmentFileArchiveRepository.save(assignmentFileArchive);
+    }
+
+    /**
+     * A submitted file to put in an assignment file archive: where to read it from, and the name it
+     * goes into the archive under (the name it was uploaded with, falling back to the source's).
+     */
+    private record ArchiveFile(File source, String fileName) {
+
+        private ArchiveFile {
+            // only the last segment, so a stored name can never place the copy outside the archive
+            fileName = StringUtils.isBlank(fileName)
+                ? source.getName()
+                : Path.of(fileName).getFileName().toString();
+        }
+
     }
 
 }
