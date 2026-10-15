@@ -42,11 +42,12 @@ describe("CopyFromDialog", () => {
     expect(wrapper.find(".v-chip--only-one").exists()).toBe(false);
   });
 
-  it("shows a single Only One Version chip and auto-selects it when there is a single treatment", async () => {
+  it("shows an Only One Version chip and auto-selects it for a single-version assignment", async () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {
         assignmentName: "Quiz 1",
-        treatments: [treatments[0]]
+        treatments: [treatments[0]],
+        singleVersion: true
       }
     });
 
@@ -54,6 +55,22 @@ describe("CopyFromDialog", () => {
 
     expect(wrapper.text()).toContain("Only One Version");
     expect(wrapper.find("#treatment-option-selected").element.value).toBe("1");
+  });
+
+  // e.g. a three-condition assignment where only one other treatment has content yet
+  it("names the condition when only one treatment of a multi-version assignment can be copied", async () => {
+    const wrapper = mountComponent(CopyFromDialog, {
+      props: {
+        assignmentName: "Quiz 1",
+        treatments: [treatments[1]]
+      }
+    });
+
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain("Condition B");
+    expect(wrapper.text()).not.toContain("Only One Version");
+    expect(wrapper.find("#treatment-option-selected").element.value).toBe("2");
   });
 
   it("leaves no treatment selected by default when there are multiple treatments", () => {

@@ -535,6 +535,44 @@ describe("TerracottaBuilder", () => {
     expect(treatmentService.update).not.toHaveBeenCalled();
   });
 
+  describe("duplicate()'s copy-from dialog", () => {
+    const copyable = id => ({ treatmentId: id, conditionId: id, assessmentDto: { questions: [{ questionId: 1 }] } });
+    const empty = id => ({ treatmentId: id, conditionId: id, assessmentDto: { questions: [] } });
+
+    const openDialog = async fromAssignment => {
+      swalFire.mockImplementation(() => Promise.resolve({ isDismissed: true }));
+      const wrapper = await mountBuilder();
+      await wrapper.vm.duplicate(fromAssignment);
+
+      const target = document.createElement("div");
+      target.id = "dialog-copy-from";
+      document.body.appendChild(target);
+      const config = swalFire.mock.calls.at(-1)[0];
+      config.willOpen();
+      await wrapper.vm.$nextTick();
+
+      const text = target.textContent;
+      config.didDestroy();
+      target.remove();
+
+      return text;
+    };
+
+    // e.g. a three-condition assignment where only one other treatment has content yet
+    it("doesn't call a multi-version assignment's only copyable treatment the only version", async () => {
+      const text = await openDialog({ treatments: [copyable(101), empty(102), empty(103)] });
+
+      expect(text).toContain("Treatment");
+      expect(text).not.toContain("Only One Version");
+    });
+
+    it("calls a single-version assignment's treatment the only version", async () => {
+      const text = await openDialog({ treatments: [copyable(101)] });
+
+      expect(text).toContain("Only One Version");
+    });
+  });
+
   it("duplicate() copies the source treatment's assessment and refetches on success", async () => {
     const { exposuresService } = await import("@/services");
     exposuresService.getAll.mockResolvedValue([{
