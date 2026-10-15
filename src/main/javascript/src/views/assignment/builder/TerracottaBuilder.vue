@@ -959,6 +959,7 @@ const handleDisplayCopyFromDialog = (availableTreatments, singleVersion = false)
         CopyFromDialog,
         {
           treatments: availableTreatments,
+          assignmentName: assignmentTitle.value,
           singleVersion,
           targetConditionName: conditionName.value,
           targetConditionColor: conditionColor.value,

@@ -13,7 +13,7 @@
           <p>
             Choose the treatment from which you wish to copy content to
             <span class="copy-target-treatment">
-              Treatment
+              <b>{{ assignmentName }} - Treatment</b>{{ " " }}
 
               <v-chip
                 v-if="!targetSingleVersion"
@@ -113,6 +113,10 @@ defineOptions({
 });
 
 const props = defineProps({
+  assignmentName: {
+    type: String,
+    default: ""
+  },
   // the treatment being edited, which the content is copied to
   targetConditionName: {
     type: String,
