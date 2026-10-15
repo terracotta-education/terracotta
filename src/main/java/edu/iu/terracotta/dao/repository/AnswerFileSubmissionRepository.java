@@ -25,7 +25,7 @@ public interface AnswerFileSubmissionRepository extends JpaRepository<AnswerFile
     boolean existsByQuestionSubmission_QuestionSubmissionIdAndAnswerFileSubmissionId(Long questionSubmissionId, Long answerFileSubmissionId);
 
     /**
-     * When a consenting participant last uploaded (or replaced) a file for the assignment - the
+     * When a participant last uploaded (or replaced) a file for the assignment - the
      * same files an assignment file archive is built from (see
      * AssignmentAsyncServiceImpl.processAssignmentFileArchive).
      */
@@ -33,7 +33,6 @@ public interface AnswerFileSubmissionRepository extends JpaRepository<AnswerFile
         SELECT MAX(afs.updatedAt)
         FROM AnswerFileSubmission afs
         WHERE afs.questionSubmission.question.assessment.treatment.assignment.assignmentId = :assignmentId
-            AND afs.questionSubmission.submission.participant.consent = true
         """)
     Optional<Timestamp> findLatestUploadTimeByAssignmentId(@Param("assignmentId") long assignmentId);
 

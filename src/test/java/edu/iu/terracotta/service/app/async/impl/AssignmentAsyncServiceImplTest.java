@@ -562,9 +562,9 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         assertEquals("file contents", Files.readString(storedFile));
     }
 
-    // everyone in the course can submit, but only consenting participants are in the archive
+    // the archive is the instructor's copy of what students submitted, consented or not
     @Test
-    void testProcessAssignmentFileArchiveSkipsFilesOfParticipantsWithoutConsent() throws IOException {
+    void testProcessAssignmentFileArchiveIncludesParticipantsWithoutConsent() throws IOException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         when(question.getHtml()).thenReturn("<p>Upload your file</p>");
         when(participant.getConsent()).thenReturn(false);
@@ -580,47 +580,6 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
 
         when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
         when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
-
-        AssignmentFileArchive archive = buildAssignmentFileArchive();
-
-        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
-
-        // nothing to archive, and the participant's stored file is left as it was
-        assertEquals(AssignmentFileArchiveStatus.ERROR, archive.getStatus());
-        verify(fileStorageService, never()).getFileSubmissionLocal(anyLong());
-        assertTrue(Files.exists(sourceFile));
-        verify(assignmentFileArchiveRepository).save(archive);
-    }
-
-    @Test
-    void testProcessAssignmentFileArchiveIncludesOnlyConsentingParticipants() throws IOException {
-        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
-        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
-        when(participant2.getConsent()).thenReturn(false);
-        when(participant2.getParticipantId()).thenReturn(2L);
-        when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(List.of(participant, participant2));
-
-        Path sourceFile = tempDir.resolve("original.dat");
-        Files.writeString(sourceFile, "file contents");
-
-        Submission unconsentedSubmission = mock(Submission.class);
-        when(unconsentedSubmission.getParticipant()).thenReturn(participant2);
-        QuestionSubmission unconsentedQuestionSubmission = mock(QuestionSubmission.class);
-        when(unconsentedQuestionSubmission.getSubmission()).thenReturn(unconsentedSubmission);
-
-        AnswerFileSubmission consented = AnswerFileSubmission.builder()
-            .answerFileSubmissionId(1L)
-            .fileName("renamed.txt")
-            .questionSubmission(questionSubmission)
-            .build();
-        AnswerFileSubmission unconsented = AnswerFileSubmission.builder()
-            .answerFileSubmissionId(2L)
-            .fileName("other.txt")
-            .questionSubmission(unconsentedQuestionSubmission)
-            .build();
-
-        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(consented, unconsented));
-        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
         when(fileStorageService.compressDirectory(anyString(), eq(""), eq(AssignmentFileArchive.COMPRESSED_FILE_EXTENSION), eq(false))).thenReturn(true);
 
         AssignmentFileArchive archive = buildAssignmentFileArchive();
@@ -628,8 +587,35 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         assignmentAsyncService.processAssignmentFileArchive(archive);
 
         assertEquals(AssignmentFileArchiveStatus.READY, archive.getStatus());
-        verify(fileStorageService, never()).getFileSubmissionLocal(2L);
         verify(fileStorageService).saveAssignmentFileArchive(eq(archive), any(File.class));
+    }
+
+    // a submission from someone not in the experiment's participant list (e.g. removed since) is
+    // skipped rather than failing the whole archive
+    @Test
+    void testProcessAssignmentFileArchiveSkipsFilesOfUnlistedParticipants() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+        when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
+
+        Path sourceFile = tempDir.resolve("original.dat");
+        Files.writeString(sourceFile, "file contents");
+
+        AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            .fileName("renamed.txt")
+            .questionSubmission(questionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+
+        assertEquals(AssignmentFileArchiveStatus.ERROR, archive.getStatus());
+        verify(fileStorageService, never()).getFileSubmissionLocal(anyLong());
+        assertTrue(Files.exists(sourceFile));
     }
 
     @Test

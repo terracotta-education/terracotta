@@ -18,9 +18,9 @@ import edu.iu.Terracotta;
 /**
  * Boots the real Spring/Hibernate context to verify that
  * {@link AnswerFileSubmissionRepository#findLatestUploadTimeByAssignmentId} walks the
- * submission -> question -> assessment -> treatment -> assignment path correctly, returns the
- * newest upload, and ignores uploads from participants who haven't consented (those uploads
- * never go into the file archive, so they shouldn't mark it outdated).
+ * submission -> question -> assessment -> treatment -> assignment path correctly and returns the
+ * newest upload, from any participant: the file archive includes everyone's files, consenting or
+ * not, so anyone's upload makes it outdated.
  */
 @SpringBootTest(
     classes = Terracotta.class,
@@ -86,7 +86,7 @@ class AnswerFileSubmissionRepositoryLatestUploadQueryTest {
 
         insertUpload(1, 1, "2026-01-01 00:00:00");
         insertUpload(2, 1, "2026-02-01 00:00:00");
-        // newer, but from participants who haven't consented
+        // newer, from participants who haven't consented (false) or haven't answered (null)
         insertUpload(3, 2, "2026-03-01 00:00:00");
         insertUpload(4, 3, "2026-03-15 00:00:00");
         // newer, but for the other assignment
@@ -96,11 +96,11 @@ class AnswerFileSubmissionRepositoryLatestUploadQueryTest {
     }
 
     @Test
-    void returnsTheNewestUploadFromConsentingParticipants() {
+    void returnsTheNewestUploadWhetherOrNotTheParticipantConsented() {
         Optional<Timestamp> latest = answerFileSubmissionRepository.findLatestUploadTimeByAssignmentId(1L);
 
         assertTrue(latest.isPresent());
-        assertEquals(Timestamp.valueOf("2026-02-01 00:00:00"), latest.get());
+        assertEquals(Timestamp.valueOf("2026-03-15 00:00:00"), latest.get());
     }
 
     @Test

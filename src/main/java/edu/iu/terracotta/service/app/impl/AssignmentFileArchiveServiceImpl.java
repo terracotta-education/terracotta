@@ -217,7 +217,7 @@ public class AssignmentFileArchiveServiceImpl implements AssignmentFileArchiveSe
         return !hasUploadsSince(assignmentFileArchive.getAssignmentId(), assignmentFileArchive.getCreatedAt());
     }
 
-    // whether a consenting participant uploaded or replaced a file for the assignment after the given time
+    // whether any participant uploaded or replaced a file for the assignment after the given time
     private boolean hasUploadsSince(long assignmentId, Timestamp since) {
         Optional<Timestamp> latestUpload = answerFileSubmissionRepository.findLatestUploadTimeByAssignmentId(assignmentId);
 
