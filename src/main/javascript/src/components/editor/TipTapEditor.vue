@@ -177,7 +177,10 @@ const configure = computed(() => {
     },
     youTube: {
       modestBranding: true,
-      inline: true,
+      // a block of its own: inline, the video lands inside the paragraph or heading the cursor is
+      // in, which stretches that line and, since a <div> can't sit in a <p> or <h1>, gets split
+      // into extra empty paragraphs when the HTML is shown or loaded again
+      inline: false,
       nocookie: true
     }
   };
@@ -289,6 +292,12 @@ const extensions = computed(() => {
   };
 });
 
+// Tiptap keeps an empty paragraph after a list, video or rule at the end so there's a line to type
+// on; it isn't content, so it's left out of the HTML
+const withoutTrailingEmptyParagraphs = value => {
+  return value.replace(/(<p><\/p>)+$/, "");
+};
+
 const onUpdate = computed(() => {
   return {
     basic: ({ editor: currentEditor }) => {
@@ -302,9 +311,10 @@ const onUpdate = computed(() => {
     },
 
     html: ({ editor: currentEditor }) => {
-      html.value = currentEditor.getText()
-        ? currentEditor.getHTML()
-        : "";
+      // isEmpty, not getText(): a video alone has no text but is content
+      html.value = currentEditor.isEmpty
+        ? ""
+        : withoutTrailingEmptyParagraphs(currentEditor.getHTML());
 
       emit("edited", html.value);
     }
@@ -410,9 +420,9 @@ const createEditors = () => {
 
   switch (props.editorType) {
     case "html":
-      html.value = htmlEditor.value.getText()
-        ? htmlEditor.value.getHTML()
-        : "";
+      html.value = htmlEditor.value.isEmpty
+        ? ""
+        : withoutTrailingEmptyParagraphs(htmlEditor.value.getHTML());
       break;
 
     case "basic":

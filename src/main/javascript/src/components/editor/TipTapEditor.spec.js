@@ -137,6 +137,70 @@ describe("TipTapEditor", () => {
     expect(editedEvents[0][0]).toContain("Hello world");
   });
 
+  const lastEdited = wrapper => {
+    const edits = wrapper.emitted("edited");
+
+    return edits[edits.length - 1][0];
+  };
+
+  const video = '<div data-youtube-video=""><iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe></div>';
+
+  it("keeps a video in a block of its own rather than inside the heading it follows", async () => {
+    // saved before videos were block elements: the video inside the heading
+    wrapper = await mountEditor({
+      props: {
+        content: `<h1>Do your best${video}</h1>`,
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toMatch(/^<h1>Do your best<\/h1><div data-youtube-video="">/);
+  });
+
+  it("leaves the trailing empty paragraph the editor adds out of the HTML", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: "<p>Read this</p><ul><li><p>one</p></li></ul>",
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toBe("<p>Read this</p><ul><li><p>one</p></li></ul>");
+  });
+
+  it("keeps empty paragraphs the author put between content", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: "<p>one</p><p></p><p>two</p>",
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toBe("<p>one</p><p></p><p>two</p>");
+  });
+
+  it("keeps a video that is the only content", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: video,
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toMatch(/^<div data-youtube-video=""><iframe .*dQw4w9WgXcQ/);
+  });
+
+  it("emits an empty string for an empty html editor", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: "",
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toBe("");
+  });
+
   it("emits cursor on mount", async () => {
     wrapper = await mountEditor({
       props: {
