@@ -132,6 +132,7 @@
                 <div
                   v-if="item.tab !== 'results'"
                   class="container-section-summary px-5"
+                  :class="{ 'container-section-summary--components': item.tab === 'components' }"
                 >
                   <div class="panel-overview py-6">
                     <div class="panel-information d-flex flex-column justify-center">
@@ -1258,6 +1259,11 @@ table {
 div.container-section-summary {
   padding-bottom: 40px;
 
+  // the components tab's alerts and exposure sets follow straight on
+  &.container-section-summary--components {
+    padding-bottom: 16px;
+  }
+
   div.panel-overview {
     padding-bottom: 0 !important;
   }
@@ -1347,5 +1353,12 @@ div.results {
   & h3 {
     padding-top: 0 !important;
   }
+}
+
+// App.vue's global p padding and .v-application p margin win over the pb-0 utility (Vuetify's
+// utilities sit in a cascade layer), which left a 31px gap above the exposure set tabs
+.exposure-set-explanation {
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 </style>

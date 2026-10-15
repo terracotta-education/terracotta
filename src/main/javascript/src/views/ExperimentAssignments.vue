@@ -31,7 +31,7 @@
                   v-if="loaded && exposureRows.length"
                   class="component-buttons d-flex justify-space-between"
                 >
-                  <div v-if="isMessagingEnabled" class="mb-5 mr-5">
+                  <div v-if="isMessagingEnabled" class="mr-5">
                     <AddMessageDialog
                       :has-existing="true"
                       :is-single-condition-experiment="singleConditionExperiment"
@@ -1060,7 +1060,7 @@ onMounted(async () => {
 }
 
 div.section-components.py-3.px-3 {
-  padding-top: 40px !important;
+  padding-top: 16px !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
@@ -1146,6 +1146,13 @@ div.components-header {
      pushing it off-screen to the right instead of dropping below. */
   flex-wrap: wrap;
   row-gap: 16px;
+
+  /* the browser's default h3 margins and App.vue's heading padding made this
+     row twice the buttons' height */
+  & h3 {
+    margin: 0;
+    padding-bottom: 0;
+  }
 }
 
 div.component-buttons {
