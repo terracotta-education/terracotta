@@ -12,7 +12,24 @@
 
           <p>
             Choose the treatment from which you wish to copy content to
-            <b>{{ assignmentName }}</b>.
+            <span class="copy-target-treatment">
+              Treatment
+
+              <v-chip
+                v-if="!targetSingleVersion"
+                :color="targetConditionColor"
+                variant="flat"
+                label
+              >
+                {{ targetConditionName }}
+              </v-chip>
+
+              <v-chip
+                v-else
+                label
+                color="lightgrey"
+                class="v-chip--only-one"
+              >Only One Version</v-chip></span>.
           </p>
         </div>
       </template>
@@ -96,9 +113,18 @@ defineOptions({
 });
 
 const props = defineProps({
-  assignmentName: {
+  // the treatment being edited, which the content is copied to
+  targetConditionName: {
     type: String,
-    required: true
+    default: ""
+  },
+  targetConditionColor: {
+    type: String,
+    default: undefined
+  },
+  targetSingleVersion: {
+    type: Boolean,
+    default: false
   },
   treatments: {
     type: Array,
