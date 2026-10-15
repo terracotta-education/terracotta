@@ -706,7 +706,8 @@ const duplicate = async fromAssignment => {
       };
     });
 
-  const selectedTreatment = await handleDisplayCopyFromDialog(availableTreatments);
+  // the same test the components table uses for an "Only One Version" component
+  const selectedTreatment = await handleDisplayCopyFromDialog(availableTreatments, fromAssignment.treatments.length === 1);
 
   if (!selectedTreatment || selectedTreatment.isDismissed) {
     return;
@@ -914,7 +915,7 @@ const handleUrlValidationInProgress = value => {
   urlValidationInProgress.value = value;
 };
 
-const handleDisplayCopyFromDialog = availableTreatments => {
+const handleDisplayCopyFromDialog = (availableTreatments, singleVersion = false) => {
   let dialogApp = null;
 
   return Swal.fire({
@@ -948,7 +949,8 @@ const handleDisplayCopyFromDialog = availableTreatments => {
         CopyFromDialog,
         {
           treatments: availableTreatments,
-          assignmentName: assignmentTitle.value
+          assignmentName: assignmentTitle.value,
+          singleVersion
         }
       );
     },

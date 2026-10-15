@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="copy-from-dialog">
     <v-radio-group
       id="copy-radio-group"
       v-model="selectedTreatmentOption"
@@ -30,7 +30,7 @@
             Treatment
 
             <v-chip
-              v-if="treatments.length > 1"
+              v-if="!singleVersion"
               :color="treatment.conditionColor"
               label
             >
@@ -76,6 +76,12 @@ const props = defineProps({
   treatments: {
     type: Array,
     required: true
+  },
+  // whether the source assignment really has only one version. Not the same as one treatment
+  // being listed: treatments with nothing to copy, and the one being edited, aren't listed
+  singleVersion: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -113,6 +119,13 @@ watch(
 <style lang="scss" scoped>
 div.swal2-popup.swal2-modal.move-assignment-popup {
   width: 52em !important;
+}
+
+// the radio group's label (the title and instructions) is a v-label, which doesn't wrap and clips
+// what doesn't fit. It renders outside #copy-radio-group, so this hangs off the dialog's own root
+.copy-from-dialog :deep(.v-label) {
+  white-space: normal;
+  overflow: visible;
 }
 
 #copy-radio-group {
