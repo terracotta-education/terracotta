@@ -20,10 +20,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -469,7 +471,7 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testProcessAssignmentFileArchiveRenameFailureLoggedAndResultsInErrorStatus() throws IOException {
+    void testProcessAssignmentFileArchiveMissingFileLeftOutAndResultsInErrorStatus() throws IOException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         when(question.getHtml()).thenReturn("<p>Upload your file</p>");
 
@@ -516,6 +518,48 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(fileStorageService).compressDirectory(anyString(), eq(""), eq(AssignmentFileArchive.COMPRESSED_FILE_EXTENSION), eq(false));
         verify(fileStorageService).saveAssignmentFileArchive(eq(archive), any(File.class));
         verify(assignmentFileArchiveRepository).save(archive);
+    }
+
+    // an uncompressed submission's file is the stored file itself, so the archive must copy it, not
+    // move it, or later downloads of that submission can't find it
+    @Test
+    void testProcessAssignmentFileArchiveCopiesStoredFileUnderItsUploadedName() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+
+        Path storedFile = tempDir.resolve("stored-encoded-name.dat");
+        Files.writeString(storedFile, "file contents");
+
+        AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            // a path in the stored name must not place the copy outside the archive
+            .fileName("../../essay.docx")
+            .questionSubmission(questionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
+        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(storedFile.toFile());
+
+        List<String> archivedFiles = new ArrayList<>();
+        when(fileStorageService.compressDirectory(anyString(), eq(""), eq(AssignmentFileArchive.COMPRESSED_FILE_EXTENSION), eq(false))).thenAnswer(invocation -> {
+            Path archiveDir = Path.of(invocation.getArgument(0, String.class));
+
+            try (Stream<Path> files = Files.walk(archiveDir)) {
+                files.filter(Files::isRegularFile).forEach(f -> archivedFiles.add(archiveDir.relativize(f).toString()));
+            }
+
+            return true;
+        });
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assignmentAsyncService.processAssignmentFileArchive(archive);
+
+        assertEquals(AssignmentFileArchiveStatus.READY, archive.getStatus());
+        assertEquals(1, archivedFiles.size());
+        assertTrue(archivedFiles.get(0).endsWith("/Upload your file/essay.docx"), archivedFiles.get(0));
+        assertTrue(Files.exists(storedFile));
+        assertEquals("file contents", Files.readString(storedFile));
     }
 
     // everyone in the course can submit, but only consenting participants are in the archive
