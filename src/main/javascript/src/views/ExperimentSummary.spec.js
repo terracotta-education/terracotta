@@ -110,6 +110,8 @@ const exposure = { exposureId: 60, groupConditionList: [] };
 
 const stubs = {
   ExperimentAssignments: true,
+  // fetches from the API itself; covered by its own spec
+  NewSubmissionsAlerts: true,
   ExperimentSummaryStatus: true,
   ResultsDashboard: true,
   VuePdfEmbed: true
@@ -279,6 +281,21 @@ describe("ExperimentSummary", () => {
     expect(
       wrapper.findComponent({ name: "ExperimentAssignments" }).props("activeExposureSet")
     ).toBe(0);
+  });
+
+  it("shows the new-submissions alerts above the exposure sets on the components tab", async () => {
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(wrapper.findComponent({ name: "NewSubmissionsAlerts" }).exists()).toBe(true);
+    });
+
+    const alerts = wrapper.findComponent({ name: "NewSubmissionsAlerts" });
+    expect(alerts.props("experimentId")).toBe(wrapper.findComponent({ name: "ExperimentAssignments" }).props("experiment").experimentId);
+
+    // first in the components section, before the Exposure Sets panel
+    const section = wrapper.find(".section-exposure-sets");
+    expect(section.element.firstElementChild).toBe(alerts.element);
   });
 
   it("restores the tab and exposure set from a saved edit-mode caller page", async () => {

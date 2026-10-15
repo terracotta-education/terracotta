@@ -167,6 +167,11 @@
 
                 <template v-if="item.tab === 'components'">
                   <div class="section-exposure-sets px-5">
+                    <NewSubmissionsAlerts
+                      v-if="loaded"
+                      :experiment-id="experimentId"
+                    />
+
                     <div
                       v-if="!singleConditionExperiment"
                       class="panel-information d-flex flex-column justify-center"
@@ -437,6 +442,7 @@ import { EventBus } from "@/helpers/event-bus";
 import { statusAlert, createStatusAlert, getColor } from "@/helpers/ui-utils";
 
 import ExperimentAssignments from "@/views/ExperimentAssignments.vue";
+import NewSubmissionsAlerts from "@/components/experiment-assignments/NewSubmissionsAlerts.vue";
 import ExperimentSummaryStatus from "@/views/ExperimentSummaryStatus.vue";
 import Help from "@/components/Help.vue";
 import ResultsDashboard from "@/views/dashboard/results/ResultsDashboard.vue";

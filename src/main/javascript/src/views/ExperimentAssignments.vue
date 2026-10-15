@@ -9,8 +9,6 @@
     <v-container v-if="loaded && experiment" class="px-0" fluid>
       <v-row>
         <v-col cols="12">
-          <NewSubmissionsAlerts :experiment-id="experimentId" />
-
           <ExposureTabs
             v-model="tab"
             :exposures="exposures"
@@ -133,7 +131,6 @@ import AddMessageDialog from "@/views/messaging/components/dialog/AddMessageDial
 import MoveAssignmentDialog from "@/components/dialog/MoveAssignmentDialog.vue";
 import ExposureTabs from "@/components/experiment-assignments/ExposureTabs.vue";
 import ComponentTable from "@/components/experiment-assignments/ComponentTable.vue";
-import NewSubmissionsAlerts from "@/components/experiment-assignments/NewSubmissionsAlerts.vue";
 import ExposureDesignCard from "@/components/experiment-assignments/ExposureDesignCard.vue";
 
 import vuetify from "@/plugins/vuetify";
