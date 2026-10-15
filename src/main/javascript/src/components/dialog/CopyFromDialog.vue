@@ -21,8 +21,7 @@
         v-for="treatment in treatments"
         :key="treatment.treatmentId"
         :disabled="!treatment.disabled"
-        text="This treatment has no content."
-        location="top"
+        location="end"
         content-class="tool-tip-content"
       >
         <template #activator="{ props: tooltipProps }">
@@ -45,6 +44,7 @@
                   <v-chip
                     v-if="!singleVersion"
                     :color="treatment.conditionColor"
+                    variant="flat"
                     label
                   >
                     {{ treatment.conditionName }}
@@ -70,6 +70,10 @@
             </v-radio>
           </div>
         </template>
+
+        <div class="tool-tip-content-body">
+          This treatment has no content.
+        </div>
       </v-tooltip>
     </v-radio-group>
 
@@ -152,6 +156,23 @@ div.swal2-popup.swal2-modal.move-assignment-popup {
 .copy-from-dialog :deep(.v-label) {
   white-space: normal;
   overflow: visible;
+  // v-label fades its text by default, which left the title and instructions washed out
+  opacity: 1;
+}
+
+.copy-from-dialog .copy-radio-label {
+  color: rgba(0, 0, 0, 0.87);
+}
+
+// unavailable, but still readable (Vuetify's own 0.38 made the condition unreadable)
+.copy-from-dialog :deep(.v-selection-control--disabled) {
+  opacity: 0.6;
+}
+
+// only as wide as the option, so the tooltip sits beside the treatment it's about
+.treatment-radio-option-wrapper {
+  display: flex;
+  width: fit-content;
 }
 
 #copy-radio-group {

@@ -73,6 +73,15 @@ describe("CopyFromDialog", () => {
     expect(wrapper.find("#treatment-option-selected").element.value).toBe("2");
   });
 
+  it("shows condition chips as solid color, like the components table", () => {
+    const wrapper = mountComponent(CopyFromDialog, {
+      props: { assignmentName: "Quiz 1", treatments }
+    });
+
+    // tonal chips use the pale condition colors as their text color, which was unreadable
+    expect(wrapper.findAllComponents({ name: "VChip" }).map(chip => chip.props("variant"))).toEqual(["flat", "flat"]);
+  });
+
   describe("treatments with no content", () => {
     const withEmpty = [
       { treatmentId: 1, conditionName: "Condition A", conditionColor: "blue" },
@@ -90,7 +99,9 @@ describe("CopyFromDialog", () => {
 
       const tooltips = wrapper.findAllComponents({ name: "VTooltip" });
       expect(tooltips.map(tooltip => tooltip.props("disabled"))).toEqual([true, false, false]);
-      expect(tooltips[1].props("text")).toBe("This treatment has no content.");
+      // beside the treatment it's about, not over the option above it
+      expect(tooltips[1].props("location")).toBe("end");
+      expect(tooltips[1].props("contentClass")).toBe("tool-tip-content");
       // and for screen readers, which don't get the tooltip on a disabled radio
       expect(wrapper.findAll(".d-sr-only").map(el => el.text())).toEqual(["This treatment has no content.", "This treatment has no content."]);
     });
