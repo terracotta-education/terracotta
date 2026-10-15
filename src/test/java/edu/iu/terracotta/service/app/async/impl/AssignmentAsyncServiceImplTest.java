@@ -515,7 +515,7 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testProcessAssignmentFileArchiveNoConsentingParticipantsThrowsNpe() throws IOException {
+    void testProcessAssignmentFileArchiveIncludesParticipantsWithoutConsent() throws IOException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         when(question.getHtml()).thenReturn("<p>Upload your file</p>");
         when(participant.getConsent()).thenReturn(false);
@@ -532,9 +532,15 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
         when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
 
+        when(fileStorageService.compressDirectory(anyString(), eq(""), eq(AssignmentFileArchive.COMPRESSED_FILE_EXTENSION), eq(false))).thenReturn(true);
+
         AssignmentFileArchive archive = buildAssignmentFileArchive();
 
-        assertThrows(NullPointerException.class, () -> assignmentAsyncService.processAssignmentFileArchive(archive));
+        // the archive is the instructor's copy of what students submitted, consented or not
+        assignmentAsyncService.processAssignmentFileArchive(archive);
+
+        assertEquals(AssignmentFileArchiveStatus.READY, archive.getStatus());
+        verify(fileStorageService).saveAssignmentFileArchive(eq(archive), any(File.class));
     }
 
     @Test

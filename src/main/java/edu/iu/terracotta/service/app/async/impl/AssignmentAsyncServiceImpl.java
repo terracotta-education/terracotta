@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.jsoup.Jsoup;
@@ -376,10 +375,9 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             return;
         }
 
-        // get all consenting participants for the experiment
-        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(assignmentFileArchive.getExperimentId()).stream()
-            .filter(participant -> BooleanUtils.isTrue(participant.getConsent()))
-            .toList();
+        // every participant, whether or not they consented: the archive is the instructor's copy of
+        // the files students submitted
+        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(assignmentFileArchive.getExperimentId());
 
         Map<Long, String> participantNameMap = new HashMap<>();
 
