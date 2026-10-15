@@ -77,8 +77,6 @@ const messageContainer = {
 };
 
 const stubs = {
-  // fetches from the API itself; covered by its own spec
-  NewSubmissionsAlerts: true,
   ExposureTabs: true,
   ComponentTable: true,
   ExposureDesignCard: true,
