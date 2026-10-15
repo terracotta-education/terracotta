@@ -26,6 +26,9 @@ public final class LmsOAuthState {
     private LmsOAuthState() {
     }
 
+    // jjwt's expiration and issuedAt take only java.util.Date, so the times are worked out with
+    // java.time and converted at that boundary
+    @SuppressWarnings("java:S2143")
     public static String build(String privateKey, String issuer, long platformDeploymentId, String userKey) throws GeneralSecurityException {
         Instant now = Instant.now();
 
@@ -34,7 +37,6 @@ public final class LmsOAuthState {
             .add(LtiStrings.KID, TextConstants.DEFAULT_KID)
             .and()
             .issuer(issuer)
-            // the JWT library takes java.util.Date
             .expiration(Date.from(now.plusSeconds(LIFETIME_SECONDS)))
             .issuedAt(Date.from(now))
             .claim(JwtClaim.PLATFORM_DEPLOYMENT_ID.key(), platformDeploymentId)
