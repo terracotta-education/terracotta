@@ -555,6 +555,7 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         assertEquals("userKey", claims.get(JwtClaim.USER_ID.key(), String.class));
         assertNull(claims.get(JwtClaim.ROLES.key()));
         assertNull(claims.get(JwtClaim.NONCE.key()));
+        assertEquals(3600_000L, claims.getExpiration().getTime() - claims.getIssuedAt().getTime());
         assertTrue(state.length() < launchToken.length() / 2, () -> "state " + state.length() + " vs launch token " + launchToken.length());
     }
 

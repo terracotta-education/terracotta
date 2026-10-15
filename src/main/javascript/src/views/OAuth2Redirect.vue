@@ -74,13 +74,12 @@
           >
             Go to the {{ lmsTitle }} Authorization Page
           </v-btn>
-          <p
+          <output
             v-if="waiting"
             class="authorization-waiting"
-            role="status"
           >
             Finish authorizing in the window that opened. This page continues on its own once you're done.
-          </p>
+          </output>
         </v-card-actions>
       </v-card>
     </v-col>
@@ -218,6 +217,7 @@ onBeforeUnmount(stopPolling);
   }
 }
 .authorization-waiting {
+  display: block;
   margin: 12px 0 0;
   font-size: 14px;
   line-height: 20px;
