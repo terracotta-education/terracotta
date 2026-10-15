@@ -17,37 +17,60 @@
         </div>
       </template>
 
-      <v-radio
+      <v-tooltip
         v-for="treatment in treatments"
         :key="treatment.treatmentId"
-        :value="treatment.treatmentId"
-        class="treatment-radio-option"
-        color="primary"
-        ripple
+        :disabled="!treatment.disabled"
+        text="This treatment has no content."
+        location="top"
+        content-class="tool-tip-content"
       >
-        <template #label>
-          <div class="treatment-radio-option-label">
-            Treatment
-
-            <v-chip
-              v-if="!singleVersion"
-              :color="treatment.conditionColor"
-              label
+        <template #activator="{ props: tooltipProps }">
+          <!-- a disabled radio doesn't get pointer events, so the tooltip hangs off this wrapper -->
+          <div
+            v-bind="tooltipProps"
+            class="treatment-radio-option-wrapper"
+          >
+            <v-radio
+              :value="treatment.treatmentId"
+              :disabled="!!treatment.disabled"
+              class="treatment-radio-option"
+              color="primary"
+              ripple
             >
-              {{ treatment.conditionName }}
-            </v-chip>
+              <template #label>
+                <div class="treatment-radio-option-label">
+                  Treatment
 
-            <v-chip
-              v-else
-              label
-              color="lightgrey"
-              class="v-chip--only-one"
-            >
-              Only One Version
-            </v-chip>
+                  <v-chip
+                    v-if="!singleVersion"
+                    :color="treatment.conditionColor"
+                    label
+                  >
+                    {{ treatment.conditionName }}
+                  </v-chip>
+
+                  <v-chip
+                    v-else
+                    label
+                    color="lightgrey"
+                    class="v-chip--only-one"
+                  >
+                    Only One Version
+                  </v-chip>
+
+                  <span
+                    v-if="treatment.disabled"
+                    class="d-sr-only"
+                  >
+                    This treatment has no content.
+                  </span>
+                </div>
+              </template>
+            </v-radio>
           </div>
         </template>
-      </v-radio>
+      </v-tooltip>
     </v-radio-group>
 
     <input
@@ -90,8 +113,11 @@ const selectedTreatmentOption = ref(null);
 watch(
   () => props.treatments,
   treatments => {
-    if (treatments.length === 1) {
-      selectedTreatmentOption.value = treatments[0].treatmentId;
+    // nothing to choose between when only one treatment has content
+    const selectable = treatments.filter(treatment => !treatment.disabled);
+
+    if (selectable.length === 1) {
+      selectedTreatmentOption.value = selectable[0].treatmentId;
     }
   },
   {
