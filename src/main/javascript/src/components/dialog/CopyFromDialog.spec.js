@@ -17,15 +17,17 @@ const treatments = [
 ];
 
 describe("CopyFromDialog", () => {
-  it("renders the assignment name and a radio option per treatment", () => {
+  it("names the treatment being copied to, and lists a radio option per treatment", () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {
-        assignmentName: "Quiz 1",
+        targetConditionName: "Condition C",
         treatments
       }
     });
 
-    expect(wrapper.text()).toContain("Quiz 1");
+    expect(wrapper.find(".copy-radio-label p").text().replace(/\s+/g, " ")).toBe(
+      "Choose the treatment from which you wish to copy content to Treatment Condition C."
+    );
     expect(wrapper.findAllComponents({ name: "VRadio" }).length).toBe(2);
     expect(wrapper.text()).toContain("Condition A");
     expect(wrapper.text()).toContain("Condition B");
@@ -34,7 +36,7 @@ describe("CopyFromDialog", () => {
   it("shows a condition chip per treatment when there is more than one treatment", () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {
-        assignmentName: "Quiz 1",
+        targetConditionName: "Condition C",
         treatments
       }
     });
@@ -45,7 +47,7 @@ describe("CopyFromDialog", () => {
   it("shows an Only One Version chip and auto-selects it for a single-version assignment", async () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {
-        assignmentName: "Quiz 1",
+        targetConditionName: "Condition C",
         treatments: [treatments[0]],
         singleVersion: true
       }
@@ -61,7 +63,7 @@ describe("CopyFromDialog", () => {
   it("names the condition when only one treatment of a multi-version assignment can be copied", async () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {
-        assignmentName: "Quiz 1",
+        targetConditionName: "Condition C",
         treatments: [treatments[1]]
       }
     });
@@ -75,11 +77,22 @@ describe("CopyFromDialog", () => {
 
   it("shows condition chips as solid color, like the components table", () => {
     const wrapper = mountComponent(CopyFromDialog, {
-      props: { assignmentName: "Quiz 1", treatments }
+      props: { targetConditionName: "Condition C", treatments }
     });
 
     // tonal chips use the pale condition colors as their text color, which was unreadable
-    expect(wrapper.findAllComponents({ name: "VChip" }).map(chip => chip.props("variant"))).toEqual(["flat", "flat"]);
+    // the treatment being copied to, then one per option
+    expect(wrapper.findAllComponents({ name: "VChip" }).map(chip => chip.props("variant"))).toEqual(["flat", "flat", "flat"]);
+  });
+
+  it("calls the treatment being copied to the only version when its assignment has one", () => {
+    const wrapper = mountComponent(CopyFromDialog, {
+      props: { targetSingleVersion: true, treatments }
+    });
+
+    expect(wrapper.find(".copy-radio-label p").text().replace(/\s+/g, " ")).toBe(
+      "Choose the treatment from which you wish to copy content to Treatment Only One Version."
+    );
   });
 
   describe("treatments with no content", () => {
@@ -91,7 +104,7 @@ describe("CopyFromDialog", () => {
 
     it("lists them disabled, with a tooltip saying why", () => {
       const wrapper = mountComponent(CopyFromDialog, {
-        props: { assignmentName: "Quiz 1", treatments: withEmpty }
+        props: { targetConditionName: "Condition C", treatments: withEmpty }
       });
 
       const radios = wrapper.findAllComponents({ name: "VRadio" });
@@ -108,7 +121,7 @@ describe("CopyFromDialog", () => {
 
     it("selects the one treatment that has content", async () => {
       const wrapper = mountComponent(CopyFromDialog, {
-        props: { assignmentName: "Quiz 1", treatments: withEmpty }
+        props: { targetConditionName: "Condition C", treatments: withEmpty }
       });
 
       await wrapper.vm.$nextTick();
@@ -120,7 +133,7 @@ describe("CopyFromDialog", () => {
   it("leaves no treatment selected by default when there are multiple treatments", () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {
-        assignmentName: "Quiz 1",
+        targetConditionName: "Condition C",
         treatments
       }
     });
@@ -131,7 +144,7 @@ describe("CopyFromDialog", () => {
   it("updates the hidden input when a radio option is selected", async () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {
-        assignmentName: "Quiz 1",
+        targetConditionName: "Condition C",
         treatments
       }
     });
