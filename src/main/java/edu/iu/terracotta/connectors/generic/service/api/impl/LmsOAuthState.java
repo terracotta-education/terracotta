@@ -18,6 +18,9 @@ import io.jsonwebtoken.Jwts.SIG;
  * state that pushes the cookie past the browser's limit is silently dropped, and Canvas then
  * reports "Must submit new OAuth2 request".
  */
+// jjwt's expiration and issuedAt take only java.util.Date, so the times are worked out with java.time
+// and converted at that boundary
+@SuppressWarnings("java:S2143")
 public final class LmsOAuthState {
 
     // long enough to log in to the LMS and read its authorization page
@@ -26,9 +29,6 @@ public final class LmsOAuthState {
     private LmsOAuthState() {
     }
 
-    // jjwt's expiration and issuedAt take only java.util.Date, so the times are worked out with
-    // java.time and converted at that boundary
-    @SuppressWarnings("java:S2143")
     public static String build(String privateKey, String issuer, long platformDeploymentId, String userKey) throws GeneralSecurityException {
         Instant now = Instant.now();
 
