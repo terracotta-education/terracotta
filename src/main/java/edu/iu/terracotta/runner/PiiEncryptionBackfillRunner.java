@@ -38,15 +38,18 @@ import lombok.extern.slf4j.Slf4j;
 @SuppressWarnings({"PMD.GuardLogStatement"})
 public class PiiEncryptionBackfillRunner implements ApplicationListener<ApplicationReadyEvent> {
 
+    private static final String EMAIL = "email";
+    private static final String WHERE = " WHERE ";
+
     /**
      * The encrypted columns, by table. A secret an admin later adds straight to the database (e.g.
      * a new iss_configuration row) is read as plain text until the next startup encrypts it. lms_user_batch isn't here: it only holds a roster while a
      * sync runs, and the migration dropped what was left of it.
      */
     static final List<Target> TARGETS = List.of(
-        new Target("lti_user", "user_id", List.of("email", "displayname"), "email", "email_hash"),
+        new Target("lti_user", "user_id", List.of(EMAIL, "displayname"), EMAIL, "email_hash"),
         new Target("api_token", "token_id", List.of("lms_user_name", "access_token", "refresh_token"), null, null),
-        new Target("terr_messaging_email_reply_to", "id", List.of("email"), null, null),
+        new Target("terr_messaging_email_reply_to", "id", List.of(EMAIL), null, null),
         new Target("terr_submission_comment", "submission_comment_id", List.of("creator"), null, null),
         new Target("terr_question_submission_comment", "question_submission_comment_id", List.of("creator"), null, null),
         new Target("terr_messaging_piped_text_item_value", "id", List.of("value"), null, null),
@@ -212,7 +215,7 @@ public class PiiEncryptionBackfillRunner implements ApplicationListener<Applicat
         }
 
         String sql = "UPDATE " + target.table() + " SET " + String.join(", ", sets)
-            + " WHERE " + target.idColumn() + " = ? AND " + String.join(" AND ", unchanged);
+            + WHERE + target.idColumn() + " = ? AND " + String.join(" AND ", unchanged);
         setArgs.addAll(whereArgs);
 
         return jdbcTemplate.update(sql, setArgs.toArray()) == 1;
@@ -241,7 +244,7 @@ public class PiiEncryptionBackfillRunner implements ApplicationListener<Applicat
 
             return "SELECT " + idColumn + ", " + String.join(", ", columns)
                 + " FROM " + table
-                + " WHERE " + idColumn + " > ? AND (" + encrypted + ")"
+                + WHERE + idColumn + " > ? AND (" + encrypted + ")"
                 + " ORDER BY " + idColumn
                 + " LIMIT ?";
         }
@@ -258,7 +261,7 @@ public class PiiEncryptionBackfillRunner implements ApplicationListener<Applicat
 
             return "SELECT " + idColumn + ", " + String.join(", ", columns)
                 + " FROM " + table
-                + " WHERE " + idColumn + " > ? AND (" + needsEncrypting + ")"
+                + WHERE + idColumn + " > ? AND (" + needsEncrypting + ")"
                 + " ORDER BY " + idColumn
                 + " LIMIT ?";
         }

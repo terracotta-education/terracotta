@@ -43,6 +43,9 @@ public final class PiiCli {
     private PiiCli() {
     }
 
+    // a command-line tool: printing to the terminal is its output, not logging. run() takes the
+    // streams so tests can supply their own
+    @SuppressWarnings("java:S106")
     public static void main(String[] args) throws IOException {
         System.exit(run(
             args,
