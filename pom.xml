@@ -51,7 +51,7 @@
         <!-- override spring-boot-starter-parent's managed 11.0.24 - fixes several critical/high
              CVEs (auth bypass, security constraint bypass) found via OWASP dependency-check;
              see https://tomcat.apache.org/security-11.html -->
-        <tomcat.version>11.0.25</tomcat.version>
+        <tomcat.version>11.0.26</tomcat.version>
         <zip4j.version>2.11.6</zip4j.version>
     </properties>
 
