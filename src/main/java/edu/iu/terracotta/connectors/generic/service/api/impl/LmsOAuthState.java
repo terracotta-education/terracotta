@@ -2,7 +2,6 @@ package edu.iu.terracotta.connectors.generic.service.api.impl;
 
 import java.security.GeneralSecurityException;
 import java.time.Instant;
-import java.util.Date;
 
 import edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim;
 import edu.iu.terracotta.utils.LtiStrings;
@@ -37,8 +36,8 @@ public final class LmsOAuthState {
             .add(LtiStrings.KID, TextConstants.DEFAULT_KID)
             .and()
             .issuer(issuer)
-            .expiration(Date.from(now.plusSeconds(LIFETIME_SECONDS)))
-            .issuedAt(Date.from(now))
+            .expiration(java.util.Date.from(now.plusSeconds(LIFETIME_SECONDS)))
+            .issuedAt(java.util.Date.from(now))
             .claim(JwtClaim.PLATFORM_DEPLOYMENT_ID.key(), platformDeploymentId)
             .claim(JwtClaim.USER_ID.key(), userKey)
             .signWith(OAuthUtils.loadPrivateKey(privateKey), SIG.RS256)
