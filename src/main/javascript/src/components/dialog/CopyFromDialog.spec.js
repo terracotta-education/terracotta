@@ -20,14 +20,16 @@ describe("CopyFromDialog", () => {
   it("names the treatment being copied to, and lists a radio option per treatment", () => {
     const wrapper = mountComponent(CopyFromDialog, {
       props: {
+        assignmentName: "Quiz 1",
         targetConditionName: "Condition C",
         treatments
       }
     });
 
     expect(wrapper.find(".copy-radio-label p").text().replace(/\s+/g, " ")).toBe(
-      "Choose the treatment from which you wish to copy content to Treatment Condition C."
+      "Choose the treatment from which you wish to copy content to Quiz 1 - Treatment Condition C."
     );
+    expect(wrapper.find(".copy-target-treatment b").text()).toBe("Quiz 1 - Treatment");
     expect(wrapper.findAllComponents({ name: "VRadio" }).length).toBe(2);
     expect(wrapper.text()).toContain("Condition A");
     expect(wrapper.text()).toContain("Condition B");
@@ -87,11 +89,11 @@ describe("CopyFromDialog", () => {
 
   it("calls the treatment being copied to the only version when its assignment has one", () => {
     const wrapper = mountComponent(CopyFromDialog, {
-      props: { targetSingleVersion: true, treatments }
+      props: { assignmentName: "Quiz 1", targetSingleVersion: true, treatments }
     });
 
     expect(wrapper.find(".copy-radio-label p").text().replace(/\s+/g, " ")).toBe(
-      "Choose the treatment from which you wish to copy content to Treatment Only One Version."
+      "Choose the treatment from which you wish to copy content to Quiz 1 - Treatment Only One Version."
     );
   });
 
