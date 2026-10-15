@@ -413,6 +413,10 @@ public class FileStorageServiceImpl implements FileStorageService {
     public String parseHTMLFiles(String html, String localUrl) {
         if (org.apache.commons.lang3.StringUtils.isNotBlank(html)) {
             Document doc = Jsoup.parse(html);
+            // return the HTML as it was stored: pretty printing puts each element on its own
+            // indented line, and the rich text editor keeps that whitespace, turning it into empty
+            // list items and paragraphs that are saved back and multiply on every edit
+            doc.outputSettings().prettyPrint(false);
             parseAndUpdateElements(doc, "src", "/files/", "?token=", true, localUrl);
             parseAndUpdateElements(doc, "href", "/files/", "?token=", true, localUrl);
             parseAndUpdateElements(doc, "src", "/api/experiments/", "/files/", false, localUrl);

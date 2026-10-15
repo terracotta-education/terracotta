@@ -404,6 +404,17 @@ public class FileStorageServiceImplTest extends BaseTest {
         assertTrue(result.contains("/files/99?token=newtoken"));
     }
 
+    // the rich text editor keeps whitespace, so any line breaks added between elements come back as
+    // empty list items and paragraphs
+    @Test
+    public void testParseHTMLFilesReturnsTheHtmlWithoutReformattingIt() {
+        String html = "<h1>Best assignment</h1><p>This is <strong>really</strong> good:</p>"
+            + "<ul><li><p>yes</p></li><li><p>no</p></li></ul><hr><p>Watch this:</p>"
+            + "<div data-youtube-video=\"\"><iframe src=\"https://www.youtube-nocookie.com/embed/x\"></iframe></div>";
+
+        assertEquals(html, fileStorageService.parseHTMLFiles(html, "http://localhost"));
+    }
+
     @Test
     public void testParseHTMLFilesTokenBuildFailureLeavesElementUnchanged() throws GeneralSecurityException {
         String localUrl = "http://localhost";
