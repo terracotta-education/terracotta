@@ -46,7 +46,7 @@
           v-if="fileRequestAlert.showRecreateLink"
           @click="handleFileRequest()"
         >
-          <b><i>Click here to download a new file archive</i></b>.
+          <b><i>Click here to download a new archive</i></b>.
         </a>
       </v-alert>
     </div>
@@ -263,7 +263,7 @@ const fileArchive = computed(() => {
   if (fr?.ready) return { showStatus: true, color: "success", icon: "mdi-check-circle", status: "File archive ready" };
   if (fr?.processing || fr?.reprocessing) return { showStatus: true, color: "info", icon: "mdi-loading mdi-spin", status: "Processing…" };
   if (fr?.error) return { showStatus: true, color: "error", icon: "mdi-alert-circle", status: "Error preparing archive" };
-  if (fr?.outdated) return { showStatus: true, color: "warning", icon: "mdi-alert", status: "New uploads since last archive" };
+  if (fr?.outdated) return { showStatus: true, color: "warning", icon: "mdi-alert", status: "New submissions available" };
   return { showStatus: false };
 });
 
@@ -272,7 +272,7 @@ const fileRequestAlert = computed(() => {
   if (fr?.ready) return { type: "success", text: "Your file archive is ready.", showDownloadLink: true, showRecreateLink: false };
   if (fr?.processing || fr?.reprocessing) return { type: "info", text: "Your file archive is being prepared. Please wait.", showDownloadLink: false, showRecreateLink: false };
   if (fr?.error) return { type: "error", text: "There was an error preparing your file archive.", showDownloadLink: false, showRecreateLink: false };
-  if (fr?.outdated) return { type: "warning", text: "There have been new file uploads since the last file archive for this assignment.", showDownloadLink: false, showRecreateLink: true };
+  if (fr?.outdated) return { type: "warning", text: "There have been new submissions since you last downloaded the file archive for this assignment.", showDownloadLink: false, showRecreateLink: true };
   return { type: "info", text: "", showDownloadLink: false, showRecreateLink: false };
 });
 

@@ -70,6 +70,18 @@ describe("assignmentFileArchiveService", () => {
     expect(result).toEqual([]);
   });
 
+  it("getOutdated lists the experiment's assignments with new submissions", async () => {
+    fetch.mockResolvedValue(mockResponse({ text: JSON.stringify([{ id: 9, assignmentTitle: "Essay 1" }]) }));
+
+    const result = await assignmentFileArchiveService.getOutdated(1);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://example.com/api/experiments/1/files/outdated",
+      expect.objectContaining({ method: "GET" })
+    );
+    expect(result).toEqual([{ id: 9, assignmentTitle: "Essay 1" }]);
+  });
+
   describe("retrieve", () => {
     beforeEach(() => {
       window.URL.createObjectURL = vi.fn(() => "blob:url");

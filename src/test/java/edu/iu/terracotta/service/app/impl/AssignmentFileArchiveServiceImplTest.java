@@ -7,11 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
 import edu.iu.terracotta.dao.model.dto.AssignmentFileArchiveDto;
 import edu.iu.terracotta.dao.model.enums.AssignmentFileArchiveStatus;
@@ -67,6 +70,71 @@ public class AssignmentFileArchiveServiceImplTest extends BaseTest {
         assertEquals(AssignmentFileArchiveStatus.PROCESSING, dto.getStatus());
         assertNull(dto.getFile());
         verify(asyncService).processAssignmentFileArchive(saved);
+    }
+
+    // findOutdated: the components page's "new submissions" banners
+
+    @Test
+    public void testFindOutdatedListsAndMarksArchivesWithNewerUploads() throws Exception {
+        AssignmentFileArchive archive = buildArchive(AssignmentFileArchiveStatus.DOWNLOADED, new Timestamp(0));
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(9L)).thenReturn(List.of(assignment));
+        when(assignmentFileArchiveRepository.findTopByAssignment_AssignmentIdOrderByCreatedAtDesc(anyLong())).thenReturn(Optional.of(archive));
+        when(answerFileSubmissionRepository.findLatestUploadTimeByAssignmentId(anyLong())).thenReturn(Optional.of(new Timestamp(System.currentTimeMillis())));
+
+        List<AssignmentFileArchiveDto> outdated = assignmentFileArchiveService.findOutdated(9L);
+
+        assertEquals(1, outdated.size());
+        assertEquals(AssignmentFileArchiveStatus.OUTDATED, outdated.get(0).getStatus());
+        assertEquals(archive.getUuid(), outdated.get(0).getId());
+        assertEquals(exposure.getUuid(), outdated.get(0).getExposureId());
+        verify(assignmentFileArchiveRepository).save(archive);
+    }
+
+    @Test
+    public void testFindOutdatedDoesNotResaveAnArchiveAlreadyMarkedOutdated() throws Exception {
+        AssignmentFileArchive archive = buildArchive(AssignmentFileArchiveStatus.OUTDATED, new Timestamp(0));
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(9L)).thenReturn(List.of(assignment));
+        when(assignmentFileArchiveRepository.findTopByAssignment_AssignmentIdOrderByCreatedAtDesc(anyLong())).thenReturn(Optional.of(archive));
+        when(answerFileSubmissionRepository.findLatestUploadTimeByAssignmentId(anyLong())).thenReturn(Optional.of(new Timestamp(System.currentTimeMillis())));
+
+        assertEquals(1, assignmentFileArchiveService.findOutdated(9L).size());
+        verify(assignmentFileArchiveRepository, never()).save(any(AssignmentFileArchive.class));
+    }
+
+    @Test
+    public void testFindOutdatedSkipsCurrentDismissedBuildingAndMissingArchives() throws Exception {
+        Assignment current = mock(Assignment.class);
+        Assignment dismissed = mock(Assignment.class);
+        Assignment building = mock(Assignment.class);
+        Assignment noArchive = mock(Assignment.class);
+        when(current.getAssignmentId()).thenReturn(11L);
+        when(dismissed.getAssignmentId()).thenReturn(12L);
+        when(building.getAssignmentId()).thenReturn(13L);
+        when(noArchive.getAssignmentId()).thenReturn(14L);
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(9L)).thenReturn(List.of(current, dismissed, building, noArchive));
+
+        Timestamp lastUpload = new Timestamp(1_000_000L);
+        AssignmentFileArchive currentArchive = archiveFor(current, AssignmentFileArchiveStatus.DOWNLOADED, new Timestamp(2_000_000L));
+        // dismissed after the last upload
+        AssignmentFileArchive dismissedArchive = archiveFor(dismissed, AssignmentFileArchiveStatus.OUTDATED_ACKNOWLEDGED, new Timestamp(0));
+        dismissedArchive.setUpdatedAt(new Timestamp(2_000_000L));
+        AssignmentFileArchive buildingArchive = archiveFor(building, AssignmentFileArchiveStatus.PROCESSING, new Timestamp(0));
+
+        when(assignmentFileArchiveRepository.findTopByAssignment_AssignmentIdOrderByCreatedAtDesc(11L)).thenReturn(Optional.of(currentArchive));
+        when(assignmentFileArchiveRepository.findTopByAssignment_AssignmentIdOrderByCreatedAtDesc(12L)).thenReturn(Optional.of(dismissedArchive));
+        when(assignmentFileArchiveRepository.findTopByAssignment_AssignmentIdOrderByCreatedAtDesc(13L)).thenReturn(Optional.of(buildingArchive));
+        when(assignmentFileArchiveRepository.findTopByAssignment_AssignmentIdOrderByCreatedAtDesc(14L)).thenReturn(Optional.empty());
+        when(answerFileSubmissionRepository.findLatestUploadTimeByAssignmentId(anyLong())).thenReturn(Optional.of(lastUpload));
+
+        assertTrue(assignmentFileArchiveService.findOutdated(9L).isEmpty());
+        verify(assignmentFileArchiveRepository, never()).save(any(AssignmentFileArchive.class));
+    }
+
+    private AssignmentFileArchive archiveFor(Assignment forAssignment, AssignmentFileArchiveStatus status, Timestamp createdAt) {
+        AssignmentFileArchive archive = buildArchive(status, createdAt);
+        archive.setAssignment(forAssignment);
+
+        return archive;
     }
 
     @Test
