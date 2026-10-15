@@ -59,6 +59,7 @@ ExperimentDataExportController#poll(UUID,boolean,HttpServletRequest) -> Instruct
 ExperimentDataExportController#pollList(String,boolean,List,HttpServletRequest) -> InstructorOrHigher
 ExperimentDataExportController#process(UUID,HttpServletRequest) -> InstructorOrHigher
 ExperimentDataExportController#retrieve(UUID,UUID,HttpServletRequest) -> InstructorOrHigher
+ExperimentFileArchiveController#outdated(UUID,HttpServletRequest) -> InstructorOrHigher
 ExposureController#allExposuresByExperiment(UUID,HttpServletRequest) -> LearnerOrHigher
 ExposureController#createExposures(UUID,HttpServletRequest) -> InstructorOrHigher
 ExposureController#deleteExposure(UUID,UUID,HttpServletRequest) -> InstructorOrHigher

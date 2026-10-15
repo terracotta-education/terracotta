@@ -454,11 +454,11 @@ describe("AssignmentScores", () => {
     await flushPromises();
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.find(".file-archive-status").text()).toContain("New uploads since last archive");
+    expect(wrapper.find(".file-archive-status").text()).toContain("New submissions available");
     expect(wrapper.find(".alert-file-request").text()).toContain(
-      "There have been new file uploads since the last file archive for this assignment."
+      "There have been new submissions since you last downloaded the file archive for this assignment."
     );
-    expect(wrapper.find(".alert-file-request a").text()).toContain("Click here to download a new file archive");
+    expect(wrapper.find(".alert-file-request a").text()).toContain("Click here to download a new archive");
   });
 
   it("prepares a new archive from the outdated alert's link", async () => {
