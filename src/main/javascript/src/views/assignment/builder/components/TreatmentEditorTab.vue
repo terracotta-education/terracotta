@@ -4,12 +4,14 @@
     @submit.prevent="emit('save-all', 'AssignmentYourAssignments')"
   >
     <div class="treatment-instructions">
-      <label
+      <!-- not a <label>: the editor isn't a form control a label can point at, so it names the
+           editor through aria-labelledby instead -->
+      <div
         id="treatment-instructions-label"
         class="treatment-instructions__label"
       >
         Instructions or description (optional)
-      </label>
+      </div>
       <TipTapEditor
         :key="editorKey"
         :content="editorContent"
