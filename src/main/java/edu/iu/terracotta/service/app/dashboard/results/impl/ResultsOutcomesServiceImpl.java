@@ -44,16 +44,12 @@ import edu.iu.terracotta.dao.repository.ExposureRepository;
 import edu.iu.terracotta.dao.repository.OutcomeRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
-import edu.iu.terracotta.service.app.AssessmentSubmissionService;
-import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesAverageGradeService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesService;
 import edu.iu.terracotta.service.app.dashboard.results.ResultsOutcomesTimeOnTaskService;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 
-import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByConditionIdAndExposureId;
-import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findAssessmentsByExposureId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findConsentedParticipantsByGroupId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.ListDataUtils.findExposureGroupConditionByConditionIdAndExposureId;
 import static edu.iu.terracotta.service.app.dashboard.results.util.StatisticsUtils.calculateStandardDeviation;
@@ -71,10 +67,8 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
     private final OutcomeRepository outcomeRepository;
     private final ParticipantRepository participantRepository;
     private final TreatmentRepository treatmentRepository;
-    private final AssessmentSubmissionService assessmentSubmissionService;
     private final ResultsOutcomesAverageGradeService resultsOutcomesAverageGradeService;
     private final ResultsOutcomesTimeOnTaskService resultsOutcomesTimeOnTaskService;
-    private final SubmissionService submissionService;
 
     private Map<Long, List<Assessment>> allAssessmentsByAssignment;
     private Map<Long, List<Treatment>> allTreatmentsByAssignment;
@@ -228,30 +222,7 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                                         .toList();
 
                                     // add this group of participant scores to the list
-                                    if (BooleanUtils.isNotFalse(outcome.getExternal())) {
-                                        // is external outcome; get assignment scores
-                                        for (Assessment assessment : findAssessmentsByConditionIdAndExposureId(condition.getConditionId(), outcome.getExposure().getExposureId(), experimentAssignments, allAssessmentsByAssignment)) {
-                                            Map<Long, Float> scoresByParticipantId = submissionService.getScoresFromMultipleSubmissions(experimentConsentedParticipants, assessment);
-
-                                            for (Participant participant : experimentConsentedParticipants) {
-                                                Float score = scoresByParticipantId.get(participant.getParticipantId());
-
-                                                if (score == null) {
-                                                    continue;
-                                                }
-
-                                                scores.add(score.doubleValue() / (double) assessmentSubmissionService.calculateMaxScore(assessment));
-                                            }
-                                        }
-                                    } else {
-                                        // is internal outcome; get outcome scores
-                                        scores.addAll(
-                                            outcome.getOutcomeScores().stream()
-                                                .filter(outcomeScore -> consentedParticipantIds.contains(outcomeScore.getParticipant().getParticipantId()))
-                                                .map(outcomeScore -> (double) outcomeScore.getScoreNumeric() / (double) outcome.getMaxPoints())
-                                                .toList()
-                                        );
-                                    }
+                                    scores.addAll(outcomeScorePercentages(outcome, consentedParticipantIds));
                                 }
                             );
 
@@ -280,6 +251,26 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
     }
 
     /**
+     * The outcome's scores for the given participants, each as a fraction of its max points. Every
+     * outcome keeps its own scores: one entered in Terracotta directly, and one from the LMS
+     * gradebook (external), whose scores updateOutcomeGrades copies in. Students without a score
+     * yet, and an outcome without max points, add nothing.
+     */
+    private List<Double> outcomeScorePercentages(Outcome outcome, List<Long> participantIds) {
+        Float maxPoints = outcome.getMaxPoints();
+
+        if (maxPoints == null || maxPoints <= 0) {
+            return Collections.emptyList();
+        }
+
+        return outcome.getOutcomeScores().stream()
+            .filter(outcomeScore -> outcomeScore.getScoreNumeric() != null)
+            .filter(outcomeScore -> participantIds.contains(outcomeScore.getParticipant().getParticipantId()))
+            .map(outcomeScore -> outcomeScore.getScoreNumeric() / (double) maxPoints)
+            .toList();
+    }
+
+    /**
      * Create the "Exposures" row outcomes data area
      *
      * @param resultsOutcomesRequestDto
@@ -297,32 +288,8 @@ public class ResultsOutcomesServiceImpl implements ResultsOutcomesService {
                 outcomesExposuresScores.putIfAbsent(outcome.getExposure().getTitle(), new ArrayList<>());
 
                 // retrieve all outcome scores for consenting participants
-                if (BooleanUtils.isNotFalse(outcome.getExternal())) {
-                    // is external outcome; get assignment scores
-                    for (Assessment assessment : findAssessmentsByExposureId(outcome.getExposure().getExposureId(), experimentAssignments, allAssessmentsByAssignment)) {
-                        Map<Long, Float> scoresByParticipantId = submissionService.getScoresFromMultipleSubmissions(experimentConsentedParticipants, assessment);
-
-                        for (Participant participant : experimentConsentedParticipants) {
-                            Float score = scoresByParticipantId.get(participant.getParticipantId());
-
-                            if (score == null) {
-                                continue;
-                            }
-
-                            outcomesExposuresScores.get(outcome.getExposure().getTitle())
-                                .add(score.doubleValue() / (double) assessmentSubmissionService.calculateMaxScore(assessment));
-                        }
-                    }
-                } else {
-                    // is internal outcome; get outcome scores
-                    outcomesExposuresScores.get(outcome.getExposure().getTitle())
-                        .addAll(
-                            outcome.getOutcomeScores().stream()
-                                .filter(outcomeScore -> consentedParticipantIds.contains(outcomeScore.getParticipant().getParticipantId()))
-                                .map(outcomeScore -> (double) outcomeScore.getScoreNumeric() / (double) outcome.getMaxPoints())
-                                .toList()
-                        );
-                }
+                outcomesExposuresScores.get(outcome.getExposure().getTitle())
+                    .addAll(outcomeScorePercentages(outcome, consentedParticipantIds));
             }
         );
 
