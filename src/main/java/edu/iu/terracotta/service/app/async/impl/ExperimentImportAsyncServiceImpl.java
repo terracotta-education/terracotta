@@ -7,11 +7,15 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -50,6 +54,7 @@ import edu.iu.terracotta.dao.entity.integrations.IntegrationConfiguration;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotCreatedException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotEditedException;
 import edu.iu.terracotta.dao.model.distribute.LmsRepointTargets;
+import edu.iu.terracotta.dao.model.distribute.export.ConditionExport;
 import edu.iu.terracotta.dao.model.distribute.export.Export;
 import edu.iu.terracotta.dao.model.enums.LmsType;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
@@ -401,15 +406,22 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
 
     private void conditions(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {
         idMap.put(Condition.class, new HashMap<>());
-        CollectionUtils.emptyIfNull(export.getConditions()).stream()
-            .map(
-                condition -> {
+        List<ConditionExport> conditions = CollectionUtils.emptyIfNull(export.getConditions()).stream().toList();
+        Set<String> usedNames = conditions.stream()
+            .map(ConditionExport::getName)
+            .filter(StringUtils::isNotBlank)
+            .collect(Collectors.toCollection(HashSet::new));
+
+        IntStream.range(0, conditions.size())
+            .mapToObj(
+                index -> {
+                    ConditionExport condition = conditions.get(index);
                     Condition newCondition = conditionRepository.save(
                         Condition.builder()
                             .defaultCondition(condition.getDefaultCondition())
                             .distributionPct(condition.getDistributionPct())
                             .experiment((Experiment) idMap.get(Experiment.class).get(condition.getExperimentId()))
-                            .name(condition.getName())
+                            .name(conditionName(condition, index, usedNames))
                             .build()
                     );
                     idMap.get(Condition.class).put(condition.getId(), newCondition);
@@ -418,6 +430,29 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
                 }
             )
             .toList();
+    }
+
+    /**
+     * The condition's own name, or "Condition N" (its position, 1-based) when it has none - a
+     * condition without a name shouldn't exist, but one that does shouldn't stop the whole
+     * experiment from being imported or copied. N moves up past any name already taken.
+     */
+    private String conditionName(ConditionExport condition, int index, Set<String> usedNames) {
+        if (StringUtils.isNotBlank(condition.getName())) {
+            return condition.getName();
+        }
+
+        int number = index + 1;
+
+        while (usedNames.contains(String.format("Condition %d", number))) {
+            number++;
+        }
+
+        String name = String.format("Condition %d", number);
+        usedNames.add(name);
+        log.warn("Condition ID: [{}] has no name; importing it as \"{}\"", condition.getId(), name);
+
+        return name;
     }
 
     private void exposures(Export export, Map<Class<? extends BaseEntity>, Map<String, BaseEntity>> idMap) {

@@ -22,13 +22,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -155,6 +158,30 @@ class ExperimentImportAsyncServiceImplTest extends BaseTest {
 
     private void writeExportJson(Export export) throws IOException {
         JsonMapper.builder().build().writeValue(importDirectory.resolve(ExperimentImport.JSON_FILE_NAME).toFile(), export);
+    }
+
+    // a condition without a name shouldn't exist, but one that does is imported as "Condition N"
+    // instead of failing the whole import (and with it, a course copy)
+    @Test
+    void testConditionNameDefaultsToItsPosition() {
+        Set<String> used = new HashSet<>(Set.of("Control"));
+
+        assertEquals("Control", conditionName("Control", 0, used));
+        assertEquals("Condition 2", conditionName(null, 1, used));
+        assertEquals("Condition 3", conditionName("  ", 2, used));
+    }
+
+    @Test
+    void testConditionNameDefaultSkipsNamesAlreadyTaken() {
+        Set<String> used = new HashSet<>(Set.of("Condition 1", "Condition 2"));
+
+        assertEquals("Condition 3", conditionName(null, 0, used));
+        // and doesn't hand out the same default twice
+        assertEquals("Condition 4", conditionName(null, 0, used));
+    }
+
+    private String conditionName(String name, int index, Set<String> usedNames) {
+        return ReflectionTestUtils.invokeMethod(experimentImportAsyncServiceImpl, "conditionName", ConditionExport.builder().id("c" + index).name(name).build(), index, usedNames);
     }
 
     @Test
