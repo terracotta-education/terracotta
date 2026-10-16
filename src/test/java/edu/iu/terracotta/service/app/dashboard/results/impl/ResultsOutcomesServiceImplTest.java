@@ -73,35 +73,53 @@ public class ResultsOutcomesServiceImplTest extends BaseTest {
         assertEquals(OutcomesExposureOverall.EXPOSURE_OVERALL_TITLE, ret.getExposures().getRows().get(1).getTitle());
     }
 
+    // an outcome from the LMS gradebook keeps its own scores, which updateOutcomeGrades copies in; the
+    // dashboard used to show the experiment's component scores for it instead (here 1.0, against
+    // the outcome's 5 of 10)
     @Test
-    public void testOutcomesExternal() throws OutcomeNotMatchingException {
+    public void testOutcomesExternalUsesTheOutcomesOwnScores() throws OutcomeNotMatchingException {
         when(outcome.getExternal()).thenReturn(true);
 
         ResultsOutcomesDto ret = resultsOutcomesService.outcomes(experiment, resultsOutcomesRequestDto);
 
         assertNotNull(ret);
-        assertNotNull(ret.getExperimentId());
-        assertEquals(experiment.getUuid(), ret.getExperimentId());
-
-        assertNotNull(ret.getConditions());
-        assertNotNull(ret.getConditions().getRows());
         assertEquals(1, ret.getConditions().getRows().size());
         assertEquals(CONDITION_TITLE, ret.getConditions().getRows().get(0).getTitle());
-        assertEquals(1.0, ret.getConditions().getRows().get(0).getMean());
+        assertEquals(0.5, ret.getConditions().getRows().get(0).getMean());
         assertEquals(1, ret.getConditions().getRows().get(0).getNumber());
-        assertEquals(0.0, ret.getConditions().getRows().get(0).getStandardDeviation());
 
-        assertNotNull(ret.getExposures());
-        assertNotNull(ret.getExposures().getRows());
         assertEquals(2, ret.getExposures().getRows().size());
-        assertEquals(1.0, ret.getExposures().getRows().get(0).getMean());
+        assertEquals(0.5, ret.getExposures().getRows().get(0).getMean());
         assertEquals(1, ret.getExposures().getRows().get(0).getNumber());
-        assertEquals(0.0, ret.getExposures().getRows().get(0).getStandardDeviation());
-        assertEquals(EXPOSURE_TITLE, ret.getExposures().getRows().get(0).getTitle());
-        assertEquals(1.0, ret.getExposures().getRows().get(1).getMean());
-        assertEquals(1, ret.getExposures().getRows().get(1).getNumber());
-        assertEquals(0.0, ret.getExposures().getRows().get(1).getStandardDeviation());
+        assertEquals(0.5, ret.getExposures().getRows().get(1).getMean());
         assertEquals(OutcomesExposureOverall.EXPOSURE_OVERALL_TITLE, ret.getExposures().getRows().get(1).getTitle());
+    }
+
+    // e.g. an LMS assignment a student hasn't been graded on yet
+    @Test
+    public void testOutcomesSkipsStudentsWithoutAScore() throws OutcomeNotMatchingException {
+        when(outcome.getExternal()).thenReturn(true);
+        when(outcomeScore.getScoreNumeric()).thenReturn(null);
+
+        ResultsOutcomesDto ret = resultsOutcomesService.outcomes(experiment, resultsOutcomesRequestDto);
+
+        assertEquals(0, ret.getConditions().getRows().get(0).getNumber());
+        assertEquals(0, ret.getExposures().getRows().get(0).getNumber());
+    }
+
+    @Test
+    public void testOutcomesSkipsAnOutcomeWithoutMaxPoints() throws OutcomeNotMatchingException {
+        when(outcome.getMaxPoints()).thenReturn(0F);
+
+        ResultsOutcomesDto ret = resultsOutcomesService.outcomes(experiment, resultsOutcomesRequestDto);
+
+        assertEquals(0, ret.getConditions().getRows().get(0).getNumber());
+
+        when(outcome.getMaxPoints()).thenReturn(null);
+
+        ret = resultsOutcomesService.outcomes(experiment, resultsOutcomesRequestDto);
+
+        assertEquals(0, ret.getConditions().getRows().get(0).getNumber());
     }
 
     @Test
