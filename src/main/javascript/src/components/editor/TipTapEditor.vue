@@ -52,6 +52,7 @@ import {
 } from "@/helpers/ui-utils.js";
 
 import ToolBar from "./ToolBar.vue";
+import { LINK_PROTOCOLS, isLinkUrlAllowed } from "./link-url";
 
 import { conditionaltext as messagingConditionalTextModule } from "@/store/messaging/conditionaltext.module";
 
@@ -154,12 +155,10 @@ const configure = computed(() => {
     link: {
       openOnClick: true,
       defaultProtocol: "https",
-      protocols: [
-        "ftp",
-        "mailto",
-        "git",
-        "cal"
-      ],
+      protocols: LINK_PROTOCOLS,
+      // no link without a scheme, however it gets in (the link dialog, pasted content, loaded HTML):
+      // "www.example.com" would otherwise link relative to the Terracotta page it's on
+      isAllowedUri: url => isLinkUrlAllowed(url),
       HTMLAttributes: {
         target: "_blank"
       }

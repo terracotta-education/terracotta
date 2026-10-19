@@ -87,6 +87,37 @@ describe("LinkDialog", () => {
     expect(wrapper.emitted("submit")[0]).toEqual(["https://example.com"]);
   });
 
+  // without a scheme the editor would make a link relative to the Terracotta page
+  it("explains and keeps Apply disabled for an address without a scheme", async () => {
+    wrapper = mountComponent(LinkDialog, {
+      props: {
+        editor: {}
+      }
+    });
+
+    await setUrlValue("www.google.com");
+
+    expect(findButtonByText("APPLY").disabled).toBe(true);
+    expect(document.querySelector(".input-url").textContent).toContain("starting with https://");
+  });
+
+  it("shows no error for a full address and submits it trimmed", async () => {
+    wrapper = mountComponent(LinkDialog, {
+      props: {
+        editor: {}
+      }
+    });
+
+    await setUrlValue("  https://www.google.com ");
+
+    expect(document.querySelector(".input-url").textContent).not.toContain("starting with https://");
+
+    findButtonByText("APPLY").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted("submit")[0]).toEqual(["https://www.google.com"]);
+  });
+
   it("closes the dialog after applying", async () => {
     wrapper = mountComponent(LinkDialog, {
       props: {
