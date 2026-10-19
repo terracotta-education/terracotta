@@ -112,12 +112,26 @@ describe("router route table", () => {
     expect(names).toContain("AssignmentEditor");
   });
 
-  it("redirects any unmatched path to Home", () => {
+  // checked by resolving rather than navigating: a navigation here would make another test's
+  // "very first navigation" no longer the first
+  it("redirects any unmatched path to Home, without carrying the unmatched path along", () => {
     const catchAll = router
       .getRoutes()
       .find(route => route.path === "/:pathMatch(.*)*");
+    const target = router.resolve(catchAll.redirect);
 
-    expect(catchAll.redirect).toEqual({ name: "Home" });
+    expect(target.name).toBe("Home");
+    expect(target.params).toEqual({});
+  });
+
+  // the parent route already has :experimentId; repeating it in the child made URLs like
+  // /experiment/X/experiment-summary/X
+  it("builds experiment page URLs with the experiment ID once", () => {
+    const path = name => router.resolve({ name, params: { experimentId: "exp-1" } }).path;
+
+    expect(path("ExperimentSummary")).toBe("/experiment/exp-1/experiment-summary");
+    expect(path("ExperimentDesignIntro")).toBe("/experiment/exp-1/experiment-design-intro");
+    expect(path("ExperimentDesignConditions")).toBe("/experiment/exp-1/conditions");
   });
 
   it("carries custom appStyle meta on the oauth2-redirect route", () => {
