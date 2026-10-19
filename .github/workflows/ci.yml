@@ -89,3 +89,48 @@ jobs:
 
       - name: Production build
         run: yarn vite build
+
+  browser:
+    name: Browser tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src/main/javascript
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Cache Yarn packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.yarn/berry/cache
+          key: yarn-${{ runner.os }}-${{ hashFiles('src/main/javascript/yarn.lock') }}
+          restore-keys: yarn-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # the browser build Playwright expects, and the system libraries it needs on Linux
+      - name: Install Chromium
+        run: yarn playwright install --with-deps chromium
+
+      # the real app in Chromium against a Vite dev server, with the API mocked (see e2e/)
+      - name: Browser tests
+        run: yarn test:e2e
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            src/main/javascript/playwright-report/
+            src/main/javascript/test-results/
+          retention-days: 7
