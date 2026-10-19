@@ -365,8 +365,9 @@ const hasExperiments = computed(() => {
   return experiments.value && experiments.value.length > 0;
 });
 
+// a boolean even before the configuration has loaded (ZeroState's prop is a Boolean)
 const experimentExportEnabled = computed(() => {
-  return configurations.value?.experimentExportEnabled;
+  return configurations.value?.experimentExportEnabled === true;
 });
 
 const isExperimentImporting = computed(() => {
