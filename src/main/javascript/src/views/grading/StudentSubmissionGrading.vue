@@ -339,21 +339,18 @@
                   <v-col
                     cols="10"
                   >
-                    <v-card variant="outlined">
-                      <v-card-text>
-                        <!-- shown through the editor, read only: it renders only the formatting an
-                             essay allows, whatever HTML was submitted -->
-                        <TipTapEditor
-                          :key="studentSubmittedAnswers[question.questionId]"
-                          :content="toRichText(studentSubmittedAnswers[question.questionId])"
-                          :features="ESSAY_FEATURES"
-                          class="essay-response"
-                          editor-type="html"
-                          label="Student's response"
-                          read-only
-                        />
-                      </v-card-text>
-                    </v-card>
+                    <!-- shown through the editor, read only: it renders only the formatting an
+                         essay allows, whatever HTML was submitted. No card around it, the editor
+                         has a border of its own. -->
+                    <TipTapEditor
+                      :key="studentSubmittedAnswers[question.questionId]"
+                      :content="toRichText(studentSubmittedAnswers[question.questionId])"
+                      :features="ESSAY_FEATURES"
+                      class="essay-response"
+                      editor-type="html"
+                      label="Student's response"
+                      read-only
+                    />
                   </v-col>
                 </v-row>
               </template>
@@ -1066,9 +1063,6 @@ defineExpose({
 
 <style lang="scss" scoped>
 .essay-response {
-  // the editor's own bottom margin left a gap inside the card
-  margin-bottom: 0 !important;
-
   // the size students wrote it at
   :deep(.ProseMirror) {
     font-size: 16px;
