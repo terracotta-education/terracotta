@@ -1,27 +1,32 @@
 <template>
   <ResponseRow>
-    <v-textarea
+    <div
       v-if="!readonly"
-      v-model="response"
-      :rows="10"
-      :counter="true"
-      aria-label="Your response"
-      @update:model-value="onInput"
+      class="essay-response"
     >
-      <template #counter>
-        <div class="counter">
-          {{ wordCount }} word{{ wordCount !== 1 ? "s" : "" }}
-        </div>
-      </template>
-    </v-textarea>
+      <TipTapEditor
+        :key="editorKey"
+        :content="editorContent"
+        :features="ESSAY_FEATURES"
+        class="essay-response__editor"
+        editor-type="html"
+        label="Your response"
+        @edited="onEdited"
+      />
+      <div class="counter">
+        {{ wordCount }} word{{ wordCount !== 1 ? "s" : "" }}
+      </div>
+    </div>
 
-    <v-textarea
+    <TipTapEditor
       v-else
-      v-model="studentResponse"
-      :rows="10"
-      :counter="true"
-      aria-label="Your submitted response"
-      readonly
+      :key="studentResponse"
+      :content="studentResponse"
+      :features="ESSAY_FEATURES"
+      class="essay-response__editor"
+      editor-type="html"
+      label="Your submitted response"
+      read-only
     />
   </ResponseRow>
 </template>
@@ -35,6 +40,9 @@ import {
 
 import Countable from "countable";
 
+import TipTapEditor from "@/components/editor/TipTapEditor.vue";
+import { ESSAY_FEATURES } from "@/components/editor/config/essayFeatures";
+import { richTextToPlainText, toRichText } from "@/components/editor/util/richText";
 import ResponseRow from "@/views/student/ResponseRow.vue";
 
 defineOptions({
@@ -60,42 +68,73 @@ const emit = defineEmits([
   "update:modelValue"
 ]);
 
-const response = ref(props.modelValue);
 const wordCount = ref(0);
 
+// a response saved before essays took rich text is plain text, shown as paragraphs
 const studentResponse = computed(() => {
-  return props.answer?.response || "";
+  return toRichText(props.answer?.response);
 });
 
-const updateWordCount = () => {
-  Countable.count(response.value || "", counter => {
+const updateWordCount = value => {
+  Countable.count(richTextToPlainText(value), counter => {
     wordCount.value = counter.words;
   });
 };
 
+// the editor rebuilds itself whenever its content prop changes, so it gets the HTML it starts with,
+// not every edit echoed back (that would reset the cursor on each keystroke). A response that
+// didn't come from the editor (another attempt loaded, the form cleared) mounts a fresh editor with
+// it - by key, since the new value can equal the one the editor started with.
+const editorContent = ref(toRichText(props.modelValue));
+const editorKey = ref(0);
+let lastEditedResponse = props.modelValue;
+
 watch(
   () => props.modelValue,
   value => {
-    response.value = value;
-
-    if (response.value) {
-      updateWordCount();
-    } else {
-      wordCount.value = 0;
+    if (value !== lastEditedResponse) {
+      lastEditedResponse = value;
+      editorContent.value = toRichText(value);
+      editorKey.value++;
     }
+
+    updateWordCount(value);
   },
   { immediate: true }
 );
 
-const onInput = value => {
-  response.value = value;
-  emit("update:modelValue", response.value);
-  updateWordCount();
+const onEdited = value => {
+  lastEditedResponse = value;
+  updateWordCount(value);
+
+  if (value !== props.modelValue) {
+    emit("update:modelValue", value);
+  }
 };
 </script>
 
 <style lang="scss" scoped>
+.essay-response {
+  width: 100%;
+}
+
+.essay-response__editor {
+  width: 100%;
+  // the editor's own bottom margin sat between it and the word count
+  margin-bottom: 0 !important;
+
+  // body text, not the heading style of the card title it sits in, where everything looked bold
+  :deep(.ProseMirror) {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    letter-spacing: normal;
+  }
+}
+
 .counter {
+  margin-top: 8px;
+  text-align: right;
   font-size: 16px;
   line-height: 16px;
   font-weight: 400;

@@ -118,9 +118,10 @@ describe("StudentQuizQuestionCard", () => {
     const editor = wrapper.findComponent({ name: "EssayResponseEditor" });
     expect(editor.exists()).toBe(true);
 
-    await wrapper.find("textarea").setValue("My answer");
+    editor.vm.$emit("update:modelValue", "<p>My answer</p>");
+    await wrapper.vm.$nextTick();
 
-    expect(questionValues[0].response).toBe("My answer");
+    expect(questionValues[0].response).toBe("<p>My answer</p>");
   });
 
   it("renders a FileResponseEditor (stubbed) for FILE questions and forwards download-file-response upward", async () => {

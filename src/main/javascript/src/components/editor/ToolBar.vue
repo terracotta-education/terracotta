@@ -7,7 +7,7 @@
       flat
     >
       <ToolbarItem
-        v-for="(item, index) in items"
+        v-for="(item, index) in visibleItems"
         :key="index"
         :editor="editor"
         :icon="item.icon"
@@ -40,6 +40,7 @@
 
 <script setup>
 import {
+  computed,
   ref,
   watch,
   onMounted
@@ -61,6 +62,11 @@ const props = defineProps({
   activeItems: {
     type: Object,
     default: () => ({})
+  },
+  // the toolbar actions to show, in this order (e.g. "bold", "bulletList"); every one when not given
+  features: {
+    type: Array,
+    default: null
   }
 });
 
@@ -192,6 +198,13 @@ const items = ref([
     activate: false
   }
 ]);
+
+const visibleItems = computed(() => {
+  // flatMap: "heading" is three buttons, one per level
+  return props.features
+    ? props.features.flatMap(feature => items.value.filter(item => item.action === feature))
+    : items.value;
+});
 
 const itemRefs = ref([]);
 

@@ -130,6 +130,7 @@ import { api as apiModule } from "@/store/api.module";
 import { assessment as assessmentModule } from "@/store/assessment.module";
 import { submission as submissionsModule } from "@/store/submission.module";
 import { preview as previewModule } from "@/store/preview/preview.module";
+import { richTextToPlainText } from "@/components/editor/util/richText";
 
 const props = defineProps({
   experimentId: { type: String, required: true },
@@ -515,7 +516,8 @@ const areAllQuestionsAnswered = questions => {
   for (const question of questions) {
     const value = questionValues.value.find(({ questionId }) => questionId === question.questionId);
     if (question.questionType === "MC" && value?.answerId == null) return false;
-    if (question.questionType === "ESSAY" && (!value?.response || value.response.trim() === "")) return false;
+    // the text, not the HTML: an essay of only spaces is still "<p> </p>"
+    if (question.questionType === "ESSAY" && !richTextToPlainText(value?.response).trim()) return false;
     if (question.questionType === "FILE" && value?.response == null) return false;
   }
   return true;
