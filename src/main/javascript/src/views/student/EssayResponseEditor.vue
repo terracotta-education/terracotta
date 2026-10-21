@@ -1,8 +1,13 @@
 <template>
-  <ResponseRow>
-    <div
+  <!-- ResponseRow's layout without its outlined card: the editor has a border of its own -->
+  <v-row>
+    <v-col cols="1">
+      &nbsp;
+    </v-col>
+
+    <v-col
       v-if="!readonly"
-      class="essay-response"
+      cols="10"
     >
       <TipTapEditor
         :key="editorKey"
@@ -16,19 +21,23 @@
       <div class="counter">
         {{ wordCount }} word{{ wordCount !== 1 ? "s" : "" }}
       </div>
-    </div>
+    </v-col>
 
-    <TipTapEditor
+    <v-col
       v-else
-      :key="studentResponse"
-      :content="studentResponse"
-      :features="ESSAY_FEATURES"
-      class="essay-response__editor"
-      editor-type="html"
-      label="Your submitted response"
-      read-only
-    />
-  </ResponseRow>
+      cols="10"
+    >
+      <TipTapEditor
+        :key="studentResponse"
+        :content="studentResponse"
+        :features="ESSAY_FEATURES"
+        class="essay-response__editor"
+        editor-type="html"
+        label="Your submitted response"
+        read-only
+      />
+    </v-col>
+  </v-row>
 </template>
 
 <script setup>
@@ -43,7 +52,6 @@ import Countable from "countable";
 import TipTapEditor from "@/components/editor/TipTapEditor.vue";
 import { ESSAY_FEATURES } from "@/components/editor/config/essayFeatures";
 import { richTextToPlainText, toRichText } from "@/components/editor/util/richText";
-import ResponseRow from "@/views/student/ResponseRow.vue";
 
 defineOptions({
   name: "EssayResponseEditor"
@@ -114,16 +122,10 @@ const onEdited = value => {
 </script>
 
 <style lang="scss" scoped>
-.essay-response {
-  width: 100%;
-}
-
 .essay-response__editor {
-  width: 100%;
   // the editor's own bottom margin sat between it and the word count
   margin-bottom: 0 !important;
 
-  // body text, not the heading style of the card title it sits in, where everything looked bold
   :deep(.ProseMirror) {
     font-size: 16px;
     font-weight: 400;
