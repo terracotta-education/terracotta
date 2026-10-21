@@ -340,9 +340,19 @@
                     cols="10"
                   >
                     <v-card variant="outlined">
-                      <v-card-title>
-                        {{ studentSubmittedAnswers[question.questionId] }}
-                      </v-card-title>
+                      <v-card-text>
+                        <!-- shown through the editor, read only: it renders only the formatting an
+                             essay allows, whatever HTML was submitted -->
+                        <TipTapEditor
+                          :key="studentSubmittedAnswers[question.questionId]"
+                          :content="toRichText(studentSubmittedAnswers[question.questionId])"
+                          :features="ESSAY_FEATURES"
+                          class="essay-response"
+                          editor-type="html"
+                          label="Student's response"
+                          read-only
+                        />
+                      </v-card-text>
                     </v-card>
                   </v-col>
                 </v-row>
@@ -407,6 +417,9 @@ import { configuration as configurationModule } from "@/store/configuration.modu
 import { api as apiModule } from "@/store/api.module";
 
 import PageLoading from "@/components/PageLoading.vue";
+import TipTapEditor from "@/components/editor/TipTapEditor.vue";
+import { ESSAY_FEATURES } from "@/components/editor/config/essayFeatures";
+import { toRichText } from "@/components/editor/util/richText";
 import Spinner from "@/components/Spinner.vue";
 import SubmissionSelector from "@/views/assignment/SubmissionSelector.vue";
 import ToolTip from "@/components/ToolTip.vue";
@@ -1052,6 +1065,18 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+.essay-response {
+  // the editor's own bottom margin left a gap inside the card
+  margin-bottom: 0 !important;
+
+  // the size students wrote it at
+  :deep(.ProseMirror) {
+    font-size: 16px;
+    line-height: 24px;
+  }
+}
+
+
 // text-red (a Vuetify color utility class) generates no CSS in this project's build -
 // see ExperimentType.vue's .card-warning for the full explanation.
 .unsaved-warn .text-red {

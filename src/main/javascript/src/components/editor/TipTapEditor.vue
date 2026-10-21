@@ -14,6 +14,7 @@
         v-if="showToolbar"
         :editor="editor"
         :active-items="activeItems"
+        :features="features"
       />
     </v-card>
   </div>
@@ -22,7 +23,6 @@
 <script setup>
 import {
   computed,
-  nextTick,
   onBeforeUnmount,
   onMounted,
   reactive,
@@ -45,11 +45,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
 import YouTube from "@tiptap/extension-youtube";
-
-import {
-  addAttributesToObservedElement,
-  addAttributesToElement
-} from "@/helpers/ui-utils.js";
 
 import ToolBar from "./ToolBar.vue";
 
@@ -83,6 +78,17 @@ const props = defineProps({
   pipedTextToPlace: {
     type: Object,
     default: null
+  },
+  // the formatting the html editor offers, by toolbar action (e.g. ["bold", "bulletList"]); every
+  // one when not given. Anything left out is also kept out of pasted or loaded content.
+  features: {
+    type: Array,
+    default: null
+  },
+  // what a screen reader calls the editable area
+  label: {
+    type: String,
+    default: "message editor content"
   }
 });
 
@@ -149,6 +155,43 @@ const showToolbar = computed(() => {
   );
 });
 
+const allows = feature => {
+  return !props.features || props.features.includes(feature);
+};
+
+// StarterKit's extensions that a toolbar action stands for, turned off unless that action is allowed
+const starterKitFeatures = () => {
+  const disabled = {};
+  const turnOff = (feature, ...extensionNames) => {
+    if (!allows(feature)) {
+      extensionNames.forEach(name => {
+        disabled[name] = false;
+      });
+    }
+  };
+
+  turnOff("blockquote", "blockquote");
+  turnOff("bold", "bold");
+  turnOff("italic", "italic");
+  turnOff("strike", "strike");
+  turnOff("code", "code", "codeBlock");
+  turnOff("heading", "heading");
+  turnOff("horizontalRule", "horizontalRule");
+  turnOff("bulletList", "bulletList");
+  turnOff("orderedList", "orderedList");
+
+  if (!allows("bulletList") && !allows("orderedList")) {
+    disabled.listItem = false;
+    disabled.listKeymap = false;
+  }
+
+  if (!allows("undo") && !allows("redo")) {
+    disabled.undoRedo = false;
+  }
+
+  return disabled;
+};
+
 const configure = computed(() => {
   return {
     link: {
@@ -173,7 +216,8 @@ const configure = computed(() => {
         levels: [1, 2, 3]
       },
       link: false,
-      underline: false
+      underline: false,
+      ...starterKitFeatures()
     },
     youTube: {
       modestBranding: true,
@@ -283,12 +327,12 @@ const extensions = computed(() => {
     ],
     html: [
       StarterKit.configure(configure.value.starterKit),
-      Link.configure(configure.value.link),
+      allows("link") && Link.configure(configure.value.link),
       mentionConditionalText.value,
       mentionPipedText.value,
-      Underline,
-      YouTube.configure(configure.value.youTube)
-    ]
+      allows("underline") && Underline,
+      allows("youtube") && YouTube.configure(configure.value.youTube)
+    ].filter(Boolean)
   };
 });
 
@@ -372,6 +416,12 @@ const editorConfiguration = type => {
   return {
     content: configuration.content,
     editable: !props.readOnly,
+    // set on this editor alone; several editors can share a page (one per essay question)
+    editorProps: {
+      attributes: {
+        "aria-label": props.label
+      }
+    },
     extensions: configuration.extensions,
     onUpdate: configuration.onUpdate,
     onSelectionUpdate,
@@ -558,34 +608,10 @@ watch(
   insertPipedText
 );
 
-onMounted(async () => {
+onMounted(() => {
   html.value = props.content;
 
   createEditors();
-
-  await nextTick();
-
-  addAttributesToObservedElement(
-    ".editor",
-    "ProseMirror",
-    ".tiptap.ProseMirror",
-    [
-      {
-        name: "aria-label",
-        value: "message editor content"
-      }
-    ]
-  );
-
-  addAttributesToElement(
-    ".tiptap.ProseMirror",
-    [
-      {
-        name: "aria-label",
-        value: "message editor content"
-      }
-    ]
-  );
 
   window.updateMessageConditionalTextEditId = id => {
     messagingConditionalTextStore.setMessageConditionalTextEditId(id);

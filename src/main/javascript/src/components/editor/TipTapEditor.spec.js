@@ -201,6 +201,64 @@ describe("TipTapEditor", () => {
     expect(lastEdited(wrapper)).toBe("");
   });
 
+  it("shows only the toolbar actions it's given, in that order", async () => {
+    wrapper = await mountEditor({
+      props: {
+        editorType: "html",
+        features: ["bold", "bulletList", "heading"]
+      }
+    });
+
+    const toolbarItems = wrapper.findAllComponents({ name: "ToolbarItem" });
+
+    expect(toolbarItems.map(item => item.props("title"))).toEqual(["Bold", "Bulleted List", "Heading 1", "Heading 2", "Heading 3"]);
+  });
+
+  // or a heading pasted into an essay would still be a heading
+  it("keeps formatting it isn't given out of the content too", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: "<h1>Title</h1><p><strong>bold</strong> <em>italic</em> <a href=\"https://example.com\">link</a></p><blockquote><p>quote</p></blockquote>",
+        editorType: "html",
+        features: ["bold"]
+      }
+    });
+
+    const html = wrapper.emitted("edited").at(-1)[0];
+
+    expect(html).toBe("<p>Title</p><p><strong>bold</strong> italic link</p><p>quote</p>");
+  });
+
+  it("offers every toolbar action when no features are given", async () => {
+    wrapper = await mountEditor({
+      props: {
+        editorType: "html"
+      }
+    });
+
+    expect(wrapper.findAllComponents({ name: "ToolbarItem" }).length).toBe(17);
+  });
+
+  it("labels its own editable area, so editors sharing a page keep their own names", async () => {
+    wrapper = await mountEditor({
+      props: {
+        editorType: "html",
+        label: "Your response"
+      }
+    });
+
+    const other = await mountEditor({
+      props: {
+        editorType: "html"
+      }
+    });
+
+    expect(wrapper.find(".ProseMirror").attributes("aria-label")).toBe("Your response");
+    expect(other.find(".ProseMirror").attributes("aria-label")).toBe("message editor content");
+
+    other.unmount();
+  });
+
   it("emits cursor on mount", async () => {
     wrapper = await mountEditor({
       props: {
