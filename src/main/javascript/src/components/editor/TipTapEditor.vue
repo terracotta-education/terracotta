@@ -638,6 +638,33 @@ onBeforeUnmount(() => {
   :deep(.ProseMirror) {
     margin: 20px 5px !important;
 
+    // the same space between any two blocks: App.vue pads every paragraph and heading on top of
+    // their margins, which left a blank line's worth between paragraphs but not after a list
+    > * {
+      margin: 0 0 12px;
+      padding-bottom: 0;
+    }
+
+    > h1,
+    > h2,
+    > h3 {
+      margin-top: 20px;
+    }
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+
+    blockquote p,
+    li > p {
+      margin: 0;
+      padding-bottom: 0;
+    }
+
     .is-editor-empty::before {
       color: map.get($grey, "darker");
       font-style: normal;
@@ -659,7 +686,6 @@ onBeforeUnmount(() => {
       border-left: 0.25em solid #dfe2e5;
       color: #6a737d;
       padding-left: 1em;
-      margin: 20px 0 !important;
     }
 
     & h1 {
