@@ -3,3 +3,4 @@ export * from "./is-json";
 export * from "./user-info";
 export * from "./clone";
 export * from "./assignment-lock";
+export * from "./sanitize-html";

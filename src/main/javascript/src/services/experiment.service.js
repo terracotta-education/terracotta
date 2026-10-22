@@ -103,6 +103,7 @@ async function exportExperiment(experimentId) {
   link.href = url;
   link.download = filename;
 
+  // deepcode ignore DOMXSS: the link href is a blob: URL from URL.createObjectURL and the filename only sets the download attribute, so no markup or script URL reaches the DOM
   document.body.appendChild(link);
 
   link.click();

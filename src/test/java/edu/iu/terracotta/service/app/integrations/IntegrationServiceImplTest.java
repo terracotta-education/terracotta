@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -411,6 +412,34 @@ public class IntegrationServiceImplTest extends BaseTest {
             assertEquals(2, mocked.constructed().size());
             assertTrue(exception.getMessage().contains("Error validating iframe embedding"));
         }
+    }
+
+    @Test
+    void testValidateIntegrationUrlIframeInternalUrlRejectedWithoutRequest() {
+        when(platformDeploymentRepository.findByKeyId(anyLong())).thenReturn(Optional.of(platformDeployment));
+        doThrow(new IllegalArgumentException("URL: [http://169.254.169.254/latest/meta-data] resolves to an internal address"))
+            .when(outboundUrlService).validatePublicUrl("http://169.254.169.254/latest/meta-data");
+
+        try (MockedConstruction<RestTemplate> mocked = mockHeadResponse(new HttpHeaders())) {
+            Exception exception = assertThrows(
+                IntegrationUrlIframeInvalidException.class,
+                () -> { integrationService.validateIntegrationUrlIframe("http://169.254.169.254/latest/meta-data", securedInfo); }
+            );
+
+            assertEquals(0, mocked.constructed().size());
+            assertTrue(exception.getMessage().contains("internal address"));
+        }
+    }
+
+    @Test
+    void testValidateIntegrationUrlIframeChecksUrlBeforeRequest() throws IntegrationUrlIframeInvalidException {
+        when(platformDeploymentRepository.findByKeyId(anyLong())).thenReturn(Optional.of(platformDeployment));
+
+        try (MockedConstruction<RestTemplate> _ = mockHeadResponse(new HttpHeaders())) {
+            integrationService.validateIntegrationUrlIframe("https://example.com", securedInfo);
+        }
+
+        verify(outboundUrlService).validatePublicUrl("https://example.com");
     }
 
     private MockedConstruction<RestTemplate> mockHeadResponse(HttpHeaders headers) {

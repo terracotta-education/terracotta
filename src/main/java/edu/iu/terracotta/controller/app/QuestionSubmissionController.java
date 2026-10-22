@@ -362,6 +362,7 @@ public class QuestionSubmissionController {
             student = true;
         }
 
+        // deepcode ignore PT: the upload is stored under a server generated date path and UUID, and its client file name is never used to build a path here
         List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.handleFileQuestionSubmission(file, questionSubmissionDtoStr, experimentId, assessmentId, submissionId, student, securedInfo);
         HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid);
 
@@ -409,6 +410,7 @@ public class QuestionSubmissionController {
             student = true;
         }
 
+        // deepcode ignore PT: the upload is stored under a server generated date path and UUID, and stored file URIs are checked against the submissions directory before any delete
         List<QuestionSubmissionDto> returnedDtoList = questionSubmissionService.handleFileQuestionSubmissionUpdate(file, questionSubmissionDtoStr, experimentId, assessmentId, submissionId, questionSubmissionId, student, securedInfo);
         HttpHeaders headers = questionSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid);
 
