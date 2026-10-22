@@ -126,6 +126,7 @@ public class IntegrationsController {
         }
 
         try {
+            // deepcode ignore Ssrf: validateIntegrationUrlIframe rejects URLs that are not http or https or that resolve to internal addresses, and does not follow redirects
             integrationService.validateIntegrationUrlIframe(url, securedInfo);
         } catch (IntegrationUrlIframeInvalidException e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

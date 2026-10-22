@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -100,6 +101,7 @@ public class MessageEmailServiceImpl implements MessageEmailService {
                 .map(replyTo -> replyTo.getEmail())
                 .collect(Collectors.toList());
             List<MessageContentAttachment> messageAttachments = new ArrayList<>(message.getContent().getAttachments());
+            String lmsBaseUrl = message.getPlatformDeployment().getBaseUrl();
 
             List<LtiUserEntity> recipients = messageSendService.getRecipients(message);
 
@@ -130,6 +132,13 @@ public class MessageEmailServiceImpl implements MessageEmailService {
             List<Map<String, ByteArrayResource>> attachments = new ArrayList<>();
 
             for (MessageContentAttachment attachment : messageAttachments) {
+                // the URL is saved from the request that built the message, so only fetch it from the LMS itself
+                if (!isLmsUrl(attachment.getUrl(), lmsBaseUrl)) {
+                    log.error("Skipping file ID: [{}] for message with ID: [{}]: its URL is not on the LMS host", attachment.getId(), message.getId());
+                    continue;
+                }
+
+                // deepcode ignore Ssrf: isLmsUrl above only lets through http or https URLs on the platform's configured LMS host
                 try (InputStream inputStream = URI.create(attachment.getUrl()).toURL().openStream()) {
                     attachments.add(
                         Collections.singletonMap(
@@ -347,6 +356,32 @@ public class MessageEmailServiceImpl implements MessageEmailService {
             message.getExperiment().getLtiContextEntity().getTitle(),
             from
         );
+    }
+
+    private boolean isLmsUrl(String url, String lmsBaseUrl) {
+        if (url == null || lmsBaseUrl == null) {
+            return false;
+        }
+
+        try {
+            URI uri = new URI(url);
+            URI lmsUri = new URI(lmsBaseUrl);
+
+            return Strings.CI.equalsAny(uri.getScheme(), "http", "https")
+                && uri.getHost() != null
+                && Strings.CI.equals(uri.getHost(), lmsUri.getHost())
+                && effectivePort(uri) == effectivePort(lmsUri);
+        } catch (URISyntaxException e) {
+            return false;
+        }
+    }
+
+    private int effectivePort(URI uri) {
+        if (uri.getPort() != -1) {
+            return uri.getPort();
+        }
+
+        return Strings.CI.equals(uri.getScheme(), "http") ? 80 : 443;
     }
 
 }
