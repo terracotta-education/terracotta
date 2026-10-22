@@ -67,7 +67,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.Timestamp;
@@ -689,9 +688,6 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         updateQuestionSubmissions(Collections.singletonMap(questionSubmission, questionSubmissionDto), student);
 
         return questionSubmissionDtoList;
-    }
-
-        return tempFile;
     }
 
 }

@@ -40,7 +40,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -573,9 +572,6 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         }
 
         return postAnswerSubmission(answerSubmissionDto, resolveQuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId()));
-    }
-
-        return tempFile;
     }
 
     private AnswerSubmissionDto toDtoIntegration(AnswerIntegrationSubmission answerIntegrationSubmission) throws IOException {
