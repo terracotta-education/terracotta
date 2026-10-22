@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SONAR_ORGANIZATION: terracotta-education
+  SONAR_ORGANIZATION: terracotta
   SONAR_PROJECT_KEY: terracotta-education_terracotta
 
 jobs:
