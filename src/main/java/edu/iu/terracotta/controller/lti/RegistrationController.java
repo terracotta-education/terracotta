@@ -84,7 +84,6 @@ public class RegistrationController {
         // call it to get all the information about the platform
         HttpSession session = req.getSession();
         model.addAttribute("openid_configuration", openidConfiguration);
-        session.setAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
         model.addAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -117,6 +116,10 @@ public class RegistrationController {
             }
 
             model.addAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDto);
+            // The session is only written once the caller's API token has been validated and the platform configuration fetched.
+            // deepcode ignore TrustBoundaryViolation: the registration token is opaque and only forwarded to the platform, and the caller is authenticated by this point
+            session.setAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
+            // deepcode ignore TrustBoundaryViolation: this is the platform's own configuration response, stored only for an authenticated caller to finish the registration
             session.setAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDto);
             ToolRegistrationDto toolRegistrationDto = generateToolConfiguration(req);
             // We add that information so the thymeleaf template can display it (and prepare the links)

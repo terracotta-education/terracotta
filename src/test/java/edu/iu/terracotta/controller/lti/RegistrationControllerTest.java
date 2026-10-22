@@ -4,7 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.OutputStream;
@@ -78,6 +82,18 @@ public class RegistrationControllerTest extends BaseTest {
     }
 
     @Test
+    void registrationWithoutValidApiTokenDoesNotStoreAnythingInSessionTest() throws Exception {
+        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(null);
+
+        Model model = new ConcurrentModel();
+
+        String view = registrationController.registration("http://openid.config", "attackerToken", httpServletRequest, model);
+
+        assertEquals("registrationError", view);
+        verify(httpSession, never()).setAttribute(anyString(), any());
+    }
+
+    @Test
     void registrationHttpCallFailureReturnsErrorViewTest() throws Exception {
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
         // platformDeploymentRepository.findById(anyLong()) -> Optional.of(platformDeployment) already stubbed by BaseRepositoryTest.
@@ -143,6 +159,10 @@ public class RegistrationControllerTest extends BaseTest {
         PlatformRegistrationDto platformRegistrationDto = (PlatformRegistrationDto) model.getAttribute(LtiStrings.PLATFORM_CONFIGURATION);
         assertNotNull(platformRegistrationDto);
         assertEquals("https://issuer.example.com", platformRegistrationDto.getIssuer());
+
+        verify(httpSession).setAttribute(LtiStrings.REGISTRATION_TOKEN, "regToken");
+        verify(httpSession).setAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDto);
+        verify(httpSession).setAttribute(LtiStrings.TOOL_CONFIGURATION, toolRegistrationDto);
     }
 
     @Test
