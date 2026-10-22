@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
@@ -51,6 +52,7 @@
     "@eslint/js": "^10.0.1",
     "@mdi/font": "^7.3.67",
     "@mdi/js": "^7.4.47",
+    "@playwright/test": "1.63.0",
     "@vitejs/plugin-vue": "6.0.9",
     "@vitest/coverage-v8": "^5.0.3",
     "@vue/test-utils": "^2.5.1",
