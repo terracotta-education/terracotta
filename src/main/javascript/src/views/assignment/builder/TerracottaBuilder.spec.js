@@ -1037,6 +1037,33 @@ describe("TerracottaBuilder", () => {
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
   });
 
+  // a timer left running after the builder closed reached into a page that was gone (in CI, after
+  // the test environment had been torn down: "document is not defined")
+  it("cancels its delayed work when it closes", async () => {
+    vi.useFakeTimers();
+
+    const wrapper = await mountBuilder();
+
+    wrapper.vm.treatmentOptionSelected = true;
+    const scrollIntoView = vi.fn();
+    wrapper.vm.setQuestionPanelRef({
+      element: { scrollIntoView },
+      pageIndex: 0,
+      questionIndex: 0
+    });
+
+    wrapper.vm.expandedQuestionPagePanel = 0;
+    await nextTick();
+
+    wrapper.vm.expandedQuestionPanel = [0];
+    await nextTick();
+
+    wrapper.unmount();
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it("the expandedQuestionPanel watcher does nothing while not in treatment-building mode", async () => {
     const wrapper = await mountBuilder();
 

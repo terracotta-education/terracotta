@@ -102,7 +102,7 @@ jobs:
 
       # with coverage, for SonarQube
       - name: Test
-        run: yarn test --coverage --coverage.reporter=lcov --coverage.include='src/**'
+        run: yarn test --coverage --coverage.reporter=lcov --coverage.include='src/**/*.{js,vue}'
 
       - name: Upload for SonarQube
         if: success()

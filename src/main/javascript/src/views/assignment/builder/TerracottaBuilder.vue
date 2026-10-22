@@ -216,6 +216,19 @@ const html = computed({
   }
 });
 
+// delayed work still waiting when the builder closes is cancelled, so it doesn't reach into a page
+// that's gone
+const pendingTimers = new Set();
+
+const later = (callback, delay) => {
+  const timer = window.setTimeout(() => {
+    pendingTimers.delete(timer);
+    callback();
+  }, delay);
+
+  pendingTimers.add(timer);
+};
+
 watch(expandedQuestionPagePanel, async pageIndex => {
   for (let index = 0; index < questionPages.value.length; index++) {
     if (index !== pageIndex) {
@@ -224,7 +237,7 @@ watch(expandedQuestionPagePanel, async pageIndex => {
   }
 
   await nextTick();
-  window.setTimeout(() => {
+  later(() => {
     deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
     addAttributesToElement(".editor .ProseMirror", [
       {
@@ -255,7 +268,7 @@ watch(
       return;
     }
 
-    window.setTimeout(() => {
+    later(() => {
       const element = panel.$el || panel;
       element.scrollIntoView({
         behavior: "smooth",
@@ -273,7 +286,7 @@ watch(assignmentCount, () => {
 watch(questions, async () => {
   await nextTick();
 
-  window.setTimeout(() => {
+  later(() => {
     deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
     addAttributesToElement(".editor .ProseMirror", [
       {
@@ -1014,6 +1027,8 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  pendingTimers.forEach(timer => window.clearTimeout(timer));
+  pendingTimers.clear();
   shrinkContainer();
 });
 
