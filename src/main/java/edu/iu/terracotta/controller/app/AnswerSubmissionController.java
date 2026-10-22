@@ -322,6 +322,7 @@ public class AnswerSubmissionController {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
 
+        // deepcode ignore PT: the upload is stored under a server generated date path and UUID, and its client file name is never used to build a path here
         AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmission(answerSubmissionDto, file);
         log.info("Created answer submission ID: [{}] for question submission ID: [{}]", returnedDto.getAnswerSubmissionId(), answerSubmissionDto.getQuestionSubmissionId());
         HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid,
@@ -380,6 +381,7 @@ public class AnswerSubmissionController {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
 
+        // deepcode ignore PT: the upload is stored under a server generated date path and UUID, and stored file URIs are checked against the submissions directory before any delete
         AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmissionUpdate(answerSubmissionDto, file);
         log.info("Updated answer submission ID: [{}] for question submission ID: [{}]", returnedDto.getAnswerSubmissionId(), answerSubmissionDto.getQuestionSubmissionId());
         HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid,

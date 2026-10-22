@@ -323,6 +323,7 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
                 return;
             }
 
+            // deepcode ignore PT: the consent file name is a constant inside the app's own extraction directory, and zip4j rejects entries that escape it
             try (InputStream inputStream = new FileInputStream(consentFile)) {
                 FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveConsentFile(inputStream, consentFile.getName());
 
