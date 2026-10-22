@@ -93,6 +93,7 @@ public class WebSecurityConfig {
     @Order(30) // VERY HIGH
     SecurityFilterChain filterChain2(HttpSecurity http) throws Exception {
         http.securityMatcher("/config/**");
+        // deepcode ignore DisablesCSRFProtection: /config is an admin JSON API using HTTP Basic, its writes only accept application/json bodies and this chain sends no CORS headers, so a cross-site page can't forge them
         return http
                 .authorizeHttpRequests(
                     authz -> authz
@@ -111,6 +112,7 @@ public class WebSecurityConfig {
         http
             .securityMatcher("/lti3/**");
 
+        // deepcode ignore DisablesCSRFProtection: LTI launches are cross-site form POSTs from the LMS by design, they are authenticated by the signed id_token, the signed state and the single use nonce
         return http
             .authorizeHttpRequests(
                 authz -> authz
@@ -132,6 +134,7 @@ public class WebSecurityConfig {
         http
             .securityMatcher("/api/**");
 
+        // deepcode ignore DisablesCSRFProtection: the API is stateless and authenticates with an Authorization Bearer JWT, which a browser never attaches to a cross-site request
         return http
             .authorizeHttpRequests(
                 authz ->
@@ -156,6 +159,7 @@ public class WebSecurityConfig {
     @Order(80) // LOWEST
     SecurityFilterChain filterChain6(HttpSecurity http) throws Exception {
         // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
+        // deepcode ignore DisablesCSRFProtection: these routes take cross-site LMS posts (OIDC login, notices) protected by signed JWTs or signed state, or bearer tokens, and the one session backed write (POST /registration) only replays what a bearer authenticated GET prepared
         return http
             .securityMatcher("/**")
             .authorizeHttpRequests(

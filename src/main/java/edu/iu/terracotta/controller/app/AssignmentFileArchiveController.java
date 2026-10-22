@@ -126,6 +126,7 @@ public class AssignmentFileArchiveController {
             .contentType(MediaType.parseMediaType(assignmentFileArchiveDto.getMimeType()))
             .contentLength(assignmentFileArchiveDto.getFile().length())
             .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(assignmentFileArchiveDto.getFileName(), StandardCharsets.UTF_8).build().toString())
+            // deepcode ignore PT: the archive file is resolved from its server generated file URI, the request only supplies UUIDs used for lookups
             .body(new InputStreamResource(new FileInputStream(assignmentFileArchiveDto.getFile())));
     }
 

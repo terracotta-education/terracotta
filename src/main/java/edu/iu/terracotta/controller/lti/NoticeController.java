@@ -120,6 +120,7 @@ public class NoticeController {
             // re-points it, so running this now would mark it obsolete. The next launch into
             // the course after recreation finishes runs it instead (see ExperimentServiceImpl).
             if (!experimentCopyCandidateService.hasUnfinishedForContext(securedInfo.get().getContextId())) {
+                // deepcode ignore Ssrf: the context comes from a notice JWT whose signature was verified against the platform keys, and LMS calls go to the stored PlatformDeployment base URL
                 assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo.get());
             }
         } catch (Exception e) {

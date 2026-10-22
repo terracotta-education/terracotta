@@ -67,7 +67,7 @@
 
                 <v-card-text class="first-party-card__text">
                   <div
-                    v-html="invalidScore.info"
+                    v-html="sanitizeHtml(invalidScore.info)"
                     class="mb-8"
                   />
 
@@ -99,7 +99,7 @@
 
                 <v-card-text class="first-party-card__text">
                   <div
-                    v-html="error.info[0]"
+                    v-html="sanitizeHtml(error.info[0])"
                     class="mb-4"
                   />
 
@@ -113,7 +113,7 @@
                       Reattempt assignment
                     </v-btn>
 
-                    <div v-html="error.info[1]" />
+                    <div v-html="sanitizeHtml(error.info[1])" />
                   </div>
 
                   <div v-if="preview">
@@ -136,7 +136,7 @@ import {
   onMounted
 } from "vue";
 
-import { lockedAssignmentMessage } from "@/helpers";
+import { escapeHtml, lockedAssignmentMessage, sanitizeHtml } from "@/helpers";
 
 defineOptions({
   name: "IntegrationResult"
@@ -156,6 +156,9 @@ const preview = computed(() => {
 const client = computed(() => {
   return props.integrationData.client;
 });
+
+// client and errorCode come from the page's URL, so they're escaped where they go into HTML
+const clientHtml = computed(() => escapeHtml(client.value));
 
 const launchToken = computed(() => {
   return props.integrationData.launchToken;
@@ -235,7 +238,7 @@ const invalidScore = computed(() => {
     title:
       `Returned to Terracotta following ${client.value} preview with invalid or missing score`,
     info: `
-      You are seeing this screen because a ${client.value} preview returned to Terracotta without a valid score parameter. For
+      You are seeing this screen because a ${clientHtml.value} preview returned to Terracotta without a valid score parameter. For
       detailed instructions on how to configure your Qualtrics survey,
       <a href="${qualtricsGuideUrl}" target="_blank">click here</a>.
       If the score parameter is omitted, Terracotta assumes that the student should receive the maximum score for their submission.
@@ -262,7 +265,7 @@ const previewError = computed(() => {
     title: "Invalid submission token",
     info: [
       `
-        You are seeing this screen because a ${client.value} preview returned to Terracotta without a valid score parameter. For
+        You are seeing this screen because a ${clientHtml.value} preview returned to Terracotta without a valid score parameter. For
         detailed instructions on how to configure your Qualtrics survey,
         <a href="${qualtricsGuideUrl}" target="_blank">click here</a>.
         If the score parameter is omitted, Terracotta assumes that the student should receive the maximum score for their submission.
@@ -290,7 +293,7 @@ const expiredSessionInfo = computed(() => {
 const instructorInfo = computed(() => {
   return `
     If you are an instructor, please revisit documentation on integrating your survey or web activity.
-    If the issue continues, contact <a href="mailto:support@terracotta.education">support@terracotta.education</a> and reference the error code: ${errorCode.value}
+    If the issue continues, contact <a href="mailto:support@terracotta.education">support@terracotta.education</a> and reference the error code: ${escapeHtml(errorCode.value)}
   `;
 });
 

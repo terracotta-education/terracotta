@@ -82,6 +82,9 @@ jobs:
           sonar.coverage.jacoco.xmlReportPaths=sonar-input/sonar-backend/site/jacoco-ut/jacoco.xml
           sonar.javascript.lcov.reportPaths=sonar-input/sonar-frontend/lcov.info
           sonar.sourceEncoding=UTF-8
+          # the commit being analyzed; left to itself, the scanner takes GITHUB_SHA, which in a
+          # workflow_run is development's latest commit, so its result went onto that commit
+          sonar.scm.revision=$HEAD_SHA
           PROPERTIES
 
           if [ "$EVENT" = "push" ] && [ "$HEAD_BRANCH" = "development" ]; then

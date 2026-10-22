@@ -2,9 +2,11 @@ package edu.iu.terracotta.service.app.async.impl;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -27,6 +29,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -560,6 +563,59 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         assertTrue(archivedFiles.get(0).endsWith("/Upload your file/essay.docx"), archivedFiles.get(0));
         assertTrue(Files.exists(storedFile));
         assertEquals("file contents", Files.readString(storedFile));
+    }
+
+    @Test
+    void testProcessAssignmentFileArchiveParticipantNameTraversalIsSkipped() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+        when(ltiUserEntity.getDisplayName()).thenReturn("../../escaped-participant");
+
+        Path sourceFile = tempDir.resolve("original.dat");
+        Files.writeString(sourceFile, "file contents");
+
+        AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            .fileName("renamed.txt")
+            .questionSubmission(questionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
+        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+
+        assertFalse(Files.exists(FileUtils.getTempDirectory().toPath().getParent().resolve("escaped-participant")));
+        verify(fileStorageService, never()).saveAssignmentFileArchive(any(), any(File.class));
+    }
+
+    @Test
+    void testProcessAssignmentFileArchiveAssignmentTitleTraversalResultsInErrorStatus() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+        when(assignment.getTitle()).thenReturn("x/../../../escaped");
+
+        Path sourceFile = tempDir.resolve("original.dat");
+        Files.writeString(sourceFile, "file contents");
+
+        AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            .fileName("renamed.txt")
+            .questionSubmission(questionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
+        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+
+        assertEquals(AssignmentFileArchiveStatus.ERROR, archive.getStatus());
+        verify(fileStorageService, never()).compressDirectory(anyString(), anyString(), anyString(), anyBoolean());
+        FileUtils.deleteQuietly(FileUtils.getTempDirectory().toPath().resolve(archive.getUuid().toString()).toFile());
     }
 
     // the archive is the instructor's copy of what students submitted, consented or not

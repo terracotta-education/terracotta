@@ -296,6 +296,7 @@ public class CanvasLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenEntity
         RestTemplate restTemplate = createRestTemplate();
 
         try {
+            // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the stored PlatformDeployment, only admins configure it
             ResponseEntity<CanvasApiToken> response = restTemplate.postForEntity(
                 apiOAuthSettings.getOauth2TokenUrl(),
                 request,

@@ -137,6 +137,10 @@ terracotta:
   admin:
     user: admin
     # terracotta.admin.password = setyourpassowrdfortheadminuser
+  # Lets user supplied URLs (dynamic registration, integration iframe checks) reach loopback and
+  # private network addresses. For local development only.
+  # outbound-url:
+  #   allow-private-addresses: true
 
 ## File storage properties
 # All files uploaded through the REST API will be stored in this directory

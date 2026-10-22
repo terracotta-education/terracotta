@@ -191,6 +191,28 @@ describe("StudentQuiz", () => {
     expect(retakeBanner.props("canTryAgain")).toBe(false);
   });
 
+  it("renders the instructor's assessment instructions with script and event handlers removed", async () => {
+    assessmentService.fetchAssessmentForSubmission.mockResolvedValue({
+      data: {
+        assessmentId: 103,
+        questions: [mcQuestion],
+        html: '<p><strong>Read carefully</strong></p><img src="x" onerror="alert(1)"><script>alert(2)</script>'
+      }
+    });
+    mockReportStepByStep();
+
+    const wrapper = mountComponent(StudentQuiz, {
+      props: { experimentId: "1" },
+      global: { stubs: stubbedChildren }
+    });
+
+    await flushPromises();
+    await flushPromises();
+
+    const instructions = wrapper.find("strong").element.closest("div");
+    expect(instructions.innerHTML).toBe('<p><strong>Read carefully</strong></p><img src="x">');
+  });
+
   // the assignment's "Available until" date in the LMS has passed (e.g. the due date was moved
   // but not the availability date) - previously this left the student on a blank page
   it("tells the student why when launching a fresh attempt is refused because the assignment is locked", async () => {

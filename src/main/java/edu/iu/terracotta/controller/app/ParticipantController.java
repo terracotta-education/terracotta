@@ -157,6 +157,7 @@ public class ParticipantController {
             Participant participant = participantService.getParticipant(participantId, experimentId, securedInfo.getUserId(), true);
 
             try {
+                // deepcode ignore Ssrf: grades go to the AGS line item and token endpoints of the platform, which come from the stored PlatformDeployment and the verified LTI launch claims, never from this request
                 participantService.postConsentSubmission(participant, securedInfo);
             } catch (ConnectionException e) {
                 // don't let a failed grade sync (e.g. the LMS rejecting it because the consent

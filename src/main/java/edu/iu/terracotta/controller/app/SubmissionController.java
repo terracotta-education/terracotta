@@ -179,6 +179,7 @@ public class SubmissionController {
         Map<Submission, SubmissionDto> map = new HashMap<>();
         Submission submission = submissionService.getSubmission(experimentId, securedInfo.getUserId(), submissionId, student);
         map.put(submission, submissionDto);
+        // deepcode ignore Ssrf: grades go to the AGS line item and token endpoints of the platform, which come from the stored PlatformDeployment and the verified LTI launch claims, never from this request
         submissionService.updateSubmissions(map, student);
         log.debug("Updated submission ID: [{}]", submissionUuid);
 
@@ -212,6 +213,7 @@ public class SubmissionController {
         }
 
         try {
+            // deepcode ignore Ssrf: grades go to the AGS line item and token endpoints of the platform, which come from the stored PlatformDeployment and the verified LTI launch claims, never from this request
             submissionService.updateSubmissions(map, false);
             log.debug("Updated submission IDs: {}", submissionDtoList.stream().map(SubmissionDto::getSubmissionId).toList());
             return new ResponseEntity<>(HttpStatus.OK);

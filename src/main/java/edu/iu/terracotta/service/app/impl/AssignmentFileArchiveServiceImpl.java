@@ -69,6 +69,7 @@ public class AssignmentFileArchiveServiceImpl implements AssignmentFileArchiveSe
 
         assignmentFileArchive = assignmentFileArchiveRepository.save(assignmentFileArchive);
 
+        // deepcode ignore PT: the archive file URI deleted at the end is the server generated date path and UUID set by saveAssignmentFileArchive
         asyncService.processAssignmentFileArchive(assignmentFileArchive);
 
         log.info("Assignment file archive with ID: [{}] is being processed.", assignmentFileArchive.getUuid());
