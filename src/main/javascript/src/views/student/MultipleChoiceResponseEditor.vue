@@ -38,7 +38,7 @@
             />
           </v-radio-group>
 
-          <span v-html="answer.html" />
+          <span v-html="sanitizeHtml(answer.html)" />
         </div>
 
         <template v-if="readonly">
@@ -70,6 +70,7 @@ import {
 } from "vue";
 
 import ResponseRow from "@/views/student/ResponseRow.vue";
+import { sanitizeHtml } from "@/helpers";
 
 defineOptions({
   name: "MultipleChoiceResponseEditor"

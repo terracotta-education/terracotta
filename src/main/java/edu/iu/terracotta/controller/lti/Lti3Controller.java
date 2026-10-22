@@ -120,6 +120,7 @@ public class Lti3Controller {
             // successful launch for a given deployment (see ToolDeployment.noticeHandlerRegistered),
             // and never blocks or fails the launch itself either way.
             if (LmsConnector.CANVAS == lti3Request.getToolDeployment().getPlatformDeployment().getLmsConnector()) {
+                // deepcode ignore Ssrf: the notice handler URL is built from the base URL of the stored PlatformDeployment and a numeric ID from the verified LTI launch JWT
                 canvasAdvantageNoticeService.ensureNoticeHandlerRegistered(lti3Request.getToolDeployment());
             }
 

@@ -442,6 +442,7 @@ async function downloadAnswerFileSubmission(
   link.href = url;
   link.setAttribute("download", fileName);
 
+  // deepcode ignore DOMXSS: the link href is a blob: URL from URL.createObjectURL and the filename only sets the download attribute, so no markup or script URL reaches the DOM
   document.body.appendChild(link);
 
   link.click();

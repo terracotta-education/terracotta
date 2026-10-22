@@ -215,7 +215,7 @@
                 <v-col
                   cols="9">
                   <span
-                    v-html="question.html"
+                    v-html="sanitizeHtml(question.html)"
                   >
                   </span>
                 </v-col>
@@ -301,7 +301,7 @@
                             >
                               <!-- Answer Text -->
                               <span
-                                v-html="answer.html"
+                                v-html="sanitizeHtml(answer.html)"
                               >
                               </span>
                             </v-col>
@@ -410,6 +410,7 @@ import PageLoading from "@/components/PageLoading.vue";
 import Spinner from "@/components/Spinner.vue";
 import SubmissionSelector from "@/views/assignment/SubmissionSelector.vue";
 import ToolTip from "@/components/ToolTip.vue";
+import { sanitizeHtml } from "@/helpers";
 
 defineOptions({
   name: "StudentSubmissionGrading"
