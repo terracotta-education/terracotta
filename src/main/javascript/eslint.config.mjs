@@ -8,7 +8,11 @@ export default [
       "dist/**",
       "node/**",
       "node_modules/**",
-      ".yarn/**"
+      ".yarn/**",
+      // generated test reports
+      "coverage/**",
+      "playwright-report/**",
+      "test-results/**"
     ]
   },
   js.configs.recommended,

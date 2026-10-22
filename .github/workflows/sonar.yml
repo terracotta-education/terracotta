@@ -1,0 +1,124 @@
+name: SonarQube
+
+# Runs after CI finishes, in this repository, so it has the SONAR_TOKEN secret even for a pull
+# request from a fork (a pull_request run from a fork gets no secrets). Because it has the token, it
+# never builds or runs the pull request's code: it reads the source, plus the compiled classes and
+# coverage reports the CI run uploaded, and every scanner setting comes from this file, not from the
+# checkout. GitHub runs this file as it is on development, so changes to it take effect once merged.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: sonar-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+env:
+  SONAR_ORGANIZATION: terracotta
+  SONAR_PROJECT_KEY: terracotta-education_terracotta
+
+jobs:
+  sonar:
+    name: SonarQube analysis
+    # a failed CI run has no reports to analyze
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the analyzed commit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          # SonarQube uses the history to tell new code from old
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download the CI run's reports
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          pattern: sonar-*
+          path: sonar-input
+
+      # Vitest writes paths relative to src/main/javascript; SonarQube resolves them from the root
+      - name: Point the frontend coverage at the right files
+        run: sed -i 's#^SF:src/#SF:src/main/javascript/src/#' sonar-input/sonar-frontend/lcov.info
+
+      # the scanner reads sonar-project.properties from the checkout, and a pull request could change
+      # it (to send the token to another server, say), so it's replaced with settings from this file
+      - name: Write the scanner settings
+        id: settings
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event.workflow_run.event }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          cat > sonar-project.properties <<PROPERTIES
+          sonar.organization=$SONAR_ORGANIZATION
+          sonar.projectKey=$SONAR_PROJECT_KEY
+          sonar.projectName=Terracotta
+          sonar.sources=src/main/java,src/main/javascript/src
+          sonar.tests=src/test/java,src/main/javascript/src
+          sonar.test.inclusions=**/*.spec.js,**/*Test.java
+          sonar.exclusions=**/*.spec.js,src/main/javascript/node_modules/**,src/main/javascript/dist/**
+          sonar.java.source=25
+          sonar.java.binaries=sonar-input/sonar-backend/classes
+          sonar.java.test.binaries=sonar-input/sonar-backend/test-classes
+          sonar.coverage.jacoco.xmlReportPaths=sonar-input/sonar-backend/site/jacoco-ut/jacoco.xml
+          sonar.javascript.lcov.reportPaths=sonar-input/sonar-frontend/lcov.info
+          sonar.sourceEncoding=UTF-8
+          PROPERTIES
+
+          if [ "$EVENT" = "push" ] && [ "$HEAD_BRANCH" = "development" ]; then
+            echo "analyze=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "Only pull requests and development are analyzed; skipping a $EVENT run on $HEAD_BRANCH"
+            echo "analyze=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          number=$(cat sonar-input/sonar-backend/pr-number)
+
+          if ! [[ "$number" =~ ^[0-9]+$ ]]; then
+            echo "The CI run's pull request number isn't a number: $number"
+            exit 1
+          fi
+
+          # the branch names come from GitHub, not from the pull request's run, and the pull request
+          # has to be at the commit being analyzed
+          pr=$(gh api "repos/$REPOSITORY/pulls/$number")
+
+          if [ "$(jq -r .head.sha <<< "$pr")" != "$HEAD_SHA" ]; then
+            echo "Pull request $number has moved on from $HEAD_SHA; its newer run will be analyzed"
+            echo "analyze=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "sonar.pullrequest.key=$number"
+            echo "sonar.pullrequest.branch=$(jq -r .head.ref <<< "$pr")"
+            echo "sonar.pullrequest.base=$(jq -r .base.ref <<< "$pr")"
+          } >> sonar-project.properties
+
+          echo "analyze=true" >> "$GITHUB_OUTPUT"
+
+      - name: Analyze
+        if: steps.settings.outputs.analyze == 'true'
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # set here too: it wins over any other source of the setting
+          SONAR_HOST_URL: https://sonarcloud.io
