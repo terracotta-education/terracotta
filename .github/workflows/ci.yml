@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [development]
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+# a newer push to the same branch or pull request replaces a run still in progress
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (Java tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      # the frontend has its own job, so skip the Vite build Maven would otherwise run. verify
+      # runs the tests and writes the JaCoCo coverage report. The tests use H2 and the test
+      # profile in src/test/resources, so no database or secrets are needed.
+      - name: Build and test
+        run: ./mvnw -B -ntp verify -Dvite.skip=true
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: 7
+
+      - name: Upload coverage report
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco-ut/
+          retention-days: 7
+
+      # for the SonarQube workflow, which runs after this one (see sonar.yml): the compiled classes
+      # and coverage it reads, and which pull request this run was for
+      - name: Save the pull request number
+        if: github.event_name == 'pull_request'
+        run: echo "${{ github.event.pull_request.number }}" > target/pr-number
+
+      - name: Upload for SonarQube
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonar-backend
+          path: |
+            target/classes/
+            target/test-classes/
+            target/site/jacoco-ut/jacoco.xml
+            target/pr-number
+          if-no-files-found: ignore
+          retention-days: 1
+
+  frontend:
+    name: Frontend (tests, lint, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src/main/javascript
+    steps:
+      - uses: actions/checkout@v4
+
+      # matches the major version the Maven build installs (node.version in pom.xml)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # package.json pins Yarn (packageManager: yarn@4.9.1); corepack provides that version
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Cache Yarn packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.yarn/berry/cache
+          key: yarn-${{ runner.os }}-${{ hashFiles('src/main/javascript/yarn.lock') }}
+          restore-keys: yarn-${{ runner.os }}-
+
+      # fails if yarn.lock doesn't match package.json, instead of quietly updating it
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # with coverage, for SonarQube
+      - name: Test
+        run: yarn test --coverage --coverage.reporter=lcov --coverage.include='src/**'
+
+      - name: Upload for SonarQube
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonar-frontend
+          path: src/main/javascript/coverage/lcov.info
+          retention-days: 1
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Production build
+        run: yarn vite build
+
+  browser:
+    name: Browser tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src/main/javascript
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Cache Yarn packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.yarn/berry/cache
+          key: yarn-${{ runner.os }}-${{ hashFiles('src/main/javascript/yarn.lock') }}
+          restore-keys: yarn-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # the browser build Playwright expects, and the system libraries it needs on Linux
+      - name: Install Chromium
+        run: yarn playwright install --with-deps chromium
+
+      # the real app in Chromium against a Vite dev server, with the API mocked (see e2e/)
+      - name: Browser tests
+        run: yarn test:e2e
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            src/main/javascript/playwright-report/
+            src/main/javascript/test-results/
+          retention-days: 7
