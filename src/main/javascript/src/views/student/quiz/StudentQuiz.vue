@@ -53,7 +53,7 @@
         <template v-if="!submitted">
           <div
             v-if="assessment.html && questionPageIndex === 0"
-            v-html="assessment.html"
+            v-html="assessmentHtml"
           />
 
           <form
@@ -117,7 +117,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Swal from "sweetalert2";
 import dayjs from "@/plugins/dayjs";
-import { lockedAssignmentMessage } from "@/helpers";
+import { lockedAssignmentMessage, sanitizeHtml } from "@/helpers";
 
 import StudentQuizRetakeBanner from "@/views/student/quiz/components/StudentQuizRetakeBanner.vue";
 import StudentQuizSubmissionDetails from "@/views/student/quiz/components/StudentQuizSubmissionDetails.vue";
@@ -187,6 +187,7 @@ const integration = ref({
 });
 
 const assessment = computed(() => assessmentStore.assessment || {});
+const assessmentHtml = computed(() => sanitizeHtml(assessment.value.html));
 const answerableQuestions = computed(() => assessmentStore.answerableQuestions || []);
 const questionPages = computed(() => assessmentStore.questionPages || []);
 const questionSubmissions = computed(() => submissionsStore.questionSubmissions || []);
