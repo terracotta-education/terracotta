@@ -81,6 +81,7 @@ public class DistributeController {
         }
 
         try {
+            // deepcode ignore PT: the export directory name is the experiment title with path separators replaced by LmsUtils.sanitize, under a fixed prefix
             ExportDto transferExportDto = exportService.export(experiment);
 
             if (transferExportDto.getFile() == null) {

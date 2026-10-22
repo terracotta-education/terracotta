@@ -140,6 +140,7 @@ public class ExperimentDataExportController {
             .contentType(MediaType.parseMediaType(experimentDataExportDto.getMimeType()))
             .contentLength(experimentDataExportDto.getFile().length())
             .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(experimentDataExportDto.getFileName(), StandardCharsets.UTF_8).build().toString())
+            // deepcode ignore PT: the export file is resolved from its server generated file URI, the request only supplies UUIDs used for lookups
             .body(new InputStreamResource(new FileInputStream(experimentDataExportDto.getFile())));
     }
 

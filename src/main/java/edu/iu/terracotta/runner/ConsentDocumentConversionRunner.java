@@ -73,6 +73,7 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
                                     File oldFile = new File(String.format("%s/%s/consent/consent.pdf", uploadDir, consentDocument.getExperiment().getExperimentId()));
 
                                     // get file creation time
+                                    // deepcode ignore PT: the old path is built from config and the experiment's numeric ID only
                                     BasicFileAttributes attr = Files.readAttributes(oldFile.toPath(), BasicFileAttributes.class);
                                     String path = attr.creationTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().format(DATE_FORMATTER);
 
@@ -87,6 +88,7 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
                                     }
 
                                     // copy the file to the directory
+                                    // deepcode ignore PT: both paths are built from config, the experiment's numeric ID, a date and a random UUID
                                     Files.copy(
                                         oldFile.toPath(),
                                         Paths.get(String.format("%s/%s", consentFileLocalPathRoot, filePath)),
@@ -107,6 +109,7 @@ public class ConsentDocumentConversionRunner implements ApplicationListener<Appl
                                     );
 
                                     // delete the original file
+                                    // deepcode ignore PT: the path is built from config, a date and a random UUID
                                     Files.deleteIfExists(Paths.get(String.format("%s/%s", consentFileLocalPathRoot, filePath)));
 
                                     consentDocument.setEncryptionMethod(fileSubmissionLocal.encryptionMethod());
