@@ -102,7 +102,7 @@ jobs:
 
       # with coverage, for SonarQube
       - name: Test
-        run: yarn test --coverage --coverage.reporter=lcov --coverage.include='src/**'
+        run: yarn test --coverage --coverage.reporter=lcov --coverage.include='src/**/*.{js,vue}'
 
       - name: Upload for SonarQube
         if: success()
@@ -118,10 +118,43 @@ jobs:
       - name: Production build
         run: yarn vite build
 
+  # the Playwright version in package.json, so the browser job's image always matches it
+  playwright-version:
+    name: Playwright version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: src/main/javascript/package.json
+          sparse-checkout-cone-mode: false
+
+      # image tags are exact versions, so a range like ^1.63.0 can't name one
+      - name: Read it from package.json
+        id: read
+        run: |
+          version=$(jq -r '.devDependencies["@playwright/test"]' src/main/javascript/package.json)
+
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=src/main/javascript/package.json::Pin @playwright/test to an exact version (it's \"$version\"): the browser tests run in the Playwright image for that version"
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   browser:
     name: Browser tests (Playwright)
+    needs: playwright-version
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Microsoft's image for that version has Chromium and the libraries it needs already installed,
+    # which took from one to nine minutes to install on each run. Chromium wants more shared memory
+    # than a container gets by default, hence --ipc=host.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      options: --ipc=host
     defaults:
       run:
         working-directory: src/main/javascript
@@ -144,10 +177,6 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --immutable
-
-      # the browser build Playwright expects, and the system libraries it needs on Linux
-      - name: Install Chromium
-        run: yarn playwright install --with-deps chromium
 
       # the real app in Chromium against a Vite dev server, with the API mocked (see e2e/)
       - name: Browser tests
