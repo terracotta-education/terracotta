@@ -150,6 +150,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                     log.info("Creating assignment with ID: [{}] in the LMS ", assignmentToCreate.getAssignmentId());
 
                     try {
+                        // deepcode ignore Ssrf: LMS API calls go to the base URL of the stored PlatformDeployment, and the assignment IDs used come from earlier LMS responses
                         assignmentService.restoreAssignmentInLms(assignmentToCreate);
                     } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
                         log.error("Error restoring assignment with ID: [{}] in the LMS", assignmentToCreate.getAssignmentId(), e);
