@@ -69,6 +69,7 @@ public class ExperimentDataExportSchedulerServiceImpl implements ExperimentDataE
                                 List<Boolean> deleted = new ArrayList<>();
                                 try {
                                     deleted.add(
+                                        // deepcode ignore PT: the export file URI is the server generated date path and UUID set by saveExperimentDataExport
                                         Paths.get(
                                             String.format(
                                                 "%s/%s",
@@ -80,6 +81,7 @@ public class ExperimentDataExportSchedulerServiceImpl implements ExperimentDataE
                                         .delete()
                                     );
                                     deleted.add(
+                                        // deepcode ignore PT: the export file URI is the server generated date path and UUID set by saveExperimentDataExport
                                         Paths.get(
                                             String.format(
                                                 "%s/%s%s",

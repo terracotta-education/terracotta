@@ -11,6 +11,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.connectors.generic.service.lti.RegistrationService;
+import edu.iu.terracotta.service.app.OutboundUrlService;
 import edu.iu.terracotta.utils.LtiStrings;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +58,7 @@ public class RegistrationController {
     private final PlatformDeploymentRepository platformDeploymentRepository;
     private final ApiJwtService apijwtService;
     private final RegistrationService registrationService;
+    private final OutboundUrlService outboundUrlService;
 
     @Value("${application.name}")
     private String clientName;
@@ -84,7 +86,6 @@ public class RegistrationController {
         // call it to get all the information about the platform
         HttpSession session = req.getSession();
         model.addAttribute("openid_configuration", openidConfiguration);
-        session.setAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
         model.addAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
 
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
@@ -96,9 +97,11 @@ public class RegistrationController {
             // We are going to create the call the openidconfiguration endpoint,
             RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(new SimpleClientHttpRequestFactory()));
 
-            //The URL to get the course contents is stored in the context (in our database) because it came
-            // from the platform when we created the link to the context, and we saved it then.
+            // the spec has the platform send this URL in the request, so it can't be matched against
+            // a known platform. Keep the server from being pointed at its own network instead.
+            outboundUrlService.validatePublicUrl(openidConfiguration);
 
+            // deepcode ignore Ssrf: openid_configuration comes from the request by design of LTI Dynamic Registration and is checked by validatePublicUrl above
             ResponseEntity<PlatformRegistrationDto> platformConfiguration = restTemplate.exchange(openidConfiguration, HttpMethod.GET, new HttpEntity<>(new HttpHeaders()), PlatformRegistrationDto.class);
             PlatformRegistrationDto platformRegistrationDto = null;
 
@@ -117,6 +120,10 @@ public class RegistrationController {
             }
 
             model.addAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDto);
+            // The session is only written once the caller's API token has been validated and the platform configuration fetched.
+            // deepcode ignore TrustBoundaryViolation: the registration token is opaque and only forwarded to the platform, and the caller is authenticated by this point
+            session.setAttribute(LtiStrings.REGISTRATION_TOKEN, registrationToken);
+            // deepcode ignore TrustBoundaryViolation: this is the platform's own configuration response, stored only for an authenticated caller to finish the registration
             session.setAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDto);
             ToolRegistrationDto toolRegistrationDto = generateToolConfiguration(req);
             // We add that information so the thymeleaf template can display it (and prepare the links)
@@ -140,8 +147,10 @@ public class RegistrationController {
         String answer = "Error during the registration";
 
         try {
+            // the registration endpoint came from the fetched platform configuration, which anyone can host
+            outboundUrlService.validatePublicUrl(platformRegistrationDto.getRegistration_endpoint());
             answer = registrationService.callDynamicRegistration(token, toolRegistrationDto, platformRegistrationDto.getRegistration_endpoint());
-        } catch (ConnectionException e) {
+        } catch (ConnectionException | IllegalArgumentException e) {
             log.error("Error during dynamic registration", e);
         }
 

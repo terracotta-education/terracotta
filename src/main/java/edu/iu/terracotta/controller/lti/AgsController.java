@@ -72,6 +72,7 @@ public class AgsController {
 
             //Call the ags service to get the users on the context
             // 1. Get the token
+            // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the PlatformDeployment stored in the database, found by the tool deployment ID set in the session at LTI launch
             LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
             // 2. Call the service
@@ -110,6 +111,7 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
+            // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the PlatformDeployment stored in the database, found by the tool deployment ID set in the session at LTI launch
             LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
@@ -148,6 +150,7 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
+            // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the PlatformDeployment stored in the database, found by the tool deployment ID set in the session at LTI launch
             LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
@@ -186,6 +189,7 @@ public class AgsController {
 
                 //Call the ags service to post a lineitem
                 // 1. Get the token
+                // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the PlatformDeployment stored in the database, found by the tool deployment ID set in the session at LTI launch
                 LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
                 log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 
@@ -227,6 +231,7 @@ public class AgsController {
 
             //Call the ags service to post a lineitem
             // 1. Get the token
+            // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the PlatformDeployment stored in the database, found by the tool deployment ID set in the session at LTI launch
             LtiToken ltiToken = advantageAGSServiceService.getToken(LtiAgsScope.LINEITEMS, toolDeployment.get().getPlatformDeployment());
             log.info(TextConstants.TOKEN + ltiToken.getAccess_token());
 

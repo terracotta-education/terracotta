@@ -531,7 +531,9 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public void sendSubmissionGradeToLmsWithLti(Submission submission, boolean studentSubmission) throws ConnectionException, DataServiceException, ApiException, IOException, TerracottaConnectorException {
         PlatformDeployment platformDeployment = submission.getAssessment().getTreatment().getAssignment().getExposure().getExperiment().getPlatformDeployment();
+        // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the stored PlatformDeployment, only admins configure it
         LtiToken ltiTokenScore = advantageAgsService.getToken(LtiAgsScope.SCORES, platformDeployment);
+        // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the stored PlatformDeployment, only admins configure it
         LtiToken ltiTokenResults = advantageAgsService.getToken(LtiAgsScope.RESULTS, platformDeployment);
 
         sendSubmissionGradeToLmsWithLti(submission, studentSubmission, ltiTokenScore, ltiTokenResults);
@@ -918,6 +920,7 @@ public class SubmissionServiceImpl implements SubmissionService {
 
     private String lineItemId(Assignment assignment) throws ConnectionException, TerracottaConnectorException {
         Experiment experiment = assignment.getExposure().getExperiment();
+        // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the stored PlatformDeployment, only admins configure it
         LtiToken ltiToken = advantageAgsService.getToken(LtiAgsScope.LINEITEMS, experiment.getPlatformDeployment());
         //find the right id to pass based on the assignment
         LineItems lineItems = advantageAgsService.getLineItems(ltiToken, experiment.getLtiContextEntity());

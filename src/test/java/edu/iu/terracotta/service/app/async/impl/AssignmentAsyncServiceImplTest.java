@@ -2,8 +2,11 @@ package edu.iu.terracotta.service.app.async.impl;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -23,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -512,6 +516,86 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(fileStorageService).compressDirectory(anyString(), eq(""), eq(AssignmentFileArchive.COMPRESSED_FILE_EXTENSION), eq(false));
         verify(fileStorageService).saveAssignmentFileArchive(eq(archive), any(File.class));
         verify(assignmentFileArchiveRepository).save(archive);
+    }
+
+    @Test
+    void testProcessAssignmentFileArchiveFileNameTraversalIsNotMovedOutOfItsDirectory() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+
+        Path sourceDir = Files.createDirectories(tempDir.resolve("decompressed"));
+        Path sourceFile = sourceDir.resolve("original.dat");
+        Files.writeString(sourceFile, "file contents");
+
+        AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            .fileName("../escaped.txt")
+            .questionSubmission(questionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
+        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+
+        assertTrue(Files.exists(sourceFile));
+        assertFalse(Files.exists(tempDir.resolve("escaped.txt")));
+        assertEquals(AssignmentFileArchiveStatus.ERROR, archive.getStatus());
+    }
+
+    @Test
+    void testProcessAssignmentFileArchiveParticipantNameTraversalIsSkipped() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+        when(ltiUserEntity.getDisplayName()).thenReturn("../../escaped-participant");
+
+        Path sourceFile = tempDir.resolve("original.dat");
+        Files.writeString(sourceFile, "file contents");
+
+        AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            .fileName("renamed.txt")
+            .questionSubmission(questionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
+        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+
+        assertFalse(Files.exists(FileUtils.getTempDirectory().toPath().getParent().resolve("escaped-participant")));
+        verify(fileStorageService, never()).saveAssignmentFileArchive(any(), any(File.class));
+    }
+
+    @Test
+    void testProcessAssignmentFileArchiveAssignmentTitleTraversalResultsInErrorStatus() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+        when(assignment.getTitle()).thenReturn("x/../../../escaped");
+
+        Path sourceFile = tempDir.resolve("original.dat");
+        Files.writeString(sourceFile, "file contents");
+
+        AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            .fileName("renamed.txt")
+            .questionSubmission(questionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
+        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+
+        assertEquals(AssignmentFileArchiveStatus.ERROR, archive.getStatus());
+        verify(fileStorageService, never()).compressDirectory(anyString(), anyString(), anyString(), anyBoolean());
+        FileUtils.deleteQuietly(FileUtils.getTempDirectory().toPath().resolve(archive.getUuid().toString()).toFile());
     }
 
     @Test

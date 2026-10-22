@@ -498,6 +498,51 @@ public class FileStorageServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetFileSubmissionLocalNotCompressedTraversalThrows() throws IOException {
+        Path outside = tempDir.resolve("outside.txt");
+        Files.writeString(outside, "not a submission");
+        AnswerFileSubmission answer = AnswerFileSubmission.builder().fileUri("../outside.txt").build();
+        when(answerFileSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answer));
+
+        assertThrows(FileStorageException.class, () -> fileStorageService.getFileSubmissionLocal(1L));
+    }
+
+    @Test
+    public void testGetFileSubmissionLocalNotCompressedAbsolutePathThrows() {
+        AnswerFileSubmission answer = AnswerFileSubmission.builder().fileUri("/etc/passwd").build();
+        when(answerFileSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answer));
+
+        assertThrows(FileStorageException.class, () -> fileStorageService.getFileSubmissionLocal(1L));
+    }
+
+    @Test
+    public void testGetFileSubmissionLocalCompressedTraversalThrows() throws IOException {
+        Path plain = tempDir.resolve("outside-answer.txt");
+        Files.writeString(plain, "outside content");
+        String phrase = "answerPhrase";
+        assertTrue(fileStorageService.compressFile(plain.toString(), phrase, ".zip"));
+
+        AnswerFileSubmission answer = AnswerFileSubmission.builder()
+            .fileUri("../outside-answer.txt")
+            .encryptionMethod("AES")
+            .encryptionPhrase(phrase)
+            .build();
+        when(answerFileSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answer));
+
+        assertThrows(FileStorageException.class, () -> fileStorageService.getFileSubmissionLocal(1L));
+    }
+
+    @Test
+    public void testDeleteFileSubmissionTraversalThrowsAndKeepsFile() throws IOException {
+        Path outside = tempDir.resolve("keep-me.txt");
+        Files.writeString(outside, "keep");
+        AnswerFileSubmission answer = AnswerFileSubmission.builder().answerFileSubmissionId(1L).fileUri("../keep-me.txt").build();
+
+        assertThrows(FileStorageException.class, () -> fileStorageService.deleteFileSubmission(answer));
+        assertTrue(Files.exists(outside));
+    }
+
+    @Test
     public void testDeleteFileSubmissionByIdNotFoundReturnsSilently() {
         when(answerFileSubmissionRepository.findById(anyLong())).thenReturn(Optional.empty());
 

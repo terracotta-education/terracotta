@@ -32,6 +32,7 @@ public class IntegrationScoreAsyncServiceImpl implements IntegrationScoreAsyncSe
         Submission gradedSubmission = submissionRepository.findBySubmissionId(submissionId);
 
         try {
+            // deepcode ignore Ssrf: grades go to the AGS line item and token endpoints of the platform, which come from the stored PlatformDeployment and the verified LTI launch claims, never from this request
             submissionService.sendSubmissionGradeToLmsWithLti(gradedSubmission, true);
         } catch (DataServiceException | ConnectionException | IOException | ApiException | TerracottaConnectorException e) {
             log.error("Error syncing integration submission grade with the LMS. Submission ID: [{}]. Grade: [{}]", submissionId, gradedSubmission.getCalculatedGrade(), e);

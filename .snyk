@@ -1,0 +1,15 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+ignore:
+  # no fixed version exists; Snyk lists every jaxb-core from 4.0.0-M4 on as affected. XXE needs
+  # untrusted XML parsed through JAXB, and Terracotta doesn't do that: Hibernate (through Spring
+  # Data JPA) uses it for its own mapping files only. Look again when this expires.
+  SNYK-JAVA-ORGGLASSFISHJAXB-20883142:
+    - '*':
+        reason: Not exploitable here, and no fixed version exists; JAXB only parses Hibernate's own mapping files, never XML from users.
+        expires: 2027-04-22T00:00:00.000Z
+        created: 2026-10-22T00:00:00.000Z
+exclude:
+  global:
+    # Snyk Code: tests hold made-up credentials and temp file paths on purpose
+    - src/test/**

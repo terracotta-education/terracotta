@@ -95,6 +95,7 @@ import { container as messagingMessageContainerModule } from "@/store/messaging/
 import { conditionaltext as messagingConditionalTextModule } from "@/store/messaging/conditionaltext.module";
 import { participants as participantsModule } from "@/store/participants.module";
 import { message as messagingMessageModule } from "@/store/messaging/message.module";
+import { sanitizeHtml } from "@/helpers";
 
 defineOptions({
   name: "MessagePreview"
@@ -193,8 +194,9 @@ const availableParticipants = computed(() => {
   });
 });
 
+// the instructor's HTML with participant data piped in
 const previewMessageBody = computed(() => {
-  return previewMessage.value?.body ||
+  return sanitizeHtml(previewMessage.value?.body) ||
     "<p>Please select a user to preview their message.</p>";
 });
 

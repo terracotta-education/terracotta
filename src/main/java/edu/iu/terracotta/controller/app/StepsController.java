@@ -244,6 +244,7 @@ public class StepsController {
                 return new ResponseEntity<>(TextConstants.ASSIGNMENT_NOT_MATCHING + " : " + assignmentId, HttpStatus.NOT_FOUND);
             }
 
+            // deepcode ignore Ssrf: grades go to the AGS line item and token endpoints of the platform, which come from the stored PlatformDeployment and the verified LTI launch claims, never from this request
             assignmentService.sendAssignmentGradeToLms(assignment.get());
         }
 

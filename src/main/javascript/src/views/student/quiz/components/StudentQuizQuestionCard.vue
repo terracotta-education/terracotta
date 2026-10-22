@@ -17,7 +17,7 @@
             :submission-id="submissionId"
             :treatment-id="treatmentId"
           >
-            <span v-html="question.html" />
+            <span v-html="sanitizeHtml(question.html)" />
           </YoutubeEventCapture>
         </v-col>
         <v-col>
@@ -75,6 +75,7 @@ import EssayResponseEditor from "@/views/student/EssayResponseEditor.vue";
 import MultipleChoiceResponseEditor from "@/views/student/MultipleChoiceResponseEditor.vue";
 import FileUploadResponseEditor from "@/views/student/FileUploadResponseEditor.vue";
 import YoutubeEventCapture from "@/views/student/YoutubeEventCapture.vue";
+import { sanitizeHtml } from "@/helpers";
 
 const props = defineProps({
   question: { type: Object, required: true },
