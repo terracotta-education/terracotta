@@ -13,11 +13,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +34,8 @@ import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.sun.net.httpserver.HttpServer;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
@@ -233,6 +240,78 @@ public class MessageEmailServiceImplTest extends BaseTest {
         ArgumentCaptor<MessageLog> captor = ArgumentCaptor.forClass(MessageLog.class);
         verify(messageLogRepository, times(1)).save(captor.capture());
         assertEquals(MessageProcessingStatus.SENT, captor.getValue().getStatus());
+    }
+
+    @Test
+    public void testSendAttachmentOnLmsHostIsFetched() throws Exception {
+        AtomicInteger lmsRequests = new AtomicInteger();
+        HttpServer lmsServer = fileServer(lmsRequests);
+
+        try {
+            String lmsBaseUrl = "http://localhost:" + lmsServer.getAddress().getPort();
+            when(platformDeployment.getBaseUrl()).thenReturn(lmsBaseUrl);
+            message.setContent(
+                MessageContent.builder()
+                    .attachments(List.of(MessageContentAttachment.builder().filename("syllabus.txt").url(lmsBaseUrl + "/files/1/download?download_frd=1").build()))
+                    .build()
+            );
+            when(sesClient.sendRawEmail(any(SendRawEmailRequest.class))).thenReturn(SendRawEmailResponse.builder().messageId("ses-id-5").build());
+
+            messageEmailService.send(message);
+
+            assertEquals(1, lmsRequests.get());
+        } finally {
+            lmsServer.stop(0);
+        }
+    }
+
+    @Test
+    public void testSendAttachmentOffLmsHostIsNotFetched() throws Exception {
+        AtomicInteger otherRequests = new AtomicInteger();
+        HttpServer otherServer = fileServer(otherRequests);
+
+        try {
+            when(platformDeployment.getBaseUrl()).thenReturn("https://canvas.example.edu");
+            message.setContent(
+                MessageContent.builder()
+                    .attachments(
+                        List.of(
+                            MessageContentAttachment.builder().filename("internal.txt").url("http://localhost:" + otherServer.getAddress().getPort() + "/internal").build(),
+                            MessageContentAttachment.builder().filename("metadata.txt").url("http://169.254.169.254/latest/meta-data/").build()
+                        )
+                    )
+                    .build()
+            );
+            when(sesClient.sendRawEmail(any(SendRawEmailRequest.class))).thenReturn(SendRawEmailResponse.builder().messageId("ses-id-6").build());
+
+            messageEmailService.send(message);
+
+            assertEquals(0, otherRequests.get());
+            ArgumentCaptor<MessageLog> captor = ArgumentCaptor.forClass(MessageLog.class);
+            verify(messageLogRepository, times(1)).save(captor.capture());
+            assertEquals(MessageProcessingStatus.SENT, captor.getValue().getStatus());
+        } finally {
+            otherServer.stop(0);
+        }
+    }
+
+    private HttpServer fileServer(AtomicInteger requests) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        server.createContext(
+            "/",
+            exchange -> {
+                requests.incrementAndGet();
+                byte[] bytes = "file contents".getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, bytes.length);
+
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(bytes);
+                }
+            }
+        );
+        server.start();
+
+        return server;
     }
 
     @Test
