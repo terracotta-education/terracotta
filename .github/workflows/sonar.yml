@@ -31,6 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # checkout refuses a fork's code here unless told otherwise, because this job has the secrets.
+      # That guards against building or running the code; this job only reads it: no step runs
+      # anything from the checkout, its sonar-project.properties is replaced below, and the token
+      # this job gets is read-only. Anything added to this job must keep it that way.
       - name: Check out the analyzed commit
         uses: actions/checkout@v4
         with:
@@ -39,6 +43,7 @@ jobs:
           # SonarQube uses the history to tell new code from old
           fetch-depth: 0
           persist-credentials: false
+          allow-unsafe-pr-checkout: true
 
       - name: Download the CI run's reports
         uses: actions/download-artifact@v4
