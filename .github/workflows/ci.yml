@@ -51,6 +51,25 @@ jobs:
           path: target/site/jacoco-ut/
           retention-days: 7
 
+      # for the SonarQube workflow, which runs after this one (see sonar.yml): the compiled classes
+      # and coverage it reads, and which pull request this run was for
+      - name: Save the pull request number
+        if: github.event_name == 'pull_request'
+        run: echo "${{ github.event.pull_request.number }}" > target/pr-number
+
+      - name: Upload for SonarQube
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonar-backend
+          path: |
+            target/classes/
+            target/test-classes/
+            target/site/jacoco-ut/jacoco.xml
+            target/pr-number
+          if-no-files-found: ignore
+          retention-days: 1
+
   frontend:
     name: Frontend (tests, lint, build)
     runs-on: ubuntu-latest
@@ -81,8 +100,17 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      # with coverage, for SonarQube
       - name: Test
-        run: yarn test
+        run: yarn test --coverage --coverage.reporter=lcov --coverage.include='src/**'
+
+      - name: Upload for SonarQube
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonar-frontend
+          path: src/main/javascript/coverage/lcov.info
+          retention-days: 1
 
       - name: Lint
         run: yarn lint
