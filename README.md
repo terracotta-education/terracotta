@@ -1,6 +1,8 @@
 TERRACOTTA
 ========
 
+[![Quality gate](https://sonarcloud.io/api/project_badges/measure?project=terracotta-education_terracotta&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=terracotta-education_terracotta)
+
 Build
 -----
 This will produce a terracotta-X.X.jar file in the *target* directory
