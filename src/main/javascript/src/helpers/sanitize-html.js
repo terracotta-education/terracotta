@@ -5,9 +5,11 @@ const ALLOWED_IFRAME_SRC = /^https:\/\/www\.youtube(-nocookie)?\.com\/embed\//i;
 
 const purifier = createDOMPurify(window);
 
+// iframes aren't allowed in general; each one is allowed only when it's a YouTube embed. The hook runs
+// before DOMPurify checks the tag, and sets the answer for every iframe it sees.
 purifier.addHook("uponSanitizeElement", (node, data) => {
-  if (data.tagName === "iframe" && !ALLOWED_IFRAME_SRC.test(node.getAttribute("src") || "")) {
-    node.remove();
+  if (data.tagName === "iframe") {
+    data.allowedTags.iframe = ALLOWED_IFRAME_SRC.test(node.getAttribute("src") || "");
   }
 });
 
@@ -27,7 +29,6 @@ export function sanitizeHtml(html) {
   }
 
   return purifier.sanitize(html, {
-    ADD_TAGS: ["iframe"],
     ADD_ATTR: ["target", "allow", "allowfullscreen", "frameborder"]
   });
 }

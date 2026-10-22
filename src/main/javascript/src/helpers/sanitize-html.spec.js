@@ -64,3 +64,19 @@ describe("escapeHtml", () => {
     expect(escapeHtml(undefined)).toBe("");
   });
 });
+
+describe("sanitizeHtml iframes", () => {
+  // each iframe is judged on its own: an allowed one mustn't let a later one through
+  it("removes a non-YouTube iframe that follows a YouTube one", () => {
+    const html = '<iframe src="https://www.youtube-nocookie.com/embed/abc"></iframe>' +
+      '<iframe src="https://evil.example.com/"></iframe>';
+
+    expect(sanitizeHtml(html)).toBe('<iframe src="https://www.youtube-nocookie.com/embed/abc"></iframe>');
+  });
+
+  it("doesn't let a YouTube iframe from one call allow iframes in the next", () => {
+    sanitizeHtml('<iframe src="https://www.youtube-nocookie.com/embed/abc"></iframe>');
+
+    expect(sanitizeHtml('<iframe src="https://evil.example.com/"></iframe>')).toBe("");
+  });
+});
