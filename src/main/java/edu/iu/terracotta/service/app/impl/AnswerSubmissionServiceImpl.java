@@ -523,7 +523,6 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerSubmissionDto.setFileName(file.getResource().getFilename());
         answerSubmissionDto.setMimeType(file.getContentType());
         answerSubmissionDto.setFileUri(fileSubmissionLocal.filePath());
-        answerSubmissionDto.setFile(getFile(file, file.getName()));
 
         if (fileSubmissionLocal.compressed()) {
             answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.encryptionPhrase());
@@ -567,7 +566,6 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
         answerSubmissionDto.setFileName(file.getResource().getFilename());
         answerSubmissionDto.setMimeType(file.getContentType());
         answerSubmissionDto.setFileUri(fileSubmissionLocal.filePath());
-        answerSubmissionDto.setFile(getFile(file, file.getName()));
 
         if (fileSubmissionLocal.compressed()) {
             answerSubmissionDto.setEncryptionPhrase(fileSubmissionLocal.encryptionPhrase());
@@ -576,15 +574,6 @@ public class AnswerSubmissionServiceImpl implements AnswerSubmissionService {
 
         return postAnswerSubmission(answerSubmissionDto, resolveQuestionSubmissionId(answerSubmissionDto.getQuestionSubmissionId()));
     }
-
-    private File getFile(MultipartFile multipartFile, String fileName) {
-        File tempFile = new File(fileName);
-
-        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-            fos.write(multipartFile.getBytes());
-        } catch (IOException e) {
-           log.error("Error while converting Multipart file to file {}",tempFile.getName());
-        }
 
         return tempFile;
     }
