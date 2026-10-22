@@ -11,6 +11,16 @@ purifier.addHook("uponSanitizeElement", (node, data) => {
   }
 });
 
+// for plain text, such as a URL parameter, that is put into an HTML string
+export function escapeHtml(text) {
+  return String(text ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function sanitizeHtml(html) {
   if (!html) {
     return "";

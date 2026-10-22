@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { sanitizeHtml } from "./sanitize-html";
+import { escapeHtml, sanitizeHtml } from "./sanitize-html";
 
 describe("sanitizeHtml", () => {
   it("returns an empty string for empty input", () => {
@@ -51,5 +51,16 @@ describe("sanitizeHtml", () => {
   it("removes srcdoc from an allowed iframe", () => {
     expect(sanitizeHtml('<iframe src="https://www.youtube.com/embed/abc" srcdoc="<script>alert(1)</script>"></iframe>'))
       .toBe('<iframe src="https://www.youtube.com/embed/abc"></iframe>');
+  });
+});
+
+describe("escapeHtml", () => {
+  it("turns markup characters into text", () => {
+    expect(escapeHtml(`<a href="x">Tom & Jerry's</a>`)).toBe("&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&#39;s&lt;/a&gt;");
+  });
+
+  it("gives an empty string for nothing", () => {
+    expect(escapeHtml(null)).toBe("");
+    expect(escapeHtml(undefined)).toBe("");
   });
 });
