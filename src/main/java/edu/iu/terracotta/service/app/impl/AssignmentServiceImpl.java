@@ -397,6 +397,7 @@ public class AssignmentServiceImpl implements AssignmentService {
             .toList();
 
         // fetches AGS tokens once instead of once per submission
+        // deepcode ignore Ssrf: grades go to the AGS line item and token endpoints of the platform, which come from the stored PlatformDeployment and the verified LTI launch claims, never from this request
         submissionService.sendSubmissionGradesToLmsWithLti(submissionList, false);
     }
 
@@ -511,7 +512,9 @@ public class AssignmentServiceImpl implements AssignmentService {
                 platformDeploymentKeyId
             );
 
+            // deepcode ignore Ssrf: LMS API calls go to the base URL of the stored PlatformDeployment, and the assignment IDs used come from earlier LMS responses
             if (!checkLmsAssignmentExists(assignment, instructorUser)) {
+                // deepcode ignore Ssrf: LMS API calls go to the base URL of the stored PlatformDeployment, and the assignment IDs used come from earlier LMS responses
                 restoreAssignmentInLms(assignment);
             }
         }
