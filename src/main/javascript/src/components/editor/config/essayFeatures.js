@@ -1,10 +1,18 @@
-// the formatting a student's essay response can use (TipTapEditor's features), in toolbar order
+// the formatting a student's essay response can use (TipTapEditor's features), in toolbar order:
+// everything the other editors offer except headings
 export const ESSAY_FEATURES = [
   "undo",
   "redo",
-  "bold",
-  "italic",
+  "blockquote",
+  "link",
   "underline",
+  "strike",
+  "italic",
   "bulletList",
-  "orderedList"
+  "orderedList",
+  "bold",
+  "code",
+  "horizontalRule",
+  "paragraph",
+  "youtube"
 ];

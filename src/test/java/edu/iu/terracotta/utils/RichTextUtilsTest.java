@@ -13,9 +13,23 @@ public class RichTextUtilsTest {
     public void testRecognizesWhatTheEditorSaves() {
         assertTrue(RichTextUtils.isRichText("<p>text</p>"));
         assertTrue(RichTextUtils.isRichText(" <ul><li><p>item</p></li></ul>"));
+        assertTrue(RichTextUtils.isRichText("<div data-youtube-video=\"\"><iframe src=\"https://www.youtube-nocookie.com/embed/abc\"></iframe></div>"));
         assertFalse(RichTextUtils.isRichText("plain text"));
         assertFalse(RichTextUtils.isRichText("<3 this"));
         assertFalse(RichTextUtils.isRichText(null));
+    }
+
+    // a video has no text, so the export gives the address it plays from
+    @Test
+    public void testGivesAVideoAsItsAddress() {
+        assertEquals(
+            "Watch this:\n\nhttps://www.youtube-nocookie.com/embed/abc\n\n- quoted point",
+            RichTextUtils.toPlainText(
+                "<p>Watch this:</p>"
+                + "<div data-youtube-video=\"\"><iframe src=\"https://www.youtube-nocookie.com/embed/abc\"></iframe></div>"
+                + "<ul><li><p>quoted point</p></li></ul>"
+            )
+        );
     }
 
     // responses typed before essays took rich text

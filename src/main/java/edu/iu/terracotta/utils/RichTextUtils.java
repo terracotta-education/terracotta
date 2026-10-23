@@ -17,9 +17,9 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class RichTextUtils {
 
-    // what the editor saves always starts with one of its block elements; anything else was typed
-    // before essays took rich text, as plain text
-    private static final Pattern RICH_TEXT = Pattern.compile("^<(p|ul|ol|blockquote|h[1-6]|pre|hr)[\\s/>]", Pattern.CASE_INSENSITIVE);
+    // what the editor saves always starts with one of its block elements (a YouTube video is a div);
+    // anything else was typed before essays took rich text, as plain text
+    private static final Pattern RICH_TEXT = Pattern.compile("^<(p|ul|ol|blockquote|h[1-6]|pre|hr|div)[\\s/>]", Pattern.CASE_INSENSITIVE);
 
     public boolean isRichText(String value) {
         return value != null && RICH_TEXT.matcher(value.strip()).find();
@@ -64,6 +64,8 @@ public class RichTextUtils {
                 }
                 case "blockquote", "div" -> appendBlocks(element, text, indent);
                 case "hr" -> text.append("\n");
+                // a video has no text of its own, so the export gives its address
+                case "iframe" -> text.append(indent).append(element.attr("src")).append("\n\n");
                 default -> {
                     text.append(indent).append(inlineText(element).strip()).append("\n");
 

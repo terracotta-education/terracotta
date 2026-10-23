@@ -7,7 +7,9 @@ describe("isRichText", () => {
     "<p>text</p>",
     "<ul><li><p>item</p></li></ul>",
     "  <ol><li><p>item</p></li></ol>",
-    "<h2>heading</h2>"
+    "<h2>heading</h2>",
+    // a response that starts with a YouTube video
+    '<div data-youtube-video=""><iframe src="https://www.youtube-nocookie.com/embed/abc"></iframe></div>'
   ])("treats %s as rich text", value => {
     expect(isRichText(value)).toBe(true);
   });
