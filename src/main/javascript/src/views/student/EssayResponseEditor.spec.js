@@ -38,7 +38,8 @@ describe("EssayResponseEditor", () => {
 
     const titles = wrapper.findAll(".toolbar button").map(button => button.attributes("title") || button.attributes("aria-label"));
 
-    expect(wrapper.findAll(".toolbar button").length).toBe(7);
+    // everything the other editors offer except the three heading buttons
+    expect(wrapper.findAll(".toolbar button").length).toBe(14);
     expect(titles.join(" ")).not.toMatch(/Heading/);
     expect(wrapper.text()).toContain("4 words");
   });
@@ -93,6 +94,23 @@ describe("EssayResponseEditor", () => {
 
     expect(wrapper.find(".ProseMirror").text()).toBe("second attempt here");
     expect(wrapper.text()).toContain("3 words");
+  });
+
+  it("keeps the formatting the other editors offer, such as quotes, code, links and videos", async () => {
+    const html = '<blockquote><p>quoted</p></blockquote><p><code>x = 1</code> <s>old</s> <a target="_blank" rel="noopener noreferrer nofollow" href="https://example.com">link</a></p>' +
+      '<hr><div data-youtube-video=""><iframe src="https://www.youtube-nocookie.com/embed/abc"></iframe></div>';
+
+    mount({ modelValue: html });
+    await settle();
+
+    const editor = wrapper.find(".ProseMirror");
+
+    expect(editor.find("blockquote").exists()).toBe(true);
+    expect(editor.find("code").exists()).toBe(true);
+    expect(editor.find("s").exists()).toBe(true);
+    expect(editor.find("a[href='https://example.com']").exists()).toBe(true);
+    expect(editor.find("hr").exists()).toBe(true);
+    expect(editor.find("iframe").exists()).toBe(true);
   });
 
   it("drops formatting an essay doesn't offer, such as headings", async () => {

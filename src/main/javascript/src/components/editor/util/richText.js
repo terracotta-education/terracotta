@@ -1,6 +1,6 @@
-// what the rich text editor saves always starts with one of its block elements; anything else
-// stored where rich text now goes was typed before, as plain text
-const RICH_TEXT = /^<(p|ul|ol|blockquote|h[1-6]|pre|hr)[\s/>]/i;
+// what the rich text editor saves always starts with one of its block elements (a YouTube video is a
+// div); anything else stored where rich text now goes was typed before, as plain text
+const RICH_TEXT = /^<(p|ul|ol|blockquote|h[1-6]|pre|hr|div)[\s/>]/i;
 
 export const isRichText = value => {
   return RICH_TEXT.test((value || "").trim());
