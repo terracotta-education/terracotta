@@ -212,6 +212,36 @@ describe("AssignmentScores", () => {
     expect(wrapper.text()).toContain("8");
   });
 
+  // the API sends dates as ISO text; subtracting them gave NaN, so the "most recent" score came from
+  // whichever attempt the list happened to put last
+  it("uses the most recent attempt's score when the dates are ISO text", async () => {
+    const [newer, older] = treatmentNoFile.assessmentDto.submissions;
+
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 3,
+      title: "Assignment 1",
+      treatments: [{
+        ...treatmentNoFile,
+        assessmentDto: {
+          ...treatmentNoFile.assessmentDto,
+          submissions: [
+            { ...newer, dateSubmitted: "2026-10-23T15:30:00.000+00:00" },
+            { ...older, dateSubmitted: "2026-10-21T03:49:00.000+00:00" }
+          ]
+        }
+      }]
+    });
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    const row = wrapper.findAll("tr").find(tr => tr.text().includes("Alice Smith"));
+
+    expect(row.text()).toContain("8");
+    expect(row.text()).not.toContain("5");
+  });
+
   it("shows an error state when the assignment fails to load", async () => {
     assignmentService.fetchAssignment.mockResolvedValue(null);
 

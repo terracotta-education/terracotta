@@ -117,7 +117,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Swal from "sweetalert2";
 import dayjs from "@/plugins/dayjs";
-import { lockedAssignmentMessage, sanitizeHtml } from "@/helpers";
+import { lockedAssignmentMessage, sanitizeHtml, toTimestamp } from "@/helpers";
 
 import StudentQuizRetakeBanner from "@/views/student/quiz/components/StudentQuizRetakeBanner.vue";
 import StudentQuizSubmissionDetails from "@/views/student/quiz/components/StudentQuizSubmissionDetails.vue";
@@ -216,7 +216,7 @@ const allowedAttempts = computed(() => {
 const selectedSubmission = computed(() => assignmentData.value?.submissions?.find(s => s.submissionId === selectedSubmissionId.value));
 const selectedSubmissionDateSubmitted = computed(() => selectedSubmission.value?.dateSubmitted ? dayjs(selectedSubmission.value.dateSubmitted).format("MMMM Do YYYY hh:mm") : "");
 const timeBeforeSubmission = computed(() => {
-  const time = selectedSubmission.value?.dateSubmitted - selectedSubmission.value?.dateCreated;
+  const time = toTimestamp(selectedSubmission.value?.dateSubmitted) - toTimestamp(selectedSubmission.value?.dateCreated);
   return Number.isNaN(time) ? "" : dayjs.duration(time, "milliseconds").humanize();
 });
 const currentScore = computed(() => {

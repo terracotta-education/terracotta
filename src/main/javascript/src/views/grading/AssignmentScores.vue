@@ -161,6 +161,7 @@ import { experiment as experimentModule } from "@/store/experiment.module";
 import { assignment as assignmentModule } from "@/store/assignment.module";
 import { participants as participantsModule } from "@/store/participants.module";
 import { assignmentFileArchive as assignmentFileArchiveModule } from "@/store/assignment-file-archive.module";
+import { byDateSubmitted } from "@/helpers/date-time";
 
 defineOptions({ name: "AssignmentScores" });
 
@@ -188,7 +189,7 @@ const round = n => (n % 1 ? n.toFixed(2) : n);
 
 const calculateScore = (subs, scheme) => {
   const scoreList = [...subs]
-    .sort((a, b) => a.dateSubmitted - b.dateSubmitted)
+    .sort(byDateSubmitted)
     .reverse()
     .map(s => s.gradeOverridden ? s.totalAlteredGrade : s.alteredCalculatedGrade);
 
@@ -206,7 +207,7 @@ const calculateScore = (subs, scheme) => {
 
 const getLatestSubmission = subs => {
   if (!subs.length) return null;
-  return [...subs].sort((a, b) => a.dateSubmitted - b.dateSubmitted).reverse()[0];
+  return [...subs].sort(byDateSubmitted).reverse()[0];
 };
 
 const getParticipantWithSubmission = (participantList, treatment) => {
