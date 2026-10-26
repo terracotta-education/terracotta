@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -411,24 +410,18 @@ public class ExperimentImportAsyncServiceImpl implements ExperimentImportAsyncSe
             .filter(StringUtils::isNotBlank)
             .collect(Collectors.toCollection(HashSet::new));
 
-        IntStream.range(0, conditions.size())
-            .mapToObj(
-                index -> {
-                    ConditionExport condition = conditions.get(index);
-                    Condition newCondition = conditionRepository.save(
-                        Condition.builder()
-                            .defaultCondition(condition.getDefaultCondition())
-                            .distributionPct(condition.getDistributionPct())
-                            .experiment((Experiment) idMap.get(Experiment.class).get(condition.getExperimentId()))
-                            .name(conditionName(condition, index, usedNames))
-                            .build()
-                    );
-                    idMap.get(Condition.class).put(condition.getId(), newCondition);
-
-                    return newCondition;
-                }
-            )
-            .toList();
+        for (int index = 0; index < conditions.size(); index++) {
+            ConditionExport condition = conditions.get(index);
+            Condition newCondition = conditionRepository.save(
+                Condition.builder()
+                    .defaultCondition(condition.getDefaultCondition())
+                    .distributionPct(condition.getDistributionPct())
+                    .experiment((Experiment) idMap.get(Experiment.class).get(condition.getExperimentId()))
+                    .name(conditionName(condition, index, usedNames))
+                    .build()
+            );
+            idMap.get(Condition.class).put(condition.getId(), newCondition);
+        }
     }
 
     /**
