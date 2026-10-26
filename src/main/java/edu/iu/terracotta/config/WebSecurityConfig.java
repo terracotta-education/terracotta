@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -34,6 +35,8 @@ import java.util.UUID;
 @Slf4j
 @Configuration
 @EnableWebSecurity
+// enforces the controllers' role annotations (edu.iu.terracotta.security.app.roles)
+@EnableMethodSecurity
 @RequiredArgsConstructor
 @Import(SecurityAutoConfiguration.class)
 public class WebSecurityConfig {

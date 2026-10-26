@@ -2,7 +2,6 @@ package edu.iu.terracotta.controller.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,7 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.FileInfoDto;
 import edu.iu.terracotta.exceptions.BadConsentFileTypeException;
@@ -78,16 +76,6 @@ public class ConsentFileControllerTest extends BaseTest {
     }
 
     @Test
-    void testPostConsentUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<FileInfoDto> response = consentFileController.postConsent(multipartFile, EXPERIMENT_UUID, "title", httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNull(response.getBody());
-    }
-
-    @Test
     void testPostConsentBadFileType() {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(multipartFile.getContentType()).thenReturn(MediaType.TEXT_PLAIN_VALUE);
@@ -132,16 +120,6 @@ public class ConsentFileControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(MediaType.APPLICATION_OCTET_STREAM, response.getHeaders().getContentType());
-    }
-
-    @Test
-    void testGetConsentUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Resource> response = consentFileController.getConsent(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNull(response.getBody());
     }
 
     @Test

@@ -46,7 +46,7 @@
 
         <v-card variant="outlined">
           <v-card-text class="py-1 px-2">
-            <strong>Informed Consent File</strong>
+            <strong>{{ displayName }}</strong>
 
             <div>
               <v-btn
@@ -74,6 +74,7 @@
 
 <script setup>
 import {
+  computed,
   ref,
   watch
 } from "vue";
@@ -88,6 +89,11 @@ const props = defineProps({
   existingFile: {
     type: [File, String, Object],
     default: null
+  },
+  // the saved file's name, shown for an existing file (which arrives as data, not a File)
+  fileName: {
+    type: String,
+    default: null
   }
 });
 
@@ -100,6 +106,15 @@ const emit = defineEmits([
 const fileInput = ref(null);
 const file = ref(props.existingFile);
 const dragging = ref(false);
+
+// a file picked just now carries its own name; a saved one's name comes from the server
+const displayName = computed(() => {
+  if (file.value instanceof File && file.value.name) {
+    return file.value.name;
+  }
+
+  return props.fileName || "Informed Consent File";
+});
 
 watch(
   () => props.existingFile,

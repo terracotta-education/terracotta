@@ -15,6 +15,14 @@ body {
   margin-top: 0;
 }
 
+// the rich text editor wraps each list item's text in a paragraph; without this the items are
+// spaced apart like separate paragraphs (App.vue pads every paragraph), in the editor and wherever
+// students see that HTML
+.v-application li > p {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
 .v-container,
 .container {
   max-width: 100% !important;

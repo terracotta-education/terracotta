@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Controller
 @RequestMapping("/obsolete")
-@SuppressWarnings({"PMD.GuardLogStatement"})
 public class ObsoleteController {
 
     @GetMapping("/assignment")

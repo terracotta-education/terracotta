@@ -6,6 +6,7 @@
 
     <FileDropZone
       :existing-file="pdfFile"
+      :file-name="experiment.consent?.fileName"
       class="my-5"
       @update="onFileChange"
       @new-upload="onNewUpload"

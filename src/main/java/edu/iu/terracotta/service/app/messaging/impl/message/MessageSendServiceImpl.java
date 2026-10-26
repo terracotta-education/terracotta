@@ -50,6 +50,7 @@ import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.dao.repository.messaging.conditional.MessageConditionalTextRepository;
 import edu.iu.terracotta.dao.repository.messaging.piped.PipedTextItemRepository;
 import edu.iu.terracotta.exceptions.messaging.MessageBodyParseException;
+import edu.iu.terracotta.security.pii.PiiCipher;
 import edu.iu.terracotta.service.app.messaging.MessageRuleComparisonService;
 import edu.iu.terracotta.service.app.messaging.MessageSendService;
 import jakarta.persistence.EntityManager;
@@ -65,6 +66,7 @@ public class MessageSendServiceImpl implements MessageSendService {
 
     private final LmsUserBatchRepository lmsUserBatchRepository;
     private final LtiUserRepository ltiUserRepository;
+    private final PiiCipher piiCipher;
     private final MessageConditionalTextRepository conditionalTextRepository;
     private final ParticipantRepository participantRepository;
     private final PipedTextItemRepository pipedTextItemRepository;
@@ -115,26 +117,30 @@ public class MessageSendServiceImpl implements MessageSendService {
         }
 
         while (CollectionUtils.isNotEmpty(participants.get())) {
-            List<LmsUserBatchEmailProjection> batchEmails = lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailIn(
+            // emails are stored encrypted, so staged users are matched by email hash
+            List<LmsUserBatchEmailProjection> batchEmails = lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailHashIn(
                 batchId,
                 participants.get().stream()
-                    .map(p -> p.getLtiUserEntity().getEmail())
+                    .map(p -> piiCipher.hashEmail(p.getLtiUserEntity().getEmail()))
+                    .filter(Objects::nonNull)
                     .toList(),
                 PageRequest.of(0, batchSize)
             );
 
             // user's LMS user ID is not always available in the database; try with email and deployment key ID
-            Map<String, LtiUserEntity> ltiUserEntitiesByEmail = ltiUserRepository.findAllByEmailInAndPlatformDeployment_KeyId(
-                    batchEmails.stream().map(LmsUserBatchEmailProjection::getEmail).toList(),
+            // emails are stored encrypted, so users are matched by email hash (which also ignores case)
+            Map<String, LtiUserEntity> ltiUserEntitiesByEmailHash = ltiUserRepository.findAllByEmailHashInAndPlatformDeployment_KeyId(
+                    batchEmails.stream().map(batchEmail -> piiCipher.hashEmail(batchEmail.getEmail())).filter(Objects::nonNull).toList(),
                     message.getPlatformDeployment().getKeyId()
                 ).stream()
-                .collect(Collectors.toMap(LtiUserEntity::getEmail, ltiUserEntity -> ltiUserEntity, (first, second) -> first));
+                .collect(Collectors.toMap(LtiUserEntity::getEmailHash, ltiUserEntity -> ltiUserEntity, (first, second) -> first));
 
             recipients.addAll(
                 batchEmails.stream()
                     .map(
                         batchEmail -> {
-                            LtiUserEntity ltiUserEntity = ltiUserEntitiesByEmail.get(batchEmail.getEmail());
+                            String emailHash = piiCipher.hashEmail(batchEmail.getEmail());
+                            LtiUserEntity ltiUserEntity = emailHash != null ? ltiUserEntitiesByEmailHash.get(emailHash) : null;
 
                             if (ltiUserEntity == null || (ltiUserEntity.getLmsUserId() != null && !Strings.CI.equals(batchEmail.getLmsUserId(), ltiUserEntity.getLmsUserId()))) {
                                 // wrong LMS user found; don't add message log

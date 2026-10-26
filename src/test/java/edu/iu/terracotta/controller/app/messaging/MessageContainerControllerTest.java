@@ -72,15 +72,6 @@ public class MessageContainerControllerTest extends BaseTest {
     }
 
     @Test
-    void getAllUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<MessageContainerDto>> response = messageContainerController.getAll(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void getAllBadTokenTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new ExperimentNotMatchingException("error")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
@@ -100,15 +91,6 @@ public class MessageContainerControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(messageContainerDto, response.getBody());
-    }
-
-    @Test
-    void postUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<MessageContainerDto> response = messageContainerController.post(EXPERIMENT_UUID, EXPOSURE_UUID, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -152,15 +134,6 @@ public class MessageContainerControllerTest extends BaseTest {
     }
 
     @Test
-    void putUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<MessageContainerDto> response = messageContainerController.put(EXPERIMENT_UUID, EXPOSURE_UUID, UUID_VALUE, messageContainerDto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void putNotFoundTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new MessageContainerNotFoundException("error")).when(apiJwtService).messagingContainerAllowed(any(SecuredInfo.class), anyLong(), any(UUID.class));
@@ -193,15 +166,6 @@ public class MessageContainerControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
-    }
-
-    @Test
-    void putAllUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<MessageContainerDto>> response = messageContainerController.putAll(EXPERIMENT_UUID, EXPOSURE_UUID, List.of(messageContainerDto), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -240,15 +204,6 @@ public class MessageContainerControllerTest extends BaseTest {
     }
 
     @Test
-    void deleteUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<MessageContainerDto> response = messageContainerController.delete(EXPERIMENT_UUID, EXPOSURE_UUID, UUID_VALUE, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void deleteNotMatchingTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         doThrow(new MessageContainerNotMatchingException("error")).when(apiJwtService).messagingContainerAllowed(any(SecuredInfo.class), anyLong(), any(UUID.class));
@@ -281,15 +236,6 @@ public class MessageContainerControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(messageContainerDto, response.getBody());
-    }
-
-    @Test
-    void moveUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<MessageContainerDto> response = messageContainerController.move(EXPERIMENT_UUID, EXPOSURE_UUID, UUID_VALUE, messageContainerDto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -326,15 +272,6 @@ public class MessageContainerControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(messageContainerDto, response.getBody());
-    }
-
-    @Test
-    void duplicateUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<MessageContainerDto> response = messageContainerController.duplicate(EXPERIMENT_UUID, EXPOSURE_UUID, UUID_VALUE, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test

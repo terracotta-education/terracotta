@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.type.TypeReference;
 
 @Slf4j
-@SuppressWarnings({"PMD.GuardLogStatement"})
 public class CourseServiceImpl extends BaseServiceImpl<CourseExtended, CourseReaderService, CourseWriterService> implements CourseReaderService, CourseWriterService {
 
     public CourseServiceImpl(String brightspaceBaseUrl, ApiVersion apiVersion, OauthToken oauthToken, RestClient restClient, int connectTimeout, int readTimeout, Integer paginationPageSize, Boolean serializeNulls) {

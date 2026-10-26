@@ -1,0 +1,88 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <!--
+        TCOTA-678: names, email addresses and other personal values are now stored encrypted
+        (PiiCipher). Existing rows are encrypted by PiiEncryptionBackfillRunner at startup, since
+        the keys only exist in the application. An encrypted value is about a third longer than
+        the original plus ~50 characters, so the VARCHAR(255) columns are widened to 512. The
+        TEXT columns (lti_user.displayname, lms_user_batch.email/name, api_token.access_token and
+        refresh_token) already fit.
+    -->
+    <!-- an encrypted 255-character email is about 380 characters -->
+    <changeSet author="rlong" id="1759795200000-01">
+        <modifyDataType tableName="lti_user" columnName="email" newDataType="VARCHAR(512)"/>
+    </changeSet>
+    <!-- keyed hash of the email, so users can still be matched by email -->
+    <changeSet author="rlong" id="1759795200000-02">
+        <addColumn tableName="lti_user">
+            <column name="email_hash" type="VARCHAR(64)" afterColumn="email"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-03">
+        <createIndex tableName="lti_user" indexName="IDX_LTI_USER_EMAIL_HASH">
+            <column name="email_hash"/>
+            <column name="key_id"/>
+        </createIndex>
+    </changeSet>
+    <!-- an encrypted 255-character value is about 400 characters -->
+    <changeSet author="rlong" id="1759795200000-04">
+        <modifyDataType tableName="api_token" columnName="lms_user_name" newDataType="VARCHAR(512)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-05">
+        <modifyDataType tableName="terr_messaging_email_reply_to" columnName="email" newDataType="VARCHAR(512)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-06">
+        <modifyDataType tableName="terr_submission_comment" columnName="creator" newDataType="VARCHAR(512)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-07">
+        <modifyDataType tableName="terr_question_submission_comment" columnName="creator" newDataType="VARCHAR(512)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-08">
+        <modifyDataType tableName="terr_messaging_piped_text_item_value" columnName="value" newDataType="VARCHAR(512)"/>
+    </changeSet>
+    <!-- a sent message's body can be near TEXT's 64KB limit, which its ciphertext would exceed -->
+    <changeSet author="rlong" id="1759795200000-09">
+        <modifyDataType tableName="terr_messaging_message_log" columnName="body" newDataType="MEDIUMTEXT"/>
+    </changeSet>
+    <!--
+        lms_user_batch only stages a roster while one sync runs, then the sync deletes it. Rows
+        left over (from a sync that failed or was cut off by a restart) are dropped rather than
+        encrypted - the next sync stages the roster again.
+    -->
+    <changeSet author="rlong" id="1759795200000-10">
+        <delete tableName="lms_user_batch"/>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-11">
+        <addColumn tableName="lms_user_batch">
+            <column name="email_hash" type="VARCHAR(64)" afterColumn="email"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-12">
+        <createIndex tableName="lms_user_batch" indexName="IDX_LMS_USER_BATCH_EMAIL_HASH">
+            <column name="batch_id"/>
+            <column name="email_hash"/>
+        </createIndex>
+    </changeSet>
+    <!-- stored credentials, encrypted the same way -->
+    <changeSet author="rlong" id="1759795200000-13">
+        <modifyDataType tableName="api_oauth_settings" columnName="client_secret" newDataType="VARCHAR(512)"/>
+    </changeSet>
+    <!-- MySQL's MODIFY COLUMN (what modifyDataType runs) drops NOT NULL unless it's restated -->
+    <changeSet author="rlong" id="1759795200000-14">
+        <addNotNullConstraint tableName="api_oauth_settings" columnName="client_secret" columnDataType="VARCHAR(512)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-15">
+        <modifyDataType tableName="iss_configuration" columnName="api_token" newDataType="VARCHAR(512)"/>
+    </changeSet>
+    <changeSet author="rlong" id="1759795200000-16">
+        <modifyDataType tableName="iss_configuration" columnName="caliper_api_key" newDataType="VARCHAR(512)"/>
+    </changeSet>
+</databaseChangeLog>

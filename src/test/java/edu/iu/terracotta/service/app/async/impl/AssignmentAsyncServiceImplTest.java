@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -21,10 +22,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +45,8 @@ import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.LmsOAuthException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.QuestionSubmission;
+import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.entity.AnswerFileSubmission;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.AssignmentFileArchive;
@@ -469,7 +474,7 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
     }
 
     @Test
-    void testProcessAssignmentFileArchiveRenameFailureLoggedAndResultsInErrorStatus() throws IOException {
+    void testProcessAssignmentFileArchiveMissingFileLeftOutAndResultsInErrorStatus() throws IOException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         when(question.getHtml()).thenReturn("<p>Upload your file</p>");
 
@@ -518,31 +523,46 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(assignmentFileArchiveRepository).save(archive);
     }
 
+    // an uncompressed submission's file is the stored file itself, so the archive must copy it, not
+    // move it, or later downloads of that submission can't find it
     @Test
-    void testProcessAssignmentFileArchiveFileNameTraversalIsNotMovedOutOfItsDirectory() throws IOException {
+    void testProcessAssignmentFileArchiveCopiesStoredFileUnderItsUploadedName() throws IOException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         when(question.getHtml()).thenReturn("<p>Upload your file</p>");
 
-        Path sourceDir = Files.createDirectories(tempDir.resolve("decompressed"));
-        Path sourceFile = sourceDir.resolve("original.dat");
-        Files.writeString(sourceFile, "file contents");
+        Path storedFile = tempDir.resolve("stored-encoded-name.dat");
+        Files.writeString(storedFile, "file contents");
 
         AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
             .answerFileSubmissionId(1L)
-            .fileName("../escaped.txt")
+            // a path in the stored name must not place the copy outside the archive
+            .fileName("../../essay.docx")
             .questionSubmission(questionSubmission)
             .build();
 
         when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
-        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
+        when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(storedFile.toFile());
+
+        List<String> archivedFiles = new ArrayList<>();
+        when(fileStorageService.compressDirectory(anyString(), eq(""), eq(AssignmentFileArchive.COMPRESSED_FILE_EXTENSION), eq(false))).thenAnswer(invocation -> {
+            Path archiveDir = Path.of(invocation.getArgument(0, String.class));
+
+            try (Stream<Path> files = Files.walk(archiveDir)) {
+                files.filter(Files::isRegularFile).forEach(f -> archivedFiles.add(archiveDir.relativize(f).toString()));
+            }
+
+            return true;
+        });
 
         AssignmentFileArchive archive = buildAssignmentFileArchive();
 
-        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+        assignmentAsyncService.processAssignmentFileArchive(archive);
 
-        assertTrue(Files.exists(sourceFile));
-        assertFalse(Files.exists(tempDir.resolve("escaped.txt")));
-        assertEquals(AssignmentFileArchiveStatus.ERROR, archive.getStatus());
+        assertEquals(AssignmentFileArchiveStatus.READY, archive.getStatus());
+        assertEquals(1, archivedFiles.size());
+        assertTrue(archivedFiles.get(0).endsWith("/Upload your file/essay.docx"), archivedFiles.get(0));
+        assertTrue(Files.exists(storedFile));
+        assertEquals("file contents", Files.readString(storedFile));
     }
 
     @Test
@@ -598,8 +618,9 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         FileUtils.deleteQuietly(FileUtils.getTempDirectory().toPath().resolve(archive.getUuid().toString()).toFile());
     }
 
+    // the archive is the instructor's copy of what students submitted, consented or not
     @Test
-    void testProcessAssignmentFileArchiveNoConsentingParticipantsThrowsNpe() throws IOException {
+    void testProcessAssignmentFileArchiveIncludesParticipantsWithoutConsent() throws IOException {
         when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
         when(question.getHtml()).thenReturn("<p>Upload your file</p>");
         when(participant.getConsent()).thenReturn(false);
@@ -615,10 +636,42 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
 
         when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
         when(fileStorageService.getFileSubmissionLocal(1L)).thenReturn(sourceFile.toFile());
+        when(fileStorageService.compressDirectory(anyString(), eq(""), eq(AssignmentFileArchive.COMPRESSED_FILE_EXTENSION), eq(false))).thenReturn(true);
 
         AssignmentFileArchive archive = buildAssignmentFileArchive();
 
-        assertThrows(NullPointerException.class, () -> assignmentAsyncService.processAssignmentFileArchive(archive));
+        assignmentAsyncService.processAssignmentFileArchive(archive);
+
+        assertEquals(AssignmentFileArchiveStatus.READY, archive.getStatus());
+        verify(fileStorageService).saveAssignmentFileArchive(eq(archive), any(File.class));
+    }
+
+    // a submission from someone not in the experiment's participant list (e.g. removed since) is
+    // skipped rather than failing the whole archive
+    @Test
+    void testProcessAssignmentFileArchiveSkipsFilesOfUnlistedParticipants() throws IOException {
+        when(question.getQuestionType()).thenReturn(QuestionTypes.FILE);
+        when(question.getHtml()).thenReturn("<p>Upload your file</p>");
+        when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
+
+        Path sourceFile = tempDir.resolve("original.dat");
+        Files.writeString(sourceFile, "file contents");
+
+        AnswerFileSubmission answerFileSubmission = AnswerFileSubmission.builder()
+            .answerFileSubmissionId(1L)
+            .fileName("renamed.txt")
+            .questionSubmission(questionSubmission)
+            .build();
+
+        when(answerFileSubmissionRepository.findByQuestionSubmission_Question_QuestionId(anyLong())).thenReturn(List.of(answerFileSubmission));
+
+        AssignmentFileArchive archive = buildAssignmentFileArchive();
+
+        assertDoesNotThrow(() -> assignmentAsyncService.processAssignmentFileArchive(archive));
+
+        assertEquals(AssignmentFileArchiveStatus.ERROR, archive.getStatus());
+        verify(fileStorageService, never()).getFileSubmissionLocal(anyLong());
+        assertTrue(Files.exists(sourceFile));
     }
 
     @Test

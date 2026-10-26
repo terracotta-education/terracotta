@@ -18,6 +18,7 @@ public class ConsentDocumentExport {
 
     private String id;
     private String title;
+    private String fileName;
     private String html;
     private String experimentId;
 

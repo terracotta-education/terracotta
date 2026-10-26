@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@SuppressWarnings({"PMD.GuardLogStatement"})
 public class IntegrationLaunchParameterServiceImpl implements IntegrationLaunchParameterService {
 
     @Override

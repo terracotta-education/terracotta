@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.NoRoleRequired;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import io.micrometer.common.util.StringUtils;
@@ -27,11 +28,13 @@ public class TokenController {
     private final ApiJwtService apiJwtService;
 
     @PostMapping("/trade")
+    @NoRoleRequired("exchanges a launch token for an API token, before any role is known")
     public ResponseEntity getTimedToken(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         return apiJwtService.getTimedToken(req);
     }
 
     @PostMapping("/refresh")
+    @NoRoleRequired("refreshes the caller's own API token")
     public ResponseEntity refreshToken(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         String token = apiJwtService.extractJwtStringValue(req, true);
 

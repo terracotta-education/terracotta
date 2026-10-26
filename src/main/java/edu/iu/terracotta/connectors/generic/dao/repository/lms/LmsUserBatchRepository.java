@@ -28,8 +28,9 @@ public interface LmsUserBatchRepository extends JpaRepository<LmsUserBatch, UUID
             LmsUserBatch l
         WHERE
             l.batchId = :batchId AND
-            l.email IN :emails
+            l.emailHash IN :emailHashes
     """)
-    List<LmsUserBatchEmailProjection> findBatchProjectionsByBatchIdAndEmailIn(@Param("batchId") UUID batchId, @Param("emails") List<String> emails, PageRequest pageRequest);
+    // email is stored encrypted, so staged users are matched by its hash (PiiCipher.hashEmail)
+    List<LmsUserBatchEmailProjection> findBatchProjectionsByBatchIdAndEmailHashIn(@Param("batchId") UUID batchId, @Param("emailHashes") List<String> emailHashes, PageRequest pageRequest);
 
 }

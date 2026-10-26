@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.ui.Model;
 
 import edu.iu.terracotta.base.BaseTest;
@@ -109,6 +110,31 @@ public class Lti3ControllerTest extends BaseTest {
         assertEquals("lti3Launch", result);
         verify(model).addAttribute("token", "oneTimeToken123");
         verify(model).addAttribute("lmsApiOAuthUrl", expectedLmsApiOAuthUrl);
+    }
+
+    // logged as a student launching Terracotta directly (e.g. from the course navigation)
+    @Test
+    void directStudentLaunchIsAStudentLaunchWithoutAnAssignmentOrConsentLink() {
+        when(lti3Request.isRoleInstructor()).thenReturn(false);
+        when(lti3Request.isRoleLearner()).thenReturn(true);
+
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/lti3/");
+        assertEquals(Boolean.TRUE, ReflectionTestUtils.invokeMethod(lti3Controller, "isDirectStudentLaunch", lti3Request));
+
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/lti3/?experiment=278&assignment=12");
+        assertEquals(Boolean.FALSE, ReflectionTestUtils.invokeMethod(lti3Controller, "isDirectStudentLaunch", lti3Request));
+
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/lti3/?consent=true&experiment=278");
+        assertEquals(Boolean.FALSE, ReflectionTestUtils.invokeMethod(lti3Controller, "isDirectStudentLaunch", lti3Request));
+    }
+
+    @Test
+    void directStudentLaunchIsNeverAnInstructorLaunch() {
+        when(lti3Request.isRoleInstructor()).thenReturn(true);
+        when(lti3Request.isRoleLearner()).thenReturn(true);
+        when(lti3Request.getLtiTargetLinkUrl()).thenReturn("https://example.com/lti3/");
+
+        assertEquals(Boolean.FALSE, ReflectionTestUtils.invokeMethod(lti3Controller, "isDirectStudentLaunch", lti3Request));
     }
 
     @Test

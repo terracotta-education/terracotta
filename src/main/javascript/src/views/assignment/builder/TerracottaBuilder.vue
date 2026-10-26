@@ -704,8 +704,10 @@ const handleRegradeQuestions = async () => {
 };
 
 const duplicate = async fromAssignment => {
+  // every treatment that could hold copyable content; the empty ones are listed too, disabled, so
+  // the dialog shows all of the assignment's versions
   let availableTreatments = fromAssignment.treatments
-    .filter(isCopyableTreatment)
+    .filter(isCopyCandidate)
     .map(treatment => {
       const conditionMatch = conditionForTreatment(
         getGroupConditionListForAssignment(fromAssignment),
@@ -715,11 +717,13 @@ const duplicate = async fromAssignment => {
       return {
         treatmentId: treatment.treatmentId,
         conditionName: conditionMatch?.conditionName,
-        conditionColor: conditionColorMapping.value[conditionMatch?.conditionName]
+        conditionColor: conditionColorMapping.value[conditionMatch?.conditionName],
+        disabled: !hasContentToCopy(treatment)
       };
     });
 
-  const selectedTreatment = await handleDisplayCopyFromDialog(availableTreatments);
+  // the same test the components table uses for an "Only One Version" component
+  const selectedTreatment = await handleDisplayCopyFromDialog(availableTreatments, fromAssignment.treatments.length === 1);
 
   if (!selectedTreatment || selectedTreatment.isDismissed) {
     return;
@@ -838,15 +842,22 @@ const hasInstructions = html => {
   return !!new DOMParser().parseFromString(html, "text/html").body.textContent.trim();
 };
 
-// another (non-integration) treatment with questions or instructions to copy over
-const isCopyableTreatment = treatment => {
+// another treatment whose content could be copied here: not the one being edited, and not an
+// external integration (its content isn't questions or instructions)
+const isCopyCandidate = treatment => {
+  return treatment.treatmentId !== treatmentId.value
+    && !treatment.assessmentDto?.integration;
+};
+
+// questions or instructions to copy over
+const hasContentToCopy = treatment => {
   const assessmentDto = treatment.assessmentDto;
 
-  return treatment.treatmentId !== treatmentId.value
-    && !!assessmentDto
-    && !assessmentDto.integration
+  return !!assessmentDto
     && ((assessmentDto.questions || []).length > 0 || hasInstructions(assessmentDto.html));
 };
+
+const isCopyableTreatment = treatment => isCopyCandidate(treatment) && hasContentToCopy(treatment);
 
 const findAssignmentsAvailableToCopy = () => {
   assignmentsAvailableToCopy.value = assignments.value.filter(item => {
@@ -927,7 +938,7 @@ const handleUrlValidationInProgress = value => {
   urlValidationInProgress.value = value;
 };
 
-const handleDisplayCopyFromDialog = availableTreatments => {
+const handleDisplayCopyFromDialog = (availableTreatments, singleVersion = false) => {
   let dialogApp = null;
 
   return Swal.fire({
@@ -961,7 +972,11 @@ const handleDisplayCopyFromDialog = availableTreatments => {
         CopyFromDialog,
         {
           treatments: availableTreatments,
-          assignmentName: assignmentTitle.value
+          assignmentName: assignmentTitle.value,
+          singleVersion,
+          targetConditionName: conditionName.value,
+          targetConditionColor: conditionColor.value,
+          targetSingleVersion: hasSingleTreatment.value
         }
       );
     },

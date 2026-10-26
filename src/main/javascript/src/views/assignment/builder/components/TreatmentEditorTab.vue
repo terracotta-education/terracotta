@@ -3,13 +3,23 @@
     class="questions-form my-5"
     @submit.prevent="emit('save-all', 'AssignmentYourAssignments')"
   >
-    <v-textarea
-      :model-value="html"
-      label="Instructions or description (optional)"
-      placeholder="e.g. Lorem ipsum"
-      variant="outlined"
-      @update:model-value="emit('update:html', $event)"
-    />
+    <div class="treatment-instructions">
+      <!-- not a <label>: the editor isn't a form control a label can point at, so it names the
+           editor through aria-labelledby instead -->
+      <div
+        id="treatment-instructions-label"
+        class="treatment-instructions__label"
+      >
+        Instructions or description (optional)
+      </div>
+      <TipTapEditor
+        :key="editorKey"
+        :content="editorContent"
+        aria-labelledby="treatment-instructions-label"
+        editor-type="html"
+        @edited="handleEditedHtml"
+      />
+    </div>
 
     <div
       v-if="showQuestionHeader"
@@ -88,8 +98,9 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 
+import TipTapEditor from "@/components/editor/TipTapEditor";
 import ExternalIntegrationEditor from "@/views/integrations/ExternalIntegrationEditor.vue";
 
 import QuestionPageList from "./QuestionPageList.vue";
@@ -167,6 +178,33 @@ const emit = defineEmits([
   "back-to-treatment-mode-selection"
 ]);
 
+// the editor rebuilds itself whenever its content prop changes, so it gets the HTML it starts with,
+// not every edit echoed back (that would reset the cursor on each keystroke). An html change that
+// didn't come from the editor (copying from another treatment, clearing it) mounts a fresh editor
+// with it - by key, since the new value can equal the one the editor started with.
+const editorContent = ref(props.html);
+const editorKey = ref(0);
+let lastEditedHtml = props.html;
+
+watch(
+  () => props.html,
+  value => {
+    if (value !== lastEditedHtml) {
+      lastEditedHtml = value;
+      editorContent.value = value;
+      editorKey.value++;
+    }
+  }
+);
+
+const handleEditedHtml = value => {
+  lastEditedHtml = value;
+
+  if (value !== props.html) {
+    emit("update:html", value);
+  }
+};
+
 const hasQuestionPages = computed(() => {
   return props.questionPages?.length > 0;
 });
@@ -189,3 +227,13 @@ const showEmptyQuestionMessage = computed(() => {
     !hasQuestionPages.value;
 });
 </script>
+
+<style lang="scss" scoped>
+.treatment-instructions__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  color: rgba(0, 0, 0, 0.87);
+}
+</style>

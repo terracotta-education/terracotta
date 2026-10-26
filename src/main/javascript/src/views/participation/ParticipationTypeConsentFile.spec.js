@@ -195,6 +195,23 @@ describe("ParticipationTypeConsentFile", () => {
     expect(wrapper.find(".drop-zone__uploaded").exists()).toBe(true);
   });
 
+  it("shows the saved consent file's name when editing", async () => {
+    consentService.getConsentFile.mockResolvedValue({
+      status: 200,
+      base: "base64data"
+    });
+
+    const wrapper = mountView({ consent: { title: "Informed consent", fileName: "xyz.pdf" } }, () => {
+      navigationModule().editMode = {
+        callerPage: { name: "ExperimentSummary" }
+      };
+    });
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find(".drop-zone__uploaded strong").text()).toBe("xyz.pdf");
+  });
+
   it("does not download an existing file for a brand-new experiment", () => {
     mountView();
 

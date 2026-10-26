@@ -5,6 +5,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
 import edu.iu.terracotta.dao.entity.messaging.container.MessageContainerConfiguration;
 import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
+import edu.iu.terracotta.security.pii.PiiStringConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -33,6 +36,9 @@ public class MessageEmailReplyTo extends BaseMessageEntity {
     @JoinColumn(name = "message_configuration_id")
     private MessageConfiguration messageConfiguration;
 
+    // stored encrypted (PiiCipher)
+    @Column(length = 512)
+    @Convert(converter = PiiStringConverter.class)
     private String email;
 
 }

@@ -419,10 +419,8 @@ public class ExperimentImportServiceImpl implements ExperimentImportService {
                         return;
                     }
 
-                    if (StringUtils.isBlank(condition.getName())) {
-                        log.error("Experiment import ID: [{}] condition ID: [{}] name is null.", experimentImport.getId(), condition.getId());
-                        handleError(experimentImport, String.format("Condition with ID: [%s] :: name cannot be blank.", condition.getId()));
-                    }
+                    // a condition without a name is imported as "Condition N" (see
+                    // ExperimentImportAsyncServiceImpl#conditionName) rather than failing the import
                 }
             );
     }

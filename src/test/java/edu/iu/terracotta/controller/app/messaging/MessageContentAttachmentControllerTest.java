@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -61,16 +59,6 @@ public class MessageContentAttachmentControllerTest extends BaseTest {
         when(exposureService.getExposureIdByUuid(EXPOSURE_UUID)).thenAnswer(invocation -> exposure.getExposureId());
         // this test suite asserts calls carry EXPOSURE_ID (2L), not exposure's globally-stubbed 1L
         when(exposure.getExposureId()).thenReturn(EXPOSURE_ID);
-    }
-
-    @Test
-    void testGetUnauthorizedWhenNotInstructor() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<MessageContentAttachmentDto>> response = messageContentAttachmentController.get(EXPERIMENT_UUID, EXPOSURE_UUID, containerUuid, messageUuid, contentUuid, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        verify(apiJwtService, never()).messagingContainerAllowed(any(), org.mockito.ArgumentMatchers.anyLong(), any());
     }
 
     @Test

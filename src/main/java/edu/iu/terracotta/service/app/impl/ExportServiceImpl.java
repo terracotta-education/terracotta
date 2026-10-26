@@ -70,6 +70,7 @@ import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.SubmissionService;
 import edu.iu.terracotta.service.app.messaging.MessageContentService;
 import edu.iu.terracotta.service.aws.AwsService;
+import edu.iu.terracotta.utils.RichTextUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
@@ -593,7 +594,8 @@ public class ExportServiceImpl implements ExportService {
                                 AnswerEssaySubmission answerEssaySubmission = answerEssaySubmissions.get(0);
 
                                 if (StringUtils.isNotBlank(answerEssaySubmission.getResponse())) {
-                                    response = answerEssaySubmission.getResponse();
+                                    // the export stays plain text: essays are written in the rich text editor now
+                                    response = RichTextUtils.toPlainText(answerEssaySubmission.getResponse());
                                 }
 
                                 if (questionSubmission.getCalculatedPoints() != null) {

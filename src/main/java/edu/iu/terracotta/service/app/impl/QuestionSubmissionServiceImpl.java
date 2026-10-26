@@ -529,6 +529,14 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
         /* (Approach #2) Using LMS API calls */
 
+        log.debug(
+            "Checking attempts for LMS assignment ID: [{}] with LMS API calls (launch allowed attempts: [{}], student attempts: [{}], prefer LMS check: [{}])",
+            securedInfo.getLmsAssignmentId(),
+            securedInfo.getAllowedAttempts(),
+            securedInfo.getStudentAttempts(),
+            preferLmsCheck
+        );
+
         Optional<Assignment> assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getLmsAssignmentId());
         LtiUserEntity instructorUser = assignment.get().getExposure().getExperiment().getCreatedBy();
         Optional<LmsAssignment> lmsAssignment;

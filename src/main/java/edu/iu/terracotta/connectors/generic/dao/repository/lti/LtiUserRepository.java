@@ -21,8 +21,8 @@ public interface LtiUserRepository extends JpaRepository<LtiUserEntity, Long> {
     List<LtiUserEntity> findAllByUserKeyInAndPlatformDeployment(Collection<String> userKeys, PlatformDeployment platformDeployment);
     LtiUserEntity findFirstByUserKeyAndPlatformDeployment_KeyId(String userKey, long keyId);
     LtiUserEntity findFirstByUserIdAndPlatformDeployment_KeyId(long userId, long keyId);
-    LtiUserEntity findFirstByEmailAndPlatformDeployment_KeyId(String email, long keyId);
-    List<LtiUserEntity> findAllByEmailInAndPlatformDeployment_KeyId(Collection<String> emails, long keyId);
+    // email is stored encrypted, so it's matched by its hash (PiiCipher.hashEmail)
+    List<LtiUserEntity> findAllByEmailHashInAndPlatformDeployment_KeyId(Collection<String> emailHashes, long keyId);
     LtiUserEntity findFirstByUserId(long userId);
     Optional<LtiUserEntity> findFirstByLmsUserIdAndPlatformDeployment(String lmsUserId, PlatformDeployment platformDeployment);
 

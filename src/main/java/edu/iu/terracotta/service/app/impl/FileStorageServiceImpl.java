@@ -273,6 +273,27 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    /**
+     * The uploaded file's own name, for display: just the name (some browsers send a path), with
+     * control characters removed and cut to the column's 255 characters. Null if there isn't one.
+     */
+    static String uploadedFileName(MultipartFile multipartFile) {
+        String original = multipartFile.getOriginalFilename();
+
+        if (original == null) {
+            return null;
+        }
+
+        String path = original.replace('\\', '/');
+        String name = path.substring(path.lastIndexOf('/') + 1).replaceAll("\\p{Cntrl}", "").trim();
+
+        if (name.isEmpty()) {
+            return null;
+        }
+
+        return name.length() > 255 ? name.substring(0, 255) : name;
+    }
+
     @Override
     public FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, ApiException, AssignmentNotEditedException, AssignmentNotMatchingException, IOException, TerracottaConnectorException {
@@ -295,6 +316,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         consentDocument.setEncryptionMethod(fileInfoDto.getFileSubmissionLocal().encryptionMethod());
         consentDocument.setEncryptionPhrase(fileInfoDto.getFileSubmissionLocal().encryptionPhrase());
         consentDocument.setFileUri(fileInfoDto.getFileSubmissionLocal().filePath());
+        consentDocument.setFileName(uploadedFileName(multipartFile));
 
         // reset to null, as not needed
         fileInfoDto.setFileSubmissionLocal(null);
@@ -415,6 +437,10 @@ public class FileStorageServiceImpl implements FileStorageService {
     public String parseHTMLFiles(String html, String localUrl) {
         if (org.apache.commons.lang3.StringUtils.isNotBlank(html)) {
             Document doc = Jsoup.parse(html);
+            // return the HTML as it was stored: pretty printing puts each element on its own
+            // indented line, and the rich text editor keeps that whitespace, turning it into empty
+            // list items and paragraphs that are saved back and multiply on every edit
+            doc.outputSettings().prettyPrint(false);
             parseAndUpdateElements(doc, "src", "/files/", "?token=", true, localUrl);
             parseAndUpdateElements(doc, "href", "/files/", "?token=", true, localUrl);
             parseAndUpdateElements(doc, "src", "/api/experiments/", "/files/", false, localUrl);

@@ -107,12 +107,14 @@ class ExperimentExportServiceImplTest extends BaseTest {
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
         when(consentDocument.getHtml()).thenReturn("<p>consent</p>");
         when(consentDocument.getTitle()).thenReturn("Consent Title");
+        when(consentDocument.getFileName()).thenReturn("xyz.pdf");
 
         Export export = captureExport();
 
         assertNotNull(export.getConsentDocument());
         assertEquals("<p>consent</p>", export.getConsentDocument().getHtml());
         assertEquals("Consent Title", export.getConsentDocument().getTitle());
+        assertEquals("xyz.pdf", export.getConsentDocument().getFileName());
         assertEquals(consentDocument.getUuid().toString(), export.getConsentDocument().getId());
         assertEquals(experiment.getUuid().toString(), export.getConsentDocument().getExperimentId());
     }

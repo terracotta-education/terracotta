@@ -20,6 +20,7 @@ public class ConsentDto {
 
     private UUID consentDocumentId;
     private String title;
+    private String fileName;
     private String filePointer;
     private String html;
     private Integer expectedConsent;

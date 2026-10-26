@@ -203,6 +203,27 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         assertFalse(claims.containsKey("studentAttempts"));
     }
 
+    // a launch from an assignment carries its Canvas ID
+    @Test
+    public void testBuildJwtKeepsTheCanvasAssignmentIdOfAnAssignmentLaunch() throws GeneralSecurityException, IOException, TerracottaConnectorException {
+        customVars.put("canvas_assignment_id", "58313");
+
+        Map<String, Object> claims = canvasApiJWTService.unsecureToken(canvasApiJWTService.buildJwt(false, lti3Request), platformDeployment);
+
+        assertEquals("58313", claims.get(JwtClaim.LMS_ASSIGNMENT_ID.key()));
+    }
+
+    // a launch from the course navigation link isn't from an assignment, and Canvas leaves the
+    // variable unreplaced; the frontend must not treat that as an assignment to open
+    @Test
+    public void testBuildJwtLeavesOutAnUnreplacedCanvasAssignmentId() throws GeneralSecurityException, IOException, TerracottaConnectorException {
+        customVars.put("canvas_assignment_id", "$Canvas.assignment.id");
+
+        Map<String, Object> claims = canvasApiJWTService.unsecureToken(canvasApiJWTService.buildJwt(false, lti3Request), platformDeployment);
+
+        assertEquals("", claims.get(JwtClaim.LMS_ASSIGNMENT_ID.key()));
+    }
+
     // assignment context, test with allowed_attempts = null
     @Test
     public void testBuildJwtWithNullAllowedAttemptsCustomVariable() throws GeneralSecurityException, IOException, TerracottaConnectorException {
@@ -244,6 +265,52 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         Map<String, Object> claims = canvasApiJWTService.unsecureToken(jwt, platformDeployment);
 
         assertEquals(3, claims.get("allowedAttempts"));
+        assertEquals(0, claims.get("studentAttempts"));
+    }
+
+    // an assignment with unlimited attempts (Terracotta's default): Canvas leaves allowed_attempts unreplaced
+    @Test
+    public void testBuildJwtWithUnreplacedAllowedAttemptsInAnAssignmentLaunch() throws GeneralSecurityException, IOException, TerracottaConnectorException {
+
+        customVars.put("canvas_assignment_id", "11323");
+        customVars.put("allowed_attempts", "$Canvas.assignment.allowedAttempts");
+        customVars.put("student_attempts", "2");
+
+        String jwt = canvasApiJWTService.buildJwt(false, lti3Request);
+        Map<String, Object> claims = canvasApiJWTService.unsecureToken(jwt, platformDeployment);
+
+        // unlimited, so the attempt check needs no Canvas API calls
+        assertEquals(-1, claims.get("allowedAttempts"));
+        assertEquals(2, claims.get("studentAttempts"));
+    }
+
+    // a limited-attempt assignment, the student's first attempt: Canvas leaves student_attempts unreplaced
+    @Test
+    public void testBuildJwtWithUnreplacedStudentAttemptsInAnAssignmentLaunch() throws GeneralSecurityException, IOException, TerracottaConnectorException {
+
+        customVars.put("canvas_assignment_id", "11323");
+        customVars.put("allowed_attempts", "3");
+        customVars.put("student_attempts", "$Canvas.assignment.submission.studentAttempts");
+
+        String jwt = canvasApiJWTService.buildJwt(false, lti3Request);
+        Map<String, Object> claims = canvasApiJWTService.unsecureToken(jwt, platformDeployment);
+
+        assertEquals(3, claims.get("allowedAttempts"));
+        assertEquals(0, claims.get("studentAttempts"));
+    }
+
+    // unlimited attempts and the student's first attempt: both unreplaced
+    @Test
+    public void testBuildJwtWithBothAttemptsUnreplacedInAnAssignmentLaunch() throws GeneralSecurityException, IOException, TerracottaConnectorException {
+
+        customVars.put("canvas_assignment_id", "11323");
+        customVars.put("allowed_attempts", "$Canvas.assignment.allowedAttempts");
+        customVars.put("student_attempts", "$Canvas.assignment.submission.studentAttempts");
+
+        String jwt = canvasApiJWTService.buildJwt(false, lti3Request);
+        Map<String, Object> claims = canvasApiJWTService.unsecureToken(jwt, platformDeployment);
+
+        assertEquals(-1, claims.get("allowedAttempts"));
         assertEquals(0, claims.get("studentAttempts"));
     }
 
@@ -555,6 +622,7 @@ public class CanvasApiJwtServiceImplTest extends BaseTest {
         assertEquals("userKey", claims.get(JwtClaim.USER_ID.key(), String.class));
         assertNull(claims.get(JwtClaim.ROLES.key()));
         assertNull(claims.get(JwtClaim.NONCE.key()));
+        assertEquals(3600_000L, claims.getExpiration().getTime() - claims.getIssuedAt().getTime());
         assertTrue(state.length() < launchToken.length() / 2, () -> "state " + state.length() + " vs launch token " + launchToken.length());
     }
 

@@ -32,7 +32,6 @@ import edu.iu.terracotta.dao.model.dto.SubmissionDto;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.utils.TextConstants;
 
 public class SubmissionControllerTest extends BaseTest {
 
@@ -99,16 +98,6 @@ public class SubmissionControllerTest extends BaseTest {
     }
 
     @Test
-    void getSubmissionsByAssessmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<SubmissionDto>> response = submissionController.getSubmissionsByAssessment(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void getSubmissionsByAssessmentThrowsTest() throws Exception {
         doThrow(new ExperimentNotMatchingException("error")).when(apiJwtService).experimentAllowed(any(SecuredInfo.class), anyLong());
 
@@ -129,16 +118,6 @@ public class SubmissionControllerTest extends BaseTest {
     }
 
     @Test
-    void getSubmissionUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<SubmissionDto> response = submissionController.getSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, false, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void getSubmissionThrowsTest() throws Exception {
         doThrow(new SubmissionNotMatchingException("error")).when(apiJwtService).submissionAllowed(any(SecuredInfo.class), anyLong(), anyLong());
 
@@ -153,17 +132,6 @@ public class SubmissionControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("Error 128: Assignment locked", response.getBody());
-    }
-
-    @Test
-    void postSubmissionUnauthorizedTest() throws Exception {
-        when(submissionService.datesAllowed(anyLong(), anyLong(), any(SecuredInfo.class))).thenReturn(true);
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<SubmissionDto> response = submissionController.postSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, submissionDto, UriComponentsBuilder.newInstance(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
     }
 
     @Test
@@ -202,16 +170,6 @@ public class SubmissionControllerTest extends BaseTest {
     }
 
     @Test
-    void updateSubmissionUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = submissionController.updateSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, submissionDto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void updateSubmissionThrowsTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(true);
         when(submissionService.getSubmission(anyLong(), anyString(), anyLong(), anyBoolean())).thenReturn(submission);
@@ -232,16 +190,6 @@ public class SubmissionControllerTest extends BaseTest {
     }
 
     @Test
-    void updateSubmissionsUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = submissionController.updateSubmissions(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, List.of(submissionDto), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void updateSubmissionsThrowsTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(submissionDto.getSubmissionId()).thenReturn(SUBMISSION_UUID);
@@ -258,16 +206,6 @@ public class SubmissionControllerTest extends BaseTest {
         ResponseEntity<Void> response = submissionController.deleteSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    @Test
-    void deleteSubmissionUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = submissionController.deleteSubmission(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, SUBMISSION_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
     }
 
     @Test
