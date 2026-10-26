@@ -6,12 +6,12 @@ import dayjs from "@/plugins/dayjs";
  */
 export const toTimestamp = value => {
   if (value == null || value === "") {
-    return NaN;
+    return Number.NaN;
   }
 
   const date = dayjs(value);
 
-  return date.isValid() ? date.valueOf() : NaN;
+  return date.isValid() ? date.valueOf() : Number.NaN;
 };
 
 // oldest first; a submission not yet submitted sorts as the oldest, as before
