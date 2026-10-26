@@ -525,6 +525,23 @@ const handleLinkDialogSubmit = result => {
     return;
   }
 
+  // nothing selected and not in a link: there's no text to turn into the link, so the address
+  // goes in as the link's text. Clearing the link mark afterwards keeps what's typed next out of it.
+  if (props.editor?.state?.selection?.empty && !props.editor.isActive("link")) {
+    props.editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "text",
+        text: result,
+        marks: [{ type: "link", attrs: { href: result } }]
+      })
+      .unsetMark("link")
+      .run();
+
+    return;
+  }
+
   props.editor
     ?.chain()
     .focus()
