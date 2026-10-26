@@ -1,0 +1,21 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <!--
+        TCOTA-328: keep the consent PDF's name as the instructor uploaded it, so editing the
+        experiment shows that name instead of a generic label. Documents uploaded before this
+        have no name stored; the page still shows the generic label for them.
+    -->
+    <changeSet author="rlong" id="1759881600000-01">
+        <addColumn tableName="terr_consent_document">
+            <column name="file_name" type="VARCHAR(255)" afterColumn="title"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

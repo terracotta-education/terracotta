@@ -11,7 +11,6 @@ import java.util.List;
 
 @Slf4j
 @UtilityClass
-@SuppressWarnings("PMD.GuardLogStatement")
 public class BrightspaceUrlBuilder {
 
     public static String buildUrl(String baseUrl, String path, Map<String, List<String>> parameters) {

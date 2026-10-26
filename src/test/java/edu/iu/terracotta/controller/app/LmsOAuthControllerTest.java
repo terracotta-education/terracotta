@@ -2,12 +2,14 @@ package edu.iu.terracotta.controller.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +64,29 @@ public class LmsOAuthControllerTest extends BaseTest {
 
         assertEquals(TextConstants.OAUTH2_ERROR, result);
         verify(model).addAttribute(eq(TextConstants.ERROR), anyString());
+    }
+
+    // opening or refreshing the callback address directly: no code, no state, no error
+    @Test
+    void handleOauthResponseWithoutStateDoesNotTryToValidateIt() throws Exception {
+        when(httpServletRequest.getParameter("code")).thenReturn(null);
+        when(httpServletRequest.getParameter("state")).thenReturn(null);
+
+        String result = lmsOAuthController.handleOauthResponse(httpServletRequest, model);
+
+        assertEquals(TextConstants.OAUTH2_ERROR, result);
+        verify(model).addAttribute(eq(TextConstants.ERROR), anyString());
+        verify(apiJwtService, never()).validateStateForAPITokenRequest(any());
+    }
+
+    @Test
+    void handleOauthResponseWithBlankStateDoesNotTryToValidateIt() throws Exception {
+        when(httpServletRequest.getParameter("state")).thenReturn("  ");
+
+        String result = lmsOAuthController.handleOauthResponse(httpServletRequest, model);
+
+        assertEquals(TextConstants.OAUTH2_ERROR, result);
+        verify(apiJwtService, never()).validateStateForAPITokenRequest(any());
     }
 
     @Test

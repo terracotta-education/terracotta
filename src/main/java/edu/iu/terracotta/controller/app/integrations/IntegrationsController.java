@@ -117,6 +117,8 @@ public class IntegrationsController {
         return String.format("redirect:/app/app.html?integration=true&preview=true&previewUrl=%s&status=%s", url != null ? url : "", status.name());
     }
 
+    // /integrations isn't under /api, so the API token filter that grants the roles the role
+    // annotations check doesn't run for it - the role is checked here instead
     @GetMapping("/validate/iframe")
     public ResponseEntity<Void> iframe(@RequestParam String url, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
@@ -126,6 +128,7 @@ public class IntegrationsController {
         }
 
         try {
+            // deepcode ignore Ssrf: validateIntegrationUrlIframe rejects URLs that are not http or https or that resolve to internal addresses, and does not follow redirects
             integrationService.validateIntegrationUrlIframe(url, securedInfo);
         } catch (IntegrationUrlIframeInvalidException e) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

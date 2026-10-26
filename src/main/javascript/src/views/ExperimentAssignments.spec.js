@@ -493,6 +493,10 @@ describe("ExperimentAssignments", () => {
     });
 
     expect(wrapper.text()).toContain("First moved to position 2 of 2.");
+    // announced to screen readers without showing on the page
+    const announcement = wrapper.find("output[aria-live='polite']");
+    expect(announcement.text()).toBe("First moved to position 2 of 2.");
+    expect(announcement.classes()).toContain("d-sr-only");
 
     wrapper.unmount();
     handleStandIn.remove();

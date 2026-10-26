@@ -6,7 +6,7 @@
     >
       <div
         v-if="assessment.html"
-        v-html="assessment.html"
+        v-html="sanitizeHtml(assessment.html)"
       />
       <iframe
         v-if="!readonly"
@@ -35,6 +35,7 @@
 
 <script setup>
 import ExternalIntegrationResponseEditor from "@/views/integrations/ExternalIntegrationResponseEditor.vue";
+import { sanitizeHtml } from "@/helpers";
 
 defineProps({
   assessment: { type: Object, required: true },

@@ -207,6 +207,7 @@ public class ExperimentExportServiceImpl implements ExperimentExportService {
             .html(experiment.getConsentDocument().getHtml())
             .id(experiment.getConsentDocument().getUuid().toString())
             .title(experiment.getConsentDocument().getTitle())
+            .fileName(experiment.getConsentDocument().getFileName())
             .build();
     }
 

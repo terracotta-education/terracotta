@@ -32,7 +32,6 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.MultipleChoiceLimitReachedException;
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.service.app.ConditionService;
-import edu.iu.terracotta.utils.TextConstants;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class AnswerControllerTest extends BaseTest {
@@ -108,15 +107,6 @@ public class AnswerControllerTest extends BaseTest {
     }
 
     @Test
-    void getAnswersByQuestionUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<List<AnswerDto>> ret = answerController.getAnswersByQuestion(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, QUESTION_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void getAnswersByQuestionUnsupportedTypeTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(answerService.getQuestionType(1L)).thenReturn(QuestionTypes.ESSAY.toString());
@@ -146,15 +136,6 @@ public class AnswerControllerTest extends BaseTest {
     }
 
     @Test
-    void getAnswerUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<AnswerDto> ret = answerController.getAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, QUESTION_UUID, ANSWER_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void getAnswerUnsupportedTypeTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         when(answerService.getQuestionType(1L)).thenReturn(QuestionTypes.ESSAY.toString());
@@ -179,16 +160,6 @@ public class AnswerControllerTest extends BaseTest {
     }
 
     @Test
-    void postAnswerUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<AnswerDto> ret = answerController.postAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, QUESTION_UUID, AnswerDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
-    }
-
-    @Test
     void postAnswerPropagatesMultipleChoiceLimitReachedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         doThrow(new MultipleChoiceLimitReachedException("limit reached")).when(answerService).postAnswerMC(any(AnswerDto.class), anyLong());
@@ -210,16 +181,6 @@ public class AnswerControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(updated, ret.getBody());
-    }
-
-    @Test
-    void updateAnswersUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<List<AnswerDto>> ret = answerController.updateAnswers(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, QUESTION_UUID, List.of(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test
@@ -259,18 +220,6 @@ public class AnswerControllerTest extends BaseTest {
     }
 
     @Test
-    void updateAnswerUnauthorizedTest() throws Exception {
-        when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        when(questionService.findByQuestionId(anyLong())).thenReturn(question);
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<AnswerDto> ret = answerController.updateAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, QUESTION_UUID, ANSWER_UUID, AnswerDto.builder().build(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
-    }
-
-    @Test
     void updateAnswerUnsupportedTypeTest() throws Exception {
         when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
         when(questionService.findByQuestionId(anyLong())).thenReturn(question);
@@ -303,18 +252,6 @@ public class AnswerControllerTest extends BaseTest {
         ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, QUESTION_UUID, ANSWER_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
-    }
-
-    @Test
-    void deleteAnswerUnauthorizedTest() throws Exception {
-        when(question.getQuestionType()).thenReturn(QuestionTypes.MC);
-        when(questionService.findByQuestionId(anyLong())).thenReturn(question);
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<Void> ret = answerController.deleteAnswer(EXPERIMENT_UUID, CONDITION_UUID, TREATMENT_UUID, ASSESSMENT_UUID, QUESTION_UUID, ANSWER_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test

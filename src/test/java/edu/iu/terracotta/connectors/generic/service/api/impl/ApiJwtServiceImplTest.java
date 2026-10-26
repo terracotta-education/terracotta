@@ -92,7 +92,6 @@ import edu.iu.terracotta.exceptions.messaging.MessageNotMatchingException;
 import edu.iu.terracotta.exceptions.messaging.MessageRuleNotMatchingException;
 import edu.iu.terracotta.exceptions.messaging.MessageRuleSetNotMatchingException;
 import edu.iu.terracotta.service.app.AdminService;
-import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.oauth.OAuthUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;

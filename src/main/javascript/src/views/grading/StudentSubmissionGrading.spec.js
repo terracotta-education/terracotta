@@ -259,6 +259,39 @@ describe("StudentSubmissionGrading", () => {
     expect(wrapper.text()).toContain("short answer responses (2)");
   });
 
+  // essays are rich text now; the response used to be printed as text, tags and all
+  it("shows an essay response with its formatting, read only", async () => {
+    const essayAnswer = studentResponseFixture[1].answerSubmissionDtoList[0];
+
+    essayAnswer.response = "<p>My <strong>essay</strong> answer</p>";
+
+    try {
+      const wrapper = mount();
+      await flushPromises();
+      await wrapper.vm.$nextTick();
+      await flushPromises();
+      await wrapper.vm.$nextTick();
+
+      const response = wrapper.findComponent({ name: "TipTapEditor" });
+
+      expect(response.props("readOnly")).toBe(true);
+      expect(response.props("content")).toBe("<p>My <strong>essay</strong> answer</p>");
+      expect(wrapper.text()).not.toContain("<strong>");
+    } finally {
+      essayAnswer.response = "My essay answer";
+    }
+  });
+
+  it("shows an essay response saved as plain text as paragraphs", async () => {
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent({ name: "TipTapEditor" }).props("content")).toBe("<p>My essay answer</p>");
+  });
+
   it("shows the calculated score by default and switches to override on click", async () => {
     const wrapper = mount();
     await flushPromises();

@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -85,6 +87,7 @@ public class AnswerSubmissionController {
     private final AssessmentService assessmentService;
 
     @GetMapping("/question_submissions/{questionSubmissionId}/answer_submissions")
+    @LearnerOrHigher
     public ResponseEntity<List<AnswerSubmissionDto>> getAnswerSubmissionsByQuestionId(@PathVariable("experimentId") UUID experimentUuid,
                                                                                       @PathVariable("conditionId") UUID conditionUuid,
                                                                                       @PathVariable("treatmentId") UUID treatmentUuid,
@@ -104,10 +107,6 @@ public class AnswerSubmissionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -123,6 +122,7 @@ public class AnswerSubmissionController {
     }
 
     @GetMapping("/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}")
+    @LearnerOrHigher
     public ResponseEntity<AnswerSubmissionDto> getAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                    @PathVariable("conditionId") UUID conditionUuid,
                                                                    @PathVariable("treatmentId") UUID treatmentUuid,
@@ -146,10 +146,6 @@ public class AnswerSubmissionController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -159,6 +155,7 @@ public class AnswerSubmissionController {
 
     @Transactional
     @PostMapping("/answer_submissions")
+    @LearnerOrHigher
     public ResponseEntity<List<AnswerSubmissionDto>> postAnswerSubmissions(@PathVariable("experimentId") UUID experimentUuid,
                                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                                         @PathVariable("treatmentId") UUID treatmentUuid,
@@ -184,10 +181,6 @@ public class AnswerSubmissionController {
                     answerSubmissionQuestionSubmissionId);
         }
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -203,6 +196,7 @@ public class AnswerSubmissionController {
     For example, a fill-in-the-blank question with multiple blanks to fill in.
     */
     @PutMapping("/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}")
+    @LearnerOrHigher
     public ResponseEntity<Void> updateAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("conditionId") UUID conditionUuid,
                                                        @PathVariable("treatmentId") UUID treatmentUuid,
@@ -227,10 +221,6 @@ public class AnswerSubmissionController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
@@ -244,6 +234,7 @@ public class AnswerSubmissionController {
     }
 
     @DeleteMapping("/question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}")
+    @InstructorOrHigher
     public ResponseEntity<Void> deleteAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("conditionId") UUID conditionUuid,
                                                        @PathVariable("treatmentId") UUID treatmentUuid,
@@ -267,10 +258,6 @@ public class AnswerSubmissionController {
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         try {
             answerSubmissionService.deleteAnswerSubmission(answerSubmissionId, answerType);
             return new ResponseEntity<>(HttpStatus.OK);
@@ -280,6 +267,7 @@ public class AnswerSubmissionController {
     }
 
     @PostMapping(value = "/answer_submissions/file", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    @LearnerOrHigher
     public ResponseEntity<List<AnswerSubmissionDto>> postFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                             @PathVariable("conditionId") UUID conditionUuid,
                                                                             @PathVariable("treatmentId") UUID treatmentUuid,
@@ -314,14 +302,11 @@ public class AnswerSubmissionController {
         long answerSubmissionQuestionSubmissionId = questionSubmissionService.getQuestionSubmissionIdByUuid(answerSubmissionDto.getQuestionSubmissionId());
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, answerSubmissionQuestionSubmissionId);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
 
+        // deepcode ignore PT: the upload is stored under a server generated date path and UUID, and its client file name is never used to build a path here
         AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmission(answerSubmissionDto, file);
         log.info("Created answer submission ID: [{}] for question submission ID: [{}]", returnedDto.getAnswerSubmissionId(), answerSubmissionDto.getQuestionSubmissionId());
         HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid,
@@ -333,6 +318,7 @@ public class AnswerSubmissionController {
     }
 
     @PutMapping("/answer_submissions/{answerSubmissionId}/file")
+    @LearnerOrHigher
     public ResponseEntity<List<AnswerSubmissionDto>> putFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                             @PathVariable("conditionId") UUID conditionUuid,
                                                                             @PathVariable("treatmentId") UUID treatmentUuid,
@@ -372,14 +358,11 @@ public class AnswerSubmissionController {
         // validates that the uuid corresponds to a real answer submission of this type.
         answerSubmissionService.resolveAnswerSubmissionId(answerSubmissionUuid, answerType);
 
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
-
         if (!apijwtService.isInstructorOrHigher(securedInfo)) {
             submissionService.validateUser(experimentId, securedInfo.getUserId(), submissionId);
         }
 
+        // deepcode ignore PT: the upload is stored under a server generated date path and UUID, and stored file URIs are checked against the submissions directory before any delete
         AnswerSubmissionDto returnedDto = answerSubmissionService.handleFileAnswerSubmissionUpdate(answerSubmissionDto, file);
         log.info("Updated answer submission ID: [{}] for question submission ID: [{}]", returnedDto.getAnswerSubmissionId(), answerSubmissionDto.getQuestionSubmissionId());
         HttpHeaders headers = answerSubmissionService.buildHeaders(ucBuilder, experimentUuid, conditionUuid, treatmentUuid, assessmentUuid, submissionUuid,
@@ -391,6 +374,7 @@ public class AnswerSubmissionController {
     }
 
     @GetMapping("question_submissions/{questionSubmissionId}/answer_submissions/{answerSubmissionId}/file")
+    @LearnerOrHigher
     public ResponseEntity<Resource> downloadFileAnswerSubmission(@PathVariable("experimentId") UUID experimentUuid,
                                                                         @PathVariable("conditionId") UUID conditionUuid,
                                                                         @PathVariable("treatmentId") UUID treatmentUuid,
@@ -413,10 +397,6 @@ public class AnswerSubmissionController {
         apijwtService.assessmentAllowed(securedInfo, experimentId, conditionId, treatmentId, assessmentId);
         apijwtService.questionSubmissionAllowed(securedInfo, assessmentId, submissionId, questionSubmissionId);
         apijwtService.answerSubmissionAllowed(securedInfo, questionSubmissionId, answerType, answerSubmissionId);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity(TextConstants.NOT_ENOUGH_PERMISSIONS, HttpStatus.UNAUTHORIZED);
-        }
 
         FileResponseDto fileResponseDto = answerSubmissionService.getFileResponseDto(answerSubmissionId);
 

@@ -1,5 +1,7 @@
 package edu.iu.terracotta.service.app.integrations.impl;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +15,7 @@ import org.apache.commons.lang3.Strings;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -29,6 +32,7 @@ import edu.iu.terracotta.dao.exceptions.integrations.IntegrationNotMatchingExcep
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationUrlIframeInvalidException;
 import edu.iu.terracotta.dao.model.dto.integrations.IntegrationDto;
 import edu.iu.terracotta.dao.repository.integrations.IntegrationRepository;
+import edu.iu.terracotta.service.app.OutboundUrlService;
 import edu.iu.terracotta.service.app.integrations.IntegrationClientService;
 import edu.iu.terracotta.service.app.integrations.IntegrationConfigurationService;
 import edu.iu.terracotta.service.app.integrations.IntegrationLaunchParameterService;
@@ -47,6 +51,7 @@ public class IntegrationServiceImpl implements IntegrationService {
     private final IntegrationClientService integrationClientService;
     private final IntegrationConfigurationService integrationConfigurationService;
     private final IntegrationLaunchParameterService integrationLaunchParameterService;
+    private final OutboundUrlService outboundUrlService;
 
     @Override
     public Integration create(Question question, UUID clientUuid) throws IntegrationClientNotFoundException {
@@ -158,11 +163,26 @@ public class IntegrationServiceImpl implements IntegrationService {
         PlatformDeployment platformDeployment = platformDeploymentRepository.findByKeyId(securedInfo.getPlatformDeploymentId())
             .orElseThrow(() -> new IntegrationUrlIframeInvalidException("Platform deployment not found for iframe validation."));
 
+        try {
+            outboundUrlService.validatePublicUrl(url);
+        } catch (IllegalArgumentException e) {
+            throw new IntegrationUrlIframeInvalidException(String.format("Cannot validate iframe embedding for URL: [%s]. Error: [%s]", url, e.getMessage()), e);
+        }
+
         ResponseEntity<String> response;
+        // a redirect could point at an internal address that the check above never saw
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory() {
+            @Override
+            protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
+                super.prepareConnection(connection, httpMethod);
+                connection.setInstanceFollowRedirects(false);
+            }
+        };
 
         try {
             // Use HEAD request to get headers without downloading full content
-            response = new RestTemplate().exchange(
+            // deepcode ignore Ssrf: the URL is checked by validatePublicUrl above and redirects are not followed
+            response = new RestTemplate(requestFactory).exchange(
                 url,
                 HttpMethod.HEAD,
                 null,
@@ -170,7 +190,8 @@ public class IntegrationServiceImpl implements IntegrationService {
             );
         } catch (Exception e) {
             try {
-                response = new RestTemplate().exchange(
+                // deepcode ignore Ssrf: the URL is checked by validatePublicUrl above and redirects are not followed
+                response = new RestTemplate(requestFactory).exchange(
                     url,
                     HttpMethod.GET,
                     null,

@@ -59,15 +59,27 @@
             </li>
           </ul>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions
+          class="flex-column align-start"
+        >
+          <!-- opens in its own window: inside this frame the LMS can lose track of the request
+               (third-party cookie rules) and show "Must submit new OAuth2 request". If the popup
+               is blocked, the link itself opens the page in a new tab instead. -->
           <v-btn
             :href="lmsApiOAuthURL"
+            target="_blank"
             class="redirect-button"
             elevation="0"
-            @click="saveSessionForReturn"
+            @click="openAuthorization"
           >
             Go to the {{ lmsTitle }} Authorization Page
           </v-btn>
+          <output
+            v-if="waiting"
+            class="authorization-waiting"
+          >
+            Finish authorizing in the window that opened. This page continues on its own once you're done.
+          </output>
         </v-card-actions>
       </v-card>
     </v-col>
@@ -76,15 +88,26 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 
 import ToolTip from "@/components/ToolTip.vue";
 import { api } from "@/store/api.module";
 import terracottaLogo from "@/assets/terracotta_logo.svg";
 import { configuration } from "@/store/configuration.module";
+import { lmsAuthorizationService } from "@/services";
+
+const AUTHORIZATION_WINDOW_NAME = "terracotta-lms-authorization";
+const POLL_INTERVAL_MS = 2000;
+const POLL_LIMIT_MS = 15 * 60 * 1000;
 
 const apiStore = api();
 const configurationStore = configuration();
+const router = useRouter();
+
+const waiting = ref(false);
+let pollTimer = null;
+let pollStartedAt = 0;
 
 const lmsApiOAuthURL = computed(() => {
   return apiStore.lmsApiOAuthURL;
@@ -98,18 +121,64 @@ const lmsTitle = computed(() => {
   return configurations.value?.lmsTitle || "LMS";
 });
 
-// the LMS's return from authorization says only who authorized, so keep this session for the
-// return page (lmsAuthorized.html) to hand back to the app - see main.js
-const saveSessionForReturn = () => {
-  try {
-    sessionStorage.setItem("lmsAuthorizationResume", JSON.stringify({
-      ltiToken: apiStore.ltiToken,
-      apiToken: apiStore.apiToken
-    }));
-  } catch (error) {
-    console.error("OAuth2Redirect | couldn't save the session for the return", error);
+const stopPolling = () => {
+  clearTimeout(pollTimer);
+  pollTimer = null;
+};
+
+// (re)starts the fifteen minute window, so a click late in it still gets a full wait
+const startPolling = () => {
+  pollStartedAt = Date.now();
+
+  if (!pollTimer) {
+    pollTimer = setTimeout(checkAuthorization, POLL_INTERVAL_MS);
   }
 };
+
+// the authorization window can't reliably message this frame (the LMS may cut the opener link),
+// so ask the server until the new token shows up. This runs from the moment the page opens, so it
+// also catches authorizing in a tab opened by right click, which never fires the click handler.
+const checkAuthorization = async () => {
+  const { authorized } = await lmsAuthorizationService.getAuthorization();
+
+  if (!pollTimer) {
+    return; // left the page while the request was in flight
+  }
+
+  if (authorized) {
+    stopPolling();
+    waiting.value = false;
+    apiStore.setLmsApiOAuthURL("");
+    await router.replace({ name: "Home" });
+    return;
+  }
+
+  if (Date.now() - pollStartedAt >= POLL_LIMIT_MS) {
+    stopPolling();
+    waiting.value = false;
+    return;
+  }
+
+  pollTimer = setTimeout(checkAuthorization, POLL_INTERVAL_MS);
+};
+
+const openAuthorization = event => {
+  if (!lmsApiOAuthURL.value) {
+    return;
+  }
+
+  const authorizationWindow = window.open(lmsApiOAuthURL.value, AUTHORIZATION_WINDOW_NAME, "popup,width=900,height=760");
+
+  if (authorizationWindow) {
+    event.preventDefault();
+  }
+
+  waiting.value = true;
+  startPolling();
+};
+
+onMounted(startPolling);
+onBeforeUnmount(stopPolling);
 </script>
 
 <style lang="scss" scoped>
@@ -146,6 +215,13 @@ const saveSessionForReturn = () => {
     text-transform: none;
     color: rgba(35, 48, 80, 0.87);
   }
+}
+.authorization-waiting {
+  display: block;
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: rgba(0, 0, 0, 0.6);
 }
 .permission-list {
   li {

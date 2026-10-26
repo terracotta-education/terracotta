@@ -6,6 +6,9 @@ import org.apache.commons.lang3.Strings;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
+import edu.iu.terracotta.security.pii.EmailHashListener;
+import edu.iu.terracotta.security.pii.HashedEmail;
+import edu.iu.terracotta.security.pii.PiiStringConverter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,11 +16,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
@@ -37,13 +43,17 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
+@EntityListeners(EmailHashListener.class)
 @Table(
     name = "lti_user",
     uniqueConstraints = {
         @UniqueConstraint(columnNames = {"user_key", "key_id"}),
+    },
+    indexes = {
+        @Index(name = "IDX_LTI_USER_EMAIL_HASH", columnList = "email_hash, key_id")
     }
 )
-public class LtiUserEntity extends UuidAwareEntity {
+public class LtiUserEntity extends UuidAwareEntity implements HashedEmail {
 
     public static final String TEST_STUDENT_DISPLAY_NAME = "Test Student";
 
@@ -64,10 +74,12 @@ public class LtiUserEntity extends UuidAwareEntity {
     )
     private String userKey;
 
+    // stored encrypted (PiiCipher) - the length leaves room for the ciphertext of a long name
     @Column(
         name = "displayname",
-        length = 4096
+        length = 8192
     )
+    @Convert(converter = PiiStringConverter.class)
     private String displayName;
 
     @Column(length = 63)
@@ -77,7 +89,18 @@ public class LtiUserEntity extends UuidAwareEntity {
     @Column
     private String json;
 
-    @Column private String email;
+    // stored encrypted (PiiCipher); look a user up by email with emailHash instead
+    @Column(length = 512)
+    @Convert(converter = PiiStringConverter.class)
+    private String email;
+
+    // keyed hash of the email (PiiCipher.hashEmail), kept current by EmailHashListener
+    @Column(
+        name = "email_hash",
+        length = 64
+    )
+    private String emailHash;
+
     @Column private String lmsUserId;
     @Column private Short subscribe;
     @Column private Timestamp loginAt;

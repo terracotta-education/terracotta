@@ -9,10 +9,13 @@ import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import edu.iu.terracotta.dao.entity.messaging.message.Message;
 import edu.iu.terracotta.dao.entity.messaging.message.MessageConfiguration;
 import edu.iu.terracotta.dao.model.enums.messaging.MessageProcessingStatus;
+import edu.iu.terracotta.security.pii.PiiStringConverter;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
@@ -49,6 +52,9 @@ public class MessageLog extends BaseMessageEntity {
     @Enumerated(EnumType.STRING)
     private MessageProcessingStatus status;
 
+    // the message as sent to this recipient (names and piped values filled in), stored encrypted (PiiCipher)
+    @Lob
+    @Convert(converter = PiiStringConverter.class)
     private String body;
     private String errorMessage;
     private String remoteId;

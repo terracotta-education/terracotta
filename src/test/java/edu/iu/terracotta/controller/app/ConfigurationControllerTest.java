@@ -1,7 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -32,16 +31,6 @@ public class ConfigurationControllerTest extends BaseTest {
         configurationController = new ConfigurationController(apiJwtService, configurationService);
 
         when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
-    }
-
-    @Test
-    void getUnauthorizedTest() throws NumberFormatException, TerracottaConnectorException {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ConfigurationDto> ret = configurationController.get(httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertNull(ret.getBody());
     }
 
     @Test

@@ -395,6 +395,23 @@ public class RestResponseEntityExceptionHandlerTest {
         assertEquals("Error 100: title issue", response.getBody());
     }
 
+    // a role annotation refusing the caller answers the way the controllers' own role checks did
+    @Test
+    void handleAccessDeniedExceptionReturnsUnauthorizedTest() {
+        ResponseEntity<Object> response = handler.handleAccessDeniedException(new org.springframework.security.access.AccessDeniedException("Access Denied"), webRequest);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
+    }
+
+    @Test
+    void handleMissingAuthenticationReturnsUnauthorizedTest() {
+        ResponseEntity<Object> response = handler.handleAccessDeniedException(new org.springframework.security.authentication.AuthenticationCredentialsNotFoundException("none"), webRequest);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
+    }
+
     @Test
     void handleOptimisticLockingFailureExceptionReturnsConflictTest() {
         ResponseEntity<Object> response = handler.handleOptimisticLockingFailureException(

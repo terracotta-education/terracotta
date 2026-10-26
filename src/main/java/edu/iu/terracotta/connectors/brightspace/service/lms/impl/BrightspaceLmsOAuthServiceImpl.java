@@ -237,6 +237,7 @@ public class BrightspaceLmsOAuthServiceImpl implements LmsOAuthService<ApiTokenE
         RestTemplate restTemplate = createRestTemplate();
 
         try {
+            // deepcode ignore Ssrf: the token URL is the OAuth2 token endpoint of the stored PlatformDeployment, only admins configure it
             ResponseEntity<BrightspaceApiToken> response = restTemplate.postForEntity(
                 apiOAuthSettings.getOauth2TokenUrl(),
                 request,

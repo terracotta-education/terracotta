@@ -6,11 +6,11 @@
       </h4>
 
       <div
-        v-html="messages.header.directions"
+        v-html="sanitizeHtml(messages.header.directions)"
       />
 
       <div
-        v-html="messages.header.instructions"
+        v-html="sanitizeHtml(messages.header.instructions)"
       />
     </v-row>
 
@@ -158,7 +158,7 @@
           </div>
 
           <div
-            v-html="messages.returnUrl.instructions.details"
+            v-html="sanitizeHtml(messages.returnUrl.instructions.details)"
             class="mb-8"
           />
         </v-card-text>
@@ -177,6 +177,7 @@ import {
 
 import { integrations as integrationsModule } from "@/store/integrations/integrations.module";
 import { configuration as configurationModule } from "@/store/configuration.module";
+import { sanitizeHtml } from "@/helpers";
 
 defineOptions({
   name: "ExternalIntegrationEditor"

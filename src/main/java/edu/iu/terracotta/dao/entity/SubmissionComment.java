@@ -9,6 +9,9 @@ import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
+import edu.iu.terracotta.security.pii.PiiStringConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,6 +35,9 @@ public class SubmissionComment extends UuidAwareEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long submissionCommentId;
 
+    // the commenter's name, stored encrypted (PiiCipher)
+    @Column(length = 512)
+    @Convert(converter = PiiStringConverter.class)
     private String creator;
 
     @Lob

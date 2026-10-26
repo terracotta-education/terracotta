@@ -33,6 +33,7 @@ import edu.iu.terracotta.dao.repository.distribute.ExperimentImportRepository;
 import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.exceptions.app.MyFileNotFoundException;
 import edu.iu.terracotta.service.app.FileStorageService;
+import edu.iu.terracotta.utils.FilePathUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
@@ -140,11 +141,11 @@ public class FileStorageServiceImpl implements FileStorageService {
             Files.createDirectories(Paths.get(assignmentFileArchiveLocalPathRoot));
             Files.createDirectories(Paths.get(experimentDataExportLocalPathRoot));
             Files.createDirectories(Paths.get(experimentExportLocalPathRoot));
-            this.decompressedSubmissionFileTempDirectory = Files.createTempDirectory(Paths.get(uploadSubmissionsLocalPath).toString() + ".");
-            this.decompressedConsentFileTempDirectory = Files.createTempDirectory(Paths.get(consentFileLocalPath).toString() + ".");
-            this.decompressedAssignmentFileArchiveTempDirectory = Files.createTempDirectory(Paths.get(assignmentFileArchiveLocalPath).toString() + ".");
-            this.decompressedExperimentImportTempDirectory = Files.createTempDirectory(Paths.get(experimentExportLocalPath).toString() + ".");
-            this.decompressedExperimentDataExportTempDirectory = Files.createTempDirectory(Paths.get(experimentDataExportLocalPath).toString() + ".");
+            this.decompressedSubmissionFileTempDirectory = Files.createTempDirectory(Paths.get(uploadSubmissionsLocalPath).toString() + "."); // NOSONAR createTempDirectory uses a random name and owner-only permissions
+            this.decompressedConsentFileTempDirectory = Files.createTempDirectory(Paths.get(consentFileLocalPath).toString() + "."); // NOSONAR createTempDirectory uses a random name and owner-only permissions
+            this.decompressedAssignmentFileArchiveTempDirectory = Files.createTempDirectory(Paths.get(assignmentFileArchiveLocalPath).toString() + "."); // NOSONAR createTempDirectory uses a random name and owner-only permissions
+            this.decompressedExperimentImportTempDirectory = Files.createTempDirectory(Paths.get(experimentExportLocalPath).toString() + "."); // NOSONAR createTempDirectory uses a random name and owner-only permissions
+            this.decompressedExperimentDataExportTempDirectory = Files.createTempDirectory(Paths.get(experimentDataExportLocalPath).toString() + "."); // NOSONAR createTempDirectory uses a random name and owner-only permissions
         } catch (IOException e) {
             throw new RuntimeException("Error 138: Could not create upload folders!");
         }
@@ -272,6 +273,27 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    /**
+     * The uploaded file's own name, for display: just the name (some browsers send a path), with
+     * control characters removed and cut to the column's 255 characters. Null if there isn't one.
+     */
+    static String uploadedFileName(MultipartFile multipartFile) {
+        String original = multipartFile.getOriginalFilename();
+
+        if (original == null) {
+            return null;
+        }
+
+        String path = original.replace('\\', '/');
+        String name = path.substring(path.lastIndexOf('/') + 1).replaceAll("\\p{Cntrl}", "").trim();
+
+        if (name.isEmpty()) {
+            return null;
+        }
+
+        return name.length() > 255 ? name.substring(0, 255) : name;
+    }
+
     @Override
     public FileInfoDto uploadConsentFile(long experimentId, String title, MultipartFile multipartFile, SecuredInfo securedInfo)
             throws AssignmentNotCreatedException, ApiException, AssignmentNotEditedException, AssignmentNotMatchingException, IOException, TerracottaConnectorException {
@@ -294,6 +316,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         consentDocument.setEncryptionMethod(fileInfoDto.getFileSubmissionLocal().encryptionMethod());
         consentDocument.setEncryptionPhrase(fileInfoDto.getFileSubmissionLocal().encryptionPhrase());
         consentDocument.setFileUri(fileInfoDto.getFileSubmissionLocal().filePath());
+        consentDocument.setFileName(uploadedFileName(multipartFile));
 
         // reset to null, as not needed
         fileInfoDto.setFileSubmissionLocal(null);
@@ -381,6 +404,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         try {
+            // deepcode ignore PT: the consent file URI is always the server generated date path and UUID from saveConsentFile, never client input
             Files.deleteIfExists(Paths.get(String.format("%s/%s", consentFileLocalPathRoot, consentDocument.get().getFileUri())));
         } catch (IOException ex) {
             throw new FileStorageException(String.format("Error 140: Could not delete file for experiment ID: '%s'.", experimentId), ex);
@@ -413,6 +437,10 @@ public class FileStorageServiceImpl implements FileStorageService {
     public String parseHTMLFiles(String html, String localUrl) {
         if (org.apache.commons.lang3.StringUtils.isNotBlank(html)) {
             Document doc = Jsoup.parse(html);
+            // return the HTML as it was stored: pretty printing puts each element on its own
+            // indented line, and the rich text editor keeps that whitespace, turning it into empty
+            // list items and paragraphs that are saved back and multiply on every edit
+            doc.outputSettings().prettyPrint(false);
             parseAndUpdateElements(doc, "src", "/files/", "?token=", true, localUrl);
             parseAndUpdateElements(doc, "href", "/files/", "?token=", true, localUrl);
             parseAndUpdateElements(doc, "src", "/api/experiments/", "/files/", false, localUrl);
@@ -514,22 +542,21 @@ public class FileStorageServiceImpl implements FileStorageService {
             return null;
         }
 
+        // the file URI can come from the client in an answer submission's JSON, so keep it inside the submissions directory
         if (!answerFileSubmission.get().isCompressed()) {
             // file is not compressed; return it as-is
-            return new File(String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getFileUri()));
+            return FilePathUtils.resolveWithinRoot(uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getFileUri()).toFile();
         }
 
         // file is compressed; decompress and then return it
         try {
             decompressFile(
-                Paths.get(
-                    String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getEncryptedFileUri())
-                ).toString(),
+                FilePathUtils.resolveWithinRoot(uploadSubmissionsLocalPathRoot, answerFileSubmission.get().getEncryptedFileUri()).toString(),
                 answerFileSubmission.get().getEncryptionPhrase(),
                 decompressedSubmissionFileTempDirectory
             );
 
-            return new File(String.format("%s/%s", decompressedSubmissionFileTempDirectory, answerFileSubmission.get().getEncodedFileName()));
+            return FilePathUtils.resolveWithinRoot(decompressedSubmissionFileTempDirectory, answerFileSubmission.get().getEncodedFileName()).toFile();
         } catch (FileStorageException e) {
             throw e;
         }
@@ -549,7 +576,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public void deleteFileSubmission(AnswerFileSubmission answerFileSubmission) {
         try {
-            Files.deleteIfExists(Paths.get(String.format("%s/%s", uploadSubmissionsLocalPathRoot, answerFileSubmission.getFileUri())));
+            Files.deleteIfExists(FilePathUtils.resolveWithinRoot(uploadSubmissionsLocalPathRoot, answerFileSubmission.getFileUri()));
         } catch (IOException e) {
             throw new FileStorageException(String.format("Error 140: Could not delete file for file submission ID: '%s'.", answerFileSubmission.getAnswerFileSubmissionId()), e);
         }
@@ -812,6 +839,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             return extractionRoot;
         }
 
+        // deepcode ignore PT: extractionRoot is built from the server generated import file URI under the app's own temp directory
         File[] subdirectories = extractionRoot.listFiles(File::isDirectory);
 
         if (subdirectories != null && subdirectories.length == 1) {

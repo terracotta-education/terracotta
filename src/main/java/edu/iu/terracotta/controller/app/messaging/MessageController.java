@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -67,12 +68,9 @@ public class MessageController {
     private final MessageService messageService;
 
     @PutMapping("/{uuid}")
+    @InstructorOrHigher
     public ResponseEntity<MessageDto> put(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessageDto messageDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
-
-        if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         MessageContainer messageContainer;
         Message message;
@@ -99,12 +97,9 @@ public class MessageController {
     }
 
     @GetMapping("/assignments")
+    @InstructorOrHigher
     public ResponseEntity<List<MessageRuleAssignmentDto>> getAssignments(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID containerUuid, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
-
-        if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         try {
             experimentService.getExperimentIdByUuid(experimentUuid);
@@ -119,12 +114,9 @@ public class MessageController {
     }
 
     @PostMapping("/{uuid}/preview")
+    @InstructorOrHigher
     public ResponseEntity<MessagePreviewDto> preview(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessagePreviewDto messagePreviewDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
-
-        if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         Message message = null;
         long experimentId;
@@ -149,12 +141,9 @@ public class MessageController {
     }
 
     @PostMapping("/{uuid}/sendtest")
+    @InstructorOrHigher
     public ResponseEntity<Void> sendTest(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID containerUuid, @PathVariable UUID uuid, @RequestBody MessageSendTestDto messageSendTestDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
-
-        if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         Message message = null;
         long experimentId;
@@ -181,12 +170,9 @@ public class MessageController {
     }
 
     @PostMapping("/{messageUuid}/content/{uuid}/piped/file")
+    @InstructorOrHigher
     public ResponseEntity<MessageDto> pipedTextCsv(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID uuid, @RequestParam MultipartFile file, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
-
-        if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         Message message = null;
         long experimentId;
@@ -212,12 +198,9 @@ public class MessageController {
     }
 
     @PostMapping("/{messageUuid}/content/{uuid}/piped/updatePlaceholders")
+    @InstructorOrHigher
     public ResponseEntity<MessageContentDto> updatePlaceholders(@PathVariable("experimentId") UUID experimentUuid, @PathVariable("exposureId") UUID exposureUuid, @PathVariable UUID containerUuid, @PathVariable UUID messageUuid, @PathVariable UUID uuid, @RequestBody MessageContentDto contentDto, HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apiJwtService.extractValues(req, false);
-
-        if (!apiJwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         MessageContent content;
         long experimentId;

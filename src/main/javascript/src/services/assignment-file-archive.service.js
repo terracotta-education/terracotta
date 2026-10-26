@@ -3,6 +3,8 @@ import { api } from "@/store/api.module";
 
 export const assignmentFileArchiveService = {
   acknowledgeError,
+  acknowledgeOutdated,
+  getOutdated,
   prepare,
   poll,
   retrieve
@@ -60,6 +62,7 @@ async function retrieve(
   link.href = url;
   link.download = fileRequest.fileName;
 
+  // deepcode ignore DOMXSS: the link href is a blob: URL from URL.createObjectURL and the filename only sets the download attribute, so no markup or script URL reaches the DOM
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -83,6 +86,25 @@ async function acknowledgeError(
       method: "PUT"
     }
   );
+}
+
+async function acknowledgeOutdated(
+  experimentId,
+  exposureId,
+  assignmentId,
+  fileId
+) {
+  return request(
+    `/api/experiments/${experimentId}/exposures/${exposureId}/assignments/${assignmentId}/files/${fileId}/outdated/acknowledge`,
+    {
+      method: "PUT"
+    }
+  );
+}
+
+// the experiment's assignments with new submissions since their last file archive
+async function getOutdated(experimentId) {
+  return request(`/api/experiments/${experimentId}/files/outdated`);
 }
 
 async function request(path, options = {}) {

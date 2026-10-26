@@ -4,6 +4,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiDeepLink;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiLinkEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.connectors.generic.dao.model.enums.jwt.JwtClaim;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiLinkRepository;
 import edu.iu.terracotta.connectors.canvas.service.lti.advantage.CanvasAdvantageNoticeService;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
@@ -33,11 +34,14 @@ import edu.iu.terracotta.utils.TextConstants;
 import edu.iu.terracotta.utils.lti.Lti3Request;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -120,6 +124,7 @@ public class Lti3Controller {
             // successful launch for a given deployment (see ToolDeployment.noticeHandlerRegistered),
             // and never blocks or fails the launch itself either way.
             if (LmsConnector.CANVAS == lti3Request.getToolDeployment().getPlatformDeployment().getLmsConnector()) {
+                // deepcode ignore Ssrf: the notice handler URL is built from the base URL of the stored PlatformDeployment and a numeric ID from the verified LTI launch JWT
                 canvasAdvantageNoticeService.ensureNoticeHandlerRegistered(lti3Request.getToolDeployment());
             }
 
@@ -180,6 +185,13 @@ public class Lti3Controller {
                 );
             }
 
+            if (isDirectStudentLaunch(lti3Request)) {
+                // not from one of Terracotta's assignment or consent links (e.g. the course
+                // navigation link): the app shows the student where their assignments are
+                log.info("Student ID: [{}] attempted to launch directly in context ID: [{}]",
+                    lti3Request.getUser().getUserId(), lti3Request.getContext().getContextId());
+            }
+
             // the one-time token (and, for instructor-or-higher launches without a cached LMS API
             // token, a second JWT embedded in the OAuth authorization URL below) are delivered via
             // the response body rather than a redirect's query string - the launch JWT alone can
@@ -203,6 +215,18 @@ public class Lti3Controller {
             model.addAttribute(TextConstants.ERROR, e.getMessage());
             return TextConstants.LTI3ERROR;
         }
+    }
+
+    // a student launch whose link names neither an assignment nor the consent form
+    private boolean isDirectStudentLaunch(Lti3Request lti3Request) {
+        if (lti3Request.isRoleInstructor() || !lti3Request.isRoleLearner() || StringUtils.isBlank(lti3Request.getLtiTargetLinkUrl())) {
+            return false;
+        }
+
+        MultiValueMap<String, String> queryParams = UriComponentsBuilder.fromUriString(lti3Request.getLtiTargetLinkUrl()).build().getQueryParams();
+
+        return StringUtils.isBlank(queryParams.getFirst(JwtClaim.ASSIGNMENT.key()))
+            && !BooleanUtils.toBoolean(queryParams.getFirst(JwtClaim.CONSENT.key()));
     }
 
     private String getOAuth2APITokenRedirectURL(PlatformDeployment platformDeployment, LtiUserEntity user, Lti3Request lti3Request)

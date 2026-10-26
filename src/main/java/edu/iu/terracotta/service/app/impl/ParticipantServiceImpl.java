@@ -927,6 +927,13 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param securedInfo
      * @return
      */
+    // whether the participant has a submission on any assignment with more than one treatment,
+    // published or not - hasParticipantSubmitted can only be true when this is
+    private boolean hasMultiVersionSubmission(Participant participant) {
+        return submissionRepository.findByParticipant_Id(participant.getParticipantId()).stream()
+            .anyMatch(submission -> treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(submission.getAssessment().getTreatment().getAssignment().getAssignmentId()).size() > 1);
+    }
+
     private boolean hasParticipantSubmitted(Participant participant, List<Long> publishedExperimentAssignmentIds) {
         return
             // participant has at least viewed a multi-version assignment; consider it submitted
@@ -1213,7 +1220,6 @@ public class ParticipantServiceImpl implements ParticipantService {
      * @param participant
      */
     private void handleInitialConsent(Experiment experiment, Participant participant, SecuredInfo securedInfo) {
-        List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo, experiment.getCreatedBy());
         if (participant.getConsent() == null || (!participant.getConsent() && participant.getDateRevoked() == null)) {
             if (ParticipationTypes.AUTO.equals(experiment.getParticipationType())) {
                 participant.setConsent(true);
@@ -1221,6 +1227,15 @@ public class ParticipantServiceImpl implements ParticipantService {
 
                 return;
             }
+
+            // asking the LMS which assignments are published costs one API call per assignment,
+            // and only matters for a participant who has viewed a multi-version assignment - check
+            // that from the database first (this runs on every student launch and view)
+            if (!hasMultiVersionSubmission(participant)) {
+                return;
+            }
+
+            List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experiment.getExperimentId(), securedInfo, experiment.getCreatedBy());
 
             if (!hasParticipantSubmitted(participant, publishedExperimentAssignmentIds)) {
                 // participant has no submissions

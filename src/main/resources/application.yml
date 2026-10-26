@@ -137,6 +137,10 @@ terracotta:
   admin:
     user: admin
     # terracotta.admin.password = setyourpassowrdfortheadminuser
+  # Lets user supplied URLs (dynamic registration, integration iframe checks) reach loopback and
+  # private network addresses. For local development only.
+  # outbound-url:
+  #   allow-private-addresses: true
 
 ## File storage properties
 # All files uploaded through the REST API will be stored in this directory
@@ -192,6 +196,11 @@ app:
       output:
         participant:
           threshold: 400
+  # encrypt personal data and secrets saved before their columns were encrypted
+  pii:
+    encryption:
+      backfill:
+        enabled: true
   # convert consent files to secure encryption and storage
   consent:
     documents:
@@ -304,6 +313,22 @@ app:
       parental:
         permission:
           url: https://readmebucket.s3.us-east-1.amazonaws.com/Terracotta_ParentalPermission_template.docx
+
+# encryption of personally identifiable columns (lti_user email and display name). Both keys are
+# required and must stay the same across restarts, or stored values can't be read: generate each
+# with `openssl rand -base64 32` and keep them in your secrets store, not in this file. To rotate
+# the encryption key, move the current one into retired-keys as keyId:key and set a new key-id/key.
+pii:
+  encryption:
+    key-id: ${PII_ENCRYPTION_KEY_ID:1}
+    key: ${PII_ENCRYPTION_KEY:}
+    retired-keys: ${PII_ENCRYPTION_RETIRED_KEYS:}
+    # ONLY to roll back to a build without encryption: on startup, decrypt everything back to
+    # plain text and save new values unencrypted. Turn it on, start once, wait for the
+    # "Decryption finished" log line, then stop Terracotta and deploy the earlier build.
+    decrypt-all: false
+  hash:
+    key: ${PII_HASH_KEY:}
 
 # consent file storage
 consent:

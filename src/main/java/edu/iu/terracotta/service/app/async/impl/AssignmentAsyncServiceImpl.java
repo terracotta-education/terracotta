@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.jsoup.Jsoup;
@@ -56,9 +55,11 @@ import edu.iu.terracotta.dao.repository.ObsoleteAssignmentRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.exceptions.app.FileStorageException;
 import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.utils.FilePathUtils;
 import edu.iu.terracotta.utils.LmsAuthorizationUtils;
 import edu.iu.terracotta.utils.LmsExternalToolUrlUtils;
 import jakarta.annotation.PostConstruct;
@@ -150,6 +151,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                     log.info("Creating assignment with ID: [{}] in the LMS ", assignmentToCreate.getAssignmentId());
 
                     try {
+                        // deepcode ignore Ssrf: LMS API calls go to the base URL of the stored PlatformDeployment, and the assignment IDs used come from earlier LMS responses
                         assignmentService.restoreAssignmentInLms(assignmentToCreate);
                     } catch (ApiException | DataServiceException | ConnectionException | IOException | TerracottaConnectorException e) {
                         log.error("Error restoring assignment with ID: [{}] in the LMS", assignmentToCreate.getAssignmentId(), e);
@@ -376,10 +378,9 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             return;
         }
 
-        // get all consenting participants for the experiment
-        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(assignmentFileArchive.getExperimentId()).stream()
-            .filter(participant -> BooleanUtils.isTrue(participant.getConsent()))
-            .toList();
+        // every participant, whether or not they consented: the archive is the instructor's copy of
+        // the files students submitted
+        List<Participant> participants = participantRepository.findByExperiment_ExperimentId(assignmentFileArchive.getExperimentId());
 
         Map<Long, String> participantNameMap = new HashMap<>();
 
@@ -397,7 +398,7 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
         }
 
         // {particpantId: {questionId: file}}
-        Map<String, Map<String, File>> userQuestionFiles = new HashMap<>();
+        Map<String, Map<String, ArchiveFile>> userQuestionFiles = new HashMap<>();
 
         participantNameMap.entrySet().stream()
             .forEach(
@@ -412,32 +413,30 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             answerFileSubmissions.stream()
                 .forEach(
                     answerFileSubmission -> {
+                        // the participant's files, if they're in the archive at all: a submission can
+                        // outlive its participant's place in the experiment's participant list
+                        Map<String, ArchiveFile> userQuestionFileMap = userQuestionFiles.get(
+                            participantNameMap.get(
+                                answerFileSubmission.getQuestionSubmission().getSubmission().getParticipant().getParticipantId()
+                            )
+                        );
+
+                        if (userQuestionFileMap == null) {
+                            return;
+                        }
+
                         File file = fileStorageService.getFileSubmissionLocal(answerFileSubmission.getAnswerFileSubmissionId());
 
-                        if (file != null) {
-                            // rename file to actual file name
-                            Path updatedPath = Path.of(
-                                String.format(
-                                    "%s/%s",
-                                    StringUtils.substringBeforeLast(file.toPath().toString(), "/"),
-                                    answerFileSubmission.getFileName()
-                                )
+                        if (file != null && !file.isFile()) {
+                            log.error("Submitted file for answer file submission ID: [{}] not found at: [{}]; leaving it out of the archive", answerFileSubmission.getAnswerFileSubmissionId(), file.toPath());
+                        } else if (file != null) {
+                            // add the question and file mapping. The file isn't renamed here: for an
+                            // uncompressed submission it's the stored file itself, so it gets its
+                            // original name only when it's copied into the archive below
+                            userQuestionFileMap.put(
+                                StringUtils.substring(Jsoup.parse(fileQuestion.getHtml()).text(), 0, 50),
+                                new ArchiveFile(file, answerFileSubmission.getFileName())
                             );
-
-                            try {
-                                Path renamedFilePath = Files.move(file.toPath(), updatedPath, StandardCopyOption.REPLACE_EXISTING);
-
-                                // get the user's file map
-                                Map<String, File> userQuestionFileMap = userQuestionFiles.get(
-                                    participantNameMap.get(
-                                        answerFileSubmission.getQuestionSubmission().getSubmission().getParticipant().getParticipantId()
-                                    )
-                                );
-                                // add the question and file mapping
-                                userQuestionFileMap.put(StringUtils.substring(Jsoup.parse(fileQuestion.getHtml()).text(), 0, 50), renamedFilePath.toFile());
-                            } catch (IOException e) {
-                                log.error("Error renaming file: [{}] to: [{}]", file.toPath(), updatedPath, e);
-                            }
                         }
                     }
                 );
@@ -452,18 +451,10 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             .forEach(
                 userQuestionFile -> {
                     try {
-                        // create participant's directory
-                        String participantDir = Files.createDirectories(
-                            Path.of(
-                                String.format(
-                                    "%s/%s",
-                                    parentPath,
-                                    userQuestionFile.getKey()
-                                )
-                            )
-                        )
-                        .toFile()
-                        .getAbsolutePath();
+                        // create participant's directory; the display name comes from the LMS, so keep it inside the archive directory
+                        String participantDir = Files.createDirectories(FilePathUtils.resolveWithinRoot(parentPath, String.valueOf(userQuestionFile.getKey())))
+                            .toFile()
+                            .getAbsolutePath();
 
                         // copy each file to the user's question directory
                         userQuestionFile.getValue().entrySet().stream()
@@ -471,37 +462,31 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
                                 userQuestion -> {
                                     try {
                                         // create question directory in participant directory
-                                        String participantQuestionDir = Files.createDirectories(Path.of(String.format("%s/%s", participantDir, userQuestion.getKey()))).toFile().getAbsolutePath();
+                                        String participantQuestionDir = Files.createDirectories(FilePathUtils.resolveWithinRoot(participantDir, userQuestion.getKey())).toFile().getAbsolutePath();
 
-                                        File file = userQuestion.getValue();
+                                        ArchiveFile archiveFile = userQuestion.getValue();
                                         Files.copy(
-                                            file.toPath(),
-                                            Paths.get(
-                                                participantQuestionDir,
-                                                file.getName()
-                                            )
+                                            archiveFile.source().toPath(),
+                                            // the name comes from the student's upload, so keep it in the question's directory
+                                            FilePathUtils.resolveWithinRoot(participantQuestionDir, String.valueOf(archiveFile.fileName())),
+                                            StandardCopyOption.REPLACE_EXISTING
                                         );
-                                    } catch (IOException e) {
+                                    } catch (IOException | FileStorageException e) {
                                         log.error("Error copying file for user ID: [{}] and question ID: [{}]", userQuestionFile.getKey(), userQuestion.getKey(), e);
                                     }
                                 }
                             );
-                    } catch (IOException e) {
+                    } catch (IOException | FileStorageException e) {
                         log.error("Error copying file for user ID: [{}]", userQuestionFile.getKey(), e);
                     }
                 }
             );
 
-        // rename archive file to actual file name
-        Path updatedParentPath = Path.of(
-            String.format(
-                "%s/%s",
-                StringUtils.substringBeforeLast(parentPath.toString(), "/"),
-                assignmentFileArchive.getFileName()
-            )
-        );
+        Path updatedParentPath = null;
 
         try {
+            // rename archive file to actual file name; it holds the assignment title, so keep it in the temp directory
+            updatedParentPath = FilePathUtils.resolveWithinRoot(parentPath.getParent(), assignmentFileArchive.getFileName());
             Path renamedParentFilePath = Files.move(parentPath, updatedParentPath, StandardCopyOption.REPLACE_EXISTING);
 
             fileStorageService.compressDirectory(renamedParentFilePath.toString(), "", AssignmentFileArchive.COMPRESSED_FILE_EXTENSION, false);
@@ -527,12 +512,27 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
             );
 
             log.info("Processing assignment file archive with ID: [{}] COMPLETE", assignmentFileArchive.getUuid());
-        } catch (IOException e) {
-            log.error("Error renaming archive file: [{}] to: [{}]", parentPath, updatedParentPath, e);
+        } catch (IOException | FileStorageException e) {
+            log.error("Error renaming archive file: [{}] to: [{}]", parentPath, updatedParentPath != null ? updatedParentPath : assignmentFileArchive.getFileName(), e);
             assignmentFileArchive.setStatus(AssignmentFileArchiveStatus.ERROR);
         }
 
         assignmentFileArchiveRepository.save(assignmentFileArchive);
+    }
+
+    /**
+     * A submitted file to put in an assignment file archive: where to read it from, and the name it
+     * goes into the archive under (the name it was uploaded with, falling back to the source's).
+     */
+    private record ArchiveFile(File source, String fileName) {
+
+        private ArchiveFile {
+            // only the last segment, so a stored name can never place the copy outside the archive
+            fileName = StringUtils.isBlank(fileName)
+                ? source.getName()
+                : Path.of(fileName).getFileName().toString();
+        }
+
     }
 
 }
