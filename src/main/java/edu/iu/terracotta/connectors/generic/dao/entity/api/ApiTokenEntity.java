@@ -11,7 +11,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ApiToken;
+import edu.iu.terracotta.security.pii.PiiStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -47,13 +49,22 @@ public class ApiTokenEntity implements ApiToken {
     )
     private long tokenId;
 
-    @Column(nullable = false) private String refreshToken;
+    // the LMS OAuth credentials, stored encrypted (PiiCipher)
+    @Lob
+    @Column(nullable = false)
+    @Convert(converter = PiiStringConverter.class)
+    private String refreshToken;
+
     @Column(nullable = false) private Timestamp expiresAt;
     @Column(nullable = false) private String lmsUserId;
-    @Column(nullable = false) private String lmsUserName;
+    // stored encrypted (PiiCipher)
+    @Column(nullable = false, length = 512)
+    @Convert(converter = PiiStringConverter.class)
+    private String lmsUserName;
 
     @Lob
     @Column(nullable = false)
+    @Convert(converter = PiiStringConverter.class)
     private String accessToken;
 
     @Lob

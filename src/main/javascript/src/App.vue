@@ -77,6 +77,12 @@
             @loaded="childLoaded = true"
           />
 
+          <!-- opened from the course navigation rather than an assignment -->
+          <StudentCourseLaunch
+            v-if="!consent && !assignmentId"
+            @loaded="childLoaded = true"
+          />
+
           <StudentQuiz
             v-if="!consent && assignmentId"
             :experiment-id="experimentId"
@@ -158,6 +164,7 @@ import PageLoading from "@/components/PageLoading.vue";
 import SkipTo from "@/components/SkipTo.vue";
 import StatusAlert from "@/components/alert/StatusAlert.vue";
 import StudentQuiz from "@/views/student/quiz/StudentQuiz.vue";
+import StudentCourseLaunch from "@/views/student/StudentCourseLaunch.vue";
 import TreatmentPreviewComplete from "@/views/preview/TreatmentPreviewComplete.vue";
 
 // Lazy-loaded: StudentConsent pulls in vue-pdf-embed/pdfjs-dist (~2.5MB). A static

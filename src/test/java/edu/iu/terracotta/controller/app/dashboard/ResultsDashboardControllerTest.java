@@ -4,10 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.UUID;
@@ -20,7 +17,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.dashboard.ResultsDashboardDto;
 import edu.iu.terracotta.exceptions.BadTokenException;
@@ -64,16 +60,6 @@ public class ResultsDashboardControllerTest extends BaseTest {
     }
 
     @Test
-    void getOverviewUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.getOverview(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        verify(resultsDashboardService, never()).overview(anyLong(), any(SecuredInfo.class));
-    }
-
-    @Test
     void getOverviewServiceExceptionTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
         when(resultsDashboardService.overview(1L, securedInfo)).thenThrow(new RuntimeException("boom"));
@@ -101,15 +87,6 @@ public class ResultsDashboardControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(experimentUuid, response.getBody().getExperimentId());
-    }
-
-    @Test
-    void postComparisonUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<ResultsDashboardDto> response = resultsDashboardController.postComparison(EXPERIMENT_UUID, resultsOutcomesRequestDto, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test

@@ -1,0 +1,11 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+ignore:
+  # no fixed version exists; Snyk lists every picomatch as affected. It reaches us through
+  # vue-router's build tooling (unplugin-utils), which runs only when building, against our own
+  # route file patterns; it isn't in the bundle browsers load. Look again when this expires.
+  SNYK-JS-PICOMATCH-21248802:
+    - '*':
+        reason: Build-time only, matching our own file patterns; not shipped to browsers, and no fixed version exists.
+        expires: 2027-04-22T00:00:00.000Z
+        created: 2026-10-22T00:00:00.000Z

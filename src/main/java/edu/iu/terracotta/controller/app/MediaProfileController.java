@@ -1,5 +1,6 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.NoRoleRequired;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -56,6 +57,7 @@ public class MediaProfileController {
     private final SubmissionService submissionService;
 
     @PostMapping
+    @NoRoleRequired("records a media event for anyone in the experiment, scoped by the experiment/treatment/submission/question checks")
     public ResponseEntity postMediaEvent(@PathVariable("experimentId") UUID experimentUuid,
                                          @PathVariable("conditionId") UUID conditionUuid,
                                          @PathVariable("treatmentId") UUID treatmentUuid,

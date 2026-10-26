@@ -67,7 +67,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.Timestamp;
@@ -530,6 +529,14 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
 
         /* (Approach #2) Using LMS API calls */
 
+        log.debug(
+            "Checking attempts for LMS assignment ID: [{}] with LMS API calls (launch allowed attempts: [{}], student attempts: [{}], prefer LMS check: [{}])",
+            securedInfo.getLmsAssignmentId(),
+            securedInfo.getAllowedAttempts(),
+            securedInfo.getStudentAttempts(),
+            preferLmsCheck
+        );
+
         Optional<Assignment> assignment = assignmentRepository.findByExposure_Experiment_ExperimentIdAndLmsAssignmentId(experimentId, securedInfo.getLmsAssignmentId());
         LtiUserEntity instructorUser = assignment.get().getExposure().getExperiment().getCreatedBy();
         Optional<LmsAssignment> lmsAssignment;
@@ -604,14 +611,12 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             throws IOException, ApiException, AssignmentAttemptException, IdInPostException, DataServiceException, DuplicateQuestionException, InvalidUserException, IdMissingException,
                 AnswerSubmissionNotMatchingException, AnswerNotMatchingException, ExceedingLimitException, TypeNotSupportedException, TerracottaConnectorException, AssignmentLockedException {
         String fileName = file.getResource().getFilename();
-        File tempFile = getFile(file, file.getName());
 
         FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
         QuestionSubmissionDto questionSubmissionDto = jsonMapper.readValue(questionSubmissionDtoStr, QuestionSubmissionDto.class);
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
-        answerSubmissionDto.setFile(tempFile);
         answerSubmissionDto.setFileUri(fileSubmissionLocal.filePath());
 
         if (fileSubmissionLocal.compressed()) {
@@ -666,13 +671,11 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
             );
 
         String fileName = file.getResource().getFilename();
-        File tempFile = getFile(file, file.getName());
 
         FileSubmissionLocal fileSubmissionLocal = fileStorageService.saveFileSubmissionLocal(file);
         AnswerSubmissionDto answerSubmissionDto = AnswerSubmissionDto.builder().build();
         answerSubmissionDto.setFileName(fileName);
         answerSubmissionDto.setMimeType(file.getContentType());
-        answerSubmissionDto.setFile(tempFile);
         answerSubmissionDto.setFileUri(fileSubmissionLocal.filePath());
 
         if (fileSubmissionLocal.compressed()) {
@@ -693,18 +696,6 @@ public class QuestionSubmissionServiceImpl implements QuestionSubmissionService 
         updateQuestionSubmissions(Collections.singletonMap(questionSubmission, questionSubmissionDto), student);
 
         return questionSubmissionDtoList;
-    }
-
-    private File getFile(MultipartFile multipartFile, String fileName) {
-        File tempFile = new File(fileName);
-
-        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-            fos.write(multipartFile.getBytes());
-        } catch (IOException e) {
-            log.error("Error while converting Multipart file to file {}", tempFile.getName());
-        }
-
-        return tempFile;
     }
 
 }

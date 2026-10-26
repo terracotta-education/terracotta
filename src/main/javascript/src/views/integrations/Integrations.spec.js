@@ -78,6 +78,36 @@ describe("Integrations", () => {
     expect(wrapper.text()).toContain("Invalid submission token");
   });
 
+  // client and errorCode are URL parameters, so a crafted link must not be able to inject markup
+  it("shows URL parameters as text, not markup, in the error message", () => {
+    const wrapper = mountComponent(Integrations, {
+      props: {
+        integrationData: buildIntegrationData({
+          preview: false,
+          status: "ERROR",
+          errorCode: '<img src=x onerror="window.injected=true">'
+        })
+      }
+    });
+
+    expect(wrapper.find("img[src='x']").exists()).toBe(false);
+    expect(wrapper.text()).toContain('<img src=x onerror="window.injected=true">');
+  });
+
+  it("shows the client name from the URL as text in the preview error", () => {
+    const wrapper = mountComponent(Integrations, {
+      props: {
+        integrationData: buildIntegrationData({
+          status: "ERROR",
+          client: '<span class="injected">Qualtrics</span>'
+        })
+      }
+    });
+
+    expect(wrapper.find(".injected").exists()).toBe(false);
+    expect(wrapper.text()).toContain('<span class="injected">Qualtrics</span>');
+  });
+
   it("shows the submission error card with a reattempt button when more attempts are available", () => {
     const wrapper = mountComponent(Integrations, {
       props: {

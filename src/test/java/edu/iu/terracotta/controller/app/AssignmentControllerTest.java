@@ -32,7 +32,6 @@ import edu.iu.terracotta.dao.model.dto.AssignmentDto;
 import edu.iu.terracotta.exceptions.AssignmentMoveException;
 import edu.iu.terracotta.exceptions.ExperimentLockedException;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.utils.TextConstants;
 import jakarta.servlet.http.HttpServletRequest;
 
 public class AssignmentControllerTest extends BaseTest {
@@ -81,15 +80,6 @@ public class AssignmentControllerTest extends BaseTest {
     }
 
     @Test
-    void allAssignmentsByExposureUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<List<AssignmentDto>> ret = assignmentController.allAssignmentsByExposure(EXPERIMENT_UUID, EXPOSURE_UUID, false, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-    }
-
-    @Test
     void allAssignmentsByExposurePropagatesAssessmentNotMatchingTest() throws Exception {
         when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(true);
         doThrow(new AssessmentNotMatchingException("no match")).when(assignmentService).getAssignments(anyLong(), anyBoolean(), anyBoolean(), any(SecuredInfo.class));
@@ -106,15 +96,6 @@ public class AssignmentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
         assertEquals(assignmentDto, ret.getBody());
-    }
-
-    @Test
-    void getAssignmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<AssignmentDto> ret = assignmentController.getAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, false, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
     }
 
     @Test
@@ -136,16 +117,6 @@ public class AssignmentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(returnedDto, ret.getBody());
-    }
-
-    @Test
-    void postAssignmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<AssignmentDto> ret = assignmentController.postAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test
@@ -172,16 +143,6 @@ public class AssignmentControllerTest extends BaseTest {
     }
 
     @Test
-    void updateAssignmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<AssignmentDto> ret = assignmentController.updateAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, AssignmentDto.builder().build(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
-    }
-
-    @Test
     void updateAssignmentPropagatesAssignmentNotEditedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         doThrow(new AssignmentNotEditedException("cannot edit")).when(assignmentService).putAssignment(anyLong(), any(AssignmentDto.class), any(SecuredInfo.class));
@@ -204,16 +165,6 @@ public class AssignmentControllerTest extends BaseTest {
     }
 
     @Test
-    void updateAssignmentsUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<List<AssignmentDto>> ret = assignmentController.updateAssignments(EXPERIMENT_UUID, EXPOSURE_UUID, List.of(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
-    }
-
-    @Test
     void updateAssignmentsPropagatesAssignmentNotMatchingTest() throws Exception {
         doThrow(new AssignmentNotMatchingException("no match")).when(apiJwtService).assignmentAllowed(any(SecuredInfo.class), anyLong(), anyLong(), anyLong());
 
@@ -229,16 +180,6 @@ public class AssignmentControllerTest extends BaseTest {
         ResponseEntity<Void> ret = assignmentController.deleteAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, httpServletRequest);
 
         assertEquals(HttpStatus.OK, ret.getStatusCode());
-    }
-
-    @Test
-    void deleteAssignmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<Void> ret = assignmentController.deleteAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test
@@ -273,16 +214,6 @@ public class AssignmentControllerTest extends BaseTest {
     }
 
     @Test
-    void duplicateAssignmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<AssignmentDto> ret = assignmentController.duplicateAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, mock(UriComponentsBuilder.class), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
-    }
-
-    @Test
     void duplicateAssignmentPropagatesAssignmentNotCreatedTest() throws Exception {
         when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(true);
         doThrow(new AssignmentNotCreatedException("cannot create")).when(assignmentService).duplicateAssignment(anyLong(), any(SecuredInfo.class));
@@ -304,16 +235,6 @@ public class AssignmentControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.CREATED, ret.getStatusCode());
         assertEquals(returnedDto, ret.getBody());
-    }
-
-    @Test
-    void moveAssignmentUnauthorizedTest() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(any(SecuredInfo.class))).thenReturn(false);
-
-        ResponseEntity<AssignmentDto> ret = assignmentController.moveAssignment(EXPERIMENT_UUID, EXPOSURE_UUID, ASSIGNMENT_UUID, AssignmentDto.builder().build(), mock(UriComponentsBuilder.class), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, ret.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, ret.getBody());
     }
 
     @Test

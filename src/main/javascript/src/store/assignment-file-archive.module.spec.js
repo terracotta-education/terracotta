@@ -6,7 +6,8 @@ vi.mock("@/services", () => ({
     prepare: vi.fn(),
     poll: vi.fn(),
     retrieve: vi.fn(),
-    acknowledgeError: vi.fn()
+    acknowledgeError: vi.fn(),
+    acknowledgeOutdated: vi.fn()
   }
 }));
 
@@ -123,6 +124,44 @@ describe("assignmentFileArchive store", () => {
       await store.acknowledgeError([1, 2, 3, 4]);
 
       expect(store.fileRequest).not.toBeNull();
+      expect(consoleSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe("acknowledgeOutdated", () => {
+    it("keeps the file request but marks it acknowledged on success", async () => {
+      store.addFileRequest({ id: 4, status: "OUTDATED" });
+      assignmentFileArchiveService.acknowledgeOutdated.mockResolvedValue([]);
+
+      await store.acknowledgeOutdated([1, 2, 3, 4]);
+
+      expect(assignmentFileArchiveService.acknowledgeOutdated).toHaveBeenCalledWith(1, 2, 3, 4);
+      expect(store.fileRequest).toEqual(expect.objectContaining({
+        id: 4,
+        status: "OUTDATED_ACKNOWLEDGED",
+        outdated: false,
+        outdatedAcknowledged: true
+      }));
+    });
+
+    it("leaves the file request outdated when the server returns an error", async () => {
+      store.addFileRequest({ id: 4, status: "OUTDATED" });
+      assignmentFileArchiveService.acknowledgeOutdated.mockResolvedValue({ status: 400, error: {} });
+
+      await store.acknowledgeOutdated([1, 2, 3, 4]);
+
+      expect(store.fileRequest.outdated).toBe(true);
+    });
+
+    it("logs and leaves state untouched on rejection", async () => {
+      store.addFileRequest({ id: 4, status: "OUTDATED" });
+      assignmentFileArchiveService.acknowledgeOutdated.mockRejectedValue(
+        new Error("fail")
+      );
+
+      await store.acknowledgeOutdated([1, 2, 3, 4]);
+
+      expect(store.fileRequest.outdated).toBe(true);
       expect(consoleSpy).toHaveBeenCalled();
     });
   });

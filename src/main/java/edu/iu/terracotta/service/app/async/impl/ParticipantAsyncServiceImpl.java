@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,6 +46,7 @@ import edu.iu.terracotta.dao.model.enums.FeatureType;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
+import edu.iu.terracotta.security.pii.PiiCipher;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.ParticipantService;
 import edu.iu.terracotta.service.app.async.LmsUserBatchAsyncService;
@@ -66,6 +68,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     private final ExperimentRepository experimentRepository;
     private final LtiContextRepository ltiContextRepository;
     private final LtiUserRepository ltiUserRepository;
+    private final PiiCipher piiCipher;
     private final ParticipantRepository participantRepository;
     private final ApiClient apiClient;
     private final FeatureService featureService;
@@ -88,7 +91,7 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
     // READ_COMMITTED (rather than MySQL's default REPEATABLE READ): apiClient.listUsersForCourse
     // below writes lms_user_batch via LmsUserBatchWriteService.saveUsers in a REQUIRES_NEW
     // sub-transaction, which commits independently and before this method's own later plain
-    // read of that same table (findBatchProjectionsByBatchIdAndEmailIn). Under REPEATABLE READ,
+    // read of that same table (findBatchProjectionsByBatchIdAndEmailHashIn). Under REPEATABLE READ,
     // this transaction's consistent-read snapshot is fixed as of its first query (above), so
     // that later read would still see the pre-sync (empty) state despite the sub-transaction
     // having already committed - READ_COMMITTED gives it a fresh view instead.
@@ -167,18 +170,14 @@ public class ParticipantAsyncServiceImpl implements ParticipantAsyncService {
                 .map(p -> p.getLtiUserEntity().getEmail())
                 .toList();
 
-            List<LmsUserBatchEmailProjection> batchEmails = lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailIn(
+            // emails are stored encrypted, so staged users are matched by email hash
+            List<LmsUserBatchEmailProjection> batchEmails = lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailHashIn(
                 batchId,
-                participantEmails,
+                participantEmails.stream().map(piiCipher::hashEmail).filter(Objects::nonNull).toList(),
                 PageRequest.of(0, batchSize)
             );
 
-            log.debug(
-                "Looking up batch ID: [{}] for participant emails: {} - found staged emails: {}",
-                batchId,
-                participantEmails,
-                batchEmails.stream().map(LmsUserBatchEmailProjection::getEmail).toList()
-            );
+            log.debug("Looking up batch ID: [{}] for [{}] participant emails - found [{}] staged users", batchId, participantEmails.size(), batchEmails.size());
 
             // Update participants without LTI user IDs based on email matching
             lmsParticipantSummariesToUpdate.stream()

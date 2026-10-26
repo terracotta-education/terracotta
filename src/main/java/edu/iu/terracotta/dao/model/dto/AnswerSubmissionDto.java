@@ -1,8 +1,8 @@
 package edu.iu.terracotta.dao.model.dto;
 
-import java.io.File;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.AllArgsConstructor;
@@ -26,9 +26,10 @@ public class AnswerSubmissionDto {
     private String fileContent;
     private String fileName;
     private String mimeType;
-    private String fileUri;
-    private File file;
-    private String encryptionPhrase;
-    private String encryptionMethod;
+    // set by the server when it stores an uploaded file, never taken from a request: a client could
+    // otherwise point a file answer at any path, or at another student's stored file
+    @JsonIgnore private String fileUri;
+    @JsonIgnore private String encryptionPhrase;
+    @JsonIgnore private String encryptionMethod;
 
 }

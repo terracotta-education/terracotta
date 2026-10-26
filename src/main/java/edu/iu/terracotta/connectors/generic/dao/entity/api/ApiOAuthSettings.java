@@ -1,6 +1,7 @@
 package edu.iu.terracotta.connectors.generic.dao.entity.api;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -14,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.security.pii.PiiStringConverter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -38,7 +40,9 @@ public class ApiOAuthSettings {
     @Column(nullable = false)
     private String clientId;
 
-    @Column(nullable = false)
+    // the LMS developer key's secret, stored encrypted (PiiCipher)
+    @Column(nullable = false, length = 512)
+    @Convert(converter = PiiStringConverter.class)
     private String clientSecret;
 
     @Column(

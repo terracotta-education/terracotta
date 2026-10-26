@@ -53,7 +53,7 @@
         <template v-if="!submitted">
           <div
             v-if="assessment.html && questionPageIndex === 0"
-            v-html="assessment.html"
+            v-html="assessmentHtml"
           />
 
           <form
@@ -117,7 +117,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Swal from "sweetalert2";
 import dayjs from "@/plugins/dayjs";
-import { lockedAssignmentMessage } from "@/helpers";
+import { lockedAssignmentMessage, sanitizeHtml, toTimestamp } from "@/helpers";
 
 import StudentQuizRetakeBanner from "@/views/student/quiz/components/StudentQuizRetakeBanner.vue";
 import StudentQuizSubmissionDetails from "@/views/student/quiz/components/StudentQuizSubmissionDetails.vue";
@@ -130,6 +130,7 @@ import { api as apiModule } from "@/store/api.module";
 import { assessment as assessmentModule } from "@/store/assessment.module";
 import { submission as submissionsModule } from "@/store/submission.module";
 import { preview as previewModule } from "@/store/preview/preview.module";
+import { richTextToPlainText } from "@/components/editor/util/richText";
 
 const props = defineProps({
   experimentId: { type: String, required: true },
@@ -187,6 +188,7 @@ const integration = ref({
 });
 
 const assessment = computed(() => assessmentStore.assessment || {});
+const assessmentHtml = computed(() => sanitizeHtml(assessment.value.html));
 const answerableQuestions = computed(() => assessmentStore.answerableQuestions || []);
 const questionPages = computed(() => assessmentStore.questionPages || []);
 const questionSubmissions = computed(() => submissionsStore.questionSubmissions || []);
@@ -215,7 +217,7 @@ const allowedAttempts = computed(() => {
 const selectedSubmission = computed(() => assignmentData.value?.submissions?.find(s => s.submissionId === selectedSubmissionId.value));
 const selectedSubmissionDateSubmitted = computed(() => selectedSubmission.value?.dateSubmitted ? dayjs(selectedSubmission.value.dateSubmitted).format("MMMM Do YYYY hh:mm") : "");
 const timeBeforeSubmission = computed(() => {
-  const time = selectedSubmission.value?.dateSubmitted - selectedSubmission.value?.dateCreated;
+  const time = toTimestamp(selectedSubmission.value?.dateSubmitted) - toTimestamp(selectedSubmission.value?.dateCreated);
   return Number.isNaN(time) ? "" : dayjs.duration(time, "milliseconds").humanize();
 });
 const currentScore = computed(() => {
@@ -515,7 +517,8 @@ const areAllQuestionsAnswered = questions => {
   for (const question of questions) {
     const value = questionValues.value.find(({ questionId }) => questionId === question.questionId);
     if (question.questionType === "MC" && value?.answerId == null) return false;
-    if (question.questionType === "ESSAY" && (!value?.response || value.response.trim() === "")) return false;
+    // the text, not the HTML: an essay of only spaces is still "<p> </p>"
+    if (question.questionType === "ESSAY" && !richTextToPlainText(value?.response).trim()) return false;
     if (question.questionType === "FILE" && value?.response == null) return false;
   }
   return true;

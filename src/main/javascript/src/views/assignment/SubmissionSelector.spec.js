@@ -26,6 +26,29 @@ describe("SubmissionSelector", () => {
     ]);
   });
 
+  // the API sends dates as ISO text, oldest attempt first; subtracting them gave NaN, which left that
+  // order alone and labelled the newest attempt "Attempt 1"
+  it("orders attempts by date when the dates are ISO text, as the API sends them", () => {
+    const wrapper = mountComponent(SubmissionSelector, {
+      props: {
+        submissions: [
+          { submissionId: 1, dateSubmitted: "2026-10-21T03:49:00.000+00:00" },
+          { submissionId: 2, dateSubmitted: "2026-10-22T10:00:00.000+00:00" },
+          { submissionId: 3, dateSubmitted: "2026-10-23T15:30:00.000+00:00" }
+        ]
+      }
+    });
+
+    const select = wrapper.findComponent({ name: "VSelect" });
+
+    expect(select.props("items")).toEqual([
+      { value: 3, label: "Attempt 3" },
+      { value: 2, label: "Attempt 2" },
+      { value: 1, label: "Attempt 1" }
+    ]);
+    expect(select.props("modelValue")).toBe(3);
+  });
+
   it("automatically selects the most recently submitted attempt on mount", () => {
     const wrapper = mountComponent(SubmissionSelector, {
       props: {

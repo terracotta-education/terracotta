@@ -22,6 +22,7 @@
       <v-card-text>
         <v-text-field
           v-model="url"
+          :error-messages="urlError"
           class="input-url"
           label="URL"
           variant="outlined"
@@ -56,6 +57,8 @@ import {
   onMounted
 } from "vue";
 
+import { LINK_URL_ERROR, isLinkUrlAllowed } from "../link-url";
+
 defineOptions({
   name: "LinkDialog"
 });
@@ -79,8 +82,13 @@ const emit = defineEmits([
 const dialog = ref(true);
 const url = ref("");
 
+// the editor refuses any other link, so say why here rather than let Apply do nothing
+const urlError = computed(() => {
+  return url.value && !isLinkUrlAllowed(url.value) ? LINK_URL_ERROR : "";
+});
+
 const isDisabled = computed(() => {
-  return !url.value;
+  return !url.value || !!urlError.value;
 });
 
 watch(
@@ -97,7 +105,7 @@ watch(dialog, isOpen => {
 });
 
 const apply = () => {
-  emit("submit", url.value);
+  emit("submit", url.value.trim());
   dialog.value = false;
 };
 

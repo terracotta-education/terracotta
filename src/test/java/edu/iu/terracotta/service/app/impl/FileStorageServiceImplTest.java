@@ -404,6 +404,17 @@ public class FileStorageServiceImplTest extends BaseTest {
         assertTrue(result.contains("/files/99?token=newtoken"));
     }
 
+    // the rich text editor keeps whitespace, so any line breaks added between elements come back as
+    // empty list items and paragraphs
+    @Test
+    public void testParseHTMLFilesReturnsTheHtmlWithoutReformattingIt() {
+        String html = "<h1>Best assignment</h1><p>This is <strong>really</strong> good:</p>"
+            + "<ul><li><p>yes</p></li><li><p>no</p></li></ul><hr><p>Watch this:</p>"
+            + "<div data-youtube-video=\"\"><iframe src=\"https://www.youtube-nocookie.com/embed/x\"></iframe></div>";
+
+        assertEquals(html, fileStorageService.parseHTMLFiles(html, "http://localhost"));
+    }
+
     @Test
     public void testParseHTMLFilesTokenBuildFailureLeavesElementUnchanged() throws GeneralSecurityException {
         String localUrl = "http://localhost";
@@ -484,6 +495,51 @@ public class FileStorageServiceImplTest extends BaseTest {
 
         assertTrue(result.exists());
         assertEquals("secret answer content", Files.readString(result.toPath()));
+    }
+
+    @Test
+    public void testGetFileSubmissionLocalNotCompressedTraversalThrows() throws IOException {
+        Path outside = tempDir.resolve("outside.txt");
+        Files.writeString(outside, "not a submission");
+        AnswerFileSubmission answer = AnswerFileSubmission.builder().fileUri("../outside.txt").build();
+        when(answerFileSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answer));
+
+        assertThrows(FileStorageException.class, () -> fileStorageService.getFileSubmissionLocal(1L));
+    }
+
+    @Test
+    public void testGetFileSubmissionLocalNotCompressedAbsolutePathThrows() {
+        AnswerFileSubmission answer = AnswerFileSubmission.builder().fileUri("/etc/passwd").build();
+        when(answerFileSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answer));
+
+        assertThrows(FileStorageException.class, () -> fileStorageService.getFileSubmissionLocal(1L));
+    }
+
+    @Test
+    public void testGetFileSubmissionLocalCompressedTraversalThrows() throws IOException {
+        Path plain = tempDir.resolve("outside-answer.txt");
+        Files.writeString(plain, "outside content");
+        String phrase = "answerPhrase";
+        assertTrue(fileStorageService.compressFile(plain.toString(), phrase, ".zip"));
+
+        AnswerFileSubmission answer = AnswerFileSubmission.builder()
+            .fileUri("../outside-answer.txt")
+            .encryptionMethod("AES")
+            .encryptionPhrase(phrase)
+            .build();
+        when(answerFileSubmissionRepository.findById(anyLong())).thenReturn(Optional.of(answer));
+
+        assertThrows(FileStorageException.class, () -> fileStorageService.getFileSubmissionLocal(1L));
+    }
+
+    @Test
+    public void testDeleteFileSubmissionTraversalThrowsAndKeepsFile() throws IOException {
+        Path outside = tempDir.resolve("keep-me.txt");
+        Files.writeString(outside, "keep");
+        AnswerFileSubmission answer = AnswerFileSubmission.builder().answerFileSubmissionId(1L).fileUri("../keep-me.txt").build();
+
+        assertThrows(FileStorageException.class, () -> fileStorageService.deleteFileSubmission(answer));
+        assertTrue(Files.exists(outside));
     }
 
     @Test

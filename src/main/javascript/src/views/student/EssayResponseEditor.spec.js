@@ -1,119 +1,140 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { mountComponent } from "@/test-utils/mount";
 import EssayResponseEditor from "./EssayResponseEditor.vue";
 
-describe("EssayResponseEditor", () => {
-  it("mounts without throwing when given a non-empty initial modelValue", () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: { modelValue: "a pre-filled essay response" }
-    });
+// ProseMirror renders its DOM after a macrotask under jsdom (see TipTapEditor.spec.js)
+const settle = async () => {
+  await Promise.resolve();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  await Promise.resolve();
+};
 
-    expect(wrapper.findComponent({ name: "VTextarea" }).props("modelValue")).toBe(
-      "a pre-filled essay response"
-    );
+describe("EssayResponseEditor", () => {
+  let wrapper;
+
+  afterEach(() => {
+    wrapper?.unmount();
+  });
+
+  const mount = props => {
+    wrapper = mountComponent(EssayResponseEditor, { props, attachTo: document.body });
+
+    return wrapper;
+  };
+
+  const editorComponent = () => wrapper.findComponent({ name: "TipTapEditor" });
+
+  // the Tiptap editor itself, to type into it the way the toolbar and keyboard do
+  const tiptap = () => editorComponent().vm.$.setupState.editor;
+
+  it("shows the response in a rich text editor with the essay toolbar", async () => {
+    mount({ modelValue: "<p>a pre-filled <strong>essay</strong> response</p>" });
+    await settle();
+
+    expect(editorComponent().props("editorType")).toBe("html");
+    expect(wrapper.find(".ProseMirror").html()).toContain("<strong>essay</strong>");
+    expect(wrapper.find(".ProseMirror").attributes("aria-label")).toBe("Your response");
+
+    const titles = wrapper.findAll(".toolbar button").map(button => button.attributes("title") || button.attributes("aria-label"));
+
+    // everything the other editors offer except the three heading buttons
+    expect(wrapper.findAll(".toolbar button").length).toBe(14);
+    expect(titles.join(" ")).not.toMatch(/Heading/);
     expect(wrapper.text()).toContain("4 words");
   });
 
-  it("renders an editable textarea and reflects modelValue updates", async () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: { modelValue: "" }
-    });
+  // responses saved before essays took rich text
+  it("shows a plain text response as paragraphs, keeping its characters", async () => {
+    mount({ modelValue: "first line\n\nsecond < third" });
+    await settle();
 
-    const textarea = wrapper.findComponent({ name: "VTextarea" });
-    expect(textarea.exists()).toBe(true);
-    expect(textarea.props("modelValue")).toBe("");
+    const paragraphs = wrapper.findAll(".ProseMirror p").map(p => p.text());
 
-    await wrapper.setProps({ modelValue: "Hello world" });
-
-    expect(wrapper.findComponent({ name: "VTextarea" }).props("modelValue")).toBe(
-      "Hello world"
-    );
+    expect(paragraphs).toEqual(["first line", "second < third"]);
+    expect(wrapper.text()).toContain("5 words");
   });
 
-  it("shows the word count once a modelValue is set", async () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: { modelValue: "" }
-    });
+  it("emits the HTML as the student types and counts its words", async () => {
+    mount({ modelValue: "" });
+    await settle();
 
-    await wrapper.setProps({ modelValue: "one two three" });
+    tiptap().commands.insertContent("four score and seven");
+    await settle();
+
+    expect(wrapper.emitted("update:modelValue").at(-1)[0]).toBe("<p>four score and seven</p>");
+    expect(wrapper.text()).toContain("4 words");
+  });
+
+  it("counts words across paragraphs and list items", async () => {
+    mount({ modelValue: "<p>one</p><ul><li><p>two</p></li><li><p>three</p></li></ul>" });
+    await settle();
 
     expect(wrapper.text()).toContain("3 words");
   });
 
-  it("pluralizes the word count correctly for a single word", async () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: { modelValue: "" }
-    });
-
-    await wrapper.setProps({ modelValue: "hello" });
+  it("pluralizes the word count for a single word and shows 0 words when empty", async () => {
+    mount({ modelValue: "<p>hello</p>" });
+    await settle();
 
     expect(wrapper.text()).toContain("1 word");
     expect(wrapper.text()).not.toContain("1 words");
-  });
 
-  it("shows 0 words when there is no modelValue", () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: { modelValue: null }
-    });
+    await wrapper.setProps({ modelValue: null });
 
     expect(wrapper.text()).toContain("0 words");
   });
 
-  it("emits update:modelValue and updates the word count as the user types", async () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: { modelValue: "" }
-    });
+  it("loads a response that changes from outside the editor", async () => {
+    mount({ modelValue: "<p>first attempt</p>" });
+    await settle();
 
-    const textarea = wrapper.findComponent({ name: "VTextarea" });
-    await textarea.setValue("four score and seven");
+    await wrapper.setProps({ modelValue: "<p>second attempt here</p>" });
+    await settle();
 
-    const emitted = wrapper.emitted("update:modelValue");
-    expect(emitted).toBeTruthy();
-    expect(emitted.at(-1)[0]).toBe("four score and seven");
-    expect(wrapper.text()).toContain("4 words");
+    expect(wrapper.find(".ProseMirror").text()).toBe("second attempt here");
+    expect(wrapper.text()).toContain("3 words");
   });
 
-  it("recalculates the word count as the modelValue prop keeps changing externally", async () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: { modelValue: "" }
-    });
+  it("keeps the formatting the other editors offer, such as quotes, code, links and videos", async () => {
+    const html = '<blockquote><p>quoted</p></blockquote><p><code>x = 1</code> <s>old</s> <a target="_blank" rel="noopener noreferrer nofollow" href="https://example.com">link</a></p>' +
+      '<hr><div data-youtube-video=""><iframe src="https://www.youtube-nocookie.com/embed/abc"></iframe></div>';
 
-    await wrapper.setProps({ modelValue: "one" });
-    expect(wrapper.text()).toContain("1 word");
+    mount({ modelValue: html });
+    await settle();
 
-    await wrapper.setProps({ modelValue: "one two three four" });
-    expect(wrapper.text()).toContain("4 words");
+    const editor = wrapper.find(".ProseMirror");
 
-    await wrapper.setProps({ modelValue: "" });
-    expect(wrapper.text()).toContain("0 words");
+    expect(editor.find("blockquote").exists()).toBe(true);
+    expect(editor.find("code").exists()).toBe(true);
+    expect(editor.find("s").exists()).toBe(true);
+    expect(editor.find("a[href='https://example.com']").exists()).toBe(true);
+    expect(editor.find("hr").exists()).toBe(true);
+    expect(editor.find("iframe").exists()).toBe(true);
   });
 
-  it("renders a readonly textarea bound to the answer's response when readonly", () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: {
-        modelValue: null,
-        readonly: true,
-        answer: { response: "Submitted answer text" }
-      }
-    });
+  it("drops formatting an essay doesn't offer, such as headings", async () => {
+    mount({ modelValue: "<h1>Title</h1><p>body</p>" });
+    await settle();
 
-    const textareas = wrapper.findAllComponents({ name: "VTextarea" });
-    expect(textareas).toHaveLength(1);
-    expect(textareas[0].props("modelValue")).toBe("Submitted answer text");
-    expect(textareas[0].props("readonly")).toBe(true);
+    expect(wrapper.find(".ProseMirror h1").exists()).toBe(false);
+    expect(wrapper.find(".ProseMirror").text()).toContain("Title");
   });
 
-  it("shows an empty readonly textarea when there is no answer", () => {
-    const wrapper = mountComponent(EssayResponseEditor, {
-      props: {
-        modelValue: null,
-        readonly: true,
-        answer: null
-      }
-    });
+  it("shows the submitted response read only, without a toolbar, when readonly", async () => {
+    mount({ modelValue: null, readonly: true, answer: { response: "<p>Submitted <em>answer</em></p>" } });
+    await settle();
 
-    const textarea = wrapper.findComponent({ name: "VTextarea" });
-    expect(textarea.props("modelValue")).toBe("");
+    expect(editorComponent().props("readOnly")).toBe(true);
+    expect(wrapper.find(".ProseMirror").attributes("contenteditable")).toBe("false");
+    expect(wrapper.find(".ProseMirror").html()).toContain("<em>answer</em>");
+    expect(wrapper.find(".toolbar").exists()).toBe(false);
+  });
+
+  it("shows an empty read only response when there is no answer", async () => {
+    mount({ modelValue: null, readonly: true, answer: null });
+    await settle();
+
+    expect(wrapper.find(".ProseMirror").text()).toBe("");
   });
 });

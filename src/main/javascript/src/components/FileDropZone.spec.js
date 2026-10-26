@@ -147,4 +147,47 @@ describe("FileDropZone", () => {
 
     expect(wrapper.emitted("displayFile")?.[0]).toEqual([true]);
   });
+
+  it("shows the name of a file just dropped in", async () => {
+    const wrapper = mountComponent(FileDropZone);
+
+    await wrapper.find(".drop-zone").trigger("drop", {
+      dataTransfer: { files: [makeFile("xyz.pdf", "application/pdf")] }
+    });
+    await wrapper.vm.$nextTick();
+    await new Promise(resolve => setTimeout(resolve));
+
+    expect(wrapper.find(".drop-zone__uploaded strong").text()).toBe("xyz.pdf");
+  });
+
+  it("shows the saved file's name when editing an existing upload", () => {
+    const wrapper = mountComponent(FileDropZone, {
+      props: { existingFile: "data:application/pdf;base64,AAAA", fileName: "xyz.pdf" }
+    });
+
+    expect(wrapper.find(".drop-zone__uploaded strong").text()).toBe("xyz.pdf");
+  });
+
+  it("falls back to a generic label for a saved file with no stored name", () => {
+    const wrapper = mountComponent(FileDropZone, {
+      props: { existingFile: "data:application/pdf;base64,AAAA" }
+    });
+
+    expect(wrapper.find(".drop-zone__uploaded strong").text()).toBe("Informed Consent File");
+  });
+
+  it("shows a replacement file's own name over the saved one", async () => {
+    const wrapper = mountComponent(FileDropZone, {
+      props: { existingFile: "data:application/pdf;base64,AAAA", fileName: "old.pdf" }
+    });
+
+    await wrapper.find(".icon-file-remove").trigger("click");
+    await wrapper.find(".drop-zone").trigger("drop", {
+      dataTransfer: { files: [makeFile("new.pdf", "application/pdf")] }
+    });
+    await wrapper.vm.$nextTick();
+    await new Promise(resolve => setTimeout(resolve));
+
+    expect(wrapper.find(".drop-zone__uploaded strong").text()).toBe("new.pdf");
+  });
 });

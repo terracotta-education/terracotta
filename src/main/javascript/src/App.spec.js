@@ -97,6 +97,7 @@ const templateStubs = {
   StatusAlert: true,
   StudentQuiz: true,
   StudentConsent: true,
+  StudentCourseLaunch: true,
   TreatmentPreviewComplete: true,
   PageLoading: true,
   IntegrationsTokenAlert: true,
@@ -437,6 +438,22 @@ describe("App", () => {
       });
 
       expect(wrapper.find("student-quiz-stub").exists()).toBe(true);
+      expect(wrapper.find("student-consent-stub").exists()).toBe(false);
+    });
+
+    // opened from the course navigation: no assignment to open, and no consent form to show
+    it("points a Learner who didn't come from an assignment to their assignments", async () => {
+      const { wrapper } = await mountAppRendered({}, apiStore => {
+        apiStore.ltiToken = "lti-token";
+        apiStore.apiToken = "api-token";
+        apiStore.userInfo = "Learner";
+        apiStore.consent = false;
+        apiStore.assignmentId = "";
+        apiStore.experimentId = "1";
+      });
+
+      expect(wrapper.find("student-course-launch-stub").exists()).toBe(true);
+      expect(wrapper.find("student-quiz-stub").exists()).toBe(false);
       expect(wrapper.find("student-consent-stub").exists()).toBe(false);
     });
 

@@ -137,6 +137,170 @@ describe("TipTapEditor", () => {
     expect(editedEvents[0][0]).toContain("Hello world");
   });
 
+  const lastEdited = wrapper => {
+    const edits = wrapper.emitted("edited");
+
+    return edits[edits.length - 1][0];
+  };
+
+  const video = '<div data-youtube-video=""><iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"></iframe></div>';
+
+  it("keeps a video in a block of its own rather than inside the heading it follows", async () => {
+    // saved before videos were block elements: the video inside the heading
+    wrapper = await mountEditor({
+      props: {
+        content: `<h1>Do your best${video}</h1>`,
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toMatch(/^<h1>Do your best<\/h1><div data-youtube-video="">/);
+  });
+
+  it("leaves the trailing empty paragraph the editor adds out of the HTML", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: "<p>Read this</p><ul><li><p>one</p></li></ul>",
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toBe("<p>Read this</p><ul><li><p>one</p></li></ul>");
+  });
+
+  it("keeps empty paragraphs the author put between content", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: "<p>one</p><p></p><p>two</p>",
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toBe("<p>one</p><p></p><p>two</p>");
+  });
+
+  it("keeps a video that is the only content", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: video,
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toMatch(/^<div data-youtube-video=""><iframe .*dQw4w9WgXcQ/);
+  });
+
+  it("emits an empty string for an empty html editor", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: "",
+        editorType: "html"
+      }
+    });
+
+    expect(lastEdited(wrapper)).toBe("");
+  });
+
+  it("shows only the toolbar actions it's given, in that order", async () => {
+    wrapper = await mountEditor({
+      props: {
+        editorType: "html",
+        features: ["bold", "bulletList", "heading"]
+      }
+    });
+
+    const toolbarItems = wrapper.findAllComponents({ name: "ToolbarItem" });
+
+    expect(toolbarItems.map(item => item.props("title"))).toEqual(["Bold", "Bulleted List", "Heading 1", "Heading 2", "Heading 3"]);
+  });
+
+  // or a heading pasted into an essay would still be a heading
+  it("keeps formatting it isn't given out of the content too", async () => {
+    wrapper = await mountEditor({
+      props: {
+        content: "<h1>Title</h1><p><strong>bold</strong> <em>italic</em> <a href=\"https://example.com\">link</a></p><blockquote><p>quote</p></blockquote>",
+        editorType: "html",
+        features: ["bold"]
+      }
+    });
+
+    const html = wrapper.emitted("edited").at(-1)[0];
+
+    expect(html).toBe("<p>Title</p><p><strong>bold</strong> italic link</p><p>quote</p>");
+  });
+
+  it("offers every toolbar action when no features are given", async () => {
+    wrapper = await mountEditor({
+      props: {
+        editorType: "html"
+      }
+    });
+
+    expect(wrapper.findAllComponents({ name: "ToolbarItem" }).length).toBe(17);
+  });
+
+  it("labels its own editable area, so editors sharing a page keep their own names", async () => {
+    wrapper = await mountEditor({
+      props: {
+        editorType: "html",
+        label: "Your response"
+      }
+    });
+
+    const other = await mountEditor({
+      props: {
+        editorType: "html"
+      }
+    });
+
+    expect(wrapper.find(".ProseMirror").attributes("aria-label")).toBe("Your response");
+    expect(other.find(".ProseMirror").attributes("aria-label")).toBe("message editor content");
+
+    other.unmount();
+  });
+
+  describe("adding a link", () => {
+    const submitLink = async (wrapper, url) => {
+      wrapper.findComponent({ name: "ToolBar" }).vm.$.setupState.handleLinkDialogSubmit(url);
+      await waitForEditor(wrapper);
+
+      return wrapper.emitted("edited").at(-1)[0];
+    };
+
+    const tiptap = wrapper => wrapper.vm.$.setupState.editor;
+
+    // nothing selected: the address itself becomes the link's text
+    it("inserts the address as linked text when nothing is selected", async () => {
+      wrapper = await mountEditor({ props: { editorType: "html", content: "<p>See </p>" } });
+      tiptap(wrapper).commands.focus("end");
+
+      const html = await submitLink(wrapper, "https://example.com");
+
+      expect(html).toContain('<a target="_blank" rel="noopener noreferrer nofollow" href="https://example.com">https://example.com</a>');
+    });
+
+    it("keeps what's typed after an inserted link out of it", async () => {
+      wrapper = await mountEditor({ props: { editorType: "html", content: "<p>See </p>" } });
+      tiptap(wrapper).commands.focus("end");
+
+      await submitLink(wrapper, "https://example.com");
+      tiptap(wrapper).commands.insertContent(" now");
+      await waitForEditor(wrapper);
+
+      expect(wrapper.emitted("edited").at(-1)[0]).toContain("https://example.com</a> now</p>");
+    });
+
+    it("turns the selected text into the link", async () => {
+      wrapper = await mountEditor({ props: { editorType: "html", content: "<p>Google</p>" } });
+      tiptap(wrapper).commands.selectAll();
+
+      const html = await submitLink(wrapper, "https://www.google.com");
+
+      expect(html).toContain('href="https://www.google.com">Google</a>');
+      expect(html).not.toContain(">https://www.google.com</a>");
+    });
+  });
+
   it("emits cursor on mount", async () => {
     wrapper = await mountEditor({
       props: {

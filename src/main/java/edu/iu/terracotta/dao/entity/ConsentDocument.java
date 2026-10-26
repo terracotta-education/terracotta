@@ -40,6 +40,8 @@ public class ConsentDocument extends UuidAwareEntity {
     private Long consentDocumentId;
 
     private String title;
+    // the name of the PDF as the instructor uploaded it (e.g. consent-form.pdf), shown when editing
+    private String fileName;
     private String filePointer;
     private String lmsAssignmentId;
     private String resourceLinkId;

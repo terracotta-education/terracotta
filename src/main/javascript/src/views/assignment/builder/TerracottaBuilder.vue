@@ -216,6 +216,19 @@ const html = computed({
   }
 });
 
+// delayed work still waiting when the builder closes is cancelled, so it doesn't reach into a page
+// that's gone
+const pendingTimers = new Set();
+
+const later = (callback, delay) => {
+  const timer = window.setTimeout(() => {
+    pendingTimers.delete(timer);
+    callback();
+  }, delay);
+
+  pendingTimers.add(timer);
+};
+
 watch(expandedQuestionPagePanel, async pageIndex => {
   for (let index = 0; index < questionPages.value.length; index++) {
     if (index !== pageIndex) {
@@ -224,7 +237,7 @@ watch(expandedQuestionPagePanel, async pageIndex => {
   }
 
   await nextTick();
-  window.setTimeout(() => {
+  later(() => {
     deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
     addAttributesToElement(".editor .ProseMirror", [
       {
@@ -255,7 +268,7 @@ watch(
       return;
     }
 
-    window.setTimeout(() => {
+    later(() => {
       const element = panel.$el || panel;
       element.scrollIntoView({
         behavior: "smooth",
@@ -273,7 +286,7 @@ watch(assignmentCount, () => {
 watch(questions, async () => {
   await nextTick();
 
-  window.setTimeout(() => {
+  later(() => {
     deleteAttributesFromElement(".v-expansion-panel", ["aria-expanded"]);
     addAttributesToElement(".editor .ProseMirror", [
       {
@@ -691,8 +704,10 @@ const handleRegradeQuestions = async () => {
 };
 
 const duplicate = async fromAssignment => {
+  // every treatment that could hold copyable content; the empty ones are listed too, disabled, so
+  // the dialog shows all of the assignment's versions
   let availableTreatments = fromAssignment.treatments
-    .filter(isCopyableTreatment)
+    .filter(isCopyCandidate)
     .map(treatment => {
       const conditionMatch = conditionForTreatment(
         getGroupConditionListForAssignment(fromAssignment),
@@ -702,11 +717,13 @@ const duplicate = async fromAssignment => {
       return {
         treatmentId: treatment.treatmentId,
         conditionName: conditionMatch?.conditionName,
-        conditionColor: conditionColorMapping.value[conditionMatch?.conditionName]
+        conditionColor: conditionColorMapping.value[conditionMatch?.conditionName],
+        disabled: !hasContentToCopy(treatment)
       };
     });
 
-  const selectedTreatment = await handleDisplayCopyFromDialog(availableTreatments);
+  // the same test the components table uses for an "Only One Version" component
+  const selectedTreatment = await handleDisplayCopyFromDialog(availableTreatments, fromAssignment.treatments.length === 1);
 
   if (!selectedTreatment || selectedTreatment.isDismissed) {
     return;
@@ -825,15 +842,22 @@ const hasInstructions = html => {
   return !!new DOMParser().parseFromString(html, "text/html").body.textContent.trim();
 };
 
-// another (non-integration) treatment with questions or instructions to copy over
-const isCopyableTreatment = treatment => {
+// another treatment whose content could be copied here: not the one being edited, and not an
+// external integration (its content isn't questions or instructions)
+const isCopyCandidate = treatment => {
+  return treatment.treatmentId !== treatmentId.value
+    && !treatment.assessmentDto?.integration;
+};
+
+// questions or instructions to copy over
+const hasContentToCopy = treatment => {
   const assessmentDto = treatment.assessmentDto;
 
-  return treatment.treatmentId !== treatmentId.value
-    && !!assessmentDto
-    && !assessmentDto.integration
+  return !!assessmentDto
     && ((assessmentDto.questions || []).length > 0 || hasInstructions(assessmentDto.html));
 };
+
+const isCopyableTreatment = treatment => isCopyCandidate(treatment) && hasContentToCopy(treatment);
 
 const findAssignmentsAvailableToCopy = () => {
   assignmentsAvailableToCopy.value = assignments.value.filter(item => {
@@ -914,7 +938,7 @@ const handleUrlValidationInProgress = value => {
   urlValidationInProgress.value = value;
 };
 
-const handleDisplayCopyFromDialog = availableTreatments => {
+const handleDisplayCopyFromDialog = (availableTreatments, singleVersion = false) => {
   let dialogApp = null;
 
   return Swal.fire({
@@ -948,7 +972,11 @@ const handleDisplayCopyFromDialog = availableTreatments => {
         CopyFromDialog,
         {
           treatments: availableTreatments,
-          assignmentName: assignmentTitle.value
+          assignmentName: assignmentTitle.value,
+          singleVersion,
+          targetConditionName: conditionName.value,
+          targetConditionColor: conditionColor.value,
+          targetSingleVersion: hasSingleTreatment.value
         }
       );
     },
@@ -999,6 +1027,8 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  pendingTimers.forEach(timer => window.clearTimeout(timer));
+  pendingTimers.clear();
   shrinkContainer();
 });
 

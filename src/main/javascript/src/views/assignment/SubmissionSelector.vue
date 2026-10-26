@@ -21,6 +21,7 @@ import {
   onMounted
 } from "vue";
 
+import { byDateSubmitted } from "@/helpers/date-time";
 import {
   deleteAttributesFromElement,
   addAttributesToElement,
@@ -49,9 +50,9 @@ const allSubmissions = computed(() => {
 });
 
 const orderedSubmissions = computed(() => {
-  return [...allSubmissions.value].sort((a, b) => {
-    return b.dateSubmitted - a.dateSubmitted;
-  });
+  // newest first. The dates arrive as ISO text, so subtracting them directly gave NaN and left the
+  // attempts in the API's oldest first order, labelled the wrong way round
+  return [...allSubmissions.value].sort((a, b) => byDateSubmitted(b, a));
 });
 
 const selectableSubmissions = computed(() => {

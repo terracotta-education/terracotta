@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -54,6 +55,7 @@ import edu.iu.terracotta.dao.model.enums.messaging.MessageType;
 import edu.iu.terracotta.connectors.generic.dao.repository.lms.LmsUserBatchRepository;
 import edu.iu.terracotta.dao.repository.messaging.conditional.MessageConditionalTextRepository;
 import edu.iu.terracotta.dao.repository.messaging.piped.PipedTextItemRepository;
+import edu.iu.terracotta.security.pii.PiiCipher;
 import edu.iu.terracotta.service.app.messaging.MessageRuleComparisonService;
 
 @SuppressWarnings("unchecked")
@@ -63,6 +65,9 @@ public class MessageSendServiceImplTest extends BaseTest {
     @Mock private MessageConditionalTextRepository conditionalTextRepository;
     @Mock private PipedTextItemRepository pipedTextItemRepository;
     @Mock private MessageRuleComparisonService ruleComparisonService;
+
+    // real cipher with throwaway keys, so recipients are actually matched by email hash
+    private final PiiCipher piiCipher = new PiiCipher("1", Base64.getEncoder().encodeToString(new byte[32]), "", Base64.getEncoder().encodeToString(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}));
 
     private MessageSendServiceImpl messageSendService;
 
@@ -86,6 +91,7 @@ public class MessageSendServiceImplTest extends BaseTest {
         messageSendService = new MessageSendServiceImpl(
             lmsUserBatchRepository,
             ltiUserRepository,
+            piiCipher,
             conditionalTextRepository,
             participantRepository,
             pipedTextItemRepository,
@@ -123,7 +129,7 @@ public class MessageSendServiceImplTest extends BaseTest {
 
         container.getMessages().add(message);
 
-        recipient = LtiUserEntity.builder().userId(2L).lmsUserId("s1").email("student@example.com").build();
+        recipient = LtiUserEntity.builder().userId(2L).lmsUserId("s1").email("student@example.com").emailHash(piiCipher.hashEmail("student@example.com")).build();
         participant = Participant.builder().ltiUserEntity(recipient).consent(true).build();
         student = LmsUser.builder().id("s1").email("student@example.com").build();
 
@@ -137,8 +143,8 @@ public class MessageSendServiceImplTest extends BaseTest {
             .thenReturn(List.of(participant))
             .thenReturn(List.of());
         when(apiClient.listUsersForCourse(any(), any(LtiUserEntity.class))).thenReturn(List.of(student));
-        when(lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailIn(any(UUID.class), any(), any())).thenReturn(List.of(batchEmailProjection));
-        when(ltiUserRepository.findAllByEmailInAndPlatformDeployment_KeyId(any(), anyLong())).thenReturn(List.of(recipient));
+        when(lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailHashIn(any(UUID.class), any(), any())).thenReturn(List.of(batchEmailProjection));
+        when(ltiUserRepository.findAllByEmailHashInAndPlatformDeployment_KeyId(any(), anyLong())).thenReturn(List.of(recipient));
         when(ruleComparisonService.getLmsSubmissions(message)).thenReturn(
             Map.of("q1", List.of(LmsSubmission.builder().userId("s1").build()))
         );
@@ -161,7 +167,7 @@ public class MessageSendServiceImplTest extends BaseTest {
 
     @Test
     public void testGetRecipientsNoStudentsReturnsEmpty() throws Exception {
-        when(lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailIn(any(UUID.class), any(), any())).thenReturn(List.of());
+        when(lmsUserBatchRepository.findBatchProjectionsByBatchIdAndEmailHashIn(any(UUID.class), any(), any())).thenReturn(List.of());
 
         List<LtiUserEntity> recipients = messageSendService.getRecipients(message);
 
@@ -179,12 +185,12 @@ public class MessageSendServiceImplTest extends BaseTest {
 
     @Test
     public void testGetRecipientsSetsLmsUserIdWhenMissing() throws Exception {
-        LtiUserEntity recipientNoLmsId = LtiUserEntity.builder().userId(2L).lmsUserId(null).email("student@example.com").build();
+        LtiUserEntity recipientNoLmsId = LtiUserEntity.builder().userId(2L).lmsUserId(null).email("student@example.com").emailHash(piiCipher.hashEmail("student@example.com")).build();
         Participant participantNoLmsId = Participant.builder().ltiUserEntity(recipientNoLmsId).consent(true).build();
         when(participantRepository.findByExperiment_ExperimentId(anyLong(), any(Pageable.class)))
             .thenReturn(List.of(participantNoLmsId))
             .thenReturn(List.of());
-        when(ltiUserRepository.findAllByEmailInAndPlatformDeployment_KeyId(any(), anyLong())).thenReturn(List.of(recipientNoLmsId));
+        when(ltiUserRepository.findAllByEmailHashInAndPlatformDeployment_KeyId(any(), anyLong())).thenReturn(List.of(recipientNoLmsId));
         when(ltiUserRepository.save(any(LtiUserEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         List<LtiUserEntity> recipients = messageSendService.getRecipients(message);
@@ -196,7 +202,7 @@ public class MessageSendServiceImplTest extends BaseTest {
 
     @Test
     public void testGetRecipientsExcludesWhenNoTerracottaUserFound() throws Exception {
-        when(ltiUserRepository.findAllByEmailInAndPlatformDeployment_KeyId(any(), anyLong())).thenReturn(List.of());
+        when(ltiUserRepository.findAllByEmailHashInAndPlatformDeployment_KeyId(any(), anyLong())).thenReturn(List.of());
 
         List<LtiUserEntity> recipients = messageSendService.getRecipients(message);
 
@@ -205,8 +211,8 @@ public class MessageSendServiceImplTest extends BaseTest {
 
     @Test
     public void testGetRecipientsExcludesWhenWrongLmsUser() throws Exception {
-        LtiUserEntity wrongLmsUser = LtiUserEntity.builder().userId(2L).lmsUserId("different-lms-id").email("student@example.com").build();
-        when(ltiUserRepository.findAllByEmailInAndPlatformDeployment_KeyId(any(), anyLong())).thenReturn(List.of(wrongLmsUser));
+        LtiUserEntity wrongLmsUser = LtiUserEntity.builder().userId(2L).lmsUserId("different-lms-id").email("student@example.com").emailHash(piiCipher.hashEmail("student@example.com")).build();
+        when(ltiUserRepository.findAllByEmailHashInAndPlatformDeployment_KeyId(any(), anyLong())).thenReturn(List.of(wrongLmsUser));
 
         List<LtiUserEntity> recipients = messageSendService.getRecipients(message);
 
