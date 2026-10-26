@@ -4,7 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.OutputStream;
@@ -49,7 +54,7 @@ public class RegistrationControllerTest extends BaseTest {
         // Constructed manually rather than via @InjectMocks: ApiJwtService is also implemented by the
         // inherited canvasApiJwtService mock (see the ambiguity warning in BaseServiceTest), so
         // constructor-injection-by-type could silently wire the wrong ApiJwtService mock.
-        registrationController = new RegistrationController(platformDeploymentRepository, apiJwtService, registrationService);
+        registrationController = new RegistrationController(platformDeploymentRepository, apiJwtService, registrationService, outboundUrlService);
 
         ReflectionTestUtils.setField(registrationController, "clientName", "Terracotta");
         ReflectionTestUtils.setField(registrationController, "description", "Terracotta description");
@@ -75,6 +80,18 @@ public class RegistrationControllerTest extends BaseTest {
         String view = registrationController.registration("http://openid.config", "regToken", httpServletRequest, model);
 
         assertEquals("registrationError", view);
+    }
+
+    @Test
+    void registrationWithoutValidApiTokenDoesNotStoreAnythingInSessionTest() throws Exception {
+        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(null);
+
+        Model model = new ConcurrentModel();
+
+        String view = registrationController.registration("http://openid.config", "attackerToken", httpServletRequest, model);
+
+        assertEquals("registrationError", view);
+        verify(httpSession, never()).setAttribute(anyString(), any());
     }
 
     @Test
@@ -143,6 +160,10 @@ public class RegistrationControllerTest extends BaseTest {
         PlatformRegistrationDto platformRegistrationDto = (PlatformRegistrationDto) model.getAttribute(LtiStrings.PLATFORM_CONFIGURATION);
         assertNotNull(platformRegistrationDto);
         assertEquals("https://issuer.example.com", platformRegistrationDto.getIssuer());
+
+        verify(httpSession).setAttribute(LtiStrings.REGISTRATION_TOKEN, "regToken");
+        verify(httpSession).setAttribute(LtiStrings.PLATFORM_CONFIGURATION, platformRegistrationDto);
+        verify(httpSession).setAttribute(LtiStrings.TOOL_CONFIGURATION, toolRegistrationDto);
     }
 
     @Test
@@ -205,6 +226,56 @@ public class RegistrationControllerTest extends BaseTest {
         Model model = new ConcurrentModel();
 
         assertThrows(NullPointerException.class, () -> registrationController.registrationPOST(httpServletRequest, model));
+    }
+
+    @Test
+    void registrationInternalOpenidConfigurationReturnsErrorViewWithoutRequestTest() throws Exception {
+        when(apiJwtService.extractValues(httpServletRequest, false)).thenReturn(securedInfo);
+
+        // a real server on loopback proves the controller never calls it once the URL is rejected
+        openidConfigurationServer = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+        boolean[] called = { false };
+        openidConfigurationServer.createContext(
+            "/openid-configuration",
+            exchange -> {
+                called[0] = true;
+                exchange.sendResponseHeaders(500, -1);
+                exchange.close();
+            }
+        );
+        openidConfigurationServer.start();
+        String openidConfigurationUrl = "http://localhost:" + openidConfigurationServer.getAddress().getPort() + "/openid-configuration";
+        doThrow(new IllegalArgumentException("URL resolves to an internal address")).when(outboundUrlService).validatePublicUrl(openidConfigurationUrl);
+
+        Model model = new ConcurrentModel();
+
+        String view = registrationController.registration(openidConfigurationUrl, "regToken", httpServletRequest, model);
+
+        assertEquals("registrationError", view);
+        assertEquals("URL resolves to an internal address", model.getAttribute("Error"));
+        assertEquals(false, called[0]);
+    }
+
+    @Test
+    void registrationPOSTInternalRegistrationEndpointIsNotCalledTest() throws Exception {
+        String encodedIssuer = URLEncoder.encode("https://issuer.example.com", StandardCharsets.UTF_8.name());
+        PlatformRegistrationDto platformRegistrationDto = PlatformRegistrationDto.builder()
+            .issuer(encodedIssuer)
+            .registration_endpoint("http://169.254.169.254/latest/meta-data")
+            .build();
+
+        when(httpSession.getAttribute(LtiStrings.REGISTRATION_TOKEN)).thenReturn("regToken");
+        when(httpSession.getAttribute(LtiStrings.PLATFORM_CONFIGURATION)).thenReturn(platformRegistrationDto);
+        when(httpSession.getAttribute(LtiStrings.TOOL_CONFIGURATION)).thenReturn(ToolRegistrationDto.builder().build());
+        doThrow(new IllegalArgumentException("URL resolves to an internal address")).when(outboundUrlService).validatePublicUrl("http://169.254.169.254/latest/meta-data");
+
+        Model model = new ConcurrentModel();
+
+        String view = registrationController.registrationPOST(httpServletRequest, model);
+
+        assertEquals("registrationConfirmation", view);
+        assertEquals("Error during the registration", model.getAttribute("registration_confirmation"));
+        verify(registrationService, never()).callDynamicRegistration(anyString(), any(ToolRegistrationDto.class), anyString());
     }
 
 }

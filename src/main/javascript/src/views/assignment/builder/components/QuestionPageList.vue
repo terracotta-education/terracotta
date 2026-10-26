@@ -37,7 +37,7 @@
                     <span
                       v-if="question.html"
                       class="pl-3 question-text"
-                      v-html="textOnly(question.html)"
+                      v-html="sanitizeHtml(textOnly(question.html))"
                     />
                   </h2>
                 </div>
@@ -69,6 +69,7 @@ import FileUploadQuestionEditor from "@/views/assignment/FileUploadQuestionEdito
 import MultipleChoiceQuestionEditor from "@/views/assignment/MultipleChoiceQuestionEditor.vue";
 import PageBreak from "@/views/assignment/PageBreak.vue";
 import QuestionEditor from "@/views/assignment/QuestionEditor.vue";
+import { sanitizeHtml } from "@/helpers";
 
 defineOptions({
   name: "QuestionPageList"

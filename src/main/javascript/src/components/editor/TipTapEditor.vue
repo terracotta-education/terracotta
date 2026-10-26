@@ -14,6 +14,7 @@
         v-if="showToolbar"
         :editor="editor"
         :active-items="activeItems"
+        :features="features"
       />
     </v-card>
   </div>
@@ -22,7 +23,6 @@
 <script setup>
 import {
   computed,
-  nextTick,
   onBeforeUnmount,
   onMounted,
   reactive,
@@ -46,12 +46,8 @@ import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
 import YouTube from "@tiptap/extension-youtube";
 
-import {
-  addAttributesToObservedElement,
-  addAttributesToElement
-} from "@/helpers/ui-utils.js";
-
 import ToolBar from "./ToolBar.vue";
+import { LINK_PROTOCOLS, isLinkUrlAllowed } from "./link-url";
 
 import { conditionaltext as messagingConditionalTextModule } from "@/store/messaging/conditionaltext.module";
 
@@ -83,6 +79,17 @@ const props = defineProps({
   pipedTextToPlace: {
     type: Object,
     default: null
+  },
+  // the formatting the html editor offers, by toolbar action (e.g. ["bold", "bulletList"]); every
+  // one when not given. Anything left out is also kept out of pasted or loaded content.
+  features: {
+    type: Array,
+    default: null
+  },
+  // what a screen reader calls the editable area
+  label: {
+    type: String,
+    default: "message editor content"
   }
 });
 
@@ -149,17 +156,52 @@ const showToolbar = computed(() => {
   );
 });
 
+const allows = feature => {
+  return !props.features || props.features.includes(feature);
+};
+
+// StarterKit's extensions that a toolbar action stands for, turned off unless that action is allowed
+const starterKitFeatures = () => {
+  const disabled = {};
+  const turnOff = (feature, ...extensionNames) => {
+    if (!allows(feature)) {
+      extensionNames.forEach(name => {
+        disabled[name] = false;
+      });
+    }
+  };
+
+  turnOff("blockquote", "blockquote");
+  turnOff("bold", "bold");
+  turnOff("italic", "italic");
+  turnOff("strike", "strike");
+  turnOff("code", "code", "codeBlock");
+  turnOff("heading", "heading");
+  turnOff("horizontalRule", "horizontalRule");
+  turnOff("bulletList", "bulletList");
+  turnOff("orderedList", "orderedList");
+
+  if (!allows("bulletList") && !allows("orderedList")) {
+    disabled.listItem = false;
+    disabled.listKeymap = false;
+  }
+
+  if (!allows("undo") && !allows("redo")) {
+    disabled.undoRedo = false;
+  }
+
+  return disabled;
+};
+
 const configure = computed(() => {
   return {
     link: {
       openOnClick: true,
       defaultProtocol: "https",
-      protocols: [
-        "ftp",
-        "mailto",
-        "git",
-        "cal"
-      ],
+      protocols: LINK_PROTOCOLS,
+      // no link without a scheme, however it gets in (the link dialog, pasted content, loaded HTML):
+      // "www.example.com" would otherwise link relative to the Terracotta page it's on
+      isAllowedUri: url => isLinkUrlAllowed(url),
       HTMLAttributes: {
         target: "_blank"
       }
@@ -173,11 +215,15 @@ const configure = computed(() => {
         levels: [1, 2, 3]
       },
       link: false,
-      underline: false
+      underline: false,
+      ...starterKitFeatures()
     },
     youTube: {
       modestBranding: true,
-      inline: true,
+      // a block of its own: inline, the video lands inside the paragraph or heading the cursor is
+      // in, which stretches that line and, since a <div> can't sit in a <p> or <h1>, gets split
+      // into extra empty paragraphs when the HTML is shown or loaded again
+      inline: false,
       nocookie: true
     }
   };
@@ -280,14 +326,20 @@ const extensions = computed(() => {
     ],
     html: [
       StarterKit.configure(configure.value.starterKit),
-      Link.configure(configure.value.link),
+      allows("link") && Link.configure(configure.value.link),
       mentionConditionalText.value,
       mentionPipedText.value,
-      Underline,
-      YouTube.configure(configure.value.youTube)
-    ]
+      allows("underline") && Underline,
+      allows("youtube") && YouTube.configure(configure.value.youTube)
+    ].filter(Boolean)
   };
 });
+
+// Tiptap keeps an empty paragraph after a list, video or rule at the end so there's a line to type
+// on; it isn't content, so it's left out of the HTML
+const withoutTrailingEmptyParagraphs = value => {
+  return value.replace(/(<p><\/p>)+$/, "");
+};
 
 const onUpdate = computed(() => {
   return {
@@ -302,9 +354,10 @@ const onUpdate = computed(() => {
     },
 
     html: ({ editor: currentEditor }) => {
-      html.value = currentEditor.getText()
-        ? currentEditor.getHTML()
-        : "";
+      // isEmpty, not getText(): a video alone has no text but is content
+      html.value = currentEditor.isEmpty
+        ? ""
+        : withoutTrailingEmptyParagraphs(currentEditor.getHTML());
 
       emit("edited", html.value);
     }
@@ -362,6 +415,12 @@ const editorConfiguration = type => {
   return {
     content: configuration.content,
     editable: !props.readOnly,
+    // set on this editor alone; several editors can share a page (one per essay question)
+    editorProps: {
+      attributes: {
+        "aria-label": props.label
+      }
+    },
     extensions: configuration.extensions,
     onUpdate: configuration.onUpdate,
     onSelectionUpdate,
@@ -410,9 +469,9 @@ const createEditors = () => {
 
   switch (props.editorType) {
     case "html":
-      html.value = htmlEditor.value.getText()
-        ? htmlEditor.value.getHTML()
-        : "";
+      html.value = htmlEditor.value.isEmpty
+        ? ""
+        : withoutTrailingEmptyParagraphs(htmlEditor.value.getHTML());
       break;
 
     case "basic":
@@ -548,34 +607,10 @@ watch(
   insertPipedText
 );
 
-onMounted(async () => {
+onMounted(() => {
   html.value = props.content;
 
   createEditors();
-
-  await nextTick();
-
-  addAttributesToObservedElement(
-    ".editor",
-    "ProseMirror",
-    ".tiptap.ProseMirror",
-    [
-      {
-        name: "aria-label",
-        value: "message editor content"
-      }
-    ]
-  );
-
-  addAttributesToElement(
-    ".tiptap.ProseMirror",
-    [
-      {
-        name: "aria-label",
-        value: "message editor content"
-      }
-    ]
-  );
 
   window.updateMessageConditionalTextEditId = id => {
     messagingConditionalTextStore.setMessageConditionalTextEditId(id);
@@ -602,6 +637,33 @@ onBeforeUnmount(() => {
   :deep(.ProseMirror) {
     margin: 20px 5px !important;
 
+    // the same space between any two blocks: App.vue pads every paragraph and heading on top of
+    // their margins, which left a blank line's worth between paragraphs but not after a list
+    > * {
+      margin: 0 0 12px;
+      padding-bottom: 0;
+    }
+
+    > h1,
+    > h2,
+    > h3 {
+      margin-top: 20px;
+    }
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+
+    blockquote p,
+    li > p {
+      margin: 0;
+      padding-bottom: 0;
+    }
+
     .is-editor-empty::before {
       color: map.get($grey, "darker");
       font-style: normal;
@@ -623,7 +685,6 @@ onBeforeUnmount(() => {
       border-left: 0.25em solid #dfe2e5;
       color: #6a737d;
       padding-left: 1em;
-      margin: 20px 0 !important;
     }
 
     & h1 {

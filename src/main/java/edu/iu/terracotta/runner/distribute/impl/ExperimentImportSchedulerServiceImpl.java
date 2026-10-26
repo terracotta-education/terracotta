@@ -67,6 +67,7 @@ public class ExperimentImportSchedulerServiceImpl implements ExperimentImportSch
                                 boolean deleted = false;
 
                                 try {
+                                    // deepcode ignore PT: the import file URI is the server generated date path and UUIDs set by saveExperimentImportFile
                                     deleted = Paths.get(
                                         String.format(
                                             "%s/%s",

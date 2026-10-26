@@ -547,12 +547,18 @@ class ExperimentImportServiceImplTest extends BaseTest {
         assertValidationError(export, "No experiment ID: [999] found for condition ID: [10]");
     }
 
+    // imported as "Condition N" instead (see ExperimentImportAsyncServiceImpl), so a source
+    // experiment with an unnamed condition can still be copied
     @Test
-    void testValidateConditionNameBlank() throws IOException {
+    void testValidateConditionNameBlankIsNotAnError() throws IOException {
         Export export = fullExport();
         export.getConditions().get(0).setName("");
+        writeExportJson(export);
 
-        assertValidationError(export, "Condition with ID: [10] :: name cannot be blank.");
+        experimentImportService.validate(experimentImport);
+
+        verify(experimentImport, never()).setStatus(ExperimentImportStatus.ERROR);
+        verify(experimentImport, never()).addErrorMessage(anyString());
     }
 
     @Test

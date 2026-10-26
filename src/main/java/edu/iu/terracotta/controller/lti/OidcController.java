@@ -151,6 +151,7 @@ public class OidcController {
             // authorization endpoint - the launch doesn't depend on cookies, so there's no need
             // to route through a storage-access check first.
             if (!ltiDataService.getDemoMode()) {
+                // deepcode ignore OR: the redirect base is the OIDC endpoint stored on the matched platform deployment, and the request values are only appended as URL encoded query parameters
                 return "redirect:" + parameters.get("oicdEndpointComplete");
             }
 

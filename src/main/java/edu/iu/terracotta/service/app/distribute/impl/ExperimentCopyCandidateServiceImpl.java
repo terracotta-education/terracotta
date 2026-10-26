@@ -529,6 +529,7 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         try {
             removeLmsAssignmentsFromEarlierAttempt(candidate, securedInfo);
             LmsRepointTargets repointTargets = repointTargets(candidate, sourceExperiment, lmsAssignments, securedInfo);
+            // deepcode ignore PT: the export directory name is the experiment title with path separators replaced by LmsUtils.sanitize, under a fixed prefix
             ExportDto exportDto = experimentExportService.export(sourceExperiment);
             ImportDto importDto = experimentImportService.preprocessFromFile(exportDto.getFile(), exportDto.getFilename(), securedInfo, repointTargets, notifyOwnerOnLmsFailure);
 

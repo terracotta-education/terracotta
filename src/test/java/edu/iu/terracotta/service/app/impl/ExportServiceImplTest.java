@@ -460,6 +460,19 @@ public class ExportServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testHandleItemResponsesCsvEssayRichTextExportsPlainText() throws Exception {
+        when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(List.of(answerEssaySubmission));
+        when(answerEssaySubmission.getResponse()).thenReturn("<p>my <strong>essay</strong> response</p>");
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleItemResponsesCsv", 1L, files);
+
+        String content = Files.readString(Path.of(files.get(ItemResponsesCsv.FILENAME)));
+        assertTrue(content.contains("my essay response"));
+        assertFalse(content.contains("<strong>"));
+    }
+
+    @Test
     public void testHandleItemResponsesCsvEssayWithNoAnswerSubmissionStaysNa() throws Exception {
         when(answerEssaySubmissionRepository.findByQuestionSubmission_QuestionSubmissionId(anyLong())).thenReturn(Collections.emptyList());
 

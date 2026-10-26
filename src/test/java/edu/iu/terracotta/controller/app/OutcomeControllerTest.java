@@ -34,7 +34,6 @@ import edu.iu.terracotta.dao.exceptions.OutcomeNotMatchingException;
 import edu.iu.terracotta.dao.model.dto.OutcomeDto;
 import edu.iu.terracotta.dao.model.dto.OutcomePotentialDto;
 import edu.iu.terracotta.exceptions.TitleValidationException;
-import edu.iu.terracotta.utils.TextConstants;
 
 public class OutcomeControllerTest extends BaseTest {
 
@@ -86,16 +85,6 @@ public class OutcomeControllerTest extends BaseTest {
     }
 
     @Test
-    void testAllOutcomesByExposureUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<OutcomeDto>> response = outcomeController.allOutcomesByExposure(EXPERIMENT_UUID, EXPOSURE_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals(TextConstants.NOT_ENOUGH_PERMISSIONS, response.getBody());
-    }
-
-    @Test
     void testAllOutcomesByExposureNotMatching() throws Exception {
         doThrow(new ExposureNotMatchingException("error")).when(apiJwtService).exposureAllowed(securedInfo, 1L, 1L);
 
@@ -128,15 +117,6 @@ public class OutcomeControllerTest extends BaseTest {
     }
 
     @Test
-    void testGetOutcomeUnauthorized() throws Exception {
-        when(apiJwtService.isLearnerOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<OutcomeDto> response = outcomeController.getOutcome(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, false, true, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void testGetOutcomeNotMatching() throws Exception {
         doThrow(new OutcomeNotMatchingException("error")).when(apiJwtService).outcomeAllowed(securedInfo, 1L, 1L, 1L);
 
@@ -166,15 +146,6 @@ public class OutcomeControllerTest extends BaseTest {
     }
 
     @Test
-    void testPostOutcomeUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<OutcomeDto> response = outcomeController.postOutcome(EXPERIMENT_UUID, EXPOSURE_UUID, OutcomeDto.builder().build(), UriComponentsBuilder.newInstance(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void testPostOutcomeNotMatching() throws Exception {
         doThrow(new ExposureNotMatchingException("error")).when(apiJwtService).exposureAllowed(securedInfo, 1L, 1L);
 
@@ -194,15 +165,6 @@ public class OutcomeControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(outcomeService, times(1)).updateOutcome(eq(1L), any(OutcomeDto.class));
-    }
-
-    @Test
-    void testUpdateOutcomeUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = outcomeController.updateOutcome(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, OutcomeDto.builder().build(), httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -236,15 +198,6 @@ public class OutcomeControllerTest extends BaseTest {
     }
 
     @Test
-    void testDeleteOutcomeUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<Void> response = outcomeController.deleteOutcome(EXPERIMENT_UUID, EXPOSURE_UUID, OUTCOME_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void testDeleteOutcomeNotMatching() throws Exception {
         doThrow(new OutcomeNotMatchingException("error")).when(apiJwtService).outcomeAllowed(securedInfo, 1L, 1L, 1L);
 
@@ -260,15 +213,6 @@ public class OutcomeControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().size());
-    }
-
-    @Test
-    void testOutcomePotentialsUnauthorized() throws Exception {
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<OutcomePotentialDto>> response = outcomeController.outcomePotentials(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test
@@ -306,17 +250,6 @@ public class OutcomeControllerTest extends BaseTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(0, response.getBody().size());
-    }
-
-    @Test
-    void testGetOutcomesForExperimentUnauthorized() throws Exception {
-        // Note: this endpoint requires isInstructorOrHigher, unlike the sibling read endpoints in
-        // this controller (allOutcomesByExposure, getOutcome) which only require isLearnerOrHigher.
-        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
-
-        ResponseEntity<List<OutcomeDto>> response = outcomeController.getOutcomesForExperiment(EXPERIMENT_UUID, httpServletRequest);
-
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 
     @Test

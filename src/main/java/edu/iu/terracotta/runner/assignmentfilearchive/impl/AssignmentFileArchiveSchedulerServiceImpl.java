@@ -66,6 +66,7 @@ public class AssignmentFileArchiveSchedulerServiceImpl implements AssignmentFile
                                 String error = null;
                                 boolean deleted = false;
                                 try {
+                                    // deepcode ignore PT: the archive file URI is the server generated date path and UUID set by saveAssignmentFileArchive
                                     deleted = Paths.get(
                                         String.format(
                                             "%s/%s%s",

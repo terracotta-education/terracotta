@@ -49,8 +49,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     @NativeQuery(
         """
             SELECT
-                MIN(p.id) AS id,
-                lu.email AS email
+                MIN(p.id) AS id
             FROM
                 terr_participant p
             JOIN lti_membership lme
@@ -60,7 +59,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
             WHERE
                 lme.context_id = ?1 AND
                 NULLIF(TRIM(lu.lms_user_id), '') IS NULL
-            GROUP BY lu.email
+            GROUP BY lu.email_hash
             ORDER BY id ASC
             LIMIT ?2 OFFSET ?3
             """
@@ -88,39 +87,5 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
             """
     )
     Long existsLmsParticipantSummaryToUpdateByContextId(@Param("contextId") long contextId);
-
-    @NativeQuery(
-        value = """
-            SELECT
-                MIN(p.id) AS id,
-                lu.email AS email
-            FROM
-                terr_participant p
-            JOIN lti_membership lme
-                ON p.lti_membership_entity_membership_id = lme.membership_id
-            JOIN lti_user lu
-                ON p.lti_user_entity_user_id = lu.user_id
-            WHERE
-                p.experiment_id = :experimentId AND
-                lu.lms_user_id IS NULL
-            GROUP BY lu.email
-            ORDER BY id ASC
-            """,
-        countQuery = """
-            SELECT COUNT(*) FROM (
-                SELECT MIN(p.id)
-                FROM terr_participant p
-                JOIN lti_membership lme
-                    ON p.lti_membership_entity_membership_id = lme.membership_id
-                JOIN lti_user lu
-                    ON p.lti_user_entity_user_id = lu.user_id
-                WHERE
-                    p.experiment_id = :experimentId AND
-                    lu.lms_user_id IS NULL
-                GROUP BY lu.email
-            ) AS cnt
-            """
-    )
-    List<LmsParticipantSummary> findLmsParticipantSummaryToUpdateByExperimentId(@Param("experimentId") long experimentId, Pageable pageable);
 
 }

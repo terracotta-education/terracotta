@@ -1,6 +1,7 @@
 package edu.iu.terracotta.connectors.generic.dao.entity.lti;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -19,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.iu.terracotta.connectors.generic.dao.entity.UuidAwareEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.enums.LmsConnector;
 import edu.iu.terracotta.dao.entity.Feature;
+import edu.iu.terracotta.security.pii.PiiStringConverter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,12 +47,21 @@ public class PlatformDeployment extends UuidAwareEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long keyId;
 
-    @Column private String apiToken;
+    // stored encrypted (PiiCipher)
+    @Column(length = 512)
+    @Convert(converter = PiiStringConverter.class)
+    private String apiToken;
+
     @Column private String baseUrl;
     @Column private Boolean caliperConfiguration;
     @Column private String caliperSensorId;
     @Column private String caliperClientId;
-    @Column private String caliperApiKey;
+
+    // stored encrypted (PiiCipher)
+    @Column(length = 512)
+    @Convert(converter = PiiStringConverter.class)
+    private String caliperApiKey;
+
     @Column private Integer caliperConnectionTimeout;
     @Column private String caliperContentType;
     @Column private String caliperHost;

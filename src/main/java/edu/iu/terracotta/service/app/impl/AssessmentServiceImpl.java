@@ -937,6 +937,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         // one still in progress has no submitted date and would be posted as "Completed"; its
         // regraded score is sent when the student submits it.
         // fetches AGS tokens once instead of once per submission
+        // deepcode ignore Ssrf: grades go to the AGS line item and token endpoints of the platform, which come from the stored PlatformDeployment and the verified LTI launch claims, never from this request
         submissionService.sendSubmissionGradesToLmsWithLti(
             gradedSubmissions.stream()
                 .filter(Submission::isSubmitted)

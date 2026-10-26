@@ -7,6 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import edu.iu.terracotta.security.app.roles.LearnerOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -19,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@SuppressWarnings({"PMD.GuardLogStatement"})
 @RequestMapping(value = ConfigurationController.REQUEST_ROOT, produces = MediaType.APPLICATION_JSON_VALUE)
 public class ConfigurationController {
 
@@ -29,12 +29,9 @@ public class ConfigurationController {
     private final ConfigurationService configurationService;
 
     @GetMapping
+    @LearnerOrHigher
     public ResponseEntity<ConfigurationDto> get(HttpServletRequest req) throws NumberFormatException, TerracottaConnectorException {
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);
-
-        if (!apijwtService.isLearnerOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
 
         return new ResponseEntity<>(configurationService.getConfigurations(securedInfo), HttpStatus.OK);
     }

@@ -160,6 +160,44 @@ public class ParticipantServiceImplTest extends BaseTest {
         verify(participant, never()).setGroup(any(Group.class));
     }
 
+    // the published-assignment lookup makes one LMS call per assignment; a student launch or view
+    // shouldn't pay for it when its answer can't change anything
+    @Test
+    public void testhandleExperimentParticipantAutoParticipationAsksTheLmsNothing() throws Exception {
+        participantService.handleExperimentParticipant(experiment, securedInfo);
+
+        verify(apiClient, never()).listAssignment(any(LtiUserEntity.class), any(), any(String.class));
+    }
+
+    @Test
+    public void testhandleExperimentParticipantConsentWithoutMultiVersionSubmissionsAsksTheLmsNothing() throws Exception {
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
+        // no consent decision yet, the only case the lookup is for
+        when(participant.getConsent()).thenReturn(null);
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(List.of(assignment, assignment, assignment));
+        when(submissionRepository.findByParticipant_Id(anyLong())).thenReturn(List.of(submission));
+        // a single-version assignment
+        when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(List.of(treatment));
+
+        participantService.handleExperimentParticipant(experiment, securedInfo);
+
+        verify(apiClient, never()).listAssignment(any(LtiUserEntity.class), any(), any(String.class));
+    }
+
+    @Test
+    public void testhandleExperimentParticipantConsentWithAMultiVersionSubmissionChecksPublishedAssignments() throws Exception {
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.CONSENT);
+        // no consent decision yet, the only case the lookup is for
+        when(participant.getConsent()).thenReturn(null);
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(List.of(assignment));
+        when(submissionRepository.findByParticipant_Id(anyLong())).thenReturn(List.of(submission));
+        when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(List.of(treatment, treatment));
+
+        participantService.handleExperimentParticipant(experiment, securedInfo);
+
+        verify(apiClient).listAssignment(any(LtiUserEntity.class), any(), any(String.class));
+    }
+
     @Test
     public void testhandleExperimentParticipantNotAutoParticipation() throws GroupNotMatchingException, ParticipantNotMatchingException, ParticipantNotUpdatedException, AssignmentNotMatchingException, ExperimentNotMatchingException, TerracottaConnectorException {
         when(experiment.getParticipationType()).thenReturn(ParticipationTypes.MANUAL);

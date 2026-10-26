@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.dao.entity.messaging.BaseMessageEntity;
+import edu.iu.terracotta.security.pii.PiiStringConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -24,6 +27,9 @@ import lombok.Setter;
 @Table(name = "terr_messaging_piped_text_item_value")
 public class MessagePipedTextItemValue extends BaseMessageEntity {
 
+    // a per-recipient value the instructor uploaded (often a name), stored encrypted (PiiCipher)
+    @Column(length = 512)
+    @Convert(converter = PiiStringConverter.class)
     private String value;
 
     @ManyToOne(optional = false)

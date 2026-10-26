@@ -7,6 +7,7 @@ public enum AssignmentFileArchiveStatus {
     ERROR,
     ERROR_ACKNOWLEDGED,
     OUTDATED,
+    OUTDATED_ACKNOWLEDGED,
     PROCESSING,
     READY,
     REPROCESSING

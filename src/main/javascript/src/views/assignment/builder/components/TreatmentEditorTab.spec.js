@@ -8,7 +8,13 @@ const textOnly = html => (html || "").replace(/<[^>]+>/g, "");
 const stubs = {
   QuestionPageList: true,
   TreatmentModeSelector: true,
-  ExternalIntegrationEditor: true
+  ExternalIntegrationEditor: true,
+  TipTapEditor: {
+    name: "TipTapEditor",
+    props: ["content", "editorType"],
+    emits: ["edited"],
+    template: "<div class=\"tiptap-stub\" />"
+  }
 };
 
 const baseProps = {
@@ -85,13 +91,61 @@ describe("TreatmentEditorTab", () => {
     expect(wrapper.emitted("clear-questions")).toBeTruthy();
   });
 
-  it("emits update:html when the description textarea changes", async () => {
+  it("edits the instructions in the rich text editor, starting from the saved html", () => {
+    const wrapper = mountTab({ treatmentOptionSelected: false, html: "<p>Read this first</p>" });
+    const editor = wrapper.findComponent({ name: "TipTapEditor" });
+
+    expect(editor.props("content")).toBe("<p>Read this first</p>");
+    expect(editor.props("editorType")).toBe("html");
+    expect(editor.attributes("aria-labelledby")).toBe("treatment-instructions-label");
+    expect(wrapper.find("#treatment-instructions-label").text()).toBe("Instructions or description (optional)");
+    expect(wrapper.findComponent({ name: "VTextarea" }).exists()).toBe(false);
+  });
+
+  it("emits update:html when the instructions are edited", async () => {
     const wrapper = mountTab({ treatmentOptionSelected: false });
 
-    await wrapper.findComponent({ name: "VTextarea" }).setValue("New instructions");
+    await wrapper.findComponent({ name: "TipTapEditor" }).vm.$emit("edited", "<p>New instructions</p>");
 
-    expect(wrapper.emitted("update:html")).toBeTruthy();
-    expect(wrapper.emitted("update:html")[0]).toEqual(["New instructions"]);
+    expect(wrapper.emitted("update:html")).toEqual([["<p>New instructions</p>"]]);
+  });
+
+  it("doesn't emit when the editor reports the html it already has", async () => {
+    const wrapper = mountTab({ treatmentOptionSelected: false, html: "<p>Same</p>" });
+
+    await wrapper.findComponent({ name: "TipTapEditor" }).vm.$emit("edited", "<p>Same</p>");
+
+    expect(wrapper.emitted("update:html")).toBeUndefined();
+  });
+
+  it("keeps the same editor while its own edits come back as the html prop", async () => {
+    const wrapper = mountTab({ treatmentOptionSelected: false, html: "" });
+    const editor = wrapper.findComponent({ name: "TipTapEditor" });
+
+    await editor.vm.$emit("edited", "<p>Typing</p>");
+    await wrapper.setProps({ html: "<p>Typing</p>" });
+
+    const after = wrapper.findComponent({ name: "TipTapEditor" });
+    expect(after.vm).toBe(editor.vm);
+    expect(after.props("content")).toBe("");
+  });
+
+  it("loads html that changed outside the editor into a fresh editor", async () => {
+    const wrapper = mountTab({ treatmentOptionSelected: false, html: "" });
+    const editor = wrapper.findComponent({ name: "TipTapEditor" });
+
+    await editor.vm.$emit("edited", "<p>Typing</p>");
+    await wrapper.setProps({ html: "<p>Typing</p>" });
+    // cleared elsewhere, back to the value the editor started with
+    await wrapper.setProps({ html: "" });
+
+    const after = wrapper.findComponent({ name: "TipTapEditor" });
+    expect(after.vm).not.toBe(editor.vm);
+    expect(after.props("content")).toBe("");
+
+    await wrapper.setProps({ html: "<p>Copied</p>" });
+
+    expect(wrapper.findComponent({ name: "TipTapEditor" }).props("content")).toBe("<p>Copied</p>");
   });
 
   it("emits save-all on form submit", async () => {

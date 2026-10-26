@@ -22,6 +22,7 @@ public class AssignmentFileArchiveDto {
 
     private UUID id;
     private UUID assignmentId;
+    private UUID exposureId;
     private String assignmentTitle;
     private String experimentTitle;
     private AssignmentFileArchiveStatus status;

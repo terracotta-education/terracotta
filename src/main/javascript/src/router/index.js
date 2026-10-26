@@ -17,7 +17,7 @@ const routes = [
     component: () => import("../views/Experiment.vue"),
     children: [
       {
-        path: "experiment-summary/:experimentId",
+        path: "experiment-summary",
         name: "ExperimentSummary",
         component: () => import("../views/ExperimentSummary.vue")
       },
@@ -33,7 +33,6 @@ const routes = [
         children: [
           {
             path: "outcome/:outcomeId/outcome-scoring",
-            alias: "outcome-scoring",
             name: "OutcomeScoring",
             meta: {
               previousStep: "ExperimentSummaryStatus"
@@ -80,7 +79,7 @@ const routes = [
         children: [
           // Experiment | Design Steps paths
           {
-            path: "experiment-design-intro/:experimentId",
+            path: "experiment-design-intro",
             alias: "intro",
             name: "ExperimentDesignIntro",
             component: () => import("../views/design/Intro.vue"),
@@ -110,7 +109,7 @@ const routes = [
             }
           },
           {
-            path: "conditions/:experimentId",
+            path: "conditions",
             name: "ExperimentDesignConditions",
             component: () => import("../views/design/Conditions.vue"),
             meta: {
@@ -387,7 +386,6 @@ const routes = [
           },
           {
             path: "exposure-sets/:exposureId/assignment/:assignmentId/edit",
-            alias: "editor",
             name: "AssignmentEditor",
             component: () => import("../views/assignment/AssignmentEditor.vue"),
             meta: {
@@ -414,7 +412,9 @@ const routes = [
   },
   {
     path: "/:pathMatch(.*)*",
-    redirect: { name: "Home" }
+    // a path, not { name: "Home" }: redirecting by name carries this route's pathMatch param
+    // along, which Home doesn't have (Vue Router warns "Discarded invalid param(s)")
+    redirect: "/"
   }
 ]
 

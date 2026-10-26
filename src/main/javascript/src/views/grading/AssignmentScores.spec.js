@@ -22,7 +22,8 @@ vi.mock("@/services", () => ({
     prepare: vi.fn(),
     poll: vi.fn(),
     retrieve: vi.fn(),
-    acknowledgeError: vi.fn()
+    acknowledgeError: vi.fn(),
+    acknowledgeOutdated: vi.fn()
   }
 }));
 
@@ -210,6 +211,36 @@ describe("AssignmentScores", () => {
     expect(wrapper.text()).not.toContain("Bob Jones");
     // Most-recent submission (dateSubmitted 2) score is used.
     expect(wrapper.text()).toContain("8");
+  });
+
+  // the API sends dates as ISO text; subtracting them gave NaN, so the "most recent" score came from
+  // whichever attempt the list happened to put last
+  it("uses the most recent attempt's score when the dates are ISO text", async () => {
+    const [newer, older] = treatmentNoFile.assessmentDto.submissions;
+
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 3,
+      title: "Assignment 1",
+      treatments: [{
+        ...treatmentNoFile,
+        assessmentDto: {
+          ...treatmentNoFile.assessmentDto,
+          submissions: [
+            { ...newer, dateSubmitted: "2026-10-23T15:30:00.000+00:00" },
+            { ...older, dateSubmitted: "2026-10-21T03:49:00.000+00:00" }
+          ]
+        }
+      }]
+    });
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    const row = wrapper.findAll("tr").find(tr => tr.text().includes("Alice Smith"));
+
+    expect(row.text()).toContain("8");
+    expect(row.text()).not.toContain("5");
   });
 
   it("shows an error state when the assignment fails to load", async () => {
@@ -439,6 +470,89 @@ describe("AssignmentScores", () => {
       "1", "2", "3", expect.objectContaining({ id: 1, ready: true })
     );
     expect(wrapper.find(".alert-file-request").exists()).toBe(false);
+  });
+
+  it("shows a new-uploads warning and status when the file archive is outdated", async () => {
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 3,
+      title: "Assignment 1",
+      treatments: [treatmentFile]
+    });
+    assignmentFileArchiveService.poll.mockResolvedValueOnce({ id: 1, status: "OUTDATED" });
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find(".file-archive-status").text()).toContain("New submissions available");
+    expect(wrapper.find(".alert-file-request").text()).toContain(
+      "There have been new submissions since you last downloaded the file archive for this assignment."
+    );
+    expect(wrapper.find(".alert-file-request a").text()).toContain("Click here to download a new archive");
+  });
+
+  it("prepares a new archive from the outdated alert's link", async () => {
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 3,
+      title: "Assignment 1",
+      treatments: [treatmentFile]
+    });
+    assignmentFileArchiveService.poll.mockResolvedValue({ id: 1, status: "OUTDATED" });
+    assignmentFileArchiveService.prepare.mockResolvedValueOnce({ id: 2, status: "PROCESSING" });
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    await wrapper.find(".alert-file-request a").trigger("click");
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(assignmentFileArchiveService.prepare).toHaveBeenCalledWith("1", "2", "3");
+    expect(assignmentFileArchiveService.retrieve).not.toHaveBeenCalled();
+    expect(wrapper.find(".alert-file-request").text()).toContain(
+      "Your file archive is being prepared. Please wait."
+    );
+  });
+
+  it("acknowledges the outdated archive when its alert is dismissed", async () => {
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 3,
+      title: "Assignment 1",
+      treatments: [treatmentFile]
+    });
+    assignmentFileArchiveService.poll.mockResolvedValueOnce({ id: 1, status: "OUTDATED" });
+    assignmentFileArchiveService.acknowledgeOutdated.mockResolvedValueOnce({});
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    await wrapper.findComponent({ name: "VAlert" }).vm.$emit("click:close");
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    expect(assignmentFileArchiveService.acknowledgeOutdated).toHaveBeenCalledWith("1", "2", "3", 1);
+    expect(wrapper.find(".alert-file-request").exists()).toBe(false);
+    expect(wrapper.find(".file-archive-status").exists()).toBe(false);
+  });
+
+  it("doesn't acknowledge anything when a non-outdated alert is dismissed", async () => {
+    assignmentService.fetchAssignment.mockResolvedValue({
+      assignmentId: 3,
+      title: "Assignment 1",
+      treatments: [treatmentFile]
+    });
+    assignmentFileArchiveService.poll.mockResolvedValueOnce({ id: 1, status: "READY" });
+
+    const wrapper = mount();
+    await flushPromises();
+    await wrapper.vm.$nextTick();
+
+    await wrapper.findComponent({ name: "VAlert" }).vm.$emit("click:close");
+    await flushPromises();
+
+    expect(assignmentFileArchiveService.acknowledgeOutdated).not.toHaveBeenCalled();
   });
 
   it("dismisses the file-request alert via the alert's close control", async () => {

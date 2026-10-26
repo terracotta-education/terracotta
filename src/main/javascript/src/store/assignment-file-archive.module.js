@@ -7,6 +7,7 @@ const normalizeFileRequest = fileRequest => ({
   downloaded: fileRequest?.status === "DOWNLOADED",
   error: fileRequest?.status === "ERROR",
   outdated: fileRequest?.status === "OUTDATED",
+  outdatedAcknowledged: fileRequest?.status === "OUTDATED_ACKNOWLEDGED",
   processing: fileRequest?.status === "PROCESSING",
   ready: fileRequest?.status === "READY",
   reprocessing: fileRequest?.status === "REPROCESSING"
@@ -57,6 +58,25 @@ export const assignmentFileArchive = defineStore("assignmentFileArchive", {
         this.fileRequest = null;
       } catch (e) {
         console.error("acknowledgeError catch", e);
+      }
+    },
+
+    async acknowledgeOutdated(payload) {
+      try {
+        const response =
+          await assignmentFileArchiveService.acknowledgeOutdated(...payload);
+
+        if (response?.error) {
+          return;
+        }
+
+        // the archive is still there, just no longer flagged as outdated
+        this.fileRequest = normalizeFileRequest({
+          ...this.fileRequest,
+          status: "OUTDATED_ACKNOWLEDGED"
+        });
+      } catch (e) {
+        console.error("acknowledgeOutdated catch", e);
       }
     },
 

@@ -134,6 +134,7 @@ public class MessagingSchedulerServiceImpl implements MessagingSchedulerService 
                             break;
                         case EMAIL:
                             try {
+                                // deepcode ignore Ssrf: MessageEmailServiceImpl only fetches attachment URLs on the platform LMS host, other sends go to SES
                                 messageEmailService.send(freshMessage);
                                 messageReadyToSend.getConfiguration().setStatus(MessageStatus.SENT);
                             } catch (Exception e) {

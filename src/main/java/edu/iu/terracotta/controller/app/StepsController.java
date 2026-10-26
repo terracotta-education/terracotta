@@ -1,5 +1,7 @@
 package edu.iu.terracotta.controller.app;
 
+import edu.iu.terracotta.security.app.roles.NoRoleRequired;
+import edu.iu.terracotta.security.app.roles.RoleCheckedInHandler;
 import edu.iu.terracotta.connectors.generic.dao.entity.lms.LmsUserBatchStatus;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
@@ -87,6 +89,7 @@ public class StepsController {
     private final ExperimentService experimentService;
 
     @PostMapping
+    @RoleCheckedInHandler("each step requires a different role - checked by its handleXxx method")
     public ResponseEntity<Object> postStep(@PathVariable("experimentId") UUID experimentUuid,
                                             @RequestParam(name = "preferLmsChecks", defaultValue = "false") boolean preferLmsChecks,
                                            @RequestBody StepDto stepDto,
@@ -244,6 +247,7 @@ public class StepsController {
                 return new ResponseEntity<>(TextConstants.ASSIGNMENT_NOT_MATCHING + " : " + assignmentId, HttpStatus.NOT_FOUND);
             }
 
+            // deepcode ignore Ssrf: grades go to the AGS line item and token endpoints of the platform, which come from the stored PlatformDeployment and the verified LTI launch claims, never from this request
             assignmentService.sendAssignmentGradeToLms(assignment.get());
         }
 
@@ -318,6 +322,7 @@ public class StepsController {
     }
 
     @GetMapping("/status/{batchId}")
+    @NoRoleRequired("polls a participant-preparation batch in an experiment the caller is allowed into (experimentAllowed)")
     public ResponseEntity<Object> getStepStatus(@PathVariable("experimentId") UUID experimentUuid, @PathVariable UUID batchId, HttpServletRequest req) throws BadTokenException, ExperimentNotMatchingException, TerracottaConnectorException {
         long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
         SecuredInfo securedInfo = apijwtService.extractValues(req, false);

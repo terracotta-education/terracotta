@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import edu.iu.terracotta.security.app.roles.InstructorOrHigher;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
@@ -54,6 +55,7 @@ public class AssignmentFileArchiveController {
     private final AssignmentService assignmentService;
 
     @GetMapping
+    @InstructorOrHigher
     public ResponseEntity<AssignmentFileArchiveDto> files(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -68,14 +70,11 @@ public class AssignmentFileArchiveController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         return new ResponseEntity<>(assignmentFileArchiveService.process(assignment, securedInfo), HttpStatus.ACCEPTED);
     }
 
     @GetMapping("/poll")
+    @InstructorOrHigher
     public ResponseEntity<AssignmentFileArchiveDto> poll(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -91,18 +90,15 @@ public class AssignmentFileArchiveController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         try {
             return new ResponseEntity<>(assignmentFileArchiveService.poll(assignment, securedInfo, createNewOnOutdated), HttpStatus.OK);
-        } catch (AssignmentFileArchiveNotFoundException e) {
+        } catch (AssignmentFileArchiveNotFoundException _) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
     }
 
     @GetMapping("/{fileId}/retrieve")
+    @InstructorOrHigher
     public ResponseEntity<Resource> retrieve(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -118,10 +114,6 @@ public class AssignmentFileArchiveController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         AssignmentFileArchiveDto assignmentFileArchiveDto = assignmentFileArchiveService.retrieve(fileId, assignment, securedInfo);
 
         if (assignmentFileArchiveDto.getFile() == null) {
@@ -134,10 +126,39 @@ public class AssignmentFileArchiveController {
             .contentType(MediaType.parseMediaType(assignmentFileArchiveDto.getMimeType()))
             .contentLength(assignmentFileArchiveDto.getFile().length())
             .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(assignmentFileArchiveDto.getFileName(), StandardCharsets.UTF_8).build().toString())
+            // deepcode ignore PT: the archive file is resolved from its server generated file URI, the request only supplies UUIDs used for lookups
             .body(new InputStreamResource(new FileInputStream(assignmentFileArchiveDto.getFile())));
     }
 
+    // dismisses the "new uploads since the last archive" indicator until there are newer uploads
+    @PutMapping("/{fileId}/outdated/acknowledge")
+    @InstructorOrHigher
+    public ResponseEntity<Void> outdatedAcknowledge(@PathVariable("experimentId") UUID experimentUuid,
+                                                    @PathVariable("exposureId") UUID exposureUuid,
+                                                    @PathVariable("assignmentId") UUID assignmentUuid,
+                                                    @PathVariable UUID fileId,
+                                                    HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, AssignmentNotMatchingException, AssessmentNotMatchingException, NumberFormatException,
+                TerracottaConnectorException, ExposureNotMatchingException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        long exposureId = exposureService.getExposureIdByUuid(exposureUuid);
+        long assignmentId = assignmentService.getAssignmentIdByUuid(assignmentUuid);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+        apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
+        Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
+
+        try {
+            assignmentFileArchiveService.outdatedAcknowledge(fileId, assignment);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (AssignmentFileArchiveNotFoundException _) {
+            log.warn("Assignment file archive with ID: [{}] and assignment ID: [{}] not found.", fileId, assignment.getAssignmentId());
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
     @PutMapping("/{fileId}/error/acknowledge")
+    @InstructorOrHigher
     public ResponseEntity<Void> errorAcknowledge(@PathVariable("experimentId") UUID experimentUuid,
                                                        @PathVariable("exposureId") UUID exposureUuid,
                                                        @PathVariable("assignmentId") UUID assignmentUuid,
@@ -153,14 +174,10 @@ public class AssignmentFileArchiveController {
         apijwtService.exposureAllowed(securedInfo, experimentId, exposureId);
         Assignment assignment = apijwtService.assignmentAllowed(securedInfo, experimentId, exposureId, assignmentId);
 
-        if (!apijwtService.isInstructorOrHigher(securedInfo)) {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
-
         try {
             assignmentFileArchiveService.errorAcknowledge(fileId, assignment);
             return new ResponseEntity<>(HttpStatus.OK);
-        } catch (AssignmentFileArchiveNotFoundException e) {
+        } catch (AssignmentFileArchiveNotFoundException _) {
             log.warn("Assignment file archive with ID: [{}] and assignment ID: [{}] not found.", fileId, assignment.getAssignmentId());
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }

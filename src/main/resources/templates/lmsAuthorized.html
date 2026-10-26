@@ -25,26 +25,15 @@
 </head>
 <body>
 <!--
-  Shown when the LMS returns from authorization. The authorization page saved the session the
-  Terracotta frame had before it left for the LMS (see OAuth2Redirect.vue); with it, Terracotta
-  picks up where it was. Without it (authorization opened in another tab, say), there's nothing
-  to resume, so ask for a relaunch.
+  Shown in the popup or tab the Terracotta frame opened for LMS authorization. The frame is
+  polling for the token just saved and continues by itself, so this window only needs to go away.
+  A popup can close itself; a tab opened from a link (or by right click) can't, so say so.
 -->
 <h1>Terracotta is authorized</h1>
-<p id="relaunch" hidden>Return to your course and open Terracotta again.</p>
+<p>You can close this tab and return to your course.</p>
 <script>
-    var resumable = false;
-
-    try {
-        resumable = !!sessionStorage.getItem("lmsAuthorizationResume");
-    } catch (e) {
-        // storage blocked: nothing to resume
-    }
-
-    if (resumable) {
-        window.location.replace("/app/app.html");
-    } else {
-        document.getElementById("relaunch").hidden = false;
+    if (window.opener) {
+        window.close();
     }
 </script>
 </body>

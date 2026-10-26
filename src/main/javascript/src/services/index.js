@@ -18,6 +18,7 @@ export * from "./dashboard/results.service";
 export * from "./preview/preview.service";
 export * from "./assignment-file-archive.service";
 export * from "./configuration.service";
+export * from "./lms-authorization.service";
 export * from "./messaging/container.service";
 export * from "./messaging/message.service";
 export * from "./messaging/attachment.service";
