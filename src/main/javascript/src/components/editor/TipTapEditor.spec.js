@@ -259,6 +259,48 @@ describe("TipTapEditor", () => {
     other.unmount();
   });
 
+  describe("adding a link", () => {
+    const submitLink = async (wrapper, url) => {
+      wrapper.findComponent({ name: "ToolBar" }).vm.$.setupState.handleLinkDialogSubmit(url);
+      await waitForEditor(wrapper);
+
+      return wrapper.emitted("edited").at(-1)[0];
+    };
+
+    const tiptap = wrapper => wrapper.vm.$.setupState.editor;
+
+    // nothing selected: the address itself becomes the link's text
+    it("inserts the address as linked text when nothing is selected", async () => {
+      wrapper = await mountEditor({ props: { editorType: "html", content: "<p>See </p>" } });
+      tiptap(wrapper).commands.focus("end");
+
+      const html = await submitLink(wrapper, "https://example.com");
+
+      expect(html).toContain('<a target="_blank" rel="noopener noreferrer nofollow" href="https://example.com">https://example.com</a>');
+    });
+
+    it("keeps what's typed after an inserted link out of it", async () => {
+      wrapper = await mountEditor({ props: { editorType: "html", content: "<p>See </p>" } });
+      tiptap(wrapper).commands.focus("end");
+
+      await submitLink(wrapper, "https://example.com");
+      tiptap(wrapper).commands.insertContent(" now");
+      await waitForEditor(wrapper);
+
+      expect(wrapper.emitted("edited").at(-1)[0]).toContain("https://example.com</a> now</p>");
+    });
+
+    it("turns the selected text into the link", async () => {
+      wrapper = await mountEditor({ props: { editorType: "html", content: "<p>Google</p>" } });
+      tiptap(wrapper).commands.selectAll();
+
+      const html = await submitLink(wrapper, "https://www.google.com");
+
+      expect(html).toContain('href="https://www.google.com">Google</a>');
+      expect(html).not.toContain(">https://www.google.com</a>");
+    });
+  });
+
   it("emits cursor on mount", async () => {
     wrapper = await mountEditor({
       props: {
