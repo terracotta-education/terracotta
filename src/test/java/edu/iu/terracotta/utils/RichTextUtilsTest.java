@@ -19,6 +19,26 @@ public class RichTextUtilsTest {
         assertFalse(RichTextUtils.isRichText(null));
     }
 
+    // the export is plain text, so a link keeps its address beside its words
+    @Test
+    public void testGivesALinkWithItsAddress() {
+        assertEquals(
+            "See Google (https://www.google.com) or https://example.com.",
+            RichTextUtils.toPlainText(
+                "<p>See <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"https://www.google.com\">Google</a>"
+                + " or <a href=\"https://example.com\">https://example.com</a>.</p>"
+            )
+        );
+    }
+
+    @Test
+    public void testKeepsFormattingInsideALinkAndLinksInLists() {
+        assertEquals(
+            "- the bold docs (https://example.com/docs)",
+            RichTextUtils.toPlainText("<ul><li><p>the <a href=\"https://example.com/docs\"><strong>bold</strong> docs</a></p></li></ul>")
+        );
+    }
+
     // a video has no text, so the export gives the address it plays from
     @Test
     public void testGivesAVideoAsItsAddress() {

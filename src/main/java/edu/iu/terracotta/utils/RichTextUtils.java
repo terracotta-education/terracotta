@@ -113,11 +113,28 @@ public class RichTextUtils {
             if (node instanceof TextNode textNode) {
                 text.append(textNode.getWholeText());
             } else if (node instanceof Element child) {
-                text.append("br".equals(child.normalName()) ? "\n" : inlineText(child));
+                switch (child.normalName()) {
+                    case "br" -> text.append("\n");
+                    case "a" -> text.append(linkText(child));
+                    default -> text.append(inlineText(child));
+                }
             }
         }
 
         return text.toString();
+    }
+
+    // a link's words and where it goes: "words (https://...)", or just the address when the words are
+    // the address
+    private String linkText(Element link) {
+        String words = inlineText(link);
+        String href = link.attr("href").strip();
+
+        if (href.isEmpty() || href.equals(words.strip())) {
+            return words.isBlank() ? href : words;
+        }
+
+        return words.isBlank() ? href : String.format("%s (%s)", words, href);
     }
 
 }
