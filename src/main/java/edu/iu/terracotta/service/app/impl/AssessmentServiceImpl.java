@@ -9,6 +9,7 @@ import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.Condition;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.Question;
@@ -92,12 +93,15 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -345,7 +349,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 }
             }
 
-            assessmentDto.setSubmissionsExpected(participantRepository.countDistinctByGroup_GroupId(groupId));
+            assessmentDto.setSubmissionsExpected(countExpectedSubmitters(assessment, groupId, participantStatus.keySet()));
             assessmentDto.setSubmissionsCompletedCount(submissionsCompletedCount);
             assessmentDto.setSubmissionsInProgressCount(submissionsInProgressCount);
         }
@@ -699,6 +703,52 @@ public class AssessmentServiceImpl implements AssessmentService {
         questionService.duplicateQuestionsForAssessment(oldAssessmentId, newAssessment);
 
         return newAssessment;
+    }
+
+    /**
+     * How many students this version of the assignment is given to (getAssessmentForParticipant and
+     * retrieveTreatmentAssessment decide that), not only its group: the default condition's version
+     * also goes to students who haven't consented, and to the groups whose condition has no version
+     * of this assignment. Test and dropped students aren't counted, and anyone who submitted it is,
+     * so the submissions completed can't outnumber this.
+     */
+    private long countExpectedSubmitters(Assessment assessment, Long groupId, Collection<Participant> submitters) {
+        Treatment treatment = assessment.getTreatment();
+        Long conditionId = treatment.getCondition().getConditionId();
+        boolean defaultCondition = BooleanUtils.isTrue(treatment.getCondition().getDefaultCondition());
+        Exposure exposure = treatment.getAssignment().getExposure();
+
+        Set<Long> conditionsWithVersion = treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(treatment.getAssignment().getAssignmentId()).stream()
+            .map(assignmentTreatment -> assignmentTreatment.getCondition().getConditionId())
+            .collect(Collectors.toSet());
+        Map<Long, Long> conditionIdByGroupId = exposureGroupConditionRepository.findByExposure_ExposureId(exposure.getExposureId()).stream()
+            .collect(Collectors.toMap(egc -> egc.getGroup().getGroupId(), egc -> egc.getCondition().getConditionId(), (first, second) -> first));
+
+        Set<Long> expected = participantRepository.findByExperiment_ExperimentId(exposure.getExperiment().getExperimentId()).stream()
+            .filter(participant -> !participant.isTestStudent() && BooleanUtils.isNotTrue(participant.getDropped()))
+            .filter(participant -> {
+                if (BooleanUtils.isNotTrue(participant.getConsent())) {
+                    return defaultCondition;
+                }
+
+                if (participant.getGroup() == null) {
+                    return false;
+                }
+
+                if (participant.getGroup().getGroupId().equals(groupId)) {
+                    return true;
+                }
+
+                Long groupConditionId = conditionIdByGroupId.get(participant.getGroup().getGroupId());
+
+                return defaultCondition && groupConditionId != null && !groupConditionId.equals(conditionId) && !conditionsWithVersion.contains(groupConditionId);
+            })
+            .map(Participant::getParticipantId)
+            .collect(Collectors.toCollection(HashSet::new));
+
+        submitters.forEach(submitter -> expected.add(submitter.getParticipantId()));
+
+        return expected.size();
     }
 
     @Override
