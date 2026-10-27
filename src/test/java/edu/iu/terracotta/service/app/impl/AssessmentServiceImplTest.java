@@ -28,12 +28,16 @@ import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
 import edu.iu.terracotta.dao.entity.Assessment;
+import edu.iu.terracotta.dao.entity.Condition;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.dao.entity.ExposureGroupCondition;
+import edu.iu.terracotta.dao.entity.Group;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.RegradeDetails;
 import edu.iu.terracotta.dao.entity.RetakeDetails;
 import edu.iu.terracotta.dao.entity.Submission;
+import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.exceptions.AssessmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
@@ -332,6 +336,89 @@ public class AssessmentServiceImplTest extends BaseTest {
         assertNotNull(assessmentDto);
         assertNull(assessmentDto.getIntegrationPreviewUrl());
         verifyNoInteractions(integrationLaunchParameterService, integrationService);
+    }
+
+    // the status tab's "submissions / expected": expected is everyone this version is given to
+
+    private Participant participantMock(long id, Boolean consent, Group participantGroup, boolean testStudent, boolean dropped) {
+        Participant mockParticipant = mock(Participant.class);
+        when(mockParticipant.getParticipantId()).thenReturn(id);
+        when(mockParticipant.getConsent()).thenReturn(consent);
+        when(mockParticipant.getGroup()).thenReturn(participantGroup);
+        when(mockParticipant.isTestStudent()).thenReturn(testStudent);
+        when(mockParticipant.getDropped()).thenReturn(dropped);
+
+        return mockParticipant;
+    }
+
+    private long expectedSubmissions(boolean defaultCondition, boolean otherConditionHasAVersion, List<Submission> submissions) throws AssessmentNotMatchingException {
+        when(condition.getDefaultCondition()).thenReturn(defaultCondition);
+
+        Group otherGroup = mock(Group.class);
+        when(otherGroup.getGroupId()).thenReturn(2L);
+        Condition otherCondition = mock(Condition.class);
+        when(otherCondition.getConditionId()).thenReturn(2L);
+        ExposureGroupCondition otherExposureGroupCondition = mock(ExposureGroupCondition.class);
+        when(otherExposureGroupCondition.getGroup()).thenReturn(otherGroup);
+        when(otherExposureGroupCondition.getCondition()).thenReturn(otherCondition);
+        when(exposureGroupConditionRepository.findByExposure_ExposureId(anyLong())).thenReturn(List.of(exposureGroupCondition, otherExposureGroupCondition));
+
+        Treatment otherTreatment = mock(Treatment.class);
+        when(otherTreatment.getCondition()).thenReturn(otherCondition);
+        when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong()))
+            .thenReturn(otherConditionHasAVersion ? List.of(treatment, otherTreatment) : List.of(treatment));
+
+        List<Participant> participants = List.of(
+            participantMock(10L, true, group, false, false),
+            participantMock(11L, true, otherGroup, false, false),
+            participantMock(12L, false, null, false, false),
+            participantMock(13L, null, null, false, false),
+            participantMock(14L, true, group, true, false),
+            participantMock(15L, true, group, false, true)
+        );
+        when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(participants);
+        when(assessment.getSubmissions()).thenReturn(submissions);
+
+        return assessmentService.toDto(assessment, false, false, true, false, securedInfo).getSubmissionsExpected();
+    }
+
+    @Test
+    public void testExpectedCountsOnlyItsGroupWhenEveryConditionHasAVersion() throws AssessmentNotMatchingException {
+        assertEquals(1L, expectedSubmissions(false, true, List.of()));
+    }
+
+    // students who haven't consented get the default condition's version
+    @Test
+    public void testDefaultConditionExpectsStudentsWithoutConsent() throws AssessmentNotMatchingException {
+        assertEquals(3L, expectedSubmissions(true, true, List.of()));
+    }
+
+    // a condition without its own version of the assignment gets the default condition's
+    @Test
+    public void testSingleVersionAssignmentExpectsEveryGroup() throws AssessmentNotMatchingException {
+        assertEquals(4L, expectedSubmissions(true, false, List.of()));
+    }
+
+    // someone who submitted is counted even when their group no longer points here, so a status of
+    // "1 / 0" can't happen
+    @Test
+    public void testExpectedIncludesEveryoneWhoSubmitted() throws AssessmentNotMatchingException {
+        Participant groupless = participantMock(20L, true, null, false, false);
+        Submission submitted = mock(Submission.class);
+        when(submitted.getParticipant()).thenReturn(groupless);
+        when(submitted.getDateSubmitted()).thenReturn(Timestamp.from(Instant.now()));
+
+        AssessmentDto assessmentDto;
+        when(condition.getDefaultCondition()).thenReturn(false);
+        when(exposureGroupConditionRepository.findByExposure_ExposureId(anyLong())).thenReturn(List.of(exposureGroupCondition));
+        when(treatmentRepository.findByAssignment_AssignmentIdOrderByCondition_ConditionIdAsc(anyLong())).thenReturn(List.of(treatment));
+        when(participantRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(List.of(groupless));
+        when(assessment.getSubmissions()).thenReturn(List.of(submitted));
+
+        assessmentDto = assessmentService.toDto(assessment, false, false, true, false, securedInfo);
+
+        assertEquals(1L, assessmentDto.getSubmissionsCompletedCount());
+        assertEquals(1L, assessmentDto.getSubmissionsExpected());
     }
 
     @Test
