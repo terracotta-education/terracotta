@@ -322,4 +322,150 @@ describe("OutcomeScoring", () => {
 
     expect(wrapper.text()).not.toContain("Score must be");
   });
+
+  const savedScoreFor = participantId => {
+    return outcomeService.updateOutcomeScores.mock.calls[0][3]
+      .find(score => score.participantId === participantId);
+  };
+
+  it("saves a cleared score as empty", async () => {
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    const input = wrapper.find('input[name="1"]');
+    await input.setValue("42");
+    await input.setValue("");
+
+    await wrapper.vm.saveExit();
+    await flush();
+
+    expect(savedScoreFor(1).scoreNumeric).toBeNull();
+  });
+
+  it("shows an empty field for a score saved as empty", async () => {
+    outcomeService.getOutcomeScoresById.mockResolvedValue({
+      status: 200,
+      data: [
+        { outcomeId: "30", participantId: 1, outcomeScoreId: 1, scoreNumeric: null }
+      ]
+    });
+
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    const input = wrapper.find('input[name="1"]');
+    expect(input.element.value).toBe("");
+    expect(input.attributes("placeholder")).toBe("---");
+  });
+
+  it("starts a student with no saved score at 0", async () => {
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('input[name="2"]').element.value).toBe("0");
+
+    await wrapper.vm.saveExit();
+    await flush();
+
+    expect(savedScoreFor(2)).toEqual({ experimentId: "10", participantId: 2, scoreNumeric: 0 });
+  });
+
+  it("accepts a score equal to the total points", async () => {
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    const input = wrapper.find('input[name="1"]');
+    await input.trigger("focus");
+    await input.setValue("100");
+    await input.trigger("blur");
+    await flush();
+
+    expect(wrapper.text()).not.toContain("Score must be");
+
+    await wrapper.vm.saveExit();
+    await flush();
+
+    expect(swal).not.toHaveBeenCalled();
+    expect(savedScoreFor(1).scoreNumeric).toBe(100);
+  });
+
+  it("doesn't flag empty scores when the total points field loses focus", async () => {
+    outcomeService.getOutcomeScoresById.mockResolvedValue({
+      status: 200,
+      data: [
+        { outcomeId: "30", participantId: 1, outcomeScoreId: 1, scoreNumeric: null },
+        { outcomeId: "30", participantId: 2, outcomeScoreId: 2, scoreNumeric: null }
+      ]
+    });
+
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    const totalPoints = wrapper.find('input[name="outcomeMaxPoints"]');
+    await totalPoints.trigger("focus");
+    await totalPoints.setValue("5");
+    await totalPoints.trigger("blur");
+    await flush();
+
+    expect(wrapper.text()).not.toContain("Score must be");
+  });
+
+  it("blocks save with the validation popup when the total points are negative", async () => {
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    await wrapper.find('input[name="outcomeMaxPoints"]').setValue("-1");
+    await wrapper.vm.saveExit();
+
+    expect(swal).toHaveBeenCalledWith({
+      text: "We could not update the outcome due to validation errors. Please check your scores entered and try again.",
+      icon: "error"
+    });
+    expect(outcomeService.updateOutcome).not.toHaveBeenCalled();
+  });
+
+  it("leaves out students with no name", async () => {
+    participantService.getAll.mockResolvedValue([
+      ...participants,
+      { participantId: 3, user: { displayName: null } }
+    ]);
+
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findAll("tbody tr")).toHaveLength(2);
+    expect(wrapper.find('input[name="3"]').exists()).toBe(false);
+  });
+
+  it("saves a typed score in place of the saved one, keeping its id", async () => {
+    outcomeService.getOutcomeScoresById.mockResolvedValue({
+      status: 200,
+      data: [
+        { outcomeId: "30", participantId: 1, outcomeScoreId: 7, scoreNumeric: 80 }
+      ]
+    });
+
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    await wrapper.find('input[name="1"]').setValue("90");
+    await wrapper.vm.saveExit();
+    await flush();
+
+    expect(savedScoreFor(1)).toEqual({
+      experimentId: "10",
+      participantId: 1,
+      outcomeScoreId: 7,
+      outcomeId: "30",
+      scoreNumeric: 90
+    });
+  });
 });
