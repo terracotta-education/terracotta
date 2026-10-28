@@ -21,6 +21,32 @@ describe("MultipleChoiceResponseEditor", () => {
     expect(wrapper.text()).toContain("Answer two");
   });
 
+  // screen readers: one group of options named by the question, so they're read as "1 of 2" and
+  // the arrow keys move the selection between them
+  it("puts all the answers in one radio group named by the question", () => {
+    const wrapper = mountComponent(MultipleChoiceResponseEditor, {
+      props: { answers, modelValue: 2, labelledby: "question-5-text" }
+    });
+
+    const groups = wrapper.findAll("[role=\"radiogroup\"]");
+    expect(groups).toHaveLength(1);
+    expect(groups[0].attributes("aria-labelledby")).toBe("question-5-text");
+
+    const radios = wrapper.findAll("input[type=\"radio\"]");
+    expect(radios).toHaveLength(2);
+    expect(radios[0].attributes("name")).toBeTruthy();
+    expect(radios[1].attributes("name")).toBe(radios[0].attributes("name"));
+    expect(radios[1].element.checked).toBe(true);
+  });
+
+  it("names each radio by its answer's text, without markup", () => {
+    const wrapper = mountComponent(MultipleChoiceResponseEditor, {
+      props: { answers: [{ answerId: 1, html: "<p>A <strong>big</strong> dog</p>" }] }
+    });
+
+    expect(wrapper.find("input[type=\"radio\"]").attributes("aria-label")).toBe("A big dog");
+  });
+
   it("emits update:modelValue with the selected answerId when editable", async () => {
     const wrapper = mountComponent(MultipleChoiceResponseEditor, {
       props: {
@@ -51,13 +77,11 @@ describe("MultipleChoiceResponseEditor", () => {
       }
     });
 
-    let radioGroups = wrapper.findAllComponents({ name: "VRadioGroup" });
-    expect(radioGroups[0].props("modelValue")).toBe(1);
+    expect(wrapper.findComponent({ name: "VRadioGroup" }).props("modelValue")).toBe(1);
 
     await wrapper.setProps({ modelValue: 2 });
 
-    radioGroups = wrapper.findAllComponents({ name: "VRadioGroup" });
-    expect(radioGroups[1].props("modelValue")).toBe(2);
+    expect(wrapper.findComponent({ name: "VRadioGroup" }).props("modelValue")).toBe(2);
   });
 
   it("disables the radio group and binds to studentResponse when readonly", () => {
@@ -71,10 +95,10 @@ describe("MultipleChoiceResponseEditor", () => {
       }
     });
 
-    const radioGroups = wrapper.findAllComponents({ name: "VRadioGroup" });
+    const radioGroup = wrapper.findComponent({ name: "VRadioGroup" });
 
-    expect(radioGroups[0].props("disabled")).toBe(true);
-    expect(radioGroups[0].props("modelValue")).toBe(1);
+    expect(radioGroup.props("disabled")).toBe(true);
+    expect(radioGroup.props("modelValue")).toBe(1);
   });
 
   it("shows 'Student Response' decorator with a green border for a correct, chosen answer", () => {
