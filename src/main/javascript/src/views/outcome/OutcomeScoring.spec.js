@@ -172,7 +172,7 @@ describe("OutcomeScoring", () => {
 
     expect(swal).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: "Could not update outcome due to entered data.",
+        text: "We could not update the outcome due to validation errors. Please check your scores entered and try again.",
         icon: "error"
       })
     );
@@ -268,5 +268,26 @@ describe("OutcomeScoring", () => {
 
     expect(swal).toHaveBeenCalled();
     expect(outcomeService.updateOutcome).not.toHaveBeenCalled();
+  });
+  it("flags a score greater than the total points when the field loses focus", async () => {
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    const message = "The score cannot be greater than the total points";
+    const input = wrapper.find('input[name="2"]');
+    await input.trigger("focus");
+    await input.setValue("101");
+    expect(wrapper.text()).not.toContain(message);
+
+    await input.trigger("blur");
+    await flush();
+    expect(wrapper.text()).toContain(message);
+
+    await input.trigger("focus");
+    await input.setValue("100");
+    await input.trigger("blur");
+    await flush();
+    expect(wrapper.text()).not.toContain(message);
   });
 });

@@ -66,9 +66,11 @@
                     :model-value="getParticipantScore(participant).scoreNumeric"
                     :name="String(participant.participantId)"
                     :aria-label="`Numeric score for ${participant.user.displayName}`"
+                    :rules="scoreRule"
                     type="number"
                     placeholder="---"
                     style="max-width: 150px;"
+                    validate-on="blur"
                     required
                     @update:model-value="value => setParticipantScore(participant, value)"
                   />
@@ -127,6 +129,12 @@ const numberRule = [
   value => value && !Number.isNaN(value) || "required",
   value => !Number.isNaN(Number.parseFloat(value)) && value >= 0 ||
     "The point value cannot be negative"
+];
+
+const scoreIsTooHigh = value => value !== null && value !== "" && Number(value) > Number(outcome.value.maxPoints);
+
+const scoreRule = [
+  value => !scoreIsTooHigh(value) || "The score cannot be greater than the total points"
 ];
 
 const experiment = computed(() => {
@@ -249,7 +257,7 @@ const exitDisabled = computed(() => {
     outcome.value.title.length > 255 ||
     outcome.value.maxPoints < 0 ||
     participantScoreList.value
-      .some(score => score.scoreNumeric > outcome.value.maxPoints)
+      .some(score => scoreIsTooHigh(score.scoreNumeric))
   );
 });
 
@@ -264,7 +272,7 @@ const setParticipantScore = (participant, value) => {
 const saveExit = async () => {
   if (exitDisabled.value) {
     Swal.fire({
-      text: "Could not update outcome due to entered data.",
+      text: "We could not update the outcome due to validation errors. Please check your scores entered and try again.",
       icon: "error"
     });
 
