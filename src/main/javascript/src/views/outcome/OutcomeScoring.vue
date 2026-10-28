@@ -32,6 +32,7 @@
             label="Total Points"
             variant="outlined"
             required
+            @blur="validateScores"
           />
         </v-col>
       </v-row>
@@ -63,6 +64,7 @@
 
                 <td v-if="participantScoreList.length">
                   <v-text-field
+                    ref="scoreFields"
                     :model-value="getParticipantScore(participant).scoreNumeric"
                     :name="String(participant.participantId)"
                     :aria-label="`Numeric score for ${participant.user.displayName}`"
@@ -88,7 +90,8 @@
 import {
   computed,
   onMounted,
-  reactive
+  reactive,
+  useTemplateRef
 } from "vue";
 
 import {
@@ -263,6 +266,13 @@ const exitDisabled = computed(() => {
 
 const getParticipantScore = participant => {
   return participantScoreMap.value.get(participant.participantId);
+};
+
+const scoreFields = useTemplateRef("scoreFields");
+
+// a change to the total points can put scores already entered over it, or back under it
+const validateScores = () => {
+  (scoreFields.value || []).forEach(field => field.validate());
 };
 
 const setParticipantScore = (participant, value) => {

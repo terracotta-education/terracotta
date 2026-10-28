@@ -290,4 +290,36 @@ describe("OutcomeScoring", () => {
     await flush();
     expect(wrapper.text()).not.toContain(message);
   });
+
+  it("checks every score again when the total points field loses focus", async () => {
+    outcomeService.getOutcomeScoresById.mockResolvedValue({
+      status: 200,
+      data: [
+        { outcomeId: "30", participantId: 1, outcomeScoreId: 1, scoreNumeric: 80 },
+        { outcomeId: "30", participantId: 2, outcomeScoreId: 2, scoreNumeric: 40 }
+      ]
+    });
+
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    const message = "The score cannot be greater than the total points";
+    const totalPoints = wrapper.find('input[name="outcomeMaxPoints"]');
+
+    await totalPoints.trigger("focus");
+    await totalPoints.setValue("50");
+    await totalPoints.trigger("blur");
+    await flush();
+
+    // only Bob's 80 is over 50
+    expect(wrapper.findAll(".v-messages__message").map(node => node.text())).toEqual([message]);
+
+    await totalPoints.trigger("focus");
+    await totalPoints.setValue("100");
+    await totalPoints.trigger("blur");
+    await flush();
+
+    expect(wrapper.text()).not.toContain(message);
+  });
 });
