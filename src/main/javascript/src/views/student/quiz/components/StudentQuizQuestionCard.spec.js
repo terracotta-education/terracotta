@@ -73,6 +73,8 @@ describe("StudentQuizQuestionCard", () => {
     const editor = wrapper.findComponent({ name: "MultipleChoiceResponseEditor" });
     expect(editor.exists()).toBe(true);
     expect(editor.props("answers")).toEqual(question.answers);
+    // the answers are named by the question's text
+    expect(wrapper.find(`#${editor.props("labelledby")}`).exists()).toBe(true);
 
     const radioInputs = wrapper.findAll("input[type=\"radio\"]");
     await radioInputs[1].setValue(true);

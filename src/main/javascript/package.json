@@ -51,6 +51,7 @@
     "zipcelx": "^1.6.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^10.0.1",
     "@mdi/font": "^7.4.47",
     "@mdi/js": "^7.4.47",
