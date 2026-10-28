@@ -63,13 +63,14 @@
 
                 <td v-if="participantScoreList.length">
                   <v-text-field
-                    v-model="getParticipantScore(participant).scoreNumeric"
+                    :model-value="getParticipantScore(participant).scoreNumeric"
                     :name="String(participant.participantId)"
                     :aria-label="`Numeric score for ${participant.user.displayName}`"
                     type="number"
                     placeholder="---"
-                    style="max-width: 50px;"
+                    style="max-width: 150px;"
                     required
+                    @update:model-value="value => setParticipantScore(participant, value)"
                   />
                 </td>
               </tr>
@@ -84,7 +85,8 @@
 <script setup>
 import {
   computed,
-  onMounted
+  onMounted,
+  reactive
 } from "vue";
 
 import {
@@ -199,6 +201,10 @@ const participantFilteredList = computed(() => {
     });
 });
 
+// what the instructor has typed, by participant; kept apart from the list below, which is rebuilt
+// from the store and isn't reactive itself, so a typed score would be lost when the field blurs
+const enteredScores = reactive(new Map());
+
 const participantScoreList = computed(() => {
   const scoreByParticipantId = new Map(
     outcomeScores.value
@@ -218,7 +224,12 @@ const participantScoreList = computed(() => {
     if (score) {
       item.outcomeScoreId = score.outcomeScoreId;
       item.outcomeId = outcomeId.value;
-      item.scoreNumeric = Number.parseInt(score.scoreNumeric, 10);
+      // scores can have decimals; an empty stored score stays empty
+      item.scoreNumeric = score.scoreNumeric ?? null;
+    }
+
+    if (enteredScores.has(participant.participantId)) {
+      item.scoreNumeric = enteredScores.get(participant.participantId);
     }
 
     return item;
@@ -237,14 +248,17 @@ const exitDisabled = computed(() => {
     outcome.value.title.length < 1 ||
     outcome.value.title.length > 255 ||
     outcome.value.maxPoints < 0 ||
-    outcomeScores.value
-      .filter(score => score.outcomeId === outcomeId.value)
+    participantScoreList.value
       .some(score => score.scoreNumeric > outcome.value.maxPoints)
   );
 });
 
 const getParticipantScore = participant => {
   return participantScoreMap.value.get(participant.participantId);
+};
+
+const setParticipantScore = (participant, value) => {
+  enteredScores.set(participant.participantId, value === "" || value === null ? null : Number(value));
 };
 
 const saveExit = async () => {

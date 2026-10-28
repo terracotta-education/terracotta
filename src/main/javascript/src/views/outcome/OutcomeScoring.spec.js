@@ -224,4 +224,49 @@ describe("OutcomeScoring", () => {
       })
     });
   });
+  it("keeps a typed score after the field loses focus, and saves it", async () => {
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    const input = wrapper.find('input[name="1"]');
+    await input.setValue("87.5");
+    await input.trigger("blur");
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('input[name="1"]').element.value).toBe("87.5");
+
+    await wrapper.vm.saveExit();
+    await flush();
+
+    const savedScores = outcomeService.updateOutcomeScores.mock.calls[0][3];
+    expect(savedScores.find(score => score.participantId === 1).scoreNumeric).toBe(87.5);
+  });
+
+  it("keeps decimals in a stored score", async () => {
+    outcomeService.getOutcomeScoresById.mockResolvedValue({
+      status: 200,
+      data: [
+        { outcomeId: "30", participantId: 1, outcomeScoreId: 1, scoreNumeric: 8.5 }
+      ]
+    });
+
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('input[name="1"]').element.value).toBe("8.5");
+  });
+
+  it("blocks save when a typed score exceeds the outcome's max points", async () => {
+    const wrapper = mountView();
+    await flush();
+    await wrapper.vm.$nextTick();
+
+    await wrapper.find('input[name="2"]').setValue("101");
+    await wrapper.vm.saveExit();
+
+    expect(swal).toHaveBeenCalled();
+    expect(outcomeService.updateOutcome).not.toHaveBeenCalled();
+  });
 });
