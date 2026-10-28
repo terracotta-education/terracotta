@@ -137,7 +137,7 @@ const numberRule = [
 const scoreIsTooHigh = value => value !== null && value !== "" && Number(value) > Number(outcome.value.maxPoints);
 
 const scoreRule = [
-  value => !scoreIsTooHigh(value) || "The score cannot be greater than the total points"
+  value => !scoreIsTooHigh(value) || `Score must be ≤ ${outcome.value.maxPoints}`
 ];
 
 const experiment = computed(() => {

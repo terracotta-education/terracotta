@@ -274,7 +274,7 @@ describe("OutcomeScoring", () => {
     await flush();
     await wrapper.vm.$nextTick();
 
-    const message = "The score cannot be greater than the total points";
+    const message = "Score must be ≤ 100";
     const input = wrapper.find('input[name="2"]');
     await input.trigger("focus");
     await input.setValue("101");
@@ -304,7 +304,7 @@ describe("OutcomeScoring", () => {
     await flush();
     await wrapper.vm.$nextTick();
 
-    const message = "The score cannot be greater than the total points";
+    const message = "Score must be ≤ 50";
     const totalPoints = wrapper.find('input[name="outcomeMaxPoints"]');
 
     await totalPoints.trigger("focus");
@@ -320,6 +320,6 @@ describe("OutcomeScoring", () => {
     await totalPoints.trigger("blur");
     await flush();
 
-    expect(wrapper.text()).not.toContain(message);
+    expect(wrapper.text()).not.toContain("Score must be");
   });
 });
