@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { expectNoAccessibilityViolations } from "./support/accessibility.js";
 import { mockApi } from "./support/api.js";
 import { openApp, signIn } from "./support/session.js";
 
@@ -69,4 +70,11 @@ test("a multiple choice question is one group of options that the arrow keys mov
 
   await page.keyboard.press("ArrowUp");
   await expect(question.getByRole("radio", { name: "Collie" })).toBeChecked();
+});
+
+test("a student's quiz has no accessibility problems axe can find", async ({ page }) => {
+  await openQuiz(page);
+
+  await expect(page.getByRole("radiogroup", { name: "Favorite dog?" })).toBeVisible();
+  await expectNoAccessibilityViolations(page);
 });

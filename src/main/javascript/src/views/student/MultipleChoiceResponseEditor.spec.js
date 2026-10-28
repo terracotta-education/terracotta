@@ -215,6 +215,22 @@ describe("MultipleChoiceResponseEditor", () => {
     expect(wrapper.emitted("update:modelValue")).toBeUndefined();
   });
 
+  it("doesn't report a change from the group when readonly", async () => {
+    const wrapper = mountComponent(MultipleChoiceResponseEditor, {
+      props: {
+        answers: [
+          { answerId: 1, html: "Answer one", studentResponse: 1 },
+          { answerId: 2, html: "Answer two", studentResponse: false }
+        ],
+        readonly: true
+      }
+    });
+
+    await wrapper.findComponent({ name: "VRadioGroup" }).vm.$emit("update:modelValue", 2);
+
+    expect(wrapper.emitted("update:modelValue")).toBeFalsy();
+  });
+
   it("ignores row clicks when readonly", async () => {
     const wrapper = mountComponent(MultipleChoiceResponseEditor, {
       props: { answers: answers.map(answer => ({ ...answer, studentResponse: false })), readonly: true }
