@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { expectNoAccessibilityViolations } from "./support/accessibility.js";
 import { mockApi } from "./support/api.js";
 import { openApp, signIn } from "./support/session.js";
 import { EXPERIMENT_ID, configuration } from "./fixtures/experiment.js";
@@ -19,4 +20,5 @@ test("an instructor who has to authorize LMS access goes to the authorization pa
 
   await expect(page.getByText("Terracotta wants to access your Canvas account")).toBeVisible();
   await expect(page.getByRole("link", { name: "Go to the Canvas Authorization Page" })).toHaveAttribute("href", AUTHORIZATION_URL);
+  await expectNoAccessibilityViolations(page);
 });

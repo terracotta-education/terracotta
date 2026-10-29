@@ -46,6 +46,7 @@
             v-if="row.treatments.length === 1"
             location="top"
             content-class="tool-tip-content"
+            aria-label="This component has the same content for all students."
           >
             <template #activator="{ props: tooltipProps }">
               <v-chip
@@ -135,6 +136,7 @@
                     <v-tooltip
                       location="top"
                       content-class="tool-tip-content"
+                      aria-label="There are versions of this component that have not yet been created. Be sure to create all versions before publishing."
                     >
                       <template #activator="{ props: tooltipProps }">
                         <v-chip
@@ -236,6 +238,7 @@
           v-if="statusTooltipText(row)"
           location="top"
           content-class="tool-tip-content"
+          :aria-label="statusTooltipText(row)"
         >
           <template #activator="{ props: tooltipProps }">
             <v-chip
@@ -268,6 +271,7 @@
           v-if="row.dueDate"
           location="top"
           content-class="tool-tip-content"
+          aria-label="A due date has been set for this component in the LMS."
         >
           <template #activator="{ props: tooltipProps }">
             <span v-bind="tooltipProps">{{ dueDate(row) }}</span>

@@ -46,7 +46,16 @@ export const configuration = {
 // the responses the experiment pages need, for mockApi
 export const experimentResponses = [
   [`/api/experiments/${EXPERIMENT_ID}`, experiment],
-  [`/api/experiments/${EXPERIMENT_ID}/exposures`, [{ exposureId: EXPOSURE_ID, title: "Set 1", experimentId: EXPERIMENT_ID }]],
+  [`/api/experiments/${EXPERIMENT_ID}/exposures`, [{
+    exposureId: EXPOSURE_ID,
+    title: "Set 1",
+    experimentId: EXPERIMENT_ID,
+    // which group gets which condition; the pages color each condition from this list
+    groupConditionList: [
+      { groupId: "g1", groupName: "Group A", conditionId: "c1", conditionName: "Condition A" },
+      { groupId: "g2", groupName: "Group B", conditionId: "c2", conditionName: "Condition B" }
+    ]
+  }]],
   [new RegExp(`/exposures/${EXPOSURE_ID}/assignments$`), assignments],
   [/\/conditions$/, conditions],
   ["/api/configuration", configuration]
