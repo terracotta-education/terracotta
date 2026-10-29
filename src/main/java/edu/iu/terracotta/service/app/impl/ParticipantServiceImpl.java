@@ -785,10 +785,20 @@ public class ParticipantServiceImpl implements ParticipantService {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo, experiment.getCreatedBy());
         List<Participant> participants = new ArrayList<>();
+        boolean dataExportOutdated = false;
 
         for (Map.Entry<Participant, ParticipantDto> entry : map.entrySet()) {
             Participant participantToChange = entry.getKey();
             ParticipantDto participantDto = entry.getValue();
+
+            // a participant who agreed and submitted work is in the latest data export; withdrawing
+            // themselves, or being removed by the instructor, leaves it out of date
+            if (!dataExportOutdated
+                    && BooleanUtils.isTrue(participantToChange.getConsent())
+                    && BooleanUtils.isNotTrue(participantDto.getConsent())
+                    && submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(participantToChange.getParticipantId())) {
+                dataExportOutdated = true;
+            }
 
             // If they had consent, and now they don't have, we change the dateRevoked to now.
             // In any other case, we leave the date as it is. Ignoring any value in the PUT
@@ -834,6 +844,10 @@ public class ParticipantServiceImpl implements ParticipantService {
             participants.add(participantToChange);
         }
 
+        if (dataExportOutdated) {
+            markDataExportOutdated(experimentId);
+        }
+
         return participantRepository.saveAll(participants);
     }
 
@@ -852,7 +866,6 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (BooleanUtils.isTrue(participant.getConsent()) && BooleanUtils.isFalse(participantDto.getConsent())) {
             // user is changing consent from true to false, set source = REVOKED
             participant.setSource(ParticipationTypes.REVOKED);
-            markDataExportOutdatedIfSubmitted(participant, experimentId);
         }
 
         if (BooleanUtils.isFalse(participant.getConsent())
@@ -899,14 +912,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     /**
-     * A participant who agreed and submitted work is in the experiment's latest data export; once they
-     * withdraw, it shouldn't be downloaded as it is
+     * Marks the experiment's latest finished data export outdated, so it isn't downloaded as it is
      */
-    private void markDataExportOutdatedIfSubmitted(Participant participant, Long experimentId) {
-        if (!submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(participant.getParticipantId())) {
-            return;
-        }
-
+    private void markDataExportOutdated(Long experimentId) {
         experimentDataExportRepository.findTopByExperiment_ExperimentIdAndStatusInOrderByCreatedAtDesc(
                 experimentId,
                 List.of(ExperimentDataExportStatus.READY, ExperimentDataExportStatus.READY_ACKNOWLEDGED, ExperimentDataExportStatus.DOWNLOADED)

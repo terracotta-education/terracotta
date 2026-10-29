@@ -608,6 +608,38 @@ public class ParticipantServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testChangeParticipantRemovingConsentedParticipantsWhoSubmittedMarksTheDataExportOutdatedOnce() {
+        Participant secondParticipant = mock(Participant.class);
+        when(secondParticipant.getParticipantId()).thenReturn(2L);
+        when(secondParticipant.getConsent()).thenReturn(true);
+        ParticipantDto secondParticipantDto = mock(ParticipantDto.class);
+        when(participant.getConsent()).thenReturn(true);
+        when(participantDto.getConsent()).thenReturn(false);
+        when(secondParticipantDto.getConsent()).thenReturn(null);
+        when(submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(anyLong())).thenReturn(true);
+        when(experimentDataExportRepository.findTopByExperiment_ExperimentIdAndStatusInOrderByCreatedAtDesc(anyLong(), any())).thenReturn(Optional.of(experimentDataExport));
+        Map<Participant, ParticipantDto> map = new LinkedHashMap<>();
+        map.put(participant, participantDto);
+        map.put(secondParticipant, secondParticipantDto);
+
+        participantService.changeParticipant(map, 1L, securedInfo);
+
+        verify(experimentDataExport).setStatus(ExperimentDataExportStatus.OUTDATED);
+        verify(experimentDataExportRepository).save(experimentDataExport);
+    }
+
+    @Test
+    public void testChangeParticipantKeepingConsentedParticipantLeavesTheDataExport() {
+        when(participant.getConsent()).thenReturn(true);
+        when(participantDto.getConsent()).thenReturn(true);
+        when(submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(anyLong())).thenReturn(true);
+
+        participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1L, securedInfo);
+
+        verify(experimentDataExportRepository, never()).save(any());
+    }
+
+    @Test
     public void testChangeConsentAlreadyStartedThrows() {
         when(securedInfo.getConsent()).thenReturn(true);
         when(participant.getConsent()).thenReturn(false);
