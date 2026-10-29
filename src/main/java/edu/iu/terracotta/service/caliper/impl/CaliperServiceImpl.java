@@ -118,6 +118,9 @@ public class CaliperServiceImpl implements CaliperService {
                         }
 
                         sensor.send(envelope);
+                    } catch (InterruptedException e) {
+                        log.error("Interrupted sending event data to caliper: '{}' for deployment ID: '{}'", platformDeployment.getCaliperHost(), platformDeployment.getKeyId());
+                        Thread.currentThread().interrupt();
                     } catch (Exception e) {
                         log.error("Failed to send event data to caliper: '{}' for deployment ID: '{}' with error: '{}'", platformDeployment.getCaliperHost(), platformDeployment.getKeyId(), e.getMessage());
                     }

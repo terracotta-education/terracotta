@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -167,6 +168,19 @@ public class CaliperServiceImplTest extends BaseTest {
         Envelope envelope = new Envelope("sensor-id", Instant.now(), CaliperServiceImpl.DATA_VERSION, Collections.emptyList());
 
         caliperService.send(envelope, platformDeployment);
+
+        verify(mockSensor, timeout(2000)).send(envelope);
+    }
+
+    @Test
+    public void testSendHandlesBeingInterrupted() throws Exception {
+        CaliperSensor mockSensor = mock(CaliperSensor.class);
+        ReflectionTestUtils.setField(caliperService, "defaultSensor", mockSensor);
+        when(platformDeployment.getCaliperConfiguration()).thenReturn(false);
+        Envelope envelope = new Envelope("sensor-id", Instant.now(), CaliperServiceImpl.DATA_VERSION, Collections.emptyList());
+        doThrow(new InterruptedException()).when(mockSensor).send(envelope);
+
+        assertDoesNotThrow(() -> caliperService.send(envelope, platformDeployment));
 
         verify(mockSensor, timeout(2000)).send(envelope);
     }
