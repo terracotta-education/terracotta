@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -526,6 +527,35 @@ public class ParticipantServiceImplTest extends BaseTest {
         assertNotNull(retVal);
         // setSource(REVOKED) is set once directly in changeConsent() and again inside the changeParticipant() call it delegates to.
         verify(participant, atLeastOnce()).setSource(ParticipationTypes.REVOKED);
+    }
+
+    @Test
+    public void testChangeConsentDecliningAfterBeingLeftOutRecordsTheAnswer() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        // left out for submitting before answering: not consented, a revoked date, source still CONSENT
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.getConsent()).thenReturn(false);
+        when(participant.getDateRevoked()).thenReturn(Timestamp.valueOf(LocalDateTime.now().minusDays(1)));
+        when(participant.getSource()).thenReturn(ParticipationTypes.CONSENT);
+        when(participantDto.getConsent()).thenReturn(false);
+
+        participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        verify(participant).setSource(ParticipationTypes.REVOKED);
+        verify(participant).setDateRevoked(any(Timestamp.class));
+    }
+
+    @Test
+    public void testChangeConsentDecliningAgainKeepsTheFirstAnswer() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.getConsent()).thenReturn(false);
+        when(participant.getDateRevoked()).thenReturn(Timestamp.valueOf(LocalDateTime.now().minusDays(1)));
+        when(participant.getSource()).thenReturn(ParticipationTypes.REVOKED);
+        when(participantDto.getConsent()).thenReturn(false);
+
+        participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        verify(participant, never()).setSource(ParticipationTypes.REVOKED);
+        verify(participant, never()).setDateRevoked(any(Timestamp.class));
     }
 
     @Test
