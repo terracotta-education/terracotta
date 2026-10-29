@@ -85,7 +85,7 @@ jobs:
         with:
           node-version: "26"
 
-      # package.json pins Yarn (packageManager: yarn@4.9.1); corepack provides that version. Node 25
+      # package.json pins Yarn (packageManager: yarn@4.18.1); corepack provides that version. Node 25
       # and later don't include corepack, so it's installed first
       - name: Enable corepack
         run: npm install -g corepack && corepack enable
