@@ -1,11 +1,22 @@
 # Terracotta PII helpers: piiencrypt, piidecrypt, piihashemail
 #
-# Each one prompts for the Terracotta jar and the keys once, then keeps prompting for values until
-# you type "quit", printing the result for each. The keys are only passed to the java command that
-# does the work: they aren't exported, and they don't end up in your shell history.
+# Each one prompts for the Terracotta jar and an environment once, then keeps prompting for values
+# until you type "quit", printing the result for each. The keys are only passed to the java command
+# that does the work: they aren't exported, and they don't end up in your shell history.
 #
-# If PII_ENCRYPTION_KEY, PII_HASH_KEY or PII_ENCRYPTION_KEY_ID are already set in your shell,
-# pressing Enter at that prompt uses the value that's set.
+# The keys for an environment are read from a PII associative array (bash 4 or later), keyed by
+# environment and key name, if you define one in your ~/.bashrc:
+#
+#   declare -A PII=(
+#     [local,PII_ENCRYPTION_KEY]="..."   [local,PII_HASH_KEY]="..."
+#     [qa,PII_ENCRYPTION_KEY]="..."      [qa,PII_HASH_KEY]="..."
+#     [prod,PII_ENCRYPTION_KEY]="..."    [prod,PII_HASH_KEY]="..."
+#   )
+#
+# PII_ENCRYPTION_KEY_ID can be set per environment the same way, and defaults to 1. Any key the
+# array doesn't have for that environment is prompted for instead. If PII_ENCRYPTION_KEY,
+# PII_HASH_KEY or PII_ENCRYPTION_KEY_ID are already set in your shell, pressing Enter at that
+# prompt uses the value that's set.
 
 # prompts for a key without echoing it; Enter keeps the one already set in the shell, if any
 _pii_prompt_key() {
@@ -22,8 +33,19 @@ _pii_prompt_key() {
     printf '%s' "${typed:-$current}"
 }
 
+# prints PII[environment,name], or nothing if there's no PII associative array or no such entry;
+# the check keeps bash 3.2, which has no associative arrays, from reading the subscript as math
+_pii_lookup() {
+    local environment="$1" name="$2"
+
+    [ -n "$environment" ] || return 0
+    [[ "$(declare -p PII 2>/dev/null)" == "declare -A"* ]] || return 0
+
+    printf '%s' "${PII[$environment,$name]}"
+}
+
 _pii_run() {
-    local command="$1" jar key hash_key key_id value
+    local command="$1" jar environment key hash_key key_id value
 
     # a jar file, or a directory holding one (the newest terracotta*.jar in it is used)
     echo "Terracotta jar, or the directory it's in. Press Enter for $PWD/target" >&2
@@ -41,18 +63,34 @@ _pii_run() {
 
     echo "Using $jar" >&2
 
-    echo "Enter the keys Terracotta uses (nothing you type is shown)." >&2
-    key="$(_pii_prompt_key PII_ENCRYPTION_KEY "$PII_ENCRYPTION_KEY")"
-    hash_key="$(_pii_prompt_key PII_HASH_KEY "$PII_HASH_KEY")"
+    read -rep "Environment (local, qa, prod): " environment
+
+    key="$(_pii_lookup "$environment" PII_ENCRYPTION_KEY)"
+    hash_key="$(_pii_lookup "$environment" PII_HASH_KEY)"
+    key_id="$(_pii_lookup "$environment" PII_ENCRYPTION_KEY_ID)"
+
+    if [ -n "$key" ] && [ -n "$hash_key" ]; then
+        echo "Using the $environment keys from PII." >&2
+    else
+        echo "Enter the keys Terracotta uses for ${environment:-this environment} (nothing you type is shown)." >&2
+    fi
+
+    [ -n "$key" ] || key="$(_pii_prompt_key PII_ENCRYPTION_KEY "$PII_ENCRYPTION_KEY")"
+    [ -n "$hash_key" ] || hash_key="$(_pii_prompt_key PII_HASH_KEY "$PII_HASH_KEY")"
 
     if [ -z "$key" ] || [ -z "$hash_key" ]; then
         echo "Both keys are needed." >&2
         return 2
     fi
 
-    printf 'PII_ENCRYPTION_KEY_ID (press Enter for %s): ' "${PII_ENCRYPTION_KEY_ID:-the default, 1}" >&2
-    IFS= read -r key_id
-    key_id="${key_id:-${PII_ENCRYPTION_KEY_ID:-1}}"
+    # an environment found in PII without a key id uses the default without asking
+    if [ -z "$key_id" ] && [ -n "$(_pii_lookup "$environment" PII_ENCRYPTION_KEY)" ]; then
+        key_id="${PII_ENCRYPTION_KEY_ID:-1}"
+    elif [ -z "$key_id" ]; then
+        printf 'PII_ENCRYPTION_KEY_ID (press Enter for %s): ' "${PII_ENCRYPTION_KEY_ID:-the default, 1}" >&2
+        IFS= read -r key_id
+        key_id="${key_id:-${PII_ENCRYPTION_KEY_ID:-1}}"
+    fi
 
     echo >&2
     echo "Enter a value at each prompt. Type quit to finish." >&2
