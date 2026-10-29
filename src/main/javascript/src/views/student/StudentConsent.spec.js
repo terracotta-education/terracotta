@@ -161,11 +161,11 @@ describe("StudentConsent", () => {
     );
   });
 
-  it("blocks submission and warns when the participant has already accessed an assignment", async () => {
+  it("blocks agreeing and warns when the participant has already accessed an assignment", async () => {
     const wrapper = await mountAndLoad({ started: true });
 
     const radioInputs = wrapper.findAll("input[type=\"radio\"]");
-    await radioInputs[1].setValue(true);
+    await radioInputs[0].setValue(true);
 
     await wrapper.find("form").trigger("submit");
     await flushPromises();
@@ -178,6 +178,82 @@ describe("StudentConsent", () => {
 
   it("shows a success message without re-submitting when the same answer is chosen again", async () => {
     const wrapper = await mountAndLoad({
+      source: "CONSENT",
+      consent: true,
+      dateGiven: "2024-01-01T00:00:00.000Z"
+    });
+
+    const radioInputs = wrapper.findAll("input[type=\"radio\"]");
+    await radioInputs[0].setValue(true);
+
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+
+    expect(participantService.updateParticipant).not.toHaveBeenCalled();
+    expect(Swal.fire).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Successfully submitted Consent", icon: "success" })
+    );
+  });
+
+  // reported from Canvas: a student who agreed and then started an assignment was told they
+  // couldn't be included, and their consent was never withdrawn
+  it("lets a student who agreed and has started an assignment withdraw", async () => {
+    const wrapper = await mountAndLoad({
+      started: true,
+      source: "CONSENT",
+      consent: true,
+      dateGiven: "2024-01-01T00:00:00.000Z"
+    });
+
+    participantService.updateParticipant.mockResolvedValue({
+      ...baseParticipant,
+      started: true,
+      source: "REVOKED",
+      consent: false,
+      dateRevoked: "2024-02-01T00:00:00.000Z"
+    });
+
+    const radioInputs = wrapper.findAll("input[type=\"radio\"]");
+    await radioInputs[1].setValue(true);
+
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+
+    expect(participantService.updateParticipant).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({ consent: false, participantId: 1 })
+    );
+    expect(Swal.fire).not.toHaveBeenCalledWith(expect.objectContaining({ icon: "error" }));
+    expect(Swal.fire).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Successfully submitted consent", icon: "success" })
+    );
+  });
+
+  it("lets a student who started without answering decline", async () => {
+    const wrapper = await mountAndLoad({ started: true });
+
+    participantService.updateParticipant.mockResolvedValue({
+      ...baseParticipant,
+      started: true,
+      consent: false
+    });
+
+    const radioInputs = wrapper.findAll("input[type=\"radio\"]");
+    await radioInputs[1].setValue(true);
+
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+
+    expect(participantService.updateParticipant).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({ consent: false })
+    );
+    expect(Swal.fire).not.toHaveBeenCalledWith(expect.objectContaining({ icon: "error" }));
+  });
+
+  it("lets a student who agreed and has started an assignment confirm they still agree", async () => {
+    const wrapper = await mountAndLoad({
+      started: true,
       source: "CONSENT",
       consent: true,
       dateGiven: "2024-01-01T00:00:00.000Z"

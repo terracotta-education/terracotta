@@ -225,7 +225,9 @@ watch(answer, newAnswer => {
 });
 
 const updateConsent = answerValue => {
-  if (participant.value.started) {
+  // a student who has started an assignment without consenting can't join the study now, but
+  // anyone can decline, and a student who agreed can always withdraw
+  if (participant.value.started && !participant.value.consent && answerValue === true) {
     Swal.fire({
       text: "You have already accessed an assignment that is part of this study. At this time, no matter your response, you cannot be included in this study.",
       icon: "error"
