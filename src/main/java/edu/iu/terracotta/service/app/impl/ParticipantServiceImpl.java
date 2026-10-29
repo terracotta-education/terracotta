@@ -40,6 +40,7 @@ import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.dto.UserDto;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
+import edu.iu.terracotta.dao.model.enums.export.data.ExperimentDataExportStatus;
 import edu.iu.terracotta.dao.repository.AssignmentRepository;
 import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
@@ -47,6 +48,7 @@ import edu.iu.terracotta.dao.repository.GroupRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
+import edu.iu.terracotta.dao.repository.export.data.ExperimentDataExportRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
@@ -98,6 +100,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final AssignmentRepository assignmentRepository;
     private final ConsentDocumentRepository consentDocumentRepository;
     private final ExperimentRepository experimentRepository;
+    private final ExperimentDataExportRepository experimentDataExportRepository;
     private final GroupRepository groupRepository;
     private final LmsUserBatchRepository lmsUserBatchRepository;
     private final LtiUserRepository ltiUserRepository;
@@ -849,6 +852,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         if (BooleanUtils.isTrue(participant.getConsent()) && BooleanUtils.isFalse(participantDto.getConsent())) {
             // user is changing consent from true to false, set source = REVOKED
             participant.setSource(ParticipationTypes.REVOKED);
+            markDataExportOutdatedIfSubmitted(participant, experimentId);
         }
 
         if (BooleanUtils.isFalse(participant.getConsent())
@@ -892,6 +896,25 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         return changedParticipants.get(0);
+    }
+
+    /**
+     * A participant who agreed and submitted work is in the experiment's latest data export; once they
+     * withdraw, it shouldn't be downloaded as it is
+     */
+    private void markDataExportOutdatedIfSubmitted(Participant participant, Long experimentId) {
+        if (!submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(participant.getParticipantId())) {
+            return;
+        }
+
+        experimentDataExportRepository.findTopByExperiment_ExperimentIdAndStatusInOrderByCreatedAtDesc(
+                experimentId,
+                List.of(ExperimentDataExportStatus.READY, ExperimentDataExportStatus.READY_ACKNOWLEDGED, ExperimentDataExportStatus.DOWNLOADED)
+            )
+            .ifPresent(experimentDataExport -> {
+                experimentDataExport.setStatus(ExperimentDataExportStatus.OUTDATED);
+                experimentDataExportRepository.save(experimentDataExport);
+            });
     }
 
     @Override
