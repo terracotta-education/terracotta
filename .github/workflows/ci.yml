@@ -83,11 +83,12 @@ jobs:
       # matches the major version the Maven build installs (node.version in pom.xml)
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "26"
 
-      # package.json pins Yarn (packageManager: yarn@4.9.1); corepack provides that version
+      # package.json pins Yarn (packageManager: yarn@4.9.1); corepack provides that version. Node 25
+      # and later don't include corepack, so it's installed first
       - name: Enable corepack
-        run: corepack enable
+        run: npm install -g corepack && corepack enable
 
       - name: Cache Yarn packages
         uses: actions/cache@v4
@@ -163,10 +164,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "26"
 
       - name: Enable corepack
-        run: corepack enable
+        run: npm install -g corepack && corepack enable
 
       - name: Cache Yarn packages
         uses: actions/cache@v4
