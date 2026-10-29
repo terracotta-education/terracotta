@@ -153,13 +153,16 @@ const hasConsentedAlready = computed(() => {
 
   // an answer is the date that matches it: given for "agree", revoked for "do not agree". Either
   // date alone used to count, so a participant reset to unanswered but still carrying a date
-  // given was told they'd responded "do not agree" on an "Invalid Date"
+  // given was told they'd responded "do not agree" on an "Invalid Date". A "do not agree" also
+  // moves the source to REVOKED; a student left out for submitting before answering gets a date
+  // revoked too, but keeps the CONSENT source, and hasn't answered
   const answeredDate = participant.value.consent
     ? participant.value.dateGiven
     : participant.value.dateRevoked;
+  const answeredSource = participant.value.consent ? "CONSENT" : "REVOKED";
 
   return (
-    ["CONSENT", "REVOKED"].includes(participant.value.source) &&
+    participant.value.source === answeredSource &&
     answeredDate != null &&
     dayjs(answeredDate).isValid()
   );
@@ -225,7 +228,9 @@ watch(answer, newAnswer => {
 });
 
 const updateConsent = answerValue => {
-  if (participant.value.started) {
+  // a student who has started an assignment without consenting can't join the study now, but
+  // anyone can decline, and a student who agreed can always withdraw
+  if (participant.value.started && !participant.value.consent && answerValue === true) {
     Swal.fire({
       text: "You have already accessed an assignment that is part of this study. At this time, no matter your response, you cannot be included in this study.",
       icon: "error"

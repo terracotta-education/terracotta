@@ -655,6 +655,12 @@ describe("StudentQuiz", () => {
       await flushPromises();
       await flushPromises();
 
+      // a draft is only saved once something is answered
+      await wrapper.findComponent({ name: "StudentQuizQuestionCard" }).vm.$emit("update:question-values", [
+        { questionId: 10, answerId: 100, response: null }
+      ]);
+      await flushPromises();
+
       const apiStore = apiModule();
       apiStore.markSessionExpired();
       await flushPromises();
@@ -698,6 +704,135 @@ describe("StudentQuiz", () => {
 
       removeItemSpy.mockRestore();
       consoleErrorSpy.mockRestore();
+    });
+
+    const expectNoRestorePrompt = () => {
+      expect(Swal.fire).not.toHaveBeenCalledWith(
+        expect.objectContaining({ text: expect.stringContaining("unsaved answers") })
+      );
+    };
+
+    it("saves no draft when the session expires before anything is answered", async () => {
+      mockReportStepByStep();
+
+      mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      apiModule().markSessionExpired();
+      await flushPromises();
+
+      expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
+    });
+
+    it("saves no draft when the session expires after the quiz was submitted", async () => {
+      mockReportStepByStep();
+      submissionService.createQuestionSubmissions.mockResolvedValue({ status: 201, data: {} });
+
+      const wrapper = mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      await wrapper.findComponent({ name: "StudentQuizQuestionCard" }).vm.$emit("update:question-values", [
+        { questionId: 10, answerId: 100, response: null }
+      ]);
+      await flushPromises();
+
+      await wrapper.find("form").trigger("submit");
+      await flushPromises();
+      await flushPromises();
+      await flushPromises();
+
+      expect(wrapper.text()).toContain("Your answers have been submitted.");
+
+      apiModule().markSessionExpired();
+      await flushPromises();
+
+      expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
+    });
+
+    it("discards a draft with no answers in it without prompting", async () => {
+      localStorage.setItem("terracotta-quiz-draft-1-103", JSON.stringify({
+        questionValues: [{ questionId: 10, answerId: null, response: "  " }],
+        savedAt: Date.now()
+      }));
+      mockReportStepByStep();
+
+      mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      expectNoRestorePrompt();
+      expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
+    });
+
+    it("discards a draft saved before the latest submission without prompting", async () => {
+      localStorage.setItem("terracotta-quiz-draft-1-103", JSON.stringify({
+        questionValues: [{ questionId: 10, answerId: 100, response: null }],
+        savedAt: Date.parse("2026-10-27T13:00:00Z")
+      }));
+      mockReportStepByStep({
+        view_assignment: {
+          status: 200,
+          data: {
+            retakeDetails: { retakeAllowed: true, submissionAttemptsCount: 0 },
+            // the attempt the draft came from went through after all
+            submissions: [{ submissionId: 200, dateSubmitted: "2026-10-27T13:00:05Z" }],
+            maxPoints: 10,
+            allowStudentViewResponses: false
+          }
+        }
+      });
+
+      mountComponent(StudentQuiz, {
+        props: { experimentId: "1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      expectNoRestorePrompt();
+      expect(localStorage.getItem("terracotta-quiz-draft-1-103")).toBeNull();
+    });
+
+    it("doesn't offer a draft in preview", async () => {
+      localStorage.setItem("terracotta-quiz-draft-1-77", JSON.stringify({
+        questionValues: [{ questionId: 10, answerId: 100, response: null }],
+        savedAt: Date.now()
+      }));
+      previewService.treatmentPreview.mockResolvedValue({
+        data: {
+          treatment: {
+            treatmentId: 55,
+            conditionId: 66,
+            assessmentDto: { assessmentId: 77, questions: [mcQuestion] }
+          },
+          submission: { submissionId: 88 }
+        }
+      });
+
+      mountComponent(StudentQuiz, {
+        props: { experimentId: "1", preview: true, previewConditionId: "66", previewTreatmentId: "55", previewId: "9", ownerId: "owner-1" },
+        global: { stubs: stubbedChildren }
+      });
+
+      await flushPromises();
+      await flushPromises();
+
+      expectNoRestorePrompt();
     });
   });
 

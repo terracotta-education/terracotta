@@ -6,6 +6,7 @@
   transition=""
   class="tool-tip"
   content-class="tool-tip-content"
+  :aria-label="spokenText"
 >
   <template
     v-slot:activator="{ props }"
@@ -192,6 +193,9 @@ const inContent = ref(false);
 const timeoutId = ref(null);
 
 const showHeader = computed(() => !!props.header);
+// the tooltip element stays in the page while closed, with its text hidden; this names it, and
+// it's what a screen reader reads as the activator's description (Vuetify's aria-describedby)
+const spokenText = computed(() => (props.header ? `${props.header}: ${props.content}` : props.content));
 const showIcon = computed(() => !!props.icon);
 const showActivatorContent = computed(() => !!props.activatorContent);
 
