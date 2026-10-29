@@ -131,6 +131,49 @@ describe("StudentConsent", () => {
     expect(wrapper.text()).not.toContain("Invalid Date");
   });
 
+  // the server leaves out a student who submits before answering by setting a date revoked, but
+  // keeps the CONSENT source; that isn't an answer
+  it("does not say a student declined when they were left out for submitting before answering", async () => {
+    const wrapper = await mountAndLoad({
+      started: true,
+      source: "CONSENT",
+      consent: false,
+      dateRevoked: "2024-01-01T00:00:00.000Z"
+    });
+
+    expect(wrapper.text()).not.toContain("You responded");
+    expect(wrapper.text()).toContain("no matter your response to the following question");
+  });
+
+  it("records a decline from a student left out for submitting before answering", async () => {
+    const wrapper = await mountAndLoad({
+      started: true,
+      source: "CONSENT",
+      consent: false,
+      dateRevoked: "2024-01-01T00:00:00.000Z"
+    });
+
+    participantService.updateParticipant.mockResolvedValue({
+      ...baseParticipant,
+      started: true,
+      source: "REVOKED",
+      consent: false,
+      dateRevoked: "2024-02-01T00:00:00.000Z"
+    });
+
+    const radioInputs = wrapper.findAll("input[type=\"radio\"]");
+    await radioInputs[1].setValue(true);
+
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+
+    expect(participantService.updateParticipant).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({ consent: false })
+    );
+    expect(wrapper.text()).toContain("You responded \"do not agree to participate\"");
+  });
+
   it("does not show either alert for a fresh, unstarted, unconsented participant", async () => {
     const wrapper = await mountAndLoad();
 
