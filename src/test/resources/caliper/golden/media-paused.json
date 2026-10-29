@@ -1,0 +1,95 @@
+{
+  "sendTime" : "<now>",
+  "dataVersion" : "http://purl.imsglobal.org/ctx/caliper/v1p2",
+  "data" : [ {
+    "@context" : "http://purl.imsglobal.org/ctx/caliper/v1p2",
+    "type" : "MediaEvent",
+    "id" : "urn:uuid:<random>",
+    "actor" : {
+      "id" : "https://terracotta.example.edu/users/42",
+      "type" : "Person",
+      "extensions" : {
+        "terracotta_participant_id" : 7,
+        "lms_global_id" : "global-id",
+        "lti_id" : "lti-user-key",
+        "lti_tenant" : "https://canvas.example.edu"
+      }
+    },
+    "action" : "Paused",
+    "object" : {
+      "id" : "https://media.example.edu/videos/1",
+      "type" : "VideoObject",
+      "name" : "Lecture video",
+      "extensions" : {
+        "terracotta_assessment_id" : 1,
+        "terracotta_condition_id" : 1,
+        "terracotta_exposure_id" : 1,
+        "terracotta_assignment_id" : 1,
+        "terracotta_treatment_id" : 5,
+        "terracotta_question_id" : "https://terracotta.example.edu/api/experiments/1/conditions/1/treatments/5/assessments/1/questions/9",
+        "terracotta_submission_id" : "https://terracotta.example.edu/api/experiments/1/conditions/1/treatments/5/assessments/1/submissions/11"
+      },
+      "mediaType" : "video/mp4",
+      "duration" : "PT2M"
+    },
+    "target" : {
+      "id" : "https://media.example.edu/videos/1#t=30",
+      "type" : "MediaLocation",
+      "currentTime" : "PT30S"
+    },
+    "referrer" : {
+      "id" : "https://canvas.example.edu",
+      "type" : "SoftwareApplication"
+    },
+    "eventTime" : "2026-10-01T12:05:00.000Z",
+    "edApp" : {
+      "id" : "https://terracotta.example.edu/app",
+      "type" : "SoftwareApplication",
+      "name" : "Terracotta"
+    },
+    "group" : {
+      "id" : "https://canvas.example.edu/courses/101",
+      "type" : "CourseOffering",
+      "name" : "Biology 101"
+    },
+    "membership" : {
+      "id" : "https://canvas.example.edu/courses/101",
+      "type" : "Membership",
+      "member" : {
+        "id" : "https://terracotta.example.edu/users/42",
+        "type" : "Person",
+        "extensions" : {
+          "terracotta_participant_id" : 7,
+          "lms_global_id" : "global-id",
+          "lti_id" : "lti-user-key",
+          "lti_tenant" : "https://canvas.example.edu"
+        }
+      },
+      "organization" : {
+        "id" : "https://canvas.example.edu/courses/101",
+        "type" : "CourseOffering",
+        "name" : "Biology 101"
+      },
+      "roles" : [ "Learner" ],
+      "status" : "Active"
+    },
+    "federatedSession" : {
+      "id" : "urn:session_id_localized:https://terracotta.example.edu/lti/oauth_nonce/nonce-1",
+      "type" : "LtiSession",
+      "messageParameters" : {
+        "lms_assignment_id" : "202",
+        "lms_roles" : [ "Learner" ],
+        "lms_user_name" : "Pat Student",
+        "lms_course_id" : "101",
+        "lti_context_id" : "context-key",
+        "lms_user_global_id" : "global-id",
+        "lms_user_id" : "303",
+        "lms_login_id" : "student@example.edu"
+      }
+    },
+    "extensions" : {
+      "playback_rate" : 1.5,
+      "source" : "player"
+    }
+  } ]
+}

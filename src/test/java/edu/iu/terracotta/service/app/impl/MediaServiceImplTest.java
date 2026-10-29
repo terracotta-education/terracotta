@@ -1,5 +1,21 @@
 package edu.iu.terracotta.service.app.impl;
 
+import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.Action;
+import edu.iu.terracotta.dao.model.dto.media.MediaEventDto;
+import edu.iu.terracotta.dao.model.dto.media.MediaObjectDto;
+import edu.iu.terracotta.exceptions.NoSubmissionsException;
+import edu.iu.terracotta.exceptions.ParameterMissingException;
+import edu.iu.terracotta.service.caliper.impl.CaliperServiceImpl;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.sql.Timestamp;
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,22 +26,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.sql.Timestamp;
-import java.time.Instant;
-
-import org.imsglobal.caliper.actions.Action;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import edu.iu.terracotta.base.BaseTest;
-import edu.iu.terracotta.dao.model.dto.media.MediaEventDto;
-import edu.iu.terracotta.dao.model.dto.media.MediaObjectDto;
-import edu.iu.terracotta.exceptions.NoSubmissionsException;
-import edu.iu.terracotta.exceptions.ParameterMissingException;
-import edu.iu.terracotta.service.caliper.impl.CaliperServiceImpl;
 
 public class MediaServiceImplTest extends BaseTest {
 

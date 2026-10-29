@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiDeepLink;
@@ -67,7 +67,7 @@ public class BrightspaceAdvantageDeepLinkServiceImplTest extends BaseTest {
         String payloadSegment = jwt.split("\\.")[1];
         String payloadJson = new String(Base64.getUrlDecoder().decode(payloadSegment));
 
-        return new ObjectMapper().readValue(payloadJson, new TypeReference<Map<String, Object>>() { });
+        return JsonMapper.builder().build().readValue(payloadJson, new TypeReference<Map<String, Object>>() { });
     }
 
     @Test
