@@ -1,0 +1,116 @@
+{
+  "sendTime" : "<now>",
+  "dataVersion" : "http://purl.imsglobal.org/ctx/caliper/v1p2",
+  "data" : [ {
+    "@context" : "http://purl.imsglobal.org/ctx/caliper/v1p2",
+    "type" : "AssessmentEvent",
+    "id" : "urn:uuid:<random>",
+    "actor" : {
+      "id" : "https://terracotta.example.edu/users/42",
+      "type" : "Person",
+      "extensions" : {
+        "terracotta_participant_id" : 7,
+        "lms_global_id" : "global-id",
+        "lti_id" : "lti-user-key",
+        "lti_tenant" : "https://canvas.example.edu"
+      }
+    },
+    "action" : "Submitted",
+    "object" : {
+      "maxAttempts" : 3,
+      "maxScore" : 10.0,
+      "id" : "https://terracotta.example.edu/api/experiments/1/conditions/1/treatments/5/assessments/1",
+      "type" : "Assessment",
+      "name" : "Quiz 1",
+      "extensions" : {
+        "terracotta_assessment_id" : 1,
+        "terracotta_condition_id" : 1,
+        "terracotta_exposure_id" : 1,
+        "terracotta_assignment_id" : 1,
+        "lms_assessment" : "https://canvas.example.edu/courses/101/assignments/202",
+        "terracotta_treatment_id" : 5
+      },
+      "version" : "4"
+    },
+    "generated" : {
+      "endedAtTime" : "2026-10-01T12:30:00.001Z",
+      "startedAtTime" : "2026-10-01T12:00:00.000Z",
+      "id" : "https://terracotta.example.edu/api/experiments/1/conditions/1/treatments/5/assessments/1/submissions/11",
+      "type" : "Attempt",
+      "dateCreated" : "2026-10-01T12:00:00.000Z",
+      "assignable" : {
+        "maxAttempts" : 3,
+        "maxScore" : 10.0,
+        "id" : "https://terracotta.example.edu/api/experiments/1/conditions/1/treatments/5/assessments/1",
+        "type" : "Assessment",
+        "name" : "Quiz 1",
+        "extensions" : {
+          "lms_assessment" : "https://canvas.example.edu/courses/101/assignments/202",
+          "terracotta_launch_token" : "launch-token"
+        },
+        "version" : "4"
+      },
+      "assignee" : {
+        "id" : "https://terracotta.example.edu/users/42",
+        "type" : "Person",
+        "extensions" : {
+          "terracotta_participant_id" : 7,
+          "lms_global_id" : "global-id",
+          "lti_id" : "lti-user-key",
+          "lti_tenant" : "https://canvas.example.edu"
+        }
+      },
+      "count" : 2
+    },
+    "referrer" : {
+      "id" : "https://canvas.example.edu",
+      "type" : "SoftwareApplication"
+    },
+    "eventTime" : "<now>",
+    "edApp" : {
+      "id" : "https://terracotta.example.edu/app",
+      "type" : "SoftwareApplication",
+      "name" : "Terracotta"
+    },
+    "group" : {
+      "id" : "https://canvas.example.edu/courses/101",
+      "type" : "CourseOffering",
+      "name" : "Biology 101"
+    },
+    "membership" : {
+      "id" : "https://canvas.example.edu/courses/101",
+      "type" : "Membership",
+      "member" : {
+        "id" : "https://terracotta.example.edu/users/42",
+        "type" : "Person",
+        "extensions" : {
+          "terracotta_participant_id" : 7,
+          "lms_global_id" : "global-id",
+          "lti_id" : "lti-user-key",
+          "lti_tenant" : "https://canvas.example.edu"
+        }
+      },
+      "organization" : {
+        "id" : "https://canvas.example.edu/courses/101",
+        "type" : "CourseOffering",
+        "name" : "Biology 101"
+      },
+      "roles" : [ "Instructor" ],
+      "status" : "Inactive"
+    },
+    "federatedSession" : {
+      "id" : "urn:session_id_localized:https://terracotta.example.edu/lti/oauth_nonce/nonce-1",
+      "type" : "LtiSession",
+      "messageParameters" : {
+        "lms_assignment_id" : "202",
+        "lms_roles" : [ "Learner" ],
+        "lms_user_name" : "Pat Student",
+        "lms_course_id" : "101",
+        "lti_context_id" : "context-key",
+        "lms_user_global_id" : "global-id",
+        "lms_user_id" : "303",
+        "lms_login_id" : "student@example.edu"
+      }
+    }
+  } ]
+}

@@ -1,6 +1,10 @@
 package edu.iu.terracotta.service.caliper.impl;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.caliper.dao.model.Envelope;
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.Action;
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.EntityType;
+import edu.iu.terracotta.connectors.caliper.service.CaliperSensor;
 import edu.iu.terracotta.dao.entity.SubmissionComment;
 import edu.iu.terracotta.dao.entity.events.Event;
 import edu.iu.terracotta.dao.model.dto.media.MediaEventDto;
@@ -8,11 +12,6 @@ import edu.iu.terracotta.dao.model.dto.media.MediaLocationDto;
 import edu.iu.terracotta.dao.model.dto.media.MediaObjectDto;
 import edu.iu.terracotta.utils.LtiStrings;
 
-import org.imsglobal.caliper.Envelope;
-import org.imsglobal.caliper.Sensor;
-import org.imsglobal.caliper.actions.Action;
-import org.imsglobal.caliper.entities.EntityType;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -21,6 +20,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -54,7 +55,6 @@ public class CaliperServiceImplTest extends BaseTest {
 
         // wire up the @Value-injected configuration fields (plain Mockito/constructor injection does not populate these)
         ReflectionTestUtils.setField(caliperService, "sensorId", "default-sensor-id");
-        ReflectionTestUtils.setField(caliperService, "clientId", "default-client-id");
         ReflectionTestUtils.setField(caliperService, "apiKey", "default-api-key");
         ReflectionTestUtils.setField(caliperService, "connectionTimeout", 5000);
         ReflectionTestUtils.setField(caliperService, "contentType", "application/json");
@@ -101,7 +101,7 @@ public class CaliperServiceImplTest extends BaseTest {
 
         caliperService.init();
 
-        Sensor defaultSensor = (Sensor) ReflectionTestUtils.getField(caliperService, "defaultSensor");
+        CaliperSensor defaultSensor = (CaliperSensor) ReflectionTestUtils.getField(caliperService, "defaultSensor");
         assertNotNull(defaultSensor);
         assertEquals("sensor-xyz", defaultSensor.getId());
     }
@@ -110,7 +110,7 @@ public class CaliperServiceImplTest extends BaseTest {
 
     @Test
     public void testGetSensorReturnsDefaultSensorWhenCaliperConfigurationNotTrue() {
-        Sensor sentinel = mock(Sensor.class);
+        CaliperSensor sentinel = mock(CaliperSensor.class);
         ReflectionTestUtils.setField(caliperService, "defaultSensor", sentinel);
         when(platformDeployment.getCaliperConfiguration()).thenReturn(false);
 
@@ -119,7 +119,7 @@ public class CaliperServiceImplTest extends BaseTest {
 
     @Test
     public void testGetSensorReturnsDefaultSensorWhenCaliperConfigurationNull() {
-        Sensor sentinel = mock(Sensor.class);
+        CaliperSensor sentinel = mock(CaliperSensor.class);
         ReflectionTestUtils.setField(caliperService, "defaultSensor", sentinel);
         when(platformDeployment.getCaliperConfiguration()).thenReturn(null);
 
@@ -128,7 +128,7 @@ public class CaliperServiceImplTest extends BaseTest {
 
     @Test
     public void testGetSensorBuildsNewSensorWhenCaliperConfigurationTrue() {
-        Sensor sentinel = mock(Sensor.class);
+        CaliperSensor sentinel = mock(CaliperSensor.class);
         ReflectionTestUtils.setField(caliperService, "defaultSensor", sentinel);
         when(platformDeployment.getCaliperConfiguration()).thenReturn(true);
         when(platformDeployment.getCaliperSensorId()).thenReturn("pd-sensor-id");
@@ -139,7 +139,7 @@ public class CaliperServiceImplTest extends BaseTest {
         when(platformDeployment.getCaliperHost()).thenReturn("http://localhost");
         when(platformDeployment.getCaliperSocketTimeout()).thenReturn(5000);
 
-        Sensor sensor = caliperService.getSensor(platformDeployment);
+        CaliperSensor sensor = caliperService.getSensor(platformDeployment);
 
         assertNotNull(sensor);
         assertEquals("pd-sensor-id", sensor.getId());
@@ -152,7 +152,7 @@ public class CaliperServiceImplTest extends BaseTest {
     public void testSendLogsAndReturnsWhenSensorIsNull() throws InterruptedException {
         // defaultSensor is null (init() never set it because caliperSend is false) and platformDeployment's
         // caliper configuration is unstubbed (null), so getSensor() resolves to the null defaultSensor.
-        Envelope envelope = new Envelope("sensor-id", DateTime.now(), CaliperServiceImpl.DATA_VERSION, Collections.emptyList());
+        Envelope envelope = new Envelope("sensor-id", Instant.now(), CaliperServiceImpl.DATA_VERSION, Collections.emptyList());
 
         assertDoesNotThrow(() -> caliperService.send(envelope, platformDeployment));
         // give the fire-and-forget background thread a moment to execute the log branch for coverage purposes
@@ -160,11 +160,11 @@ public class CaliperServiceImplTest extends BaseTest {
     }
 
     @Test
-    public void testSendDispatchesEnvelopeToSensorWhenSensorIsPresent() {
-        Sensor mockSensor = mock(Sensor.class);
+    public void testSendDispatchesEnvelopeToSensorWhenSensorIsPresent() throws Exception {
+        CaliperSensor mockSensor = mock(CaliperSensor.class);
         ReflectionTestUtils.setField(caliperService, "defaultSensor", mockSensor);
         when(platformDeployment.getCaliperConfiguration()).thenReturn(false);
-        Envelope envelope = new Envelope("sensor-id", DateTime.now(), CaliperServiceImpl.DATA_VERSION, Collections.emptyList());
+        Envelope envelope = new Envelope("sensor-id", Instant.now(), CaliperServiceImpl.DATA_VERSION, Collections.emptyList());
 
         caliperService.send(envelope, platformDeployment);
 
@@ -363,6 +363,16 @@ public class CaliperServiceImplTest extends BaseTest {
         MediaEventDto mediaEventDto = buildMediaEventDto(null);
 
         caliperService.sendMediaEvent(mediaEventDto, participant, securedInfo, submission, 1L);
+
+        verify(eventRepository, never()).save(any());
+    }
+
+    @Test
+    public void testSendMediaEventRejectsAnActionMediaEventsDoNotSupport() {
+        MediaEventDto mediaEventDto = buildMediaEventDto(null);
+        mediaEventDto.setAction(Action.SUBMITTED);
+
+        assertThrows(IllegalArgumentException.class, () -> caliperService.sendMediaEvent(mediaEventDto, participant, securedInfo, submission, 1L));
 
         verify(eventRepository, never()).save(any());
     }

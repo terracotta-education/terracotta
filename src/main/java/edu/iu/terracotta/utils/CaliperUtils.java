@@ -1,16 +1,14 @@
 package edu.iu.terracotta.utils;
 
+import edu.iu.terracotta.connectors.caliper.dao.model.entities.CourseSection;
+import edu.iu.terracotta.connectors.caliper.dao.model.entities.LtiSession;
+import edu.iu.terracotta.connectors.caliper.dao.model.entities.Person;
+import edu.iu.terracotta.connectors.caliper.dao.model.entities.SoftwareApplication;
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.EntityType;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.dao.entity.Participant;
 import lombok.experimental.UtilityClass;
-
-import org.imsglobal.caliper.entities.EntityType;
-import org.imsglobal.caliper.entities.agent.CaliperOrganization;
-import org.imsglobal.caliper.entities.agent.CourseSection;
-import org.imsglobal.caliper.entities.agent.Person;
-import org.imsglobal.caliper.entities.agent.SoftwareApplication;
-import org.imsglobal.caliper.entities.session.LtiSession;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -89,7 +87,7 @@ public class CaliperUtils {
             .build();
     }
 
-    public CaliperOrganization prepareGroup(LtiMembershipEntity participant, SecuredInfo securedInfo) {
+    public CourseSection prepareGroup(LtiMembershipEntity participant, SecuredInfo securedInfo) {
         String lmsCourseId = participant.getUser().getPlatformDeployment().getBaseUrl() + "/courses/" + securedInfo.getLmsCourseId();
 
         return CourseSection.builder()

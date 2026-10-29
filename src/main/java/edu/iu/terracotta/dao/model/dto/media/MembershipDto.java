@@ -2,15 +2,15 @@ package edu.iu.terracotta.dao.model.dto.media;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.EntityType;
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.Status;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import org.imsglobal.caliper.entities.EntityType;
-import org.imsglobal.caliper.entities.agent.Status;
-import org.joda.time.DateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -25,6 +25,6 @@ public class MembershipDto extends AbstractDto {
     private String organization;
     private String[] roles;
     private Status active;
-    private DateTime dateCreated;
+    private Instant dateCreated;
 
 }
