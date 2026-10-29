@@ -1,5 +1,13 @@
 <template>
-  <div>
+  <!-- one group for all the answers, named by the question: a screen reader then reads them as one
+       question's options ("2 of 4"), and the arrow keys move the selection between them -->
+  <v-radio-group
+    :model-value="readonly ? studentSelection : response"
+    :disabled="readonly"
+    :aria-labelledby="labelledby"
+    hide-details
+    @update:model-value="emitValueChanged"
+  >
     <ResponseRow
       v-for="answer in answers"
       :key="answer.answerId"
@@ -12,31 +20,11 @@
         @click="selectAnswer(answer)"
       >
         <div class="question-input">
-          <v-radio-group
-            v-if="!readonly"
-            v-model="response"
-            @update:model-value="emitValueChanged"
-            hide-details
-          >
-            <v-radio
-              :value="answer.answerId"
-              :aria-label="`select option ${answer.html}`"
-              class="radioButton"
-            />
-          </v-radio-group>
-
-          <v-radio-group
-            v-else
-            :model-value="answer.studentResponse"
-            :disabled="readonly"
-            hide-details
-          >
-            <v-radio
-              :value="answer.answerId"
-              :aria-label="`option ${answer.html}`"
-              class="radioButton"
-            />
-          </v-radio-group>
+          <v-radio
+            :value="answer.answerId"
+            :aria-label="plainText(answer.html)"
+            class="radioButton"
+          />
 
           <span v-html="sanitizeHtml(answer.html)" />
         </div>
@@ -60,11 +48,12 @@
         </template>
       </div>
     </ResponseRow>
-  </div>
+  </v-radio-group>
 </template>
 
 <script setup>
 import {
+  computed,
   ref,
   watch
 } from "vue";
@@ -96,6 +85,11 @@ const props = defineProps({
   showAnswers: {
     type: Boolean,
     default: false
+  },
+  // id of the question's text, read out as the name of the group of answers
+  labelledby: {
+    type: String,
+    default: null
   }
 });
 
@@ -112,7 +106,17 @@ watch(
   }
 );
 
+// reviewing a submission: the answer the student chose
+const studentSelection = computed(() => props.answers.find(answer => answer.studentResponse)?.answerId ?? null);
+
+// an answer's text without its markup, for the radio's spoken name
+const plainText = html => new DOMParser().parseFromString(sanitizeHtml(html), "text/html").body.textContent.trim();
+
 const emitValueChanged = value => {
+  if (props.readonly) {
+    return;
+  }
+
   response.value = value;
   emit("update:modelValue", response.value);
 };

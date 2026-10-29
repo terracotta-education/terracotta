@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { nextTick } from "vue";
 
 import { mountComponent } from "@/test-utils/mount";
 import ToolTip from "./ToolTip.vue";
@@ -13,6 +14,31 @@ describe("ToolTip", () => {
     });
 
     expect(wrapper.findComponent({ name: "VBtn" }).exists()).toBe(true);
+  });
+
+  // the tooltip element stays in the page while closed, so it carries its text as a name; that's
+  // also what a screen reader reads as the activator's description
+  const openTooltip = async props => {
+    const wrapper = mountComponent(ToolTip, { props: { icon: "mdi-information", ...props }, attachTo: document.body });
+
+    await wrapper.findComponent({ name: "VBtn" }).trigger("mouseenter");
+    await nextTick();
+
+    return { wrapper, tooltip: document.querySelector("[role=\"tooltip\"]") };
+  };
+
+  it("names the tooltip by its content", async () => {
+    const { wrapper, tooltip } = await openTooltip({ content: "Helpful info" });
+
+    expect(tooltip.getAttribute("aria-label")).toBe("Helpful info");
+    wrapper.unmount();
+  });
+
+  it("names the tooltip by its header and content when it has a header", async () => {
+    const { wrapper, tooltip } = await openTooltip({ header: "Calculated score", content: "Updates as questions are graded." });
+
+    expect(tooltip.getAttribute("aria-label")).toBe("Calculated score: Updates as questions are graded.");
+    wrapper.unmount();
   });
 
   it("opens on activator mouseenter and emits is-opened", async () => {

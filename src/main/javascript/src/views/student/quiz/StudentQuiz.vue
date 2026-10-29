@@ -271,7 +271,17 @@ watch(selectedSubmissionId, () => {
 // watch below for the restore side.
 const draftStorageKey = computed(() => `terracotta-quiz-draft-${props.experimentId}-${assessmentId.value}`);
 
+const hasAnyAnswer = values => (values || []).some(q => q.answerId != null || (q.response != null && String(q.response).trim() !== ""));
+
+// only while the student is taking the quiz: not in preview, on a past submission, or once it's submitted
+const attemptInProgress = () => !props.preview && !readonly.value && !submitted.value;
+
 const saveDraftAnswers = () => {
+  // nothing typed yet: a blank draft would only bring up the restore prompt next time for nothing
+  if (!attemptInProgress() || !hasAnyAnswer(questionValues.value)) {
+    return;
+  }
+
   try {
     localStorage.setItem(
       draftStorageKey.value,
@@ -303,6 +313,11 @@ watch(answerableQuestions, async questions => {
 
   questionValues.value = freshValues;
 
+  // viewing a past submission or previewing loads questions too, but there's nothing to restore into
+  if (!attemptInProgress()) {
+    return;
+  }
+
   let draft = null;
 
   try {
@@ -319,6 +334,15 @@ watch(answerableQuestions, async questions => {
 
   if (!draft.questionValues.some(q => freshIds.has(q.questionId))) {
     clearDraftAnswers(); // draft is for a different/stale question set - discard, don't offer it
+    return;
+  }
+
+  // a draft with no answers for these questions, or saved before the latest submission (that
+  // attempt went through after all), has nothing worth restoring
+  const lastSubmitted = Math.max(...(assignmentData.value?.submissions || []).map(s => toTimestamp(s.dateSubmitted)).filter(Number.isFinite));
+
+  if (!hasAnyAnswer(draft.questionValues.filter(q => freshIds.has(q.questionId))) || draft.savedAt <= lastSubmitted) {
+    clearDraftAnswers();
     return;
   }
 

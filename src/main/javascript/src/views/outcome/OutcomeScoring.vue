@@ -32,6 +32,7 @@
             label="Total Points"
             variant="outlined"
             required
+            @blur="validateScores"
           />
         </v-col>
       </v-row>
@@ -63,13 +64,17 @@
 
                 <td v-if="participantScoreList.length">
                   <v-text-field
-                    v-model="getParticipantScore(participant).scoreNumeric"
+                    ref="scoreFields"
+                    :model-value="getParticipantScore(participant).scoreNumeric"
                     :name="String(participant.participantId)"
                     :aria-label="`Numeric score for ${participant.user.displayName}`"
+                    :rules="scoreRule"
                     type="number"
                     placeholder="---"
-                    style="max-width: 50px;"
+                    style="max-width: 150px;"
+                    validate-on="blur"
                     required
+                    @update:model-value="value => setParticipantScore(participant, value)"
                   />
                 </td>
               </tr>
@@ -84,7 +89,9 @@
 <script setup>
 import {
   computed,
-  onMounted
+  onMounted,
+  reactive,
+  useTemplateRef
 } from "vue";
 
 import {
@@ -125,6 +132,12 @@ const numberRule = [
   value => value && !Number.isNaN(value) || "required",
   value => !Number.isNaN(Number.parseFloat(value)) && value >= 0 ||
     "The point value cannot be negative"
+];
+
+const scoreIsTooHigh = value => value !== null && value !== "" && Number(value) > Number(outcome.value.maxPoints);
+
+const scoreRule = [
+  value => !scoreIsTooHigh(value) || `Score must be ≤ ${outcome.value.maxPoints}`
 ];
 
 const experiment = computed(() => {
@@ -199,6 +212,10 @@ const participantFilteredList = computed(() => {
     });
 });
 
+// what the instructor has typed, by participant; kept apart from the list below, which is rebuilt
+// from the store and isn't reactive itself, so a typed score would be lost when the field blurs
+const enteredScores = reactive(new Map());
+
 const participantScoreList = computed(() => {
   const scoreByParticipantId = new Map(
     outcomeScores.value
@@ -218,7 +235,12 @@ const participantScoreList = computed(() => {
     if (score) {
       item.outcomeScoreId = score.outcomeScoreId;
       item.outcomeId = outcomeId.value;
-      item.scoreNumeric = Number.parseInt(score.scoreNumeric, 10);
+      // scores can have decimals; an empty stored score stays empty
+      item.scoreNumeric = score.scoreNumeric ?? null;
+    }
+
+    if (enteredScores.has(participant.participantId)) {
+      item.scoreNumeric = enteredScores.get(participant.participantId);
     }
 
     return item;
@@ -237,9 +259,8 @@ const exitDisabled = computed(() => {
     outcome.value.title.length < 1 ||
     outcome.value.title.length > 255 ||
     outcome.value.maxPoints < 0 ||
-    outcomeScores.value
-      .filter(score => score.outcomeId === outcomeId.value)
-      .some(score => score.scoreNumeric > outcome.value.maxPoints)
+    participantScoreList.value
+      .some(score => scoreIsTooHigh(score.scoreNumeric))
   );
 });
 
@@ -247,10 +268,21 @@ const getParticipantScore = participant => {
   return participantScoreMap.value.get(participant.participantId);
 };
 
+const scoreFields = useTemplateRef("scoreFields");
+
+// a change to the total points can put scores already entered over it, or back under it
+const validateScores = () => {
+  (scoreFields.value || []).forEach(field => field.validate());
+};
+
+const setParticipantScore = (participant, value) => {
+  enteredScores.set(participant.participantId, value === "" || value === null ? null : Number(value));
+};
+
 const saveExit = async () => {
   if (exitDisabled.value) {
     Swal.fire({
-      text: "Could not update outcome due to entered data.",
+      text: "We could not update the outcome due to validation errors. Please check your scores entered and try again.",
       icon: "error"
     });
 

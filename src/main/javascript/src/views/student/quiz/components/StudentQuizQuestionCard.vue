@@ -17,7 +17,10 @@
             :submission-id="submissionId"
             :treatment-id="treatmentId"
           >
-            <span v-html="sanitizeHtml(question.html)" />
+            <span
+              :id="`question-${question.questionId}-text`"
+              v-html="sanitizeHtml(question.html)"
+            />
           </YoutubeEventCapture>
         </v-col>
         <v-col>
@@ -45,6 +48,7 @@
         :answers="getQuestionAnswers(question)"
         :readonly="readonly"
         :show-answers="showAnswers"
+        :labelledby="`question-${question.questionId}-text`"
       />
 
       <EssayResponseEditor

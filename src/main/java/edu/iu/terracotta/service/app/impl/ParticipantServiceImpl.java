@@ -851,6 +851,17 @@ public class ParticipantServiceImpl implements ParticipantService {
             participant.setSource(ParticipationTypes.REVOKED);
         }
 
+        if (BooleanUtils.isFalse(participant.getConsent())
+                && participant.getDateRevoked() != null
+                && participant.getSource() != ParticipationTypes.REVOKED
+                && BooleanUtils.isFalse(participantDto.getConsent())) {
+            // the participant was left out for submitting before answering, which sets a revoked
+            // date without an answer; declining now is their answer, so record it as one
+            participant.setDateGiven(null);
+            participant.setDateRevoked(Timestamp.valueOf(LocalDateTime.now()));
+            participant.setSource(ParticipationTypes.REVOKED);
+        }
+
         // Don't allow changing consent to true if participant has submitted a response and previously not consented
         if (hasParticipantSubmitted(participant, calculatedPublishedAssignmentIds(experimentId, securedInfo, participant.getExperiment().getCreatedBy()))
                 && BooleanUtils.isFalse(participant.getConsent())

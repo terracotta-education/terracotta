@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { expectNoAccessibilityViolations } from "./support/accessibility.js";
 import { mockApi } from "./support/api.js";
 import { openApp, signIn } from "./support/session.js";
 import { EXPERIMENT_ID, experimentResponses } from "./fixtures/experiment.js";
@@ -30,5 +31,10 @@ test.describe("experiment summary, components tab", () => {
   test("explains the experiment's exposure sets", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "Exposure Sets" })).toBeVisible();
     await expect(page.getByText("we set you up with")).toContainText("1 exposure sets");
+  });
+
+  test("has no accessibility problems axe can find", async ({ page }) => {
+    await expect(page.getByText("Assignment 1", { exact: true })).toBeVisible();
+    await expectNoAccessibilityViolations(page);
   });
 });
