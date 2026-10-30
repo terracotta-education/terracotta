@@ -124,8 +124,9 @@ public class ExperimentDataExportServiceImpl implements ExperimentDataExportServ
             throw new ExperimentDataExportNotFoundException(String.format("No active experiment data export with experiment ID: [%s] found.", experiment.getExperimentId()));
         }
 
-        // if exported data is current, return it; else process a new one
-        if (isExperimentDataExportCurrent(experimentDataExport)) {
+        // if exported data is current, return it; else process a new one. An export already marked
+        // outdated (e.g. a participant withdrew) isn't current, whatever has changed since
+        if (ExperimentDataExportStatus.OUTDATED != experimentDataExport.getStatus() && isExperimentDataExportCurrent(experimentDataExport)) {
             return toDto(experimentDataExport, false);
         }
 

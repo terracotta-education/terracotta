@@ -58,6 +58,7 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Group;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.export.data.ExperimentDataExport;
 import edu.iu.terracotta.dao.exceptions.AssignmentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
 import edu.iu.terracotta.dao.exceptions.GroupNotMatchingException;
@@ -67,6 +68,8 @@ import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.enums.DistributionTypes;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
+import edu.iu.terracotta.dao.model.enums.export.data.ExperimentDataExportStatus;
+import edu.iu.terracotta.dao.repository.export.data.ExperimentDataExportRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
@@ -96,6 +99,12 @@ public class ParticipantServiceImplTest extends BaseTest {
     @Mock
     private ParticipantRosterWriteService participantRosterWriteService;
 
+    @Mock
+    private ExperimentDataExportRepository experimentDataExportRepository;
+
+    @Mock
+    private ExperimentDataExport experimentDataExport;
+
     private ParticipantServiceImpl participantService;
 
     @BeforeEach
@@ -115,6 +124,7 @@ public class ParticipantServiceImplTest extends BaseTest {
                 assignmentRepository,
                 consentDocumentRepository,
                 experimentRepository,
+                experimentDataExportRepository,
                 groupRepository,
                 lmsUserBatchRepository,
                 ltiUserRepository,
@@ -556,6 +566,77 @@ public class ParticipantServiceImplTest extends BaseTest {
 
         verify(participant, never()).setSource(ParticipationTypes.REVOKED);
         verify(participant, never()).setDateRevoked(any(Timestamp.class));
+    }
+
+    @Test
+    public void testChangeConsentWithdrawingAfterSubmittingMarksTheDataExportOutdated() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.getConsent()).thenReturn(true);
+        when(participantDto.getConsent()).thenReturn(false);
+        when(submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(anyLong())).thenReturn(true);
+        when(experimentDataExportRepository.findTopByExperiment_ExperimentIdAndStatusInOrderByCreatedAtDesc(anyLong(), any())).thenReturn(Optional.of(experimentDataExport));
+
+        participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        verify(experimentDataExport).setStatus(ExperimentDataExportStatus.OUTDATED);
+        verify(experimentDataExportRepository).save(experimentDataExport);
+    }
+
+    @Test
+    public void testChangeConsentWithdrawingWithoutSubmittingLeavesTheDataExport() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.getConsent()).thenReturn(true);
+        when(participantDto.getConsent()).thenReturn(false);
+        when(submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(anyLong())).thenReturn(false);
+
+        participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        verify(experimentDataExportRepository, never()).findTopByExperiment_ExperimentIdAndStatusInOrderByCreatedAtDesc(anyLong(), any());
+        verify(experimentDataExportRepository, never()).save(any());
+    }
+
+    @Test
+    public void testChangeConsentDecliningWithoutHavingAgreedLeavesTheDataExport() throws ParticipantAlreadyStartedException, ExperimentNotMatchingException, ParticipantNotMatchingException {
+        when(securedInfo.getConsent()).thenReturn(true);
+        when(participant.getConsent()).thenReturn(false);
+        when(participantDto.getConsent()).thenReturn(false);
+        when(submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(anyLong())).thenReturn(true);
+
+        participantService.changeConsent(participantDto, securedInfo, 1L);
+
+        verify(experimentDataExportRepository, never()).save(any());
+    }
+
+    @Test
+    public void testChangeParticipantRemovingConsentedParticipantsWhoSubmittedMarksTheDataExportOutdatedOnce() {
+        Participant secondParticipant = mock(Participant.class);
+        when(secondParticipant.getParticipantId()).thenReturn(2L);
+        when(secondParticipant.getConsent()).thenReturn(true);
+        ParticipantDto secondParticipantDto = mock(ParticipantDto.class);
+        when(participant.getConsent()).thenReturn(true);
+        when(participantDto.getConsent()).thenReturn(false);
+        when(secondParticipantDto.getConsent()).thenReturn(null);
+        when(submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(anyLong())).thenReturn(true);
+        when(experimentDataExportRepository.findTopByExperiment_ExperimentIdAndStatusInOrderByCreatedAtDesc(anyLong(), any())).thenReturn(Optional.of(experimentDataExport));
+        Map<Participant, ParticipantDto> map = new LinkedHashMap<>();
+        map.put(participant, participantDto);
+        map.put(secondParticipant, secondParticipantDto);
+
+        participantService.changeParticipant(map, 1L, securedInfo);
+
+        verify(experimentDataExport).setStatus(ExperimentDataExportStatus.OUTDATED);
+        verify(experimentDataExportRepository).save(experimentDataExport);
+    }
+
+    @Test
+    public void testChangeParticipantKeepingConsentedParticipantLeavesTheDataExport() {
+        when(participant.getConsent()).thenReturn(true);
+        when(participantDto.getConsent()).thenReturn(true);
+        when(submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(anyLong())).thenReturn(true);
+
+        participantService.changeParticipant(Collections.singletonMap(participant, participantDto), 1L, securedInfo);
+
+        verify(experimentDataExportRepository, never()).save(any());
     }
 
     @Test
