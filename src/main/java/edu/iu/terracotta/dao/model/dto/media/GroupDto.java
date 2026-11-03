@@ -2,13 +2,12 @@ package edu.iu.terracotta.dao.model.dto.media;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.EntityType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import org.imsglobal.caliper.entities.EntityType;
 
 @Getter
 @Setter

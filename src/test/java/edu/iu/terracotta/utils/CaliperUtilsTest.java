@@ -1,29 +1,28 @@
 package edu.iu.terracotta.utils;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.imsglobal.caliper.entities.EntityType;
-import org.imsglobal.caliper.entities.agent.CaliperOrganization;
-import org.imsglobal.caliper.entities.agent.CourseSection;
-import org.imsglobal.caliper.entities.agent.Person;
-import org.imsglobal.caliper.entities.agent.SoftwareApplication;
-import org.imsglobal.caliper.entities.session.LtiSession;
-import org.junit.jupiter.api.Test;
-
+import edu.iu.terracotta.connectors.caliper.dao.model.entities.CourseSection;
+import edu.iu.terracotta.connectors.caliper.dao.model.entities.LtiSession;
+import edu.iu.terracotta.connectors.caliper.dao.model.entities.Person;
+import edu.iu.terracotta.connectors.caliper.dao.model.entities.SoftwareApplication;
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.EntityType;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiContextEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.dao.entity.Participant;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * {@link CaliperUtils} is a Lombok {@code @UtilityClass} (all members effectively static), so no
@@ -298,7 +297,7 @@ public class CaliperUtilsTest {
             .lmsCourseId("course-42")
             .build();
 
-        CaliperOrganization group = CaliperUtils.prepareGroup(ltiMembershipEntity, securedInfo);
+        CourseSection group = CaliperUtils.prepareGroup(ltiMembershipEntity, securedInfo);
 
         assertTrue(group instanceof CourseSection);
         CourseSection courseSection = (CourseSection) group;
