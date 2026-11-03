@@ -3,14 +3,13 @@ package edu.iu.terracotta.dao.model.dto.media;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.Action;
+import edu.iu.terracotta.connectors.caliper.dao.model.enums.EventType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import org.imsglobal.caliper.actions.Action;
-import org.imsglobal.caliper.events.EventType;
 
 import java.sql.Timestamp;
 import java.time.Instant;

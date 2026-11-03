@@ -1,0 +1,52 @@
+{
+  "sendTime" : "<now>",
+  "dataVersion" : "http://purl.imsglobal.org/ctx/caliper/v1p2",
+  "data" : [ {
+    "@context" : "http://purl.imsglobal.org/ctx/caliper/v1p2",
+    "type" : "ToolUseEvent",
+    "id" : "urn:uuid:<random>",
+    "actor" : {
+      "id" : "https://terracotta.example.edu/users/42",
+      "type" : "Person",
+      "extensions" : {
+        "lti_id" : "lti-user-key",
+        "lti_tenant" : "https://canvas.example.edu",
+        "lms_global_id" : "global-id"
+      }
+    },
+    "action" : "Used",
+    "object" : {
+      "id" : "https://terracotta.example.edu/app",
+      "type" : "SoftwareApplication",
+      "name" : "Terracotta"
+    },
+    "referrer" : {
+      "id" : "https://canvas.example.edu",
+      "type" : "SoftwareApplication"
+    },
+    "eventTime" : "<now>",
+    "edApp" : {
+      "id" : "https://terracotta.example.edu/app",
+      "type" : "SoftwareApplication",
+      "name" : "Terracotta"
+    },
+    "group" : {
+      "id" : "https://canvas.example.edu/courses/101",
+      "type" : "CourseOffering",
+      "name" : "Biology 101"
+    },
+    "federatedSession" : {
+      "id" : "urn:session_id_localized:https://terracotta.example.edu/lti/oauth_nonce/null",
+      "type" : "LtiSession",
+      "messageParameters" : {
+        "lms_roles" : [ "Learner", "Student" ],
+        "lms_user_name" : "Pat Student",
+        "lms_course_id" : "101",
+        "lti_context_id" : "context-key",
+        "lms_user_global_id" : "global-id",
+        "lms_user_id" : "303",
+        "lms_login_id" : "student@example.edu"
+      }
+    }
+  } ]
+}
