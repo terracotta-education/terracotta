@@ -803,6 +803,23 @@ public class CanvasApiClientImplTest extends BaseTest {
         }
     }
 
+    @Test
+    void testListSubmissionsForMultipleAssignmentsSkipsAnAssignmentDeletedInCanvas() throws Exception {
+        when(submissionReaderExtended.getCourseSubmissions(any()))
+            .thenThrow(new ObjectNotFoundException("The specified resource does not exist.", "https://canvas.example.edu"))
+            .thenReturn(List.of(canvasSubmissionExtended));
+        when(canvasSubmissionExtended.from()).thenReturn(lmsSubmission);
+
+        List<LmsSubmission> result;
+
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            result = canvasApiClientService.listSubmissionsForMultipleAssignments(ltiUserEntity, "course1", List.of("1", "2"));
+        }
+
+        assertEquals(List.of(lmsSubmission), result);
+        verify(submissionReaderExtended, times(2)).getCourseSubmissions(any());
+    }
+
     // addLmsExtensions
 
     @Test
