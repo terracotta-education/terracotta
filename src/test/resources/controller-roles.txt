@@ -92,6 +92,7 @@ OutcomeController#allOutcomesByExposure(UUID,UUID,HttpServletRequest) -> Learner
 OutcomeController#deleteOutcome(UUID,UUID,UUID,HttpServletRequest) -> InstructorOrHigher
 OutcomeController#getOutcome(UUID,UUID,UUID,boolean,boolean,HttpServletRequest) -> LearnerOrHigher
 OutcomeController#getOutcomesForExperiment(UUID,HttpServletRequest) -> InstructorOrHigher
+OutcomeController#getOutcomesMissingFromLms(UUID,HttpServletRequest) -> InstructorOrHigher
 OutcomeController#outcomePotentials(UUID,HttpServletRequest) -> InstructorOrHigher
 OutcomeController#postOutcome(UUID,UUID,OutcomeDto,UriComponentsBuilder,HttpServletRequest) -> InstructorOrHigher
 OutcomeController#updateOutcome(UUID,UUID,UUID,OutcomeDto,HttpServletRequest) -> InstructorOrHigher
