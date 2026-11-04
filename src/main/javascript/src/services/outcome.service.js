@@ -9,6 +9,7 @@ export const outcomeService = {
   getAll,
   getById,
   getAllByExperimentId,
+  getMissingFromLms,
   create,
   updateOutcome,
   deleteOutcome,
@@ -41,6 +42,13 @@ async function getById(
 async function getAllByExperimentId(experimentId) {
   return request(
     `/api/experiments/${experimentId}/outcomes`
+  );
+}
+
+// gradebook outcomes whose LMS assignment no longer exists
+async function getMissingFromLms(experimentId) {
+  return request(
+    `/api/experiments/${experimentId}/outcomes/missing_lms`
   );
 }
 
