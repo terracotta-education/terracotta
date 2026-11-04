@@ -7,6 +7,17 @@
     />
 
     <template v-else-if="experiment">
+      <v-alert
+        v-if="missingFromLmsOutcomes.length"
+        class="alert-missing-gradebook-outcomes mb-7"
+        type="error"
+        variant="outlined"
+        elevation="0"
+      >
+        The following outcomes no longer exist in {{ lmsTitle }}:
+        {{ missingFromLmsOutcomes.map(outcome => `"${outcome.title}"`).join(", ") }}
+      </v-alert>
+
       <div class="summary-panels">
         <v-expansion-panels
           v-if="experiment.consent"
@@ -157,7 +168,31 @@
                     v-for="outcome in outcomesForExposure(exposure.exposureId)"
                     :key="outcome.outcomeId"
                   >
-                    <td>{{ outcome.title }}</td>
+                    <td>
+                      {{ outcome.title }}
+                      <v-tooltip
+                        v-if="missingFromLmsOutcomeIds.has(outcome.outcomeId)"
+                        location="top"
+                        content-class="tool-tip-content"
+                      >
+                        <template #activator="{ props: tooltipProps }">
+                          <v-icon
+                            v-bind="tooltipProps"
+                            class="outcome-missing-from-lms ml-1"
+                            color="error"
+                            size="small"
+                            role="img"
+                            tabindex="0"
+                            :aria-label="missingFromLmsHelp"
+                          >
+                            mdi-alert-circle-outline
+                          </v-icon>
+                        </template>
+                        <div class="tool-tip-content-body">
+                          {{ missingFromLmsHelp }}
+                        </div>
+                      </v-tooltip>
+                    </td>
                     <td>{{ outcome.external ? "Gradebook" : "Manual Entry" }}</td>
                     <td>
                       <v-menu>
@@ -264,6 +299,7 @@ import { assignment as assignmentModule } from "@/store/assignment.module";
 import { exposures as exposuresModule } from "@/store/exposures.module";
 import { outcome as outcomeModule } from "@/store/outcome.module";
 import { navigation as navigationModule } from "@/store/navigation.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
 
 defineOptions({
   name: "ExperimentSummaryStatus"
@@ -284,6 +320,7 @@ const assignmentStore = assignmentModule();
 const exposuresStore = exposuresModule();
 const outcomeStore = outcomeModule();
 const navigationStore = navigationModule();
+const configurationStore = configurationModule();
 
 const experimentId = computed(() => {
   return props.experiment.experimentId;
@@ -299,6 +336,27 @@ const exposures = computed(() => {
 
 const experimentOutcomes = computed(() => {
   return outcomeStore.experimentOutcomes || [];
+});
+
+// only outcomes still listed here, so deleting a flagged outcome clears its warning
+const missingFromLmsOutcomes = computed(() => {
+  const missingIds = new Set(
+    (outcomeStore.outcomesMissingFromLms || []).map(outcome => outcome.outcomeId)
+  );
+
+  return experimentOutcomes.value.filter(outcome => missingIds.has(outcome.outcomeId));
+});
+
+const lmsTitle = computed(() => {
+  return configurationStore.get?.lmsTitle || "LMS";
+});
+
+const missingFromLmsHelp = computed(() => {
+  return `This gradebook item no longer exists in ${lmsTitle.value}`;
+});
+
+const missingFromLmsOutcomeIds = computed(() => {
+  return new Set(missingFromLmsOutcomes.value.map(outcome => outcome.outcomeId));
 });
 
 const consentComplete = computed(() => {
@@ -518,6 +576,12 @@ onMounted(async () => {
   ]);
 
   isLoading.value = false;
+
+  // asks Canvas about every gradebook outcome, so it runs after the page is shown rather than
+  // holding it up
+  if (experimentOutcomes.value.some(outcome => outcome.external)) {
+    outcomeStore.fetchOutcomesMissingFromLms(experimentId.value);
+  }
 
   deleteAttributesFromObservedElement(
     ".experiment-summary-status",

@@ -9,6 +9,7 @@ vi.mock("@/services", () => ({
     getById: vi.fn(),
     getAll: vi.fn(),
     getAllByExperimentId: vi.fn(),
+    getMissingFromLms: vi.fn(),
     getOutcomeScoresById: vi.fn(),
     updateOutcomeScores: vi.fn(),
     getOutcomePotentials: vi.fn()
@@ -266,6 +267,32 @@ describe("outcome store", () => {
       const result = await store.fetchOutcomesByExposures([123]);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe("fetchOutcomesMissingFromLms", () => {
+    it("sets outcomesMissingFromLms from a successful check", async () => {
+      const data = [{ outcomeId: 1, title: "Midterm" }];
+      outcomeService.getMissingFromLms.mockResolvedValue({ status: 200, data });
+
+      await store.fetchOutcomesMissingFromLms(123);
+
+      expect(outcomeService.getMissingFromLms).toHaveBeenCalledWith(123);
+      expect(store.outcomesMissingFromLms).toEqual(data);
+    });
+
+    it("reports nothing missing when the check fails, rather than keeping an earlier result", async () => {
+      store.outcomesMissingFromLms = [{ outcomeId: 1 }];
+      outcomeService.getMissingFromLms.mockResolvedValue({ status: 500, message: "Canvas is down" });
+
+      await store.fetchOutcomesMissingFromLms(123);
+      expect(store.outcomesMissingFromLms).toEqual([]);
+
+      store.outcomesMissingFromLms = [{ outcomeId: 1 }];
+      outcomeService.getMissingFromLms.mockRejectedValue(new Error("network"));
+
+      expect(await store.fetchOutcomesMissingFromLms(123)).toBeNull();
+      expect(store.outcomesMissingFromLms).toEqual([]);
     });
   });
 

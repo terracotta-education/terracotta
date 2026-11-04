@@ -28,9 +28,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsSubmission;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.dao.entity.Experiment;
 import edu.iu.terracotta.dao.entity.Outcome;
 import edu.iu.terracotta.dao.entity.OutcomeScore;
 import edu.iu.terracotta.dao.exceptions.ExperimentNotMatchingException;
@@ -198,6 +200,31 @@ public class OutcomeServiceImplTest extends BaseTest {
         List<OutcomePotentialDto> retVal = outcomeService.potentialOutcomes(0, securedInfo);
 
         assertNotNull(retVal);
+    }
+
+    @Test
+    public void testGetOutcomesMissingFromLmsIsEmptyWhenTheAssignmentStillExists() throws DataServiceException, ApiException, TerracottaConnectorException {
+        // default setup: outcome.getLmsOutcomeId() == "1" == lmsAssignment.getId()
+        assertTrue(outcomeService.getOutcomesMissingFromLms(0, securedInfo).isEmpty());
+    }
+
+    @Test
+    public void testGetOutcomesMissingFromLmsReturnsAGradebookOutcomeWhoseAssignmentIsGone() throws DataServiceException, ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getId()).thenReturn("2");
+        when(outcome.getTitle()).thenReturn(OUTCOME_TITLE);
+
+        List<OutcomeDto> retVal = outcomeService.getOutcomesMissingFromLms(0, securedInfo);
+
+        assertEquals(1, retVal.size());
+        assertEquals(OUTCOME_TITLE, retVal.get(0).getTitle());
+    }
+
+    @Test
+    public void testGetOutcomesMissingFromLmsSkipsTheLmsWhenThereAreNoGradebookOutcomes() throws DataServiceException, ApiException, TerracottaConnectorException {
+        when(outcome.getExternal()).thenReturn(false);
+
+        assertTrue(outcomeService.getOutcomesMissingFromLms(0, securedInfo).isEmpty());
+        verify(apiClient, never()).listAssignments(any(LtiUserEntity.class), any(Experiment.class));
     }
 
     @Test
