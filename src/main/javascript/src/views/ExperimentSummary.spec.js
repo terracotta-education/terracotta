@@ -152,6 +152,7 @@ describe("ExperimentSummary", () => {
     vi.resetAllMocks();
     swalFire.mockReset();
     routeRef.params = { experimentId: "8" };
+    routeRef.name = "ExperimentSummary";
 
     pinia = createPinia();
     setActivePinia(pinia);
@@ -296,6 +297,22 @@ describe("ExperimentSummary", () => {
     // first in the components section, before the Exposure Sets panel
     const section = wrapper.find(".section-exposure-sets");
     expect(section.element.firstElementChild).toBe(alerts.element);
+  });
+
+  it("opens on the status tab when returning to the ExperimentSummaryStatus route", async () => {
+    routeRef.name = "ExperimentSummaryStatus";
+
+    const wrapper = mountSummary();
+
+    await vi.waitFor(() => {
+      expect(
+        wrapper.findComponent({ name: "ExperimentSummaryStatus" }).exists()
+      ).toBe(true);
+    });
+
+    expect(
+      wrapper.findComponent({ name: "ExperimentAssignments" }).exists()
+    ).toBe(false);
   });
 
   it("restores the tab and exposure set from a saved edit-mode caller page", async () => {
