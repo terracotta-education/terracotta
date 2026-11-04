@@ -20,7 +20,8 @@ export const outcome = defineStore("outcome", {
     outcomes: [],
     outcomeScores: [],
     outcomePotentials: [],
-    experimentOutcomes: []
+    experimentOutcomes: [],
+    outcomesMissingFromLms: []
   }),
 
   getters: {
@@ -157,6 +158,30 @@ export const outcome = defineStore("outcome", {
       } catch (error) {
         console.error(
           "outcome/fetchOutcomesByExposures | catch",
+          error
+        );
+
+        return null;
+      }
+    },
+
+    // gradebook outcomes whose LMS assignment was deleted (or belongs to another course). Left
+    // empty when the check itself fails, so an LMS outage never reports outcomes as missing
+    async fetchOutcomesMissingFromLms(experimentId) {
+      this.outcomesMissingFromLms = [];
+
+      try {
+        const response =
+          await outcomeService.getMissingFromLms(experimentId);
+
+        if (response?.status === 200) {
+          this.outcomesMissingFromLms = response.data || [];
+        }
+
+        return response;
+      } catch (error) {
+        console.error(
+          "outcome/fetchOutcomesMissingFromLms | catch",
           error
         );
 
