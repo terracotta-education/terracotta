@@ -44,6 +44,8 @@
 <script setup>
 import { ref, computed } from "vue";
 
+import { naturalCompare } from "@/helpers/sort";
+
 const props = defineProps({
   exposure: {
     type: Object,
@@ -74,7 +76,7 @@ const groupConditionMap = computed(() => {
 const allGroups = computed(() => {
   return props.exposure.groupConditionList
     ?.map(group => group.groupName)
-    .sort() || [];
+    .sort(naturalCompare) || [];
 });
 
 const visibleGroups = computed(() => {
