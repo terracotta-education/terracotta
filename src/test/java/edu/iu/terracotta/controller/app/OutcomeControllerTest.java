@@ -216,6 +216,24 @@ public class OutcomeControllerTest extends BaseTest {
     }
 
     @Test
+    void testGetOutcomesMissingFromLms() throws Exception {
+        when(outcomeService.getOutcomesMissingFromLms(1L, securedInfo)).thenReturn(List.of(outcomeDto));
+
+        ResponseEntity<List<OutcomeDto>> response = outcomeController.getOutcomesMissingFromLms(EXPERIMENT_UUID, httpServletRequest);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(List.of(outcomeDto), response.getBody());
+    }
+
+    @Test
+    void testGetOutcomesMissingFromLmsNotMatching() throws Exception {
+        doThrow(new ExperimentNotMatchingException("error")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
+
+        assertThrows(ExperimentNotMatchingException.class, () -> outcomeController.getOutcomesMissingFromLms(EXPERIMENT_UUID, httpServletRequest));
+        verify(outcomeService, never()).getOutcomesMissingFromLms(anyLong(), any(SecuredInfo.class));
+    }
+
+    @Test
     void testOutcomePotentialsNotMatching() throws Exception {
         doThrow(new ExperimentNotMatchingException("error")).when(apiJwtService).experimentAllowed(securedInfo, 1L);
 

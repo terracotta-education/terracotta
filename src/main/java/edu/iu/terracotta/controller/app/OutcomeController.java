@@ -197,4 +197,16 @@ public class OutcomeController {
         return new ResponseEntity<>(outcomeDtos, HttpStatus.OK);
     }
 
+    // gradebook outcomes whose LMS assignment no longer exists (deleted, or from another course)
+    @GetMapping("/outcomes/missing_lms")
+    @InstructorOrHigher
+    public ResponseEntity<List<OutcomeDto>> getOutcomesMissingFromLms(@PathVariable("experimentId") UUID experimentUuid, HttpServletRequest req)
+            throws ExperimentNotMatchingException, BadTokenException, DataServiceException, ApiException, TerracottaConnectorException {
+        long experimentId = experimentService.getExperimentIdByUuid(experimentUuid);
+        SecuredInfo securedInfo = apijwtService.extractValues(req, false);
+        apijwtService.experimentAllowed(securedInfo, experimentId);
+
+        return new ResponseEntity<>(outcomeService.getOutcomesMissingFromLms(experimentId, securedInfo), HttpStatus.OK);
+    }
+
 }
