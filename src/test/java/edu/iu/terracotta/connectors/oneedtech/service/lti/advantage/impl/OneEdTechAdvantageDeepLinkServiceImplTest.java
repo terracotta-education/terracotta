@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import edu.iu.terracotta.base.BaseTest;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiDeepLink;
@@ -68,7 +68,7 @@ public class OneEdTechAdvantageDeepLinkServiceImplTest extends BaseTest {
         String[] parts = jwt.split("\\.");
         String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
 
-        return new ObjectMapper().readValue(payloadJson, Map.class);
+        return JsonMapper.builder().build().readValue(payloadJson, Map.class);
     }
 
     @Test
