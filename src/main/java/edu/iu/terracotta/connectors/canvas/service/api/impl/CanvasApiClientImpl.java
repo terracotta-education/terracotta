@@ -448,7 +448,17 @@ public class CanvasApiClientImpl implements ApiClient {
         List<LmsSubmission> submissions = new ArrayList<>();
 
         for (String canvasAssignmentId : canvasAssignmentIds) {
-            submissions.addAll(listSubmissions(apiUser, canvasAssignmentId, canvasCourseId));
+            try {
+                submissions.addAll(listSubmissions(apiUser, canvasAssignmentId, canvasCourseId));
+            } catch (ApiException e) {
+                // an assignment deleted in Canvas after it was picked as a gradebook outcome has
+                // no submissions to report; skip it rather than failing everything else with it
+                if (!(e.getCause() instanceof ObjectNotFoundException)) {
+                    throw e;
+                }
+
+                log.warn("Skipping submissions for the assignment with ID: [{}] in the course with ID: [{}]; it no longer exists in Canvas", canvasAssignmentId, canvasCourseId);
+            }
         }
 
         return submissions;
