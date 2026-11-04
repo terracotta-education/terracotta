@@ -27,6 +27,7 @@ public interface OutcomeService {
 
     List<OutcomeDto> getOutcomesForExposure(long exposureId);
     List<OutcomeDto> getAllByExperiment(long experimentId);
+    List<OutcomeDto> getOutcomesMissingFromLms(long experimentId, SecuredInfo securedInfo) throws DataServiceException, ApiException, TerracottaConnectorException;
     Outcome getOutcome(long id);
     Outcome getOutcomeByUuid(UUID uuid) throws OutcomeNotMatchingException;
     long getOutcomeIdByUuid(UUID uuid) throws OutcomeNotMatchingException;
