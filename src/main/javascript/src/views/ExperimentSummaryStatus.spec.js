@@ -35,6 +35,8 @@ import {
 } from "@/services";
 import { navigation as navigationModule } from "@/store/navigation.module";
 import { outcome as outcomeModule } from "@/store/outcome.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
+import { createPinia, setActivePinia } from "pinia";
 import ExperimentSummaryStatus from "./ExperimentSummaryStatus.vue";
 
 const experiment = {
@@ -269,8 +271,17 @@ describe("ExperimentSummaryStatus", () => {
       outcomeService.getMissingFromLms.mockResolvedValue({ status: 200, data: [midterm, quiz] });
     });
 
+    // the LMS's name comes from the launch configuration
+    const mountInLms = lmsTitle => {
+      const pinia = createPinia();
+      setActivePinia(pinia);
+      configurationModule().configurations = lmsTitle ? { lmsTitle } : {};
+
+      return mountComponent(ExperimentSummaryStatus, { props: { experiment }, pinia });
+    };
+
     it("lists every missing outcome in an error alert at the top", async () => {
-      const wrapper = mountComponent(ExperimentSummaryStatus, { props: { experiment } });
+      const wrapper = mountInLms("Canvas");
 
       await vi.waitFor(() => {
         expect(wrapper.find(".alert-missing-gradebook-outcomes").exists()).toBe(true);
@@ -278,12 +289,12 @@ describe("ExperimentSummaryStatus", () => {
 
       expect(outcomeService.getMissingFromLms).toHaveBeenCalledWith(7);
       expect(wrapper.find(".alert-missing-gradebook-outcomes").text()).toContain(
-        'One or more gradebook outcome assignments no longer exist in Canvas: "Midterm", "Quiz 2"'
+        'The following outcomes no longer exist in Canvas: "Midterm", "Quiz 2"'
       );
     });
 
-    it("marks only the missing outcomes' rows", async () => {
-      const wrapper = mountComponent(ExperimentSummaryStatus, { props: { experiment } });
+    it("marks only the missing outcomes' rows, with an outlined icon and hover help", async () => {
+      const wrapper = mountInLms("Brightspace");
 
       await openAllPanels(wrapper);
       await vi.waitFor(() => {
@@ -298,8 +309,23 @@ describe("ExperimentSummaryStatus", () => {
         expect.stringContaining("Midterm"),
         expect.stringContaining("Quiz 2")
       ]);
-      expect(wrapper.find(".outcome-missing-from-lms").attributes("aria-label"))
-        .toBe("This assignment no longer exists in Canvas");
+      const icon = wrapper.find(".outcome-missing-from-lms");
+      expect(icon.classes()).toContain("mdi-alert-circle-outline");
+      expect(icon.attributes("aria-label")).toBe("This gradebook item no longer exists in Brightspace");
+
+      await icon.trigger("mouseenter");
+      await vi.waitFor(() => {
+        expect(document.body.textContent).toContain("This gradebook item no longer exists in Brightspace");
+      });
+    });
+
+    it("says LMS when the launch didn't name one", async () => {
+      const wrapper = mountInLms(null);
+
+      await vi.waitFor(() => {
+        expect(wrapper.find(".alert-missing-gradebook-outcomes").text())
+          .toContain("The following outcomes no longer exist in LMS:");
+      });
     });
 
     it("drops a missing outcome from the alert once it's deleted", async () => {

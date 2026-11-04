@@ -14,7 +14,7 @@
         variant="outlined"
         elevation="0"
       >
-        One or more gradebook outcome assignments no longer exist in Canvas:
+        The following outcomes no longer exist in {{ lmsTitle }}:
         {{ missingFromLmsOutcomes.map(outcome => `"${outcome.title}"`).join(", ") }}
       </v-alert>
 
@@ -170,17 +170,28 @@
                   >
                     <td>
                       {{ outcome.title }}
-                      <v-icon
+                      <v-tooltip
                         v-if="missingFromLmsOutcomeIds.has(outcome.outcomeId)"
-                        class="outcome-missing-from-lms ml-1"
-                        color="error"
-                        size="small"
-                        role="img"
-                        aria-label="This assignment no longer exists in Canvas"
-                        title="This assignment no longer exists in Canvas"
+                        location="top"
+                        content-class="tool-tip-content"
                       >
-                        mdi-alert-circle
-                      </v-icon>
+                        <template #activator="{ props: tooltipProps }">
+                          <v-icon
+                            v-bind="tooltipProps"
+                            class="outcome-missing-from-lms ml-1"
+                            color="error"
+                            size="small"
+                            role="img"
+                            tabindex="0"
+                            :aria-label="missingFromLmsHelp"
+                          >
+                            mdi-alert-circle-outline
+                          </v-icon>
+                        </template>
+                        <div class="tool-tip-content-body">
+                          {{ missingFromLmsHelp }}
+                        </div>
+                      </v-tooltip>
                     </td>
                     <td>{{ outcome.external ? "Gradebook" : "Manual Entry" }}</td>
                     <td>
@@ -288,6 +299,7 @@ import { assignment as assignmentModule } from "@/store/assignment.module";
 import { exposures as exposuresModule } from "@/store/exposures.module";
 import { outcome as outcomeModule } from "@/store/outcome.module";
 import { navigation as navigationModule } from "@/store/navigation.module";
+import { configuration as configurationModule } from "@/store/configuration.module";
 
 defineOptions({
   name: "ExperimentSummaryStatus"
@@ -308,6 +320,7 @@ const assignmentStore = assignmentModule();
 const exposuresStore = exposuresModule();
 const outcomeStore = outcomeModule();
 const navigationStore = navigationModule();
+const configurationStore = configurationModule();
 
 const experimentId = computed(() => {
   return props.experiment.experimentId;
@@ -332,6 +345,14 @@ const missingFromLmsOutcomes = computed(() => {
   );
 
   return experimentOutcomes.value.filter(outcome => missingIds.has(outcome.outcomeId));
+});
+
+const lmsTitle = computed(() => {
+  return configurationStore.get?.lmsTitle || "LMS";
+});
+
+const missingFromLmsHelp = computed(() => {
+  return `This gradebook item no longer exists in ${lmsTitle.value}`;
 });
 
 const missingFromLmsOutcomeIds = computed(() => {
