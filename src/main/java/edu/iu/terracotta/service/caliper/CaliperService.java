@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.caliper;
 
+import edu.iu.terracotta.connectors.caliper.dao.model.Envelope;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiMembershipEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -7,8 +8,6 @@ import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Participant;
 import edu.iu.terracotta.dao.entity.Submission;
 import edu.iu.terracotta.dao.model.dto.media.MediaEventDto;
-
-import org.imsglobal.caliper.Envelope;
 
 import java.util.List;
 

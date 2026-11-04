@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import org.joda.time.DateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -19,6 +19,6 @@ import org.joda.time.DateTime;
 public class SessionDto extends AbstractDto {
 
     private String type;
-    private DateTime startedAtTime;
+    private Instant startedAtTime;
 
 }
