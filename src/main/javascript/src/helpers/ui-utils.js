@@ -94,6 +94,11 @@ export function addAttributesToObservedElement(parentClass, nodeClass, elementCl
 }
 
 export function deleteAttributesFromElement(elementClass, attributes) {
+  // pages call this from a timer, which can fire after the page (or a test's DOM) is gone
+  if (typeof document === "undefined") {
+    return;
+  }
+
   const elements = document.querySelectorAll(elementClass);
   elements.forEach((el) => {
     attributes.forEach((attribute) => {
@@ -103,6 +108,11 @@ export function deleteAttributesFromElement(elementClass, attributes) {
 }
 
 export function addAttributesToElement(elementClass, attributes) {
+  // pages call this from a timer, which can fire after the page (or a test's DOM) is gone
+  if (typeof document === "undefined") {
+    return;
+  }
+
   const elements = document.querySelectorAll(elementClass);
   elements.forEach((el) => {
     attributes.forEach((attribute) => {
