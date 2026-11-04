@@ -7,6 +7,17 @@
     />
 
     <template v-else-if="experiment">
+      <v-alert
+        v-if="missingFromLmsOutcomes.length"
+        class="alert-missing-gradebook-outcomes mb-7"
+        type="error"
+        variant="outlined"
+        elevation="0"
+      >
+        One or more gradebook outcome assignments no longer exist in Canvas:
+        {{ missingFromLmsOutcomes.map(outcome => `"${outcome.title}"`).join(", ") }}
+      </v-alert>
+
       <div class="summary-panels">
         <v-expansion-panels
           v-if="experiment.consent"
@@ -157,7 +168,20 @@
                     v-for="outcome in outcomesForExposure(exposure.exposureId)"
                     :key="outcome.outcomeId"
                   >
-                    <td>{{ outcome.title }}</td>
+                    <td>
+                      {{ outcome.title }}
+                      <v-icon
+                        v-if="missingFromLmsOutcomeIds.has(outcome.outcomeId)"
+                        class="outcome-missing-from-lms ml-1"
+                        color="error"
+                        size="small"
+                        role="img"
+                        aria-label="This assignment no longer exists in Canvas"
+                        title="This assignment no longer exists in Canvas"
+                      >
+                        mdi-alert-circle
+                      </v-icon>
+                    </td>
                     <td>{{ outcome.external ? "Gradebook" : "Manual Entry" }}</td>
                     <td>
                       <v-menu>
@@ -299,6 +323,19 @@ const exposures = computed(() => {
 
 const experimentOutcomes = computed(() => {
   return outcomeStore.experimentOutcomes || [];
+});
+
+// only outcomes still listed here, so deleting a flagged outcome clears its warning
+const missingFromLmsOutcomes = computed(() => {
+  const missingIds = new Set(
+    (outcomeStore.outcomesMissingFromLms || []).map(outcome => outcome.outcomeId)
+  );
+
+  return experimentOutcomes.value.filter(outcome => missingIds.has(outcome.outcomeId));
+});
+
+const missingFromLmsOutcomeIds = computed(() => {
+  return new Set(missingFromLmsOutcomes.value.map(outcome => outcome.outcomeId));
 });
 
 const consentComplete = computed(() => {
@@ -518,6 +555,12 @@ onMounted(async () => {
   ]);
 
   isLoading.value = false;
+
+  // asks Canvas about every gradebook outcome, so it runs after the page is shown rather than
+  // holding it up
+  if (experimentOutcomes.value.some(outcome => outcome.external)) {
+    outcomeStore.fetchOutcomesMissingFromLms(experimentId.value);
+  }
 
   deleteAttributesFromObservedElement(
     ".experiment-summary-status",

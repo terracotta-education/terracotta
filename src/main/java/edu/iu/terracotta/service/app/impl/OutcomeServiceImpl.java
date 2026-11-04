@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -101,6 +102,31 @@ public class OutcomeServiceImpl implements OutcomeService {
             .map(
                 outcome -> toDto(outcome, false)
             )
+            .toList();
+    }
+
+    @Override
+    public List<OutcomeDto> getOutcomesMissingFromLms(long experimentId, SecuredInfo securedInfo) throws DataServiceException, ApiException, TerracottaConnectorException {
+        List<Outcome> externalOutcomes = CollectionUtils.emptyIfNull(outcomeRepository.findByExposure_Experiment_ExperimentId(experimentId)).stream()
+            .filter(outcome -> BooleanUtils.isTrue(outcome.getExternal()) && StringUtils.isNotBlank(outcome.getLmsOutcomeId()))
+            .toList();
+
+        if (externalOutcomes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Experiment experiment = experimentRepository.findById(experimentId)
+            .orElseThrow(() -> new DataServiceException("Error 105: Experiment does not exist."));
+        LtiUserEntity instructorUser = ltiUserRepository.findFirstByUserKeyAndPlatformDeployment_KeyId(securedInfo.getUserId(), securedInfo.getPlatformDeploymentId());
+
+        // one request for the whole course; an assignment deleted in the LMS is no longer listed
+        Set<String> lmsAssignmentIds = apiClient.listAssignments(instructorUser, experiment).stream()
+            .map(LmsAssignment::getId)
+            .collect(Collectors.toSet());
+
+        return externalOutcomes.stream()
+            .filter(outcome -> !lmsAssignmentIds.contains(outcome.getLmsOutcomeId()))
+            .map(outcome -> toDto(outcome, false))
             .toList();
     }
 

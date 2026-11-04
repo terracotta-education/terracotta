@@ -10,7 +10,8 @@ vi.mock("@/services", () => ({
   outcomeService: {
     create: vi.fn(),
     deleteOutcome: vi.fn(),
-    getAllByExperimentId: vi.fn()
+    getAllByExperimentId: vi.fn(),
+    getMissingFromLms: vi.fn()
   }
 }));
 
@@ -33,6 +34,7 @@ import {
   outcomeService
 } from "@/services";
 import { navigation as navigationModule } from "@/store/navigation.module";
+import { outcome as outcomeModule } from "@/store/outcome.module";
 import ExperimentSummaryStatus from "./ExperimentSummaryStatus.vue";
 
 const experiment = {
@@ -254,6 +256,76 @@ describe("ExperimentSummaryStatus", () => {
         name: "OutcomeScoring",
         params: { experimentId: 7, exposureId: 20, outcomeId: 99 }
       });
+    });
+  });
+
+  describe("gradebook outcomes missing from Canvas", () => {
+    const midterm = { outcomeId: 41, exposureId: 20, title: "Midterm", external: true };
+    const quiz = { outcomeId: 42, exposureId: 20, title: "Quiz 2", external: true };
+    const final = { outcomeId: 43, exposureId: 20, title: "Final", external: true };
+
+    beforeEach(() => {
+      outcomeService.getAllByExperimentId.mockResolvedValue({ data: [outcome, midterm, quiz, final] });
+      outcomeService.getMissingFromLms.mockResolvedValue({ status: 200, data: [midterm, quiz] });
+    });
+
+    it("lists every missing outcome in an error alert at the top", async () => {
+      const wrapper = mountComponent(ExperimentSummaryStatus, { props: { experiment } });
+
+      await vi.waitFor(() => {
+        expect(wrapper.find(".alert-missing-gradebook-outcomes").exists()).toBe(true);
+      });
+
+      expect(outcomeService.getMissingFromLms).toHaveBeenCalledWith(7);
+      expect(wrapper.find(".alert-missing-gradebook-outcomes").text()).toContain(
+        'One or more gradebook outcome assignments no longer exist in Canvas: "Midterm", "Quiz 2"'
+      );
+    });
+
+    it("marks only the missing outcomes' rows", async () => {
+      const wrapper = mountComponent(ExperimentSummaryStatus, { props: { experiment } });
+
+      await openAllPanels(wrapper);
+      await vi.waitFor(() => {
+        expect(wrapper.findAll(".outcome-missing-from-lms")).toHaveLength(2);
+      });
+
+      const flaggedRows = wrapper.findAll("tr")
+        .filter(row => row.find(".outcome-missing-from-lms").exists())
+        .map(row => row.find("td").text());
+
+      expect(flaggedRows).toEqual([
+        expect.stringContaining("Midterm"),
+        expect.stringContaining("Quiz 2")
+      ]);
+      expect(wrapper.find(".outcome-missing-from-lms").attributes("aria-label"))
+        .toBe("This assignment no longer exists in Canvas");
+    });
+
+    it("drops a missing outcome from the alert once it's deleted", async () => {
+      const wrapper = mountComponent(ExperimentSummaryStatus, { props: { experiment } });
+
+      await vi.waitFor(() => {
+        expect(wrapper.find(".alert-missing-gradebook-outcomes").exists()).toBe(true);
+      });
+
+      outcomeService.getAllByExperimentId.mockResolvedValue({ data: [outcome, quiz, final] });
+      // what the page does after a delete
+      await outcomeModule().fetchOutcomesByExposures([7]);
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find(".alert-missing-gradebook-outcomes").text()).not.toContain("Midterm");
+      expect(wrapper.find(".alert-missing-gradebook-outcomes").text()).toContain('"Quiz 2"');
+    });
+
+    it("doesn't ask Canvas when the experiment has no gradebook outcomes", async () => {
+      outcomeService.getAllByExperimentId.mockResolvedValue({ data: [outcome] });
+
+      const wrapper = mountComponent(ExperimentSummaryStatus, { props: { experiment } });
+      await openAllPanels(wrapper);
+
+      expect(outcomeService.getMissingFromLms).not.toHaveBeenCalled();
+      expect(wrapper.find(".alert-missing-gradebook-outcomes").exists()).toBe(false);
     });
   });
 
