@@ -442,6 +442,63 @@ public class IntegrationServiceImplTest extends BaseTest {
         verify(outboundUrlService).validatePublicUrl("https://example.com");
     }
 
+    @Test
+    void testValidateIntegrationUrlIframeAllowedVerdictIsCached() throws IntegrationUrlIframeInvalidException {
+        when(platformDeploymentRepository.findByKeyId(anyLong())).thenReturn(Optional.of(platformDeployment));
+
+        try (MockedConstruction<RestTemplate> mocked = mockHeadResponse(new HttpHeaders())) {
+            integrationService.validateIntegrationUrlIframe("https://example.com", securedInfo);
+            integrationService.validateIntegrationUrlIframe("https://example.com", securedInfo);
+
+            assertEquals(1, mocked.constructed().size());
+        }
+    }
+
+    @Test
+    void testValidateIntegrationUrlIframeBlockedVerdictIsCached() {
+        when(platformDeploymentRepository.findByKeyId(anyLong())).thenReturn(Optional.of(platformDeployment));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Frame-Options", "DENY");
+
+        try (MockedConstruction<RestTemplate> mocked = mockHeadResponse(headers)) {
+            assertThrows(IntegrationUrlIframeInvalidException.class, () -> integrationService.validateIntegrationUrlIframe("https://example.com", securedInfo));
+            Exception exception = assertThrows(IntegrationUrlIframeInvalidException.class, () -> integrationService.validateIntegrationUrlIframe("https://example.com", securedInfo));
+
+            assertEquals(1, mocked.constructed().size());
+            assertTrue(exception.getMessage().contains("security headers"));
+        }
+    }
+
+    @Test
+    void testValidateIntegrationUrlIframeRequestFailureIsCached() {
+        when(platformDeploymentRepository.findByKeyId(anyLong())).thenReturn(Optional.of(platformDeployment));
+
+        try (
+            MockedConstruction<RestTemplate> mocked = mockConstruction(
+                RestTemplate.class,
+                (mock, context) -> when(mock.exchange(anyString(), any(HttpMethod.class), isNull(), eq(String.class))).thenThrow(new RestTemplateTestException("Read timed out"))
+            )
+        ) {
+            assertThrows(IntegrationUrlIframeInvalidException.class, () -> integrationService.validateIntegrationUrlIframe("https://example.com", securedInfo));
+            Exception exception = assertThrows(IntegrationUrlIframeInvalidException.class, () -> integrationService.validateIntegrationUrlIframe("https://example.com", securedInfo));
+
+            assertEquals(2, mocked.constructed().size());
+            assertTrue(exception.getMessage().contains("Read timed out"));
+        }
+    }
+
+    @Test
+    void testValidateIntegrationUrlIframeCacheIsPerUrl() throws IntegrationUrlIframeInvalidException {
+        when(platformDeploymentRepository.findByKeyId(anyLong())).thenReturn(Optional.of(platformDeployment));
+
+        try (MockedConstruction<RestTemplate> mocked = mockHeadResponse(new HttpHeaders())) {
+            integrationService.validateIntegrationUrlIframe("https://example.com/a", securedInfo);
+            integrationService.validateIntegrationUrlIframe("https://example.com/b", securedInfo);
+
+            assertEquals(2, mocked.constructed().size());
+        }
+    }
+
     private MockedConstruction<RestTemplate> mockHeadResponse(HttpHeaders headers) {
         ResponseEntity<String> response = new ResponseEntity<>(null, headers, HttpStatus.OK);
 

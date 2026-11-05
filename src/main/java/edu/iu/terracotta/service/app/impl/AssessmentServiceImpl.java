@@ -293,17 +293,23 @@ public class AssessmentServiceImpl implements AssessmentService {
                 )
             );
 
-            try {
-                // check if launch url can be embedded in an iframe
-                if (StringUtils.isBlank(integration.getLaunchUrl())) {
-                    throw new IntegrationUrlIframeInvalidException("Integration launch URL is blank");
-                }
+            // only instructors use the embed check (for the preview); a student's page load must
+            // never wait on the integration host answering it
+            boolean checkEmbedding = !isStudent && securedInfo != null && apiJwtService.isInstructorOrHigher(securedInfo);
 
-                integrationService.validateIntegrationUrlIframe(integration.getLaunchUrl(), securedInfo);
-                assessmentDto.setIntegrationUrlValid(true);
-            } catch (IntegrationUrlIframeInvalidException e) {
-                // launchUrl is not valid for iframe embedding
-                log.debug(e.getMessage());
+            if (checkEmbedding) {
+                try {
+                    // check if launch url can be embedded in an iframe
+                    if (StringUtils.isBlank(integration.getLaunchUrl())) {
+                        throw new IntegrationUrlIframeInvalidException("Integration launch URL is blank");
+                    }
+
+                    integrationService.validateIntegrationUrlIframe(integration.getLaunchUrl(), securedInfo);
+                    assessmentDto.setIntegrationUrlValid(true);
+                } catch (IntegrationUrlIframeInvalidException e) {
+                    // launchUrl is not valid for iframe embedding
+                    log.debug(e.getMessage());
+                }
             }
         }
 
