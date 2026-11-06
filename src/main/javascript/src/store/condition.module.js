@@ -68,9 +68,16 @@ export const condition = defineStore("condition", {
         return [];
       }
 
-      return Promise.all(
-        conditions.map(() => this.createCondition(payload.experimentId))
-      );
+      // one at a time, so the database ids follow the order the conditions are shown in;
+      // created concurrently, the second could get the lower id and every page that lists
+      // conditions by id would show them swapped
+      const created = [];
+
+      for (let i = 0; i < conditions.length; i++) {
+        created.push(await this.createCondition(payload.experimentId));
+      }
+
+      return created;
     },
 
     async createCondition(experimentId) {

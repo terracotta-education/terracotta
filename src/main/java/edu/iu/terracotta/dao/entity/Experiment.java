@@ -29,6 +29,7 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 
@@ -77,12 +78,15 @@ public class Experiment extends UuidAwareEntity {
     @JoinColumn(name = "consent_document_consent_document_id")
     private ConsentDocument consentDocument;
 
+    // groups are paired with conditions and exposures by position, so keep them in creation order
     @OneToMany
     @JoinColumn(name = "experiment_experiment_id")
+    @OrderBy("conditionId ASC")
     private List<Condition> conditions;
 
     @OneToMany
     @JoinColumn(name = "experiment_experiment_id")
+    @OrderBy("exposureId ASC")
     private List<Exposure> exposures;
 
     @OneToMany

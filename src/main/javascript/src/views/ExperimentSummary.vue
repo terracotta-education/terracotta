@@ -441,6 +441,7 @@ import {
 import Swal from "sweetalert2";
 import { EventBus } from "@/helpers/event-bus";
 import { statusAlert, createStatusAlert, getColor } from "@/helpers/ui-utils";
+import { naturalCompare } from "@/helpers/sort";
 
 import ExperimentAssignments from "@/views/ExperimentAssignments.vue";
 import NewSubmissionsAlerts from "@/components/experiment-assignments/NewSubmissionsAlerts.vue";
@@ -640,7 +641,12 @@ const hasPublishedAssignment = computed(() => {
   return assignments.value?.filter(assignment => assignment.published).length;
 });
 
-const activeTab = computed(() => editMode.value?.callerPage?.tab || "components");
+// the outcome pages' Back and Save & Exit return to the ExperimentSummaryStatus route without
+// saving an edit mode, so that route opens on the status tab
+const activeTab = computed(() => {
+  return editMode.value?.callerPage?.tab ||
+    (route.name === "ExperimentSummaryStatus" ? "status" : "components");
+});
 const activeExposureSet = computed(() => editMode.value?.callerPage?.exposureSet || 0);
 const loaded = computed(() => !isLoading.value);
 const showBalanced = computed(() => exposures.value?.length > 1);
@@ -853,7 +859,7 @@ const groupNameConditionMapping = groupConditionList => {
 const sortedGroups = groupConditionList => {
   return groupConditionList
     ?.map(group => group.groupName)
-    ?.sort();
+    ?.sort(naturalCompare);
 };
 
 const handleConsentFileDownload = () => {
