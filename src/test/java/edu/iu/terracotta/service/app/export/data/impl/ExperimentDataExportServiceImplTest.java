@@ -160,6 +160,41 @@ class ExperimentDataExportServiceImplTest extends BaseTest {
         verify(experimentDataExportAsyncService, never()).process(anyLong(), any());
     }
 
+    // marked outdated when a participant withdrew; nothing else has changed since the export
+    @Test
+    void testPollMarkedOutdatedStaysOutdatedThoughNothingElseChanged() throws Exception {
+        Timestamp now = Timestamp.from(Instant.now());
+        ExperimentDataExport exportData = buildExportData(ExperimentDataExportStatus.OUTDATED, now, now);
+        when(experimentDataExportRepository.findTopByExperiment_ExperimentIdOrderByCreatedAtDesc(anyLong())).thenReturn(Optional.of(exportData));
+
+        ExperimentDataExportDto result = experimentDataExportService.poll(experiment, securedInfo, false);
+
+        assertEquals(ExperimentDataExportStatus.OUTDATED, result.getStatus());
+        verify(experimentDataExportAsyncService, never()).process(anyLong(), any());
+    }
+
+    @Test
+    void testPollMarkedOutdatedReprocessesWhenAsked() throws Exception {
+        Timestamp now = Timestamp.from(Instant.now());
+        ExperimentDataExport exportData = buildExportData(ExperimentDataExportStatus.OUTDATED, now, now);
+        when(experimentDataExportRepository.findTopByExperiment_ExperimentIdOrderByCreatedAtDesc(anyLong())).thenReturn(Optional.of(exportData));
+        when(experimentDataExportRepository.save(any(ExperimentDataExport.class))).thenAnswer(invocation -> {
+            ExperimentDataExport arg = invocation.getArgument(0);
+
+            if (arg.getId() == null) {
+                arg.setId(88L);
+                arg.setUuid(UUID.randomUUID());
+            }
+
+            return arg;
+        });
+
+        ExperimentDataExportDto result = experimentDataExportService.poll(experiment, securedInfo, true);
+
+        assertEquals(ExperimentDataExportStatus.REPROCESSING, result.getStatus());
+        verify(experimentDataExportAsyncService).process(eq(88L), eq(securedInfo));
+    }
+
     @Test
     void testPollOutdatedCreateNewReprocesses() throws Exception {
         Timestamp createdAt = Timestamp.from(Instant.now().minusSeconds(60));
