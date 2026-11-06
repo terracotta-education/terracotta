@@ -80,6 +80,22 @@ describe("condition store", () => {
       expect(conditionService.create).toHaveBeenCalledTimes(3);
       expect(result).toHaveLength(3);
     });
+
+    it("creates the conditions one at a time, so their ids follow their order", async () => {
+      const pending = [];
+      conditionService.create.mockImplementation(() => new Promise(resolve => pending.push(resolve)));
+
+      const result = store.createConditions({ conditions: [{}, {}], experimentId: 1 });
+
+      await vi.waitFor(() => expect(pending).toHaveLength(1));
+      expect(conditionService.create).toHaveBeenCalledTimes(1);
+
+      pending[0]({ conditionId: "first" });
+      await vi.waitFor(() => expect(pending).toHaveLength(2));
+      pending[1]({ conditionId: "second" });
+
+      expect((await result).map(created => created.conditionId)).toEqual(["first", "second"]);
+    });
   });
 
   describe("createCondition", () => {

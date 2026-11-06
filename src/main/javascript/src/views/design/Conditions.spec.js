@@ -133,6 +133,29 @@ describe("DesignConditions", () => {
     );
   });
 
+  it("clears the other field's duplicate error once a name stops matching it", async () => {
+    const wrapper = mountComponent(Conditions, { pinia, attachTo: document.body });
+    await flushPromises();
+
+    const fields = () => wrapper.findAllComponents({ name: "VTextField" });
+    const secondInput = wrapper.findAll("input")[1];
+
+    // typing "Condition 12" passes through "Condition 1", a duplicate of the first name
+    await secondInput.setValue("Condition 1");
+    await flushPromises();
+    await vi.waitFor(() => expect(fields()[0].classes()).toContain("v-input--error"));
+
+    await secondInput.setValue("Condition 12");
+    await flushPromises();
+
+    await vi.waitFor(() => {
+      expect(fields()[0].classes()).not.toContain("v-input--error");
+      expect(fields()[1].classes()).not.toContain("v-input--error");
+    });
+
+    wrapper.unmount();
+  });
+
   it("saves conditions and navigates to the experiment-type step on submit", async () => {
     const wrapper = mount();
     await wrapper.vm.$nextTick();
