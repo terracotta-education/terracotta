@@ -99,6 +99,26 @@ describe("ExposureDesignCard", () => {
     expect(wrapper.find("a.text-blue").text()).toContain("More");
   });
 
+  it("orders numbered groups by number, so Group 2 comes before Group 10", async () => {
+    const wrapper = mountComponent(ExposureDesignCard, {
+      props: {
+        exposure: buildExposure(
+          [10, 2, 1, 20, 3, 11].map(number => ({
+            groupName: `Group ${number}`,
+            conditionName: "Condition A",
+            conditionId: 1
+          }))
+        ),
+        conditionColorMapping,
+        maxDesignGroups: 10
+      }
+    });
+
+    const groupNames = wrapper.findAll(".groupNames").map(row => row.text().replace(/ will receive.*/s, ""));
+
+    expect(groupNames).toEqual(["Group 1", "Group 2", "Group 3", "Group 10", "Group 11", "Group 20"]);
+  });
+
   it("handles an exposure with no groupConditionList gracefully", () => {
     const wrapper = mountComponent(ExposureDesignCard, {
       props: {
