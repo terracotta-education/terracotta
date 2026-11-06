@@ -64,7 +64,7 @@ public class IntegrationServiceImpl implements IntegrationService {
 
     // verdicts are remembered per URL and requesting domain, so lists and the editor don't call the
     // host on every load; a failed request is remembered for less time than a header verdict
-    private final Cache<String, Optional<String>> iframeVerdictCache = CacheBuilder.newBuilder()
+    private final Cache<String, IframeVerdict> iframeVerdictCache = CacheBuilder.newBuilder()
         .expireAfterWrite(Duration.ofMinutes(5))
         .maximumSize(5000)
         .build();
@@ -196,9 +196,9 @@ public class IntegrationServiceImpl implements IntegrationService {
             throw new IntegrationUrlIframeInvalidException(cachedRequestFailure);
         }
 
-        Optional<String> validationErrors = iframeVerdictCache.getIfPresent(cacheKey);
+        IframeVerdict verdict = iframeVerdictCache.getIfPresent(cacheKey);
 
-        if (validationErrors == null) {
+        if (verdict == null) {
             ResponseEntity<String> response;
 
             try {
@@ -209,9 +209,11 @@ public class IntegrationServiceImpl implements IntegrationService {
                 throw new IntegrationUrlIframeInvalidException(errorMessage, e);
             }
 
-            validationErrors = analyzeHeaders(response.getHeaders(), url, platformDeployment.getLocalUrl());
-            iframeVerdictCache.put(cacheKey, validationErrors);
+            verdict = new IframeVerdict(analyzeHeaders(response.getHeaders(), url, platformDeployment.getLocalUrl()).orElse(null));
+            iframeVerdictCache.put(cacheKey, verdict);
         }
+
+        Optional<String> validationErrors = Optional.ofNullable(verdict.validationError());
 
         if (validationErrors.isPresent()) {
             String errorMessage = String.format(
@@ -338,5 +340,10 @@ public class IntegrationServiceImpl implements IntegrationService {
         // frame-ancestors directive not found in CSP; allow embedding
         return Optional.empty();
     }
+
+    /**
+     * A cached embed check result; validationError is null when the URL can be embedded.
+     */
+    private record IframeVerdict(String validationError) {}
 
 }
