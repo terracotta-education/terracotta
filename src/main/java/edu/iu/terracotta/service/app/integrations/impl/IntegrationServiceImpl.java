@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.integrations.impl;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -18,6 +19,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
@@ -52,6 +56,22 @@ public class IntegrationServiceImpl implements IntegrationService {
     private final IntegrationConfigurationService integrationConfigurationService;
     private final IntegrationLaunchParameterService integrationLaunchParameterService;
     private final OutboundUrlService outboundUrlService;
+
+    // the iframe check runs on every instructor assessment load, so a slow or unresponsive host
+    // must not hold the request open indefinitely
+    private static final Duration IFRAME_CHECK_CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration IFRAME_CHECK_READ_TIMEOUT = Duration.ofSeconds(5);
+
+    // verdicts are remembered per URL and requesting domain, so lists and the editor don't call the
+    // host on every load; a failed request is remembered for less time than a header verdict
+    private final Cache<String, IframeVerdict> iframeVerdictCache = CacheBuilder.newBuilder()
+        .expireAfterWrite(Duration.ofMinutes(5))
+        .maximumSize(5000)
+        .build();
+    private final Cache<String, String> iframeRequestFailureCache = CacheBuilder.newBuilder()
+        .expireAfterWrite(Duration.ofMinutes(1))
+        .maximumSize(5000)
+        .build();
 
     @Override
     public Integration create(Question question, UUID clientUuid) throws IntegrationClientNotFoundException {
@@ -169,47 +189,31 @@ public class IntegrationServiceImpl implements IntegrationService {
             throw new IntegrationUrlIframeInvalidException(String.format("Cannot validate iframe embedding for URL: [%s]. Error: [%s]", url, e.getMessage()), e);
         }
 
-        ResponseEntity<String> response;
-        // a redirect could point at an internal address that the check above never saw
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory() {
-            @Override
-            protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
-                super.prepareConnection(connection, httpMethod);
-                connection.setInstanceFollowRedirects(false);
-            }
-        };
+        String cacheKey = String.format("%s|%s", url, platformDeployment.getLocalUrl());
+        String cachedRequestFailure = iframeRequestFailureCache.getIfPresent(cacheKey);
 
-        try {
-            // Use HEAD request to get headers without downloading full content
-            // deepcode ignore Ssrf: the URL is checked by validatePublicUrl above and redirects are not followed
-            response = new RestTemplate(requestFactory).exchange(
-                url,
-                HttpMethod.HEAD,
-                null,
-                String.class
-            );
-        } catch (Exception e) {
-            try {
-                // deepcode ignore Ssrf: the URL is checked by validatePublicUrl above and redirects are not followed
-                response = new RestTemplate(requestFactory).exchange(
-                    url,
-                    HttpMethod.GET,
-                    null,
-                    String.class
-                );
-                } catch (Exception ex) {
-                    throw new IntegrationUrlIframeInvalidException(
-                        String.format(
-                            "Error validating iframe embedding for URL: [%s]. Error: [%s]",
-                            url,
-                            ex.getMessage()
-                        ),
-                        ex
-                    );
-                }
+        if (cachedRequestFailure != null) {
+            throw new IntegrationUrlIframeInvalidException(cachedRequestFailure);
         }
 
-        Optional<String> validationErrors = analyzeHeaders(response.getHeaders(), url, platformDeployment.getLocalUrl());
+        IframeVerdict verdict = iframeVerdictCache.getIfPresent(cacheKey);
+
+        if (verdict == null) {
+            ResponseEntity<String> response;
+
+            try {
+                response = requestHeaders(url);
+            } catch (Exception e) {
+                String errorMessage = String.format("Error validating iframe embedding for URL: [%s]. Error: [%s]", url, e.getMessage());
+                iframeRequestFailureCache.put(cacheKey, errorMessage);
+                throw new IntegrationUrlIframeInvalidException(errorMessage, e);
+            }
+
+            verdict = new IframeVerdict(analyzeHeaders(response.getHeaders(), url, platformDeployment.getLocalUrl()).orElse(null));
+            iframeVerdictCache.put(cacheKey, verdict);
+        }
+
+        Optional<String> validationErrors = Optional.ofNullable(verdict.validationError());
 
         if (validationErrors.isPresent()) {
             String errorMessage = String.format(
@@ -219,6 +223,28 @@ public class IntegrationServiceImpl implements IntegrationService {
             );
             log.warn(errorMessage);
             throw new IntegrationUrlIframeInvalidException(errorMessage);
+        }
+    }
+
+    private ResponseEntity<String> requestHeaders(String url) {
+        // a redirect could point at an internal address that the check above never saw
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory() {
+            @Override
+            protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
+                super.prepareConnection(connection, httpMethod);
+                connection.setInstanceFollowRedirects(false);
+            }
+        };
+        requestFactory.setConnectTimeout(IFRAME_CHECK_CONNECT_TIMEOUT);
+        requestFactory.setReadTimeout(IFRAME_CHECK_READ_TIMEOUT);
+
+        try {
+            // Use HEAD request to get headers without downloading full content
+            // deepcode ignore Ssrf: the URL is checked by validatePublicUrl above and redirects are not followed
+            return new RestTemplate(requestFactory).exchange(url, HttpMethod.HEAD, null, String.class);
+        } catch (Exception e) {
+            // deepcode ignore Ssrf: the URL is checked by validatePublicUrl above and redirects are not followed
+            return new RestTemplate(requestFactory).exchange(url, HttpMethod.GET, null, String.class);
         }
     }
 
@@ -314,5 +340,10 @@ public class IntegrationServiceImpl implements IntegrationService {
         // frame-ancestors directive not found in CSP; allow embedding
         return Optional.empty();
     }
+
+    /**
+     * A cached embed check result; validationError is null when the URL can be embedded.
+     */
+    private record IframeVerdict(String validationError) {}
 
 }

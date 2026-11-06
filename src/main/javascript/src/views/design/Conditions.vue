@@ -21,7 +21,7 @@
           <v-text-field
               v-model="orderedCondition.name"
               :name="'condition-' + orderedCondition.conditionId"
-              :rules="[duplicateRule(orderedCondition), requiredRule(orderedCondition), maxLengthRule(orderedCondition)]"
+              :rules="[() => duplicateRule(orderedCondition), () => requiredRule(orderedCondition), () => maxLengthRule(orderedCondition)]"
               label="Condition name"
               placeholder="e.g. Condition Name"
               variant="outlined"
@@ -148,23 +148,40 @@ const navigationStore = navigationModule();
 
 const { experiment, conditions } = storeToRefs(experimentStore);
 
-const fieldErrors = ref({
-  duplicateName: {
-    conditionIds: [],
-    message: "Multiple conditions have the same name."
-  },
-  requiredName: {
-    conditionIds: [],
-    message: "A name is required for each condition."
-  },
-  maxLengthName: {
-    conditionIds: [],
-    message:
-      "A maximum of 255 characters is allowed for condition names."
-  }
+const normalizedName = condition => (condition.name || "").replace(/\s\s+/g, " ").trim();
+
+// worked out from the current names each time, so a validation run never sees a result left
+// over from an earlier edit
+const fieldErrors = computed(() => {
+  const all = conditions.value || [];
+
+  return {
+    duplicateName: {
+      conditionIds: all
+        .filter(condition => normalizedName(condition) && all.some(
+          other => other.conditionId !== condition.conditionId &&
+            normalizedName(other).toLowerCase() === normalizedName(condition).toLowerCase()
+        ))
+        .map(condition => condition.conditionId),
+      message: "Multiple conditions have the same name."
+    },
+    requiredName: {
+      conditionIds: all
+        .filter(condition => !normalizedName(condition))
+        .map(condition => condition.conditionId),
+      message: "A name is required for each condition."
+    },
+    maxLengthName: {
+      conditionIds: all
+        .filter(condition => (condition.name || "").length > 255)
+        .map(condition => condition.conditionId),
+      message:
+        "A maximum of 255 characters is allowed for condition names."
+    }
+  };
 });
 
-const hasFieldErrors = ref(false);
+const hasFieldErrors = computed(() => calculateFieldErrors());
 
 const editMode = computed(
   () => navigationStore.editMode
@@ -235,20 +252,11 @@ const errorMessage = computed(() => {
   return "Unspecified error.";
 });
 
+// a name change can make another field valid or invalid (duplicates), so check them all
 watch(
   conditions,
   () => {
-    clearFieldErrors();
     conditionsForm.value?.validate();
-  },
-  { deep: true }
-);
-
-watch(
-  fieldErrors,
-  () => {
-    hasFieldErrors.value =
-      calculateFieldErrors();
   },
   { deep: true }
 );
@@ -366,15 +374,6 @@ async function handleDeleteCondition(condition) {
   }
 
   try {
-    Object.keys(fieldErrors.value)
-      .forEach(key =>
-        handleRule(
-          fieldErrors.value[key],
-          condition.conditionId,
-          false
-        )
-      );
-
     await conditionStore.deleteCondition(condition);
   } catch {
     await Swal.fire({
@@ -411,86 +410,16 @@ async function displayDeleteConditionDialog(
   });
 }
 
-function handleRule(
-  fieldError,
-  conditionId,
-  hasError
-) {
-  if (hasError) {
-    if (
-      !fieldError.conditionIds.includes(
-        conditionId
-      )
-    ) {
-      fieldError.conditionIds.push(
-        conditionId
-      );
-    }
-  } else {
-    const idx =
-      fieldError.conditionIds.indexOf(
-        conditionId
-      );
-
-    if (idx !== -1) {
-      fieldError.conditionIds.splice(idx, 1);
-    }
-  }
-}
-
 function duplicateRule(condition) {
-  handleRule(
-    fieldErrors.value.duplicateName,
-    condition.conditionId,
-    conditions.value.some(
-      c =>
-        c.conditionId !==
-          condition.conditionId &&
-        condition.name &&
-        c.name &&
-        c.name
-          .replace(/\s\s+/g, " ")
-          .toLowerCase()
-          .trim() ===
-          condition.name
-            .replace(/\s\s+/g, " ")
-            .toLowerCase()
-            .trim()
-    )
-  );
-
-  return !fieldErrors.value.duplicateName.conditionIds.includes(
-    condition.conditionId
-  );
+  return !duplicateName.value.includes(condition.conditionId);
 }
 
 function requiredRule(condition) {
-  handleRule(
-    fieldErrors.value.requiredName,
-    condition.conditionId,
-    !(
-      condition.name &&
-      condition.name
-        .replace(/\s\s+/g, " ")
-        .trim()
-    )
-  );
-
-  return !fieldErrors.value.requiredName.conditionIds.includes(
-    condition.conditionId
-  );
+  return !requiredName.value.includes(condition.conditionId);
 }
 
 function maxLengthRule(condition) {
-  handleRule(
-    fieldErrors.value.maxLengthName,
-    condition.conditionId,
-    (condition.name || "").length > 255
-  );
-
-  return !fieldErrors.value.maxLengthName.conditionIds.includes(
-    condition.conditionId
-  );
+  return !maxLengthName.value.includes(condition.conditionId);
 }
 
 function calculateFieldErrors() {
@@ -501,14 +430,6 @@ function calculateFieldErrors() {
       fieldErrors.value[key]
         .conditionIds.length > 0
   );
-}
-
-function clearFieldErrors() {
-  Object.keys(fieldErrors.value)
-    .forEach(key => {
-      fieldErrors.value[key].conditionIds =
-        [];
-    });
 }
 
 async function saveExit() {
