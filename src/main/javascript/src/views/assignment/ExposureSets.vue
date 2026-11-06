@@ -91,6 +91,7 @@ import {
 
 import { exposures as exposuresModule } from "@/store/exposures.module";
 import { condition as conditionModule } from "@/store/condition.module";
+import { naturalCompare } from "@/helpers/sort";
 
 defineOptions({
   name: "AssignmentExposureSets"
@@ -146,7 +147,7 @@ const sortedGroups = computed(() => {
     ...(selectedExposure.value?.groupConditionList || [])
   ]
     .map(group => group.groupName)
-    .sort();
+    .sort(naturalCompare);
 });
 
 watch(

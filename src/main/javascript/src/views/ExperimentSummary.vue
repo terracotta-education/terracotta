@@ -441,6 +441,7 @@ import {
 import Swal from "sweetalert2";
 import { EventBus } from "@/helpers/event-bus";
 import { statusAlert, createStatusAlert, getColor } from "@/helpers/ui-utils";
+import { naturalCompare } from "@/helpers/sort";
 
 import ExperimentAssignments from "@/views/ExperimentAssignments.vue";
 import NewSubmissionsAlerts from "@/components/experiment-assignments/NewSubmissionsAlerts.vue";
@@ -853,7 +854,7 @@ const groupNameConditionMapping = groupConditionList => {
 const sortedGroups = groupConditionList => {
   return groupConditionList
     ?.map(group => group.groupName)
-    ?.sort();
+    ?.sort(naturalCompare);
 };
 
 const handleConsentFileDownload = () => {

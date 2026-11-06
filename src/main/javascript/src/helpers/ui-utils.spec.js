@@ -228,6 +228,18 @@ describe("deleteAttributesFromElement", () => {
       deleteAttributesFromElement(".missing", ["data-a"])
     ).not.toThrow();
   });
+
+  // pages call these from a timer that can fire after a test's DOM has been torn down
+  it("does nothing, along with addAttributesToElement, once there is no document", () => {
+    vi.stubGlobal("document", undefined);
+
+    try {
+      expect(() => deleteAttributesFromElement(".target", ["data-a"])).not.toThrow();
+      expect(() => addAttributesToElement(".target", [{ name: "data-a", value: "1" }])).not.toThrow();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 describe("addAttributesToElement", () => {
