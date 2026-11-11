@@ -95,10 +95,22 @@ public class GroupParticipantServiceImpl implements GroupParticipantService {
 
         if (CollectionUtils.isEmpty(unbalancedGroups)) {
             /**
-             *  No unbalanced groups exist. Pick a random group from all available groups;
-             *  index is chosen via Java's random number generator
+             *  No unbalanced groups exist (every group is exactly on its target). Pick a random group
+             *  from the groups that take participants: a condition set to 0% never does, so it is only
+             *  a candidate if no condition is above 0%. Index is chosen via Java's random number generator
              */
-            return exposureGroupConditionList.get(random.nextInt(exposureGroupConditionList.size())).getGroup();
+            List<Group> candidateGroups = CollectionUtils.emptyIfNull(exposureGroupConditionList).stream()
+                .filter(exposureGroupCondition -> takesParticipants(experiment, exposureGroupCondition))
+                .map(ExposureGroupCondition::getGroup)
+                .toList();
+
+            if (CollectionUtils.isEmpty(candidateGroups)) {
+                candidateGroups = exposureGroupConditionList.stream()
+                    .map(ExposureGroupCondition::getGroup)
+                    .toList();
+            }
+
+            return candidateGroups.get(random.nextInt(candidateGroups.size()));
         }
 
         /**
@@ -106,6 +118,16 @@ public class GroupParticipantServiceImpl implements GroupParticipantService {
          *  index is chosen via Java's random number generator
          */
         return unbalancedGroups.get(random.nextInt(unbalancedGroups.size()));
+    }
+
+    private boolean takesParticipants(Experiment experiment, ExposureGroupCondition exposureGroupCondition) {
+        if (DistributionTypes.EVEN.equals(experiment.getDistributionType())) {
+            return true;
+        }
+
+        Float distributionPct = exposureGroupCondition.getCondition().getDistributionPct();
+
+        return distributionPct != null && distributionPct > 0;
     }
 
 }
