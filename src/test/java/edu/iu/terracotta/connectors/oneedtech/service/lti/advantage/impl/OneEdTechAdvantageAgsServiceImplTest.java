@@ -80,6 +80,13 @@ public class OneEdTechAdvantageAgsServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testGetTokenNullScopeUsesLineItem() throws ConnectionException {
+        oneEdTechAdvantageAgsService.getToken(null, platformDeployment);
+
+        verify(advantageConnectorHelper).getToken(platformDeployment, LtiAgsScope.AGS_LINEITEM.key());
+    }
+
+    @Test
     public void testPostLineItemSuccess() throws ConnectionException {
         LineItem responseLineItem = LineItem.builder()
             .id("li1")

@@ -17,7 +17,7 @@
       <v-table class="mb-9 v-data-table--light-header">
         <thead>
           <tr>
-            <th style="width: 50px;">
+            <th scope="col" style="width: 50px;">
               <v-checkbox
                 v-model="selectAll"
                 color="primary"
@@ -27,11 +27,12 @@
               />
             </th>
 
-            <th class="text-left">
+            <th scope="col" class="text-left">
               Gradebook Item
             </th>
 
             <th
+              scope="col"
               class="text-left"
               style="width: 250px;"
             >

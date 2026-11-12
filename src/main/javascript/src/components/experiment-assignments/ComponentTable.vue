@@ -885,7 +885,7 @@ const statusTooltipText = row => {
 };
 
 onMounted(() => {
-  initSortable();
+  void initSortable();
 
   columnResizeObserver = new ResizeObserver(measureColumnOffsets);
 

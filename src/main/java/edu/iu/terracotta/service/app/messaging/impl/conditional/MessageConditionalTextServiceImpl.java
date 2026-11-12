@@ -26,6 +26,10 @@ public class MessageConditionalTextServiceImpl implements MessageConditionalText
 
     @Override
     public void create(MessageConditionalTextDto conditionalTextDto, MessageContent content) {
+        if (conditionalTextDto == null) {
+            return;
+        }
+
         MessageConditionalText conditionalText = fromDto(
             conditionalTextDto,
             MessageConditionalText.builder()
@@ -48,6 +52,10 @@ public class MessageConditionalTextServiceImpl implements MessageConditionalText
 
     @Override
     public void update(MessageConditionalTextDto conditionalTextDto, MessageConditionalText conditionalText) {
+        if (conditionalTextDto == null) {
+            return;
+        }
+
         fromDto(conditionalTextDto, conditionalText);
         conditionalTextRuleSetService.update(conditionalTextDto.getRuleSets(), conditionalText);
         conditionalTextResultService.update(conditionalTextDto.getResult(), conditionalText);

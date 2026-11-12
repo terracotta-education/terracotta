@@ -38,13 +38,13 @@
               >
                 <thead>
                   <tr>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Component Name
                     </th>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Status
                     </th>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Submissions
                     </th>
                   </tr>
@@ -95,13 +95,13 @@
               >
                 <thead>
                   <tr>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Component Name
                     </th>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Status
                     </th>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Submissions
                     </th>
                   </tr>
@@ -151,13 +151,13 @@
               >
                 <thead>
                   <tr>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Outcome Name
                     </th>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Source
                     </th>
-                    <th class="text-left">
+                    <th scope="col" class="text-left">
                       Actions
                     </th>
                   </tr>

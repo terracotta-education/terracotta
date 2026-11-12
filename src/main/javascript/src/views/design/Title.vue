@@ -110,7 +110,7 @@ const saveTitle = async path => {
 };
 
 const saveExit = () => {
-  saveTitle(getSaveExitPage.value);
+  void saveTitle(getSaveExitPage.value);
 };
 
 defineExpose({

@@ -106,11 +106,13 @@
           <thead>
             <tr>
               <th
+                scope="col"
                 class="text-left"
               >
                 Student Name
               </th>
               <th
+                scope="col"
                 class="text-left"
                 style="width:250px;"
               >
