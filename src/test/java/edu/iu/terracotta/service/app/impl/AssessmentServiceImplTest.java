@@ -338,6 +338,52 @@ public class AssessmentServiceImplTest extends BaseTest {
         verifyNoInteractions(integrationLaunchParameterService, integrationService);
     }
 
+    // the embed check calls the integration host, so only instructors (who use it for the preview) run it
+    @Test
+    public void testToDtoIntegrationChecksEmbeddingForInstructor() throws Exception {
+        when(assessment.isIntegration()).thenReturn(true);
+        when(assessment.getIntegration()).thenReturn(integration);
+        when(integration.getLaunchUrl()).thenReturn("https://example.qualtrics.com/jfe/form/SV_1");
+        // @InjectMocks may wire either ApiJwtService mock (see BaseServiceTest)
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(canvasApiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+
+        AssessmentDto assessmentDto = assessmentService.toDto(assessment, false, false, false, false, securedInfo);
+
+        assertTrue(assessmentDto.isIntegrationUrlValid());
+        verify(integrationService).validateIntegrationUrlIframe("https://example.qualtrics.com/jfe/form/SV_1", securedInfo);
+    }
+
+    @Test
+    public void testToDtoIntegrationSkipsEmbeddingCheckForStudentRole() throws Exception {
+        when(assessment.isIntegration()).thenReturn(true);
+        when(assessment.getIntegration()).thenReturn(integration);
+        when(integration.getLaunchUrl()).thenReturn("https://example.qualtrics.com/jfe/form/SV_1");
+        // @InjectMocks may wire either ApiJwtService mock (see BaseServiceTest)
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+        when(canvasApiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(false);
+
+        AssessmentDto assessmentDto = assessmentService.toDto(assessment, false, false, false, false, securedInfo);
+
+        assertFalse(assessmentDto.isIntegrationUrlValid());
+        verify(integrationService, never()).validateIntegrationUrlIframe(anyString(), any(SecuredInfo.class));
+    }
+
+    @Test
+    public void testToDtoIntegrationSkipsEmbeddingCheckForStudentView() throws Exception {
+        when(assessment.isIntegration()).thenReturn(true);
+        when(assessment.getIntegration()).thenReturn(integration);
+        when(integration.getLaunchUrl()).thenReturn("https://example.qualtrics.com/jfe/form/SV_1");
+        // @InjectMocks may wire either ApiJwtService mock (see BaseServiceTest)
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+        when(canvasApiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+
+        AssessmentDto assessmentDto = assessmentService.toDto(assessment, false, false, false, true, securedInfo);
+
+        assertFalse(assessmentDto.isIntegrationUrlValid());
+        verify(integrationService, never()).validateIntegrationUrlIframe(anyString(), any(SecuredInfo.class));
+    }
+
     // the status tab's "submissions / expected": expected is everyone this version is given to
 
     private Participant participantMock(long id, Boolean consent, Group participantGroup, boolean testStudent, boolean dropped) {
