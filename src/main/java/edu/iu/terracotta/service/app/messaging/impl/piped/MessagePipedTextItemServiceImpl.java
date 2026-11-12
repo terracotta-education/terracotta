@@ -69,6 +69,10 @@ public class MessagePipedTextItemServiceImpl implements MessagePipedTextItemServ
 
     @Override
     public void update(MessagePipedTextItemDto pipedTextItemDto, MessagePipedTextItem pipedTextItem) {
+        if (pipedTextItemDto == null) {
+            return;
+        }
+
         fromDto(pipedTextItemDto, pipedTextItem);
         pipedTextItemValueService.upsert(pipedTextItemDto.getValues(), pipedTextItem);
     }

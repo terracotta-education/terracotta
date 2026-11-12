@@ -111,6 +111,6 @@ watch(
 );
 
 onMounted(() => {
-  patchSubmissionSelectAria();
+  void patchSubmissionSelectAria();
 });
 </script>

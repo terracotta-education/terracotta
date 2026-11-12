@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.messaging.impl.container;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -289,6 +290,12 @@ public class MessageContainerConfigurationServiceImplTest extends BaseTest {
         assertFalse(configuration.getModifiedFields().get(MessageContainerUpdatedFields.SEND_AT_TIMEZONE_OFFSET));
         assertFalse(configuration.getModifiedFields().get(MessageContainerUpdatedFields.TO_CONSENTED_ONLY));
         assertFalse(configuration.getModifiedFields().get(MessageContainerUpdatedFields.REPLY_TO));
+    }
+
+
+    @Test
+    public void testUpdateWithoutConfigurationDoesNothing() {
+        assertDoesNotThrow(() -> containerConfigurationService.update(MessageContainerConfigurationDto.builder().build(), null));
     }
 
 }

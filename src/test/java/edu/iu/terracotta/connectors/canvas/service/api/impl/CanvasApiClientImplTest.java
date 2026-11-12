@@ -312,6 +312,13 @@ public class CanvasApiClientImplTest extends BaseTest {
     // listAssignments(platformDeployment, canvasCourseId, tokenOverride)
 
     @Test
+    void testListAssignmentsByPlatformDeploymentWithoutTokenOverride() {
+        try (MockedConstruction<CanvasApiFactoryExtended> _ = mockApiFactory()) {
+            assertThrows(ApiException.class, () -> canvasApiClientService.listAssignments(platformDeployment, "course1", null));
+        }
+    }
+
+    @Test
     void testListAssignmentsByPlatformDeploymentSuccess() throws Exception {
         when(assignmentReaderExtended.listCourseAssignments(any())).thenReturn(List.of(canvasAssignmentExtended));
         when(canvasAssignmentExtended.from()).thenReturn(lmsAssignment);

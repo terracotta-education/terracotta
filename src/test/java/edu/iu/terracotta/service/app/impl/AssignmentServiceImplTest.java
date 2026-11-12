@@ -904,6 +904,14 @@ public class AssignmentServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testRepointAssignmentInLmsWithoutExternalToolFields() throws ApiException, TerracottaConnectorException {
+        when(lmsAssignment.getLmsExternalToolFields()).thenReturn(null);
+
+        assertThrows(AssignmentNotCreatedException.class, () -> assignmentService.repointAssignmentInLms(instructorUser, assignment, "course-1", lmsAssignment));
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+    }
+
+    @Test
     public void testRestoreRepointedAssignmentUrlInLmsSuccess() throws ApiException, TerracottaConnectorException {
         assignmentService.restoreRepointedAssignmentUrlInLms(instructorUser, lmsAssignment, "https://original.example.com/lti3?experiment=1&assignment=5", "course-1");
 

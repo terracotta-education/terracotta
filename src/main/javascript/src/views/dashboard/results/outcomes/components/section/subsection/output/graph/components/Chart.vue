@@ -244,12 +244,12 @@ const yAxis = computed(() => {
         allScores.push(...cgd.scores.map(s => Math.ceil(milliToMinutes(s))));
       });
       let min = allScores.length
-        ? allScores.reduce((prev, curr) => (prev < curr ? prev : curr))
+        ? allScores.reduce((prev, curr) => (prev < curr ? prev : curr), allScores[0])
         : 0;
       min = min !== 0 ? min - 1 : min;
       return {
         min,
-        max: (allScores.length ? allScores.reduce((prev, curr) => (prev > curr ? prev : curr)) : 99) + 1,
+        max: (allScores.length ? allScores.reduce((prev, curr) => (prev > curr ? prev : curr), allScores[0]) : 99) + 1,
         labels: { style: { color: "#333333" } },
         title: { text: "Time (minutes)" }
       };

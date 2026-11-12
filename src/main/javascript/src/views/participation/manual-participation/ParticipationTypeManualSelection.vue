@@ -264,7 +264,7 @@ const submitParticipants = async path => {
 };
 
 const saveExit = () => {
-  submitParticipants(
+  void submitParticipants(
     getSaveExitPage.value
   );
 };

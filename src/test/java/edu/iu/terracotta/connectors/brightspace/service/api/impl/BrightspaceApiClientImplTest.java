@@ -349,6 +349,13 @@ public class BrightspaceApiClientImplTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testListAssignmentsByPlatformDeploymentWithoutTokenOverride() {
+        try (MockedConstruction<BrightspaceApiFactory> _ = mockApiFactory()) {
+            assertThrows(ApiException.class, () -> brightspaceApiClient.listAssignments(platformDeployment, "orgUnitId", null));
+        }
+    }
+
     /* listAssignment(apiUser, orgUnitId, assignmentId) */
 
     @Test

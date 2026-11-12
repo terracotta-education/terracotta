@@ -267,7 +267,7 @@
                 </template>
 
                 <template v-if="item.tab !== 'status' && item.tab !== 'components'">
-                  <table>
+                  <table role="presentation">
                     <tr
                       v-for="section in sectionValuesMap[item.title]"
                       :key="section.title"
@@ -741,7 +741,7 @@ watch(
     if (newRequest.polling.active) {
       if (!newRequest.polling.id) {
         experimentDataExportRequest.value.polling.id = window.setInterval(() => {
-          handleDataExportRequestPolling();
+          void handleDataExportRequestPolling();
         }, 5000);
       }
     } else if (newRequest.polling.id) {
@@ -1027,7 +1027,7 @@ const handleDataExportRequestAlertDismiss = async () => {
 
 const handleConsentExperimentWithoutConsent = () => {
   if (isConsentType.value && !experiment.value?.consent) {
-    handleEdit(participantDetails.value[0].editSection, "participant");
+    void handleEdit(participantDetails.value[0].editSection, "participant");
   }
 };
 
@@ -1090,7 +1090,7 @@ onMounted(async () => {
     ])
   );
 
-  getAssignmentDetails();
+  void getAssignmentDetails();
 
   isLoading.value = false;
 

@@ -47,6 +47,10 @@ public class OneEdTechAdvantageAgsServiceImpl implements AdvantageAgsService {
     public LtiToken getToken(LtiAgsScope type, PlatformDeployment platformDeployment) throws ConnectionException {
         String scope;
 
+        if (type == null) {
+            return advantageConnectorHelper.getToken(platformDeployment, LtiAgsScope.AGS_LINEITEM.key());
+        }
+
         switch (type) {
             case LINEITEM -> scope = LtiAgsScope.AGS_LINEITEM.key();
             case RESULTS -> scope = LtiAgsScope.AGS_RESULT_READONLY.key();

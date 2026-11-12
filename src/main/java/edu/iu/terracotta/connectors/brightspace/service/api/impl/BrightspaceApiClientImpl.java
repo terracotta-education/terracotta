@@ -922,6 +922,10 @@ public class BrightspaceApiClientImpl implements ApiClient {
             return tokenOverride;
         }
 
+        if (apiUser == null) {
+            throw new ApiException("An API user or a token override is required to call the LMS API.");
+        }
+
         String accessToken = null;
 
         if (brightspaceLmsOAuthService.isConfigured(apiUser.getPlatformDeployment())) {

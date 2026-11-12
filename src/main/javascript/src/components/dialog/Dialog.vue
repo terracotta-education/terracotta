@@ -57,7 +57,7 @@ const doDisplay = async () => {
 };
 
 onMounted(() => {
-  doDisplay();
+  void doDisplay();
 });
 
 defineExpose({

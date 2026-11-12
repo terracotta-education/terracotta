@@ -110,7 +110,7 @@ const sendToLms = () => {
 };
 
 onMounted(() => {
-  getJwt();
+  void getJwt();
 });
 </script>
 
