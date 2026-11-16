@@ -32,6 +32,7 @@ import edu.iu.terracotta.utils.TextConstants;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.Strings;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
@@ -92,11 +93,40 @@ public class QuestionServiceImpl implements QuestionService {
             .orElseThrow(() -> new QuestionNotMatchingException(TextConstants.QUESTION_NOT_MATCHING));
     }
 
+    /**
+     * A treatment that uses an external integration is that one integration question and nothing
+     * else: the integration editor only shows the first question, scores go to it, and the
+     * assessment's maximum is the sum of every question's points. Refuse a question added from
+     * the builder that would break that - e.g. picking an integration again while an existing
+     * integration treatment was still loading, which left treatments with hidden extra
+     * integration questions and a maximum of 2 or more points. Copying a treatment's content
+     * (isNew false) replaces its questions instead, so it isn't checked here.
+     */
+    private void validateNewQuestionFitsIntegration(QuestionDto questionDto, long assessmentId) throws DataServiceException {
+        List<Question> existingQuestions = questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentId);
+
+        if (CollectionUtils.isEmpty(existingQuestions)) {
+            return;
+        }
+
+        if (existingQuestions.stream().anyMatch(existing -> existing.getQuestionType() == QuestionTypes.INTEGRATION)) {
+            throw new DataServiceException("This treatment already uses an external integration, so no other question can be added to it.");
+        }
+
+        if (Strings.CI.equals(questionDto.getQuestionType(), QuestionTypes.INTEGRATION.name())) {
+            throw new DataServiceException("An external integration can't be added to a treatment that already has questions.");
+        }
+    }
+
     @Override
     public QuestionDto postQuestion(QuestionDto questionDto, long assessmentId, boolean answers, boolean isNew)
         throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         if (questionDto.getQuestionId() != null) {
             throw new IdInPostException(TextConstants.ID_IN_POST_ERROR);
+        }
+
+        if (isNew) {
+            validateNewQuestionFitsIntegration(questionDto, assessmentId);
         }
 
         Question question;

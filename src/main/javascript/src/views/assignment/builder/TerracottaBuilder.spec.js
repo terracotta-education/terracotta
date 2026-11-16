@@ -287,6 +287,107 @@ describe("TerracottaBuilder", () => {
     expect(wrapper.findComponent(TreatmentEditorTab).props("treatmentOptionSelected")).toBe(true);
   });
 
+  // an existing integration treatment used to show the mode picker until its submissions had
+  // loaded too; picking the integration again there added a second, hidden integration question
+  it("shows an existing integration treatment as soon as it loads, without waiting for its submissions", async () => {
+    const { assessmentService, submissionService } = await import("@/services");
+    assessmentService.fetchAssessment.mockResolvedValue({
+      data: baseAssessment({
+        questions: [{ questionId: 9, questionOrder: 0, questionType: "INTEGRATION", points: 1, html: "" }]
+      })
+    });
+    let resolveSubmissions;
+    submissionService.getAll.mockReturnValueOnce(new Promise(resolve => { resolveSubmissions = resolve; }));
+
+    const wrapper = mountComponent(TerracottaBuilder, {
+      pinia,
+      props: { experiment: experimentProp() },
+      global: { stubs: { BuilderHeader: true, TreatmentEditorTab: true, TreatmentSettings: true } }
+    });
+    await flushPromises();
+
+    expect(wrapper.findComponent(TreatmentEditorTab).props("treatmentOptionSelected")).toBe(true);
+
+    resolveSubmissions({ data: [] });
+    await flushPromises();
+  });
+
+  it("shows a loading bar instead of the treatment mode picker until the treatment has loaded", async () => {
+    const { assessmentService } = await import("@/services");
+    let resolveAssessment;
+    assessmentService.fetchAssessment.mockReturnValueOnce(new Promise(resolve => { resolveAssessment = resolve; }));
+    // the store still holds a treatment from earlier, so the builder renders straight away
+    assessmentStore.setAssessment(baseAssessment());
+
+    const wrapper = mountComponent(TerracottaBuilder, {
+      pinia,
+      props: { experiment: experimentProp() },
+      global: { stubs: { BuilderHeader: true, TreatmentEditorTab: true, TreatmentSettings: true } }
+    });
+    await flushPromises();
+
+    expect(wrapper.find(".treatment-loading").exists()).toBe(true);
+    expect(wrapper.findComponent(TreatmentEditorTab).exists()).toBe(false);
+
+    resolveAssessment({ data: baseAssessment() });
+    await flushPromises();
+
+    expect(wrapper.find(".treatment-loading").exists()).toBe(false);
+    expect(wrapper.findComponent(TreatmentEditorTab).exists()).toBe(true);
+  });
+
+  it("shows the treatment tab even when loading the treatment fails", async () => {
+    const { assessmentService } = await import("@/services");
+    assessmentService.fetchAssessment.mockRejectedValueOnce(new Error("boom"));
+    assessmentStore.setAssessment(baseAssessment());
+
+    const wrapper = mountComponent(TerracottaBuilder, {
+      pinia,
+      props: { experiment: experimentProp() },
+      global: { stubs: { BuilderHeader: true, TreatmentEditorTab: true, TreatmentSettings: true } }
+    });
+    await flushPromises();
+
+    expect(wrapper.find(".treatment-loading").exists()).toBe(false);
+  });
+
+  it("handleAddIntegration never adds a second integration question", async () => {
+    const { assessmentService } = await import("@/services");
+    assessmentService.fetchAssessment.mockResolvedValue({
+      data: baseAssessment({
+        integrationClients: [{ id: "client-abc", name: "Qualtrics" }],
+        questions: [{ questionId: 9, questionOrder: 0, questionType: "INTEGRATION", points: 1, html: "" }]
+      })
+    });
+
+    const wrapper = await mountBuilder();
+
+    await wrapper.vm.handleAddIntegration("Qualtrics");
+    await flushPromises();
+
+    expect(assessmentService.createQuestion).not.toHaveBeenCalled();
+    expect(wrapper.vm.treatmentOptionSelected).toBe(true);
+  });
+
+  it("handleAddIntegration ignores a second click while the first integration is being created", async () => {
+    const { assessmentService } = await import("@/services");
+    assessmentService.fetchAssessment.mockResolvedValue({
+      data: baseAssessment({ integrationClients: [{ id: "client-abc", name: "Qualtrics" }] })
+    });
+    let resolveCreate;
+    assessmentService.createQuestion.mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve; }));
+
+    const wrapper = await mountBuilder();
+
+    const first = wrapper.vm.handleAddIntegration("Qualtrics");
+    await wrapper.vm.handleAddIntegration("Qualtrics");
+    resolveCreate({ status: 201, data: { questionId: 77, questionOrder: 0, questionType: "INTEGRATION", html: "" } });
+    await first;
+    await flushPromises();
+
+    expect(assessmentService.createQuestion).toHaveBeenCalledTimes(1);
+  });
+
   it("handleAddQuestion creates the question and, for MC, also creates two blank options", async () => {
     const { assessmentService } = await import("@/services");
     assessmentService.createQuestion.mockResolvedValue({

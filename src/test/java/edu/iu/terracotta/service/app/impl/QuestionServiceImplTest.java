@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -159,6 +160,8 @@ public class QuestionServiceImplTest extends BaseTest {
     @Test
     public void testPostQuestionIntegrationNew() throws IdInPostException, DataServiceException, MultipleChoiceLimitReachedException, IntegrationNotFoundException, IntegrationClientNotFoundException {
         when(questionDto.getQuestionType()).thenReturn(QuestionTypes.INTEGRATION.toString());
+        // a new, empty treatment
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(1L)).thenReturn(Collections.emptyList());
         when(questionRepository.save(any(Question.class))).thenReturn(question);
         when(question.getQuestionType()).thenReturn(QuestionTypes.INTEGRATION);
         when(integrationService.create(any(Question.class), any())).thenReturn(integration);
@@ -168,6 +171,51 @@ public class QuestionServiceImplTest extends BaseTest {
         assertNotNull(retDto);
         verify(integrationService).create(any(Question.class), any());
         verify(integrationService, never()).duplicate(any(), any());
+    }
+
+    // picking the integration again while an existing integration treatment was still loading
+    // added a hidden second integration question, doubling the treatment's maximum points
+    @Test
+    public void testPostQuestionRefusesASecondQuestionOnAnIntegrationTreatment() {
+        Question existingIntegration = mock(Question.class);
+        when(existingIntegration.getQuestionType()).thenReturn(QuestionTypes.INTEGRATION);
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(1L)).thenReturn(List.of(existingIntegration));
+
+        for (QuestionTypes type : List.of(QuestionTypes.INTEGRATION, QuestionTypes.MC)) {
+            when(questionDto.getQuestionType()).thenReturn(type.toString());
+
+            DataServiceException ex = assertThrows(DataServiceException.class, () -> questionService.postQuestion(questionDto, 1L, false, true));
+
+            assertEquals("This treatment already uses an external integration, so no other question can be added to it.", ex.getMessage());
+        }
+
+        verify(questionRepository, never()).save(any(Question.class));
+    }
+
+    @Test
+    public void testPostQuestionRefusesAnIntegrationOnATreatmentWithQuestions() {
+        Question essay = mock(Question.class);
+        when(essay.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(1L)).thenReturn(List.of(essay));
+        when(questionDto.getQuestionType()).thenReturn(QuestionTypes.INTEGRATION.toString());
+
+        DataServiceException ex = assertThrows(DataServiceException.class, () -> questionService.postQuestion(questionDto, 1L, false, true));
+
+        assertEquals("An external integration can't be added to a treatment that already has questions.", ex.getMessage());
+        verify(questionRepository, never()).save(any(Question.class));
+    }
+
+    // copying a treatment's content replaces its questions, so it isn't held back by the existing ones
+    @Test
+    public void testPostQuestionCopiedIntoATreatmentIsNotCheckedAgainstItsExistingQuestions() throws Exception {
+        Question existingIntegration = mock(Question.class);
+        when(existingIntegration.getQuestionType()).thenReturn(QuestionTypes.INTEGRATION);
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(1L)).thenReturn(List.of(existingIntegration));
+        when(questionDto.getQuestionType()).thenReturn(QuestionTypes.ESSAY.toString());
+        when(questionRepository.save(any(Question.class))).thenReturn(question);
+        when(question.getQuestionType()).thenReturn(QuestionTypes.ESSAY);
+
+        assertNotNull(questionService.postQuestion(questionDto, 1L, false, false));
     }
 
     @Test
