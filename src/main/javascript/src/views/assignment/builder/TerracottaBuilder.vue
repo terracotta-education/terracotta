@@ -24,7 +24,14 @@
 
     <v-window v-model="tab">
       <v-window-item value="treatment">
+        <v-progress-linear
+          v-if="!assessmentLoaded"
+          class="treatment-loading"
+          color="primary"
+          indeterminate
+        />
         <TreatmentEditorTab
+          v-else
           v-model:html="html"
           :assessment="assessment"
           :questions="questions"
@@ -140,6 +147,12 @@ const regradeDetails = ref({
   editedMCQuestionIds: []
 });
 const treatmentOptionSelected = ref(false);
+// the treatment tab waits for this treatment's own questions: until then a treatment that already
+// has an external integration looked like a blank one, offering the mode picker, and picking the
+// integration again there added a second, hidden integration question (doubling its points)
+const assessmentLoaded = ref(false);
+// a second click on an integration while the first is still being created would add another one
+const addingIntegration = ref(false);
 const integrationQuestionValidation = ref(null);
 const urlValidationInProgress = ref(false);
 
@@ -368,13 +381,25 @@ const handleIntegrationUpdate = question => {
 };
 
 const handleAddIntegration = async integrationName => {
+  // a treatment holds a single integration question (the backend refuses a second one too)
+  if (addingIntegration.value || isIntegrationType.value) {
+    treatmentOptionSelected.value = true;
+    return;
+  }
+
   const integrationClientId = integrationClients.value.find(
     integrationClient => integrationClient.name === integrationName
   )?.id;
 
   treatmentOptionSelected.value = true;
+  addingIntegration.value = true;
 
-  await handleAddQuestion("INTEGRATION", integrationClientId);
+  try {
+    await handleAddQuestion("INTEGRATION", integrationClientId);
+  } finally {
+    addingIntegration.value = false;
+  }
+
   widenContainer();
 };
 
@@ -994,13 +1019,25 @@ const handleDisplayCopyFromDialog = (availableTreatments, singleVersion = false)
 };
 
 onMounted(async () => {
+  const assessmentLoad = assessmentStore.fetchAssessment([
+    props.experiment.experimentId,
+    conditionId.value,
+    treatmentId.value,
+    assessmentId.value
+  ])
+    .then(() => {
+      // a treatment that already has questions already has its mode: mark it as soon as they're
+      // known, without waiting for the submissions and assignment details below
+      if (questions.value.length > 0) {
+        treatmentOptionSelected.value = true;
+      }
+    })
+    .finally(() => {
+      assessmentLoaded.value = true;
+    });
+
   await Promise.all([
-    assessmentStore.fetchAssessment([
-      props.experiment.experimentId,
-      conditionId.value,
-      treatmentId.value,
-      assessmentId.value
-    ]),
+    assessmentLoad,
     submissionStore.fetchSubmissions([
       props.experiment.experimentId,
       conditionId.value,
