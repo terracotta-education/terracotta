@@ -1,5 +1,7 @@
 package edu.iu.terracotta.service.app.async.impl;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
@@ -27,9 +30,13 @@ import edu.iu.terracotta.service.app.AssignmentService;
 import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
 import edu.iu.terracotta.service.app.async.ExperimentCopyRecreationAsyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 
 class LmsAssignmentSyncServiceImplTest {
 
+    @Mock private EntityManagerFactory entityManagerFactory;
+    @Mock private EntityManager entityManager;
     @Mock private ApiJwtService apiJwtService;
     @Mock private AssignmentService assignmentService;
     @Mock private AssignmentAsyncService assignmentAsyncService;
@@ -43,7 +50,9 @@ class LmsAssignmentSyncServiceImplTest {
     @BeforeEach
     void beforeEach() throws Exception {
         MockitoAnnotations.openMocks(this);
-        lmsAssignmentSyncService = new LmsAssignmentSyncServiceImpl(apiJwtService, assignmentService, assignmentAsyncService, experimentCopyCandidateService, experimentCopyRecreationAsyncService);
+        when(entityManagerFactory.createEntityManager()).thenReturn(entityManager);
+        when(entityManager.isOpen()).thenReturn(true);
+        lmsAssignmentSyncService = new LmsAssignmentSyncServiceImpl(entityManagerFactory, apiJwtService, assignmentService, assignmentAsyncService, experimentCopyCandidateService, experimentCopyRecreationAsyncService);
         securedInfo = SecuredInfo.builder().contextId(1L).userId("instructor-1").build();
         lmsAssignments = List.of(LmsAssignment.builder().id("900").build());
         when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenReturn(lmsAssignments);
@@ -78,6 +87,22 @@ class LmsAssignmentSyncServiceImplTest {
         lmsAssignmentSyncService.syncInBackground(securedInfo);
 
         verifyNoInteractions(experimentCopyCandidateService, experimentCopyRecreationAsyncService);
+        verify(assignmentAsyncService).handleAssignmentTasksInLmsByContext(securedInfo, lmsAssignments);
+    }
+
+    // the background thread has no request session for lazy-loading entities, so it gets its own
+    // for the length of the sync, and closes it afterwards
+    @Test
+    void testSyncInBackgroundRunsInItsOwnSession() throws Exception {
+        when(assignmentService.getAllAssignmentsForLmsCourse(securedInfo)).thenAnswer(invocation -> {
+            assertTrue(TransactionSynchronizationManager.hasResource(entityManagerFactory));
+            return lmsAssignments;
+        });
+
+        lmsAssignmentSyncService.syncInBackground(securedInfo);
+
+        assertFalse(TransactionSynchronizationManager.hasResource(entityManagerFactory));
+        verify(entityManager).close();
         verify(assignmentAsyncService).handleAssignmentTasksInLmsByContext(securedInfo, lmsAssignments);
     }
 
