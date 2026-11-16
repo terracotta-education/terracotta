@@ -23,6 +23,7 @@ import edu.iu.terracotta.connectors.generic.dao.model.lms.options.LmsGetUsersInC
 import edu.iu.terracotta.connectors.generic.dao.model.lti.LtiToken;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.LineItem;
 import edu.iu.terracotta.connectors.generic.dao.model.lti.ags.Score;
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -51,7 +52,7 @@ public class OneEdTechApiClientImpl implements ApiClient {
         LineItem response = null;
 
         try {
-            LtiToken ltiToken = oneEdTechAdvantageAgsService.getToken(null, apiUser.getPlatformDeployment());
+            LtiToken ltiToken = oneEdTechAdvantageAgsService.getToken(LtiAgsScope.LINEITEM, apiUser.getPlatformDeployment());
             LineItem lineItem = LineItem.builder()
                 .label(assignment.getTitle())
                 .scoreMaximum(100F)

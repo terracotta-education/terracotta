@@ -950,7 +950,7 @@ watch(
         // else in this store/component - handleDataExportRequestPolling looks the
         // request back up by strict equality, so this needs to be a number too
         request.polling.id = window.setInterval(() => {
-          handleDataExportRequestPolling(Number(experimentId));
+          void handleDataExportRequestPolling(Number(experimentId));
         }, 5000);
       } else if (!request.polling.active && request.polling.id) {
         request.polling.id = window.clearInterval(request.polling.id);
@@ -968,7 +968,7 @@ watch(
 
       if (request.polling.active && request.polling.id === null) {
         request.polling.id = window.setInterval(() => {
-          handleImportRequestPolling(id);
+          void handleImportRequestPolling(id);
         }, 5000);
       } else if (!request.polling.active && request.polling.id !== null) {
         request.polling.id = window.clearInterval(request.polling.id);
@@ -1081,7 +1081,7 @@ onMounted(async () => {
 
   isLoaded.value = true;
 
-  handleCopyStatus();
+  void handleCopyStatus();
 });
 
 onBeforeUnmount(() => {

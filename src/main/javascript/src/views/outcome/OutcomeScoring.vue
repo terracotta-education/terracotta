@@ -42,11 +42,12 @@
           <v-table class="mb-9 v-data-table--light-header">
             <thead>
               <tr>
-                <th class="text-left">
+                <th scope="col" class="text-left">
                   Student Name
                 </th>
 
                 <th
+                  scope="col"
                   class="text-left"
                   width="250"
                 >

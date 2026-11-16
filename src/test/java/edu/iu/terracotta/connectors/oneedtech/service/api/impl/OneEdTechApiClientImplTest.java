@@ -1,5 +1,6 @@
 package edu.iu.terracotta.connectors.oneedtech.service.api.impl;
 
+import edu.iu.terracotta.connectors.generic.dao.model.lti.enums.LtiAgsScope;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -65,7 +66,7 @@ public class OneEdTechApiClientImplTest extends BaseTest {
         assertNotNull(result);
         assertEquals("lineItemId", result.getId());
         assertEquals("label", result.getName());
-        verify(oneEdTechAdvantageAgsService).getToken(null, platformDeployment);
+        verify(oneEdTechAdvantageAgsService).getToken(LtiAgsScope.LINEITEM, platformDeployment);
     }
 
     @Test

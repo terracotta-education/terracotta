@@ -358,6 +358,10 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void repointConsentFileInLms(ConsentDocument consentDocument, Experiment experiment, LtiUserEntity instructorUser, LmsAssignment existingLmsAssignment, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException {
+        if (existingLmsAssignment.getLmsExternalToolFields() == null) {
+            throw new AssignmentNotCreatedException("Error 137: The consent document assignment was not re-pointed. It has no external tool settings.");
+        }
+
         try {
             existingLmsAssignment.getLmsExternalToolFields().setUrl(
                 String.format(

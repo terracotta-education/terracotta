@@ -21,6 +21,10 @@ public class MessageConditionalTextRuleSetServiceImpl implements MessageConditio
 
     @Override
     public void create(MessageConditionalTextRuleSetDto conditionalTextRuleSetDto, MessageConditionalText conditionalText) {
+        if (conditionalTextRuleSetDto == null) {
+            return;
+        }
+
         MessageConditionalTextRuleSet conditionalTextRuleSet = fromDto(
             conditionalTextRuleSetDto,
             MessageConditionalTextRuleSet.builder()

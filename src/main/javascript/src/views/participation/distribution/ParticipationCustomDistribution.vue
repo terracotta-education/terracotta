@@ -235,7 +235,7 @@ const saveExit = () => {
     return;
   }
 
-  updateDistribution(getSaveExitPage.value);
+  void updateDistribution(getSaveExitPage.value);
 };
 
 defineExpose({

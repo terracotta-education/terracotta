@@ -134,7 +134,7 @@ const saveExperiment = async path => {
 };
 
 const saveExit = () => {
-  saveExperiment(getSaveExitPage.value);
+  void saveExperiment(getSaveExitPage.value);
 };
 
 defineExpose({

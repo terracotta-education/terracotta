@@ -47,6 +47,10 @@ public class MessageContainerConfigurationServiceImpl implements MessageContaine
 
     @Override
     public void update(MessageContainerConfigurationDto containerConfigurationDto, MessageContainerConfiguration containerConfiguration) {
+        if (containerConfiguration == null) {
+            return;
+        }
+
         fromDto(containerConfigurationDto, containerConfiguration);
         MessageStatus status = calculateStatus(containerConfiguration);
         containerConfiguration.setStatus(status);

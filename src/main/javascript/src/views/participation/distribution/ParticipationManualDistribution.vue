@@ -348,7 +348,7 @@ const moveToHandler = (
 };
 
 const saveExit = () => {
-  submitDistribution(
+  void submitDistribution(
     getSaveExitPage.value
   );
 };

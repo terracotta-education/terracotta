@@ -1030,7 +1030,7 @@ watch(selectedSubmissionId, newValue => {
     return;
   }
 
-  loadSubmissionResponses(newValue);
+  void loadSubmissionResponses(newValue);
 });
 
 onMounted(async () => {
@@ -1053,7 +1053,7 @@ onMounted(async () => {
   // again, so nothing else would re-trigger it - do it explicitly now that a real
   // attempt entry is guaranteed to exist to receive it.
   if (selectedSubmissionId.value) {
-    loadSubmissionResponses(selectedSubmissionId.value);
+    void loadSubmissionResponses(selectedSubmissionId.value);
   }
 });
 
@@ -1115,7 +1115,7 @@ defineExpose({
 }
 .student-response {
   color: map.get($red, "base");
-  font-family: Roboto;
+  font-family: Roboto, sans-serif;
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
@@ -1124,7 +1124,7 @@ defineExpose({
 }
 .correct-answer-text {
   color: map.get($green, "base");
-  font-family: Roboto;
+  font-family: Roboto, sans-serif;
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
@@ -1142,7 +1142,7 @@ defineExpose({
   margin-bottom: 40px;
   & .v-card-text {
     color: rgba(0, 0, 0, 0.87);
-    font-family: Roboto;
+    font-family: Roboto, sans-serif;
     font-size: 16px;
     font-weight: 400;
     line-height: 24px;
@@ -1166,7 +1166,7 @@ defineExpose({
   overflow: visible;
 }
 .ungraded-essay-question-chip {
-  font-family: "Roboto";
+  font-family: "Roboto", sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 12px;

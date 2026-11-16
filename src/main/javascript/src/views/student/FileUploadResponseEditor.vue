@@ -33,9 +33,11 @@
             </v-row>
 
             <input
+              :id="`file-upload-input-${questionId}`"
               ref="uploader"
               class="d-none"
               type="file"
+              aria-label="Upload File"
               @change="onFileChanged"
             />
 

@@ -141,7 +141,7 @@ const onNewUpload = isNewUpload => {
 
 const onDisplayFile = showFile => {
   if (showFile) {
-    getPdfForDisplay();
+    void getPdfForDisplay();
   } else {
     pdfFileDisplay.value = null;
   }
@@ -216,12 +216,12 @@ const saveConsent = async path => {
 };
 
 const saveExit = () => {
-  saveConsent(saveExitPage.value);
+  void saveConsent(saveExitPage.value);
 };
 
 onMounted(() => {
   if (!isNewExperiment.value) {
-    handleConsentFileDownload();
+    void handleConsentFileDownload();
   }
 });
 
