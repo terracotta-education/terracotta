@@ -121,21 +121,22 @@ public class IntegrationScoreServiceImpl implements IntegrationScoreService {
                 questionSubmission.setCalculatedPoints(calculatedScore);
                 questionSubmission.setAlteredGrade(null);
                 questionSubmission.setSubmission(integrationToken.getSubmission());
+                // the integration question is the assessment's first by order - the one the
+                // integration editor shows. Assessment.questions has no defined order, so
+                // getQuestions().get(0) could pick any of them if an assessment ever has more.
+                long assessmentId = integrationToken.getSubmission().getAssessment().getAssessmentId();
                 questionSubmission.setQuestion(
-                    questionRepository.findByAssessment_AssessmentIdAndQuestionId(
-                        integrationToken.getSubmission().getAssessment().getAssessmentId(),
-                        integrationToken.getSubmission().getAssessment().getQuestions().get(0).getQuestionId()
-                    )
-                    .orElseThrow(
-                        () -> new DataServiceException(
-                            String.format(
-                                "Question ID: [%s] does not exist or does not belong to the submission ID: [%s] and assessment ID: [%s]",
-                                integrationToken.getSubmission().getAssessment().getQuestions().get(0).getQuestionId(),
-                                integrationToken.getSubmission().getSubmissionId(),
-                                integrationToken.getSubmission().getAssessment().getAssessmentId()
+                    questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(assessmentId).stream()
+                        .findFirst()
+                        .orElseThrow(
+                            () -> new DataServiceException(
+                                String.format(
+                                    "No question exists for the submission ID: [%s] and assessment ID: [%s]",
+                                    integrationToken.getSubmission().getSubmissionId(),
+                                    assessmentId
+                                )
                             )
                         )
-                    )
                 );
 
                 questionSubmissionRepository.save(questionSubmission);
