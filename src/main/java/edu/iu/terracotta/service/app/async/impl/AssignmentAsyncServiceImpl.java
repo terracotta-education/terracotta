@@ -132,6 +132,14 @@ public class AssignmentAsyncServiceImpl implements AssignmentAsyncService {
     @Async
     @Override
     @Transactional(rollbackFor = { ApiException.class })
+    public void handleAssignmentTasksInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        checkAndRestoreAssignmentsInLmsByContext(securedInfo, lmsAssignments);
+        handleObsoleteAssignmentsInLmsByContext(securedInfo, lmsAssignments);
+    }
+
+    @Async
+    @Override
+    @Transactional(rollbackFor = { ApiException.class })
     public void checkAndRestoreAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws ApiException, DataServiceException, ConnectionException, IOException, TerracottaConnectorException {
         List<Assignment> assignmentsToCheck = assignmentRepository.findAssignmentsToCheckByContext(securedInfo.getContextId());
 

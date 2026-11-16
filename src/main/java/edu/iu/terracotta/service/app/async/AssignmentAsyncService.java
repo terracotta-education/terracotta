@@ -14,6 +14,11 @@ import edu.iu.terracotta.exceptions.DataServiceException;
 public interface AssignmentAsyncService {
 
     void handleAssignmentTasksInLmsByContext(SecuredInfo securedInfo) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
+    /**
+     * The same restore and obsolete-assignment checks, for a list of the course's LMS assignments
+     * the caller has already fetched - see LmsAssignmentSyncService.
+     */
+    void handleAssignmentTasksInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
     void checkAndRestoreAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
     void handleObsoleteAssignmentsInLmsByContext(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException;
     void processAssignmentFileArchive(AssignmentFileArchive assignmentFileArchive) throws IOException;
