@@ -258,8 +258,8 @@ const integrationTokenExpirationRemaining = computed({
 watch(selectedSubmissionId, () => {
   if (selectedSubmission.value) {
     const { experimentId, conditionId, assessmentId, treatmentId, submissionId } = selectedSubmission.value;
-    getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId);
-    getAnswers(experimentId, conditionId, assessmentId, treatmentId, submissionId);
+    void getQuestions(experimentId, conditionId, assessmentId, treatmentId, submissionId);
+    void getAnswers(experimentId, conditionId, assessmentId, treatmentId, submissionId);
   }
 });
 

@@ -1148,7 +1148,7 @@ watch(pipedTextMessage, value => {
       html: html.value
     };
 
-    handleUpdatePlaceholders(content.value);
+    void handleUpdatePlaceholders(content.value);
     showPipedTextUploader.value = false;
     isUploadSuccessful.value = true;
     return;

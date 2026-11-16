@@ -138,7 +138,7 @@ const onChange = event => {
     return;
   }
 
-  createFile(files[0]);
+  void createFile(files[0]);
 
   if (event.target) {
     event.target.value = "";

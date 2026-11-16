@@ -695,7 +695,7 @@ watch(
 watch(
   ruleSets,
   () => {
-    patchRuleSelectAria();
+    void patchRuleSelectAria();
   },
   {
     deep: true,

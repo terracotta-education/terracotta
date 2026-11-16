@@ -263,7 +263,7 @@ const updateConsent = answerValue => {
     consent: answerValue
   };
 
-  submitParticipant(updatedParticipant);
+  void submitParticipant(updatedParticipant);
 };
 
 const submitParticipant = async participantData => {
@@ -314,7 +314,7 @@ const handleConsentFileDownload = async () => {
 };
 
 onMounted(async () => {
-  handleConsentFileDownload();
+  void handleConsentFileDownload();
 
   const stepResponse =
     await apiStore.reportStep({

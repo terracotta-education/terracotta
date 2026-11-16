@@ -40,6 +40,7 @@ import edu.iu.terracotta.dao.model.dto.LmsUserBatchStatusDto;
 import edu.iu.terracotta.dao.model.dto.ParticipantDto;
 import edu.iu.terracotta.dao.model.dto.UserDto;
 import edu.iu.terracotta.dao.model.enums.ParticipationTypes;
+import edu.iu.terracotta.dao.model.enums.export.data.ExperimentDataExportStatus;
 import edu.iu.terracotta.dao.repository.AssignmentRepository;
 import edu.iu.terracotta.dao.repository.ConsentDocumentRepository;
 import edu.iu.terracotta.dao.repository.ExperimentRepository;
@@ -47,6 +48,7 @@ import edu.iu.terracotta.dao.repository.GroupRepository;
 import edu.iu.terracotta.dao.repository.ParticipantRepository;
 import edu.iu.terracotta.dao.repository.SubmissionRepository;
 import edu.iu.terracotta.dao.repository.TreatmentRepository;
+import edu.iu.terracotta.dao.repository.export.data.ExperimentDataExportRepository;
 import edu.iu.terracotta.exceptions.DataServiceException;
 import edu.iu.terracotta.exceptions.IdInPostException;
 import edu.iu.terracotta.exceptions.InvalidUserException;
@@ -98,6 +100,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     private final AssignmentRepository assignmentRepository;
     private final ConsentDocumentRepository consentDocumentRepository;
     private final ExperimentRepository experimentRepository;
+    private final ExperimentDataExportRepository experimentDataExportRepository;
     private final GroupRepository groupRepository;
     private final LmsUserBatchRepository lmsUserBatchRepository;
     private final LtiUserRepository ltiUserRepository;
@@ -782,10 +785,20 @@ public class ParticipantServiceImpl implements ParticipantService {
         Experiment experiment = experimentRepository.findByExperimentId(experimentId);
         List<Long> publishedExperimentAssignmentIds = calculatedPublishedAssignmentIds(experimentId, securedInfo, experiment.getCreatedBy());
         List<Participant> participants = new ArrayList<>();
+        boolean dataExportOutdated = false;
 
         for (Map.Entry<Participant, ParticipantDto> entry : map.entrySet()) {
             Participant participantToChange = entry.getKey();
             ParticipantDto participantDto = entry.getValue();
+
+            // a participant who agreed and submitted work is in the latest data export; withdrawing
+            // themselves, or being removed by the instructor, leaves it out of date
+            if (!dataExportOutdated
+                    && BooleanUtils.isTrue(participantToChange.getConsent())
+                    && BooleanUtils.isNotTrue(participantDto.getConsent())
+                    && submissionRepository.existsByParticipant_IdAndDateSubmittedNotNull(participantToChange.getParticipantId())) {
+                dataExportOutdated = true;
+            }
 
             // If they had consent, and now they don't have, we change the dateRevoked to now.
             // In any other case, we leave the date as it is. Ignoring any value in the PUT
@@ -829,6 +842,10 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
 
             participants.add(participantToChange);
+        }
+
+        if (dataExportOutdated) {
+            markDataExportOutdated(experimentId);
         }
 
         return participantRepository.saveAll(participants);
@@ -892,6 +909,20 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         return changedParticipants.get(0);
+    }
+
+    /**
+     * Marks the experiment's latest finished data export outdated, so it isn't downloaded as it is
+     */
+    private void markDataExportOutdated(Long experimentId) {
+        experimentDataExportRepository.findTopByExperiment_ExperimentIdAndStatusInOrderByCreatedAtDesc(
+                experimentId,
+                List.of(ExperimentDataExportStatus.READY, ExperimentDataExportStatus.READY_ACKNOWLEDGED, ExperimentDataExportStatus.DOWNLOADED)
+            )
+            .ifPresent(experimentDataExport -> {
+                experimentDataExport.setStatus(ExperimentDataExportStatus.OUTDATED);
+                experimentDataExportRepository.save(experimentDataExport);
+            });
     }
 
     @Override

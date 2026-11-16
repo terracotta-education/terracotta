@@ -181,4 +181,4 @@ const startVue = () => {
   });
 };
 
-initializeStore().then(startVue);
+void initializeStore().then(startVue);

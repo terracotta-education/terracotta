@@ -36,6 +36,9 @@
         <java.version>25</java.version>
         <jjwt.version>0.13.0</jjwt.version>
         <json.version>20260814</json.version>
+        <!-- override spring-boot-starter-parent's managed 2.6.0 - 2.6.1 (and the accessors-smart 2.6.1 /
+             asm 9.11.1 it brings in) fixes an improper-neutralization CVE and several asm DoS CVEs found via Snyk -->
+        <json-smart.version>2.6.1</json-smart.version>
         <jsoup.version>1.23.2</jsoup.version>
         <lombok.version>1.18.48</lombok.version>
         <mysql-connector-j.version>26.10.0</mysql-connector-j.version>

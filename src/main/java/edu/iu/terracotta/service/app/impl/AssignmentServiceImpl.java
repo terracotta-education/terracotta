@@ -698,6 +698,10 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException {
+        if (existingLmsAssignment.getLmsExternalToolFields() == null) {
+            throw new AssignmentNotCreatedException("Error: The assignment was not repointed in the LMS. It has no external tool settings.");
+        }
+
         try {
             existingLmsAssignment.getLmsExternalToolFields().setUrl(
                 String.format(

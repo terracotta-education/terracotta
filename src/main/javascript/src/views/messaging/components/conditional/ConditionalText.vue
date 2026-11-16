@@ -884,7 +884,7 @@ watch(
 watch(
   conditionalText,
   () => {
-    patchAria();
+    void patchAria();
   },
   {
     deep: true,
@@ -896,7 +896,7 @@ watch(
   messageConditionalTextEditId,
   () => {
     isEdit.value = false;
-    initialize();
+    void initialize();
   },
   {
     immediate: true
@@ -904,7 +904,7 @@ watch(
 );
 
 onMounted(() => {
-  initialize();
+  void initialize();
 });
 </script>
 
