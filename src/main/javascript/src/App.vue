@@ -340,6 +340,18 @@ const clearStaleStorageExceptDrafts = () => {
 // Matches the height calculation the resize-observer scripts under
 // public/js/integrations/resize/ already use on the OTHER side of a similar handshake
 // (an embedded integration tool reporting ITS size to Terracotta), for consistency.
+// The parent LMS origin varies per institution, so there's no single origin to hardcode.
+// location.ancestorOrigins (Chromium/WebKit) names the actual parent frame's origin, so
+// narrow to it when available. document.referrer isn't used here because after the OIDC
+// launch flow it can name the platform's auth host (e.g. sso.canvaslms.com) rather than
+// the parent frame, which would silently drop the message. Fall back to "*" otherwise;
+// the payload is only a height.
+const getParentOrigin = () => {
+  const origin = window.location.ancestorOrigins?.[0];
+
+  return origin && origin !== "null" ? origin : "*";
+};
+
 let frameResizeObserver = null;
 let swalPopupMutationObserver = null;
 let observedSwalPopup = null;
@@ -356,7 +368,7 @@ const notifyParentOfHeight = () => {
   const swalHeight = swalPopup ? swalPopup.offsetHeight + 96 : 0;
   const height = Math.max(document.body.offsetHeight, document.documentElement.offsetHeight, swalHeight);
 
-  window.parent.postMessage({ subject: "lti.frameResize", height }, "*");
+  window.parent.postMessage({ subject: "lti.frameResize", height }, getParentOrigin());
 };
 
 const startFrameResizeReporting = () => {
@@ -458,7 +470,7 @@ const checkAndRefreshToken = async () => {
 
 const handleVisibilityChange = () => {
   if (document.visibilityState === "visible") {
-    checkAndRefreshToken();
+    void checkAndRefreshToken();
   }
 };
 
@@ -474,7 +486,7 @@ onMounted(async () => {
   }
 
   refreshInterval = window.setInterval(() => {
-    checkAndRefreshToken();
+    void checkAndRefreshToken();
   }, 1000 * 60 * 59);
 
   document.addEventListener("visibilitychange", handleVisibilityChange);

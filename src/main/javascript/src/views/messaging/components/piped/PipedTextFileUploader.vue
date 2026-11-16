@@ -45,8 +45,10 @@
           </div>
 
           <input
+            id="piped-text-csv-file-input"
             ref="fileInput"
             type="file"
+            aria-label="Select CSV file"
             accept=".csv,text/csv"
             :disabled="readOnly"
             @change="onChange"

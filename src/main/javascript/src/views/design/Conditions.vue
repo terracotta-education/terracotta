@@ -458,7 +458,7 @@ async function saveExit() {
     return;
   }
 
-  saveConditions(
+  void saveConditions(
     saveExitPage.value,
     experiment.value.exposureType !==
       "NOSET" &&

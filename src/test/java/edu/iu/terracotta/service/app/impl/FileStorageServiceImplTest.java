@@ -324,6 +324,14 @@ public class FileStorageServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testRepointConsentFileInLmsWithoutExternalToolFields() throws Exception {
+        LmsAssignment copied = LmsAssignment.builder().id("77").build();
+
+        assertThrows(AssignmentNotCreatedException.class, () -> fileStorageService.repointConsentFileInLms(new ConsentDocument(), experiment, ltiUserEntity, copied, "course-1"));
+        verify(apiClient, never()).editAssignment(any(LtiUserEntity.class), any(LmsAssignment.class), anyString());
+    }
+
+    @Test
     public void testDeleteConsentFileNoConsentDocumentReturnsSilently() {
         when(consentDocumentRepository.findByExperiment_ExperimentId(anyLong())).thenReturn(Optional.empty());
 
