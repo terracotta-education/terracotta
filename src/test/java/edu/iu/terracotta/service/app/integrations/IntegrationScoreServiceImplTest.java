@@ -1,24 +1,29 @@
 package edu.iu.terracotta.service.app.integrations;
 
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 
 import edu.iu.terracotta.base.BaseTest;
+import edu.iu.terracotta.dao.entity.Question;
 import edu.iu.terracotta.dao.entity.QuestionSubmission;
 import edu.iu.terracotta.dao.entity.integrations.IntegrationTokenLog;
 import edu.iu.terracotta.dao.exceptions.integrations.IntegrationTokenAlreadyRedeemedException;
@@ -60,14 +65,31 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     void testScoreNoExistingQuestionSubmissions()
         throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
         when(submission.getQuestionSubmissions()).thenReturn(Collections.emptyList());
-        when(questionRepository.findByAssessment_AssessmentIdAndQuestionId(anyLong(), anyLong())).thenReturn(Optional.of(question));
-        when(assessment.getQuestions()).thenReturn(Collections.singletonList(question));
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.singletonList(question));
 
         integrationScoreService.score("token", "1", Optional.empty());
 
         verify(integrationTokenService).redeemToken(anyString());
         verify(questionSubmissionRepository).save(any(QuestionSubmission.class));
         verify(integrationTokenLogRepository).save(any(IntegrationTokenLog.class));
+    }
+
+    // Assessment.questions has no defined order, so the score must go to the first question by
+    // questionOrder - the one the integration editor shows - not whichever the list returns first
+    @Test
+    void testScoreGoesToTheFirstQuestionByOrder()
+        throws IntegrationTokenNotFoundException, DataServiceException, IntegrationTokenInvalidException, IntegrationTokenExpiredException, IntegrationTokenAlreadyRedeemedException {
+        Question first = mock(Question.class);
+        Question later = mock(Question.class);
+        when(submission.getQuestionSubmissions()).thenReturn(Collections.emptyList());
+        when(assessment.getQuestions()).thenReturn(List.of(later, first));
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(List.of(first, later));
+
+        integrationScoreService.score("token", "1", Optional.empty());
+
+        ArgumentCaptor<QuestionSubmission> saved = ArgumentCaptor.forClass(QuestionSubmission.class);
+        verify(questionSubmissionRepository).save(saved.capture());
+        assertSame(first, saved.getValue().getQuestion());
     }
 
     // these four token-lifecycle exceptions all come from redeemToken() itself, before this
@@ -183,7 +205,7 @@ public class IntegrationScoreServiceImplTest extends BaseTest {
     @Test
     public void testScoreDataServiceExceptionNoQuestionExists() throws IntegrationTokenInvalidException, DataServiceException, IntegrationTokenNotFoundException {
         when(submission.getQuestionSubmissions()).thenReturn(Collections.emptyList());
-        when(questionRepository.findByAssessment_AssessmentIdAndQuestionId(anyLong(), anyLong())).thenReturn(Optional.empty());
+        when(questionRepository.findByAssessment_AssessmentIdOrderByQuestionOrder(anyLong())).thenReturn(Collections.emptyList());
         when(submissionRepository.findByIntegrationToken_Token(anyString())).thenReturn(Optional.of(submission));
 
         assertThrows(DataServiceException.class, () -> { integrationScoreService.score("token", "1", Optional.empty()); });
