@@ -544,6 +544,60 @@ describe("SelectionMethod", () => {
     expect(apiService.getStepStatus).not.toHaveBeenCalled();
   });
 
+  describe("once the experiment has started", () => {
+    const consentPanelButton = wrapper => wrapper
+      .findAllComponents({ name: "VExpansionPanel" })[0]
+      .findComponent({ name: "VBtn" });
+
+    it("grays out the Consent option for a manual or automatic experiment", async () => {
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment({ participationType: "MANUAL", started: 1731859200000 }) }
+      });
+
+      await wrapper.vm.$nextTick();
+
+      const panels = wrapper.findAllComponents({ name: "VExpansionPanel" });
+
+      expect(panels[0].classes()).toContain("panel-locked");
+      expect(consentPanelButton(wrapper).props("disabled")).toBe(true);
+      expect(panels[0].text()).toContain("can no longer be asked to consent");
+      expect(panels[2].classes()).not.toContain("panel-locked");
+      expect(panels[2].findComponent({ name: "VBtn" }).props("disabled")).toBe(false);
+    });
+
+    it("does not save a switch to Consent", async () => {
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment({ participationType: "AUTO", started: 1731859200000 }) }
+      });
+
+      await wrapper.vm.$nextTick();
+      await consentPanelButton(wrapper).trigger("click");
+
+      expect(experimentService.update).not.toHaveBeenCalled();
+    });
+
+    it("leaves Consent available for an experiment that already uses it", async () => {
+      const wrapper = mountComponent(SelectionMethod, {
+        props: { experiment: buildExperiment({ participationType: "CONSENT", started: 1731859200000 }) }
+      });
+
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.findAllComponents({ name: "VExpansionPanel" })[0].classes()).not.toContain("panel-locked");
+      expect(consentPanelButton(wrapper).props("disabled")).toBe(false);
+    });
+  });
+
+  it("leaves Consent available before the experiment has started", async () => {
+    const wrapper = mountComponent(SelectionMethod, {
+      props: { experiment: buildExperiment({ participationType: "MANUAL", started: null }) }
+    });
+
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).not.toContain("can no longer be asked to consent");
+  });
+
   it("shows the consent-file-missing alert only in edit mode for a CONSENT experiment without a consent file", async () => {
     const wrapper = mountComponent(SelectionMethod, {
       props: {

@@ -299,6 +299,26 @@ public class ExperimentServiceImplTest extends BaseTest {
     }
 
     @Test
+    public void testUpdateExperimentStartedParticipationToConsentThrows() {
+        when(experiment.isStarted()).thenReturn(true);
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.MANUAL);
+        ExperimentDto experimentDto = ExperimentDto.builder().title("Title").exposureType("BETWEEN").distributionType("EVEN").participationType("CONSENT").build();
+
+        Exception exception = assertThrows(WrongValueException.class, () -> experimentService.updateExperiment(1L, 1L, experimentDto, securedInfo));
+
+        assertEquals("Error 110: The experiment has started. The Participation Type can't be changed to 'Consent'", exception.getMessage());
+    }
+
+    @Test
+    public void testUpdateExperimentNotStartedParticipationToConsentAllowed() {
+        when(experiment.isStarted()).thenReturn(false);
+        when(experiment.getParticipationType()).thenReturn(ParticipationTypes.AUTO);
+        ExperimentDto experimentDto = ExperimentDto.builder().title("Title").exposureType("BETWEEN").distributionType("EVEN").participationType("CONSENT").build();
+
+        assertDoesNotThrow(() -> experimentService.updateExperiment(1L, 1L, experimentDto, securedInfo));
+    }
+
+    @Test
     public void testUpdateExperimentInvalidDistributionTypeThrows() {
         ExperimentDto experimentDto = ExperimentDto.builder().title("Title").exposureType("BETWEEN").distributionType("BOGUS").build();
 
