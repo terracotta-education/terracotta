@@ -53,23 +53,30 @@
         <v-expansion-panel-text>
           <p>{{ panel.body }}</p>
 
-          <p
-            v-if="isLocked(panel.type)"
-            class="locked-note"
+          <v-tooltip
+            :disabled="!isLocked(panel.type)"
+            :text="LOCKED_CONSENT_HELP"
+            location="top"
+            content-class="tool-tip-content"
           >
-            Students have already started an assignment in this experiment, so they can no
-            longer be asked to consent. Switching to consent now would lose the data already
-            collected.
-          </p>
-
-          <v-btn
-            color="primary"
-            :loading="loading"
-            :disabled="loading || isLocked(panel.type)"
-            @click="setParticipationType(panel.type)"
-          >
-            Select
-          </v-btn>
+            <template #activator="{ props: tooltipProps }">
+              <!-- a disabled button doesn't get pointer or keyboard events, so the help hangs off this wrapper -->
+              <span
+                v-bind="tooltipProps"
+                class="select-button-wrapper"
+                :tabindex="isLocked(panel.type) ? 0 : undefined"
+              >
+                <v-btn
+                  color="primary"
+                  :loading="loading"
+                  :disabled="loading || isLocked(panel.type)"
+                  @click="setParticipationType(panel.type)"
+                >
+                  Select
+                </v-btn>
+              </span>
+            </template>
+          </v-tooltip>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
@@ -204,6 +211,8 @@ const consentLocked = computed(() => {
 });
 
 const isLocked = type => type === "CONSENT" && consentLocked.value;
+
+const LOCKED_CONSENT_HELP = "Students have already started an assignment in this experiment, so they can no longer be asked to consent. Switching to consent now would lose the data already collected.";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -456,14 +465,13 @@ defineExpose({
 
 .panel-locked {
   :deep(.v-expansion-panel-title),
-  :deep(.v-expansion-panel-text p:not(.locked-note)) {
+  :deep(.v-expansion-panel-text p) {
     opacity: 0.5;
   }
+}
 
-  .locked-note {
-    color: map.get($grey, "darker");
-    font-style: italic;
-  }
+.select-button-wrapper {
+  display: inline-block;
 }
 
 .participation-expansion-panel:focus-within {
