@@ -106,4 +106,27 @@ public class RichTextUtilsTest {
         assertNull(RichTextUtils.htmlToPlainText(null));
     }
 
+    @Test
+    void testHtmlToPlainTextLeavesBlankValuesAsTheyAre() {
+        assertEquals("", RichTextUtils.htmlToPlainText(""));
+        assertEquals("  ", RichTextUtils.htmlToPlainText("  "));
+    }
+
+    @Test
+    void testHtmlToPlainTextCollapsesRunsOfEmptyParagraphs() {
+        assertEquals("One\n\nTwo", RichTextUtils.htmlToPlainText("<p>One</p><p></p><p></p><p></p><p>Two</p>"));
+    }
+
+    @Test
+    void testHtmlToPlainTextConvertsHtmlThatStartsWithAnImage() {
+        assertEquals("Look closely\n\nThen answer", RichTextUtils.htmlToPlainText("<img src=\"x.png\" alt=\"diagram\">Look closely<p>Then answer</p>"));
+    }
+
+    @Test
+    void testToPlainTextConvertsRichTextTheSameWayAsHtmlToPlainText() {
+        String html = "<p>One</p><p></p><p></p><ul><li><p>a</p></li></ul>";
+
+        assertEquals(RichTextUtils.htmlToPlainText(html), RichTextUtils.toPlainText(html));
+    }
+
 }
