@@ -38,7 +38,20 @@
           hasParticipantTypeSelected &&
           panel.type !== initialParticipationType
         "
+        :tabindex="isLocked(panel.type) ? 0 : undefined"
       >
+        <!-- on the whole panel: its disabled button doesn't get pointer or keyboard events -->
+        <v-tooltip
+          v-if="isLocked(panel.type)"
+          activator="parent"
+          location="top"
+          content-class="tool-tip-content"
+        >
+          <div class="tool-tip-content-body">
+            {{ LOCKED_CONSENT_HELP }}
+          </div>
+        </v-tooltip>
+
         <v-expansion-panel-title
           hide-actions
         >
@@ -53,30 +66,14 @@
         <v-expansion-panel-text>
           <p>{{ panel.body }}</p>
 
-          <v-tooltip
-            :disabled="!isLocked(panel.type)"
-            :text="LOCKED_CONSENT_HELP"
-            location="top"
-            content-class="tool-tip-content"
+          <v-btn
+            color="primary"
+            :loading="loading"
+            :disabled="loading || isLocked(panel.type)"
+            @click="setParticipationType(panel.type)"
           >
-            <template #activator="{ props: tooltipProps }">
-              <!-- a disabled button doesn't get pointer or keyboard events, so the help hangs off this wrapper -->
-              <span
-                v-bind="tooltipProps"
-                class="select-button-wrapper"
-                :tabindex="isLocked(panel.type) ? 0 : undefined"
-              >
-                <v-btn
-                  color="primary"
-                  :loading="loading"
-                  :disabled="loading || isLocked(panel.type)"
-                  @click="setParticipationType(panel.type)"
-                >
-                  Select
-                </v-btn>
-              </span>
-            </template>
-          </v-tooltip>
+            Select
+          </v-btn>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
@@ -468,10 +465,6 @@ defineExpose({
   :deep(.v-expansion-panel-text p) {
     opacity: 0.5;
   }
-}
-
-.select-button-wrapper {
-  display: inline-block;
 }
 
 .participation-expansion-panel:focus-within {

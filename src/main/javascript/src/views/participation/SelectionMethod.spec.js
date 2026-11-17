@@ -561,9 +561,15 @@ describe("SelectionMethod", () => {
       expect(panels[0].classes()).toContain("panel-locked");
       expect(consentPanelButton(wrapper).props("disabled")).toBe(true);
       const help = panels[0].findComponent({ name: "VTooltip" });
-      expect(help.props("disabled")).toBe(false);
-      expect(help.props("text")).toContain("can no longer be asked to consent");
-      expect(panels[2].findComponent({ name: "VTooltip" }).props("disabled")).toBe(true);
+      expect(help.props("activator")).toBe("parent");
+      expect(panels[0].attributes("tabindex")).toBe("0");
+      expect(panels[2].findComponent({ name: "VTooltip" }).exists()).toBe(false);
+
+      await help.setValue(true);
+      await flushPromisesAndTicks(wrapper);
+
+      expect(document.body.querySelector(".tool-tip-content .tool-tip-content-body").textContent)
+        .toContain("can no longer be asked to consent");
       expect(panels[2].classes()).not.toContain("panel-locked");
       expect(panels[2].findComponent({ name: "VBtn" }).props("disabled")).toBe(false);
     });
@@ -588,7 +594,7 @@ describe("SelectionMethod", () => {
 
       expect(wrapper.findAllComponents({ name: "VExpansionPanel" })[0].classes()).not.toContain("panel-locked");
       expect(consentPanelButton(wrapper).props("disabled")).toBe(false);
-      expect(wrapper.findAllComponents({ name: "VTooltip" })[0].props("disabled")).toBe(true);
+      expect(wrapper.findComponent({ name: "VTooltip" }).exists()).toBe(false);
     });
   });
 
@@ -599,9 +605,7 @@ describe("SelectionMethod", () => {
 
     await wrapper.vm.$nextTick();
 
-    wrapper.findAllComponents({ name: "VTooltip" }).forEach(help => {
-      expect(help.props("disabled")).toBe(true);
-    });
+    expect(wrapper.findComponent({ name: "VTooltip" }).exists()).toBe(false);
   });
 
   it("shows the consent-file-missing alert only in edit mode for a CONSENT experiment without a consent file", async () => {
