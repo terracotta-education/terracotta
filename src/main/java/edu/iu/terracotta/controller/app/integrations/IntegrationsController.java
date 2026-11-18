@@ -84,18 +84,27 @@ public class IntegrationsController {
             );
         }
 
+        // the token and score are whatever the external site sent, so they're encoded: Spring fills in
+        // anything in braces in a redirect, so a site that sent its own placeholder unfilled (e.g.
+        // ${url_launch_token}) made the redirect throw instead of showing the error page, and an &
+        // in either would have added parameters of its own
         return String.format(
             "redirect:/app/app.html?integration=true&status=%s&preview=%s&client=%s&launch_token=%s&score=%s&url=%s&errorCode=%s&moreAttemptsAvailable=%s&errorMessage=%s",
             status.name(),
             previewTokenClient.isPresent(),
-            previewTokenClient.isPresent() ? previewTokenClient.get() : null,
-            launchToken,
-            score,
+            encode(previewTokenClient.orElse(null)),
+            encode(launchToken),
+            encode(score),
             url,
             errorCode,
             integrationError != null && integrationError.isMoreAttemptsAvailable() || false,
             errorMessage != null ? URLEncoder.encode(errorMessage, StandardCharsets.UTF_8) : null
         );
+    }
+
+    // null stays null, so the page reads "null" for a missing value, as before
+    private static String encode(String value) {
+        return value != null ? URLEncoder.encode(value, StandardCharsets.UTF_8) : null;
     }
 
     @GetMapping("/preview")
