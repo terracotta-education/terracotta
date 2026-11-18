@@ -296,6 +296,33 @@ describe("OutcomeGradebook", () => {
       expect(dialogText()).not.toContain("Description");
     });
 
+    it("opens toward the top, level with the item clicked", async () => {
+      outcomeService.getOutcomePotentials.mockReset().mockResolvedValue({ status: 200, data: [canvasQuiz] });
+      const wrapper = mountView();
+      await flush();
+
+      const opener = wrapper.find(".gradebook-item-name");
+      opener.element.getBoundingClientRect = () => ({ top: 300 });
+      await opener.trigger("click");
+      await flush();
+
+      const content = document.body.querySelector(".v-overlay__content.gradebook-item-dialog");
+      expect(content.style.marginTop).toBe("284px");
+    });
+
+    it("never opens above the top of the page", async () => {
+      outcomeService.getOutcomePotentials.mockReset().mockResolvedValue({ status: 200, data: [canvasQuiz] });
+      const wrapper = mountView();
+      await flush();
+
+      const opener = wrapper.find(".gradebook-item-name");
+      opener.element.getBoundingClientRect = () => ({ top: 4 });
+      await opener.trigger("click");
+      await flush();
+
+      expect(document.body.querySelector(".v-overlay__content.gradebook-item-dialog").style.marginTop).toBe("16px");
+    });
+
     it("returns focus to the item's name when the pop-up closes", async () => {
       const { wrapper, opener } = await openFor(canvasQuiz);
       const focus = vi.spyOn(opener.element, "focus");

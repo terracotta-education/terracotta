@@ -200,6 +200,8 @@ public class AssignmentExtended extends LmsAssignment {
         lmsAssignment.setCanSubmit(isCanSubmit());
         lmsAssignment.setDueAt(getDueAt());
         lmsAssignment.setGradingType(getGradingType());
+        lmsAssignment.setHtmlUrl(getHtmlUrl());
+        lmsAssignment.setDescription(getDescription());
         lmsAssignment.setId(getId());
         lmsAssignment.setLmsExternalToolFields(getLmsExternalToolFields());
         lmsAssignment.setLockAt(getLockAt());

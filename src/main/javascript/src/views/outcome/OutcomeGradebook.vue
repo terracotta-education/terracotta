@@ -81,10 +81,15 @@
     <v-dialog
       v-model="detailsOpen"
       max-width="560px"
+      content-class="gradebook-item-dialog"
+      :content-props="{ style: { marginTop: dialogTop } }"
       aria-labelledby="gradebook-item-details-title"
       @after-leave="returnFocus"
     >
-      <v-card v-if="selectedItem">
+      <v-card
+        v-if="selectedItem"
+        ref="detailsCard"
+      >
         <v-card-title class="gradebook-item-details-header">
           <h2
             id="gradebook-item-details-title"
@@ -156,6 +161,7 @@
 import {
   ref,
   computed,
+  nextTick,
   onMounted
 } from "vue";
 
@@ -191,6 +197,9 @@ const configurationStore = configurationModule();
 const selectedAssignmentIds = ref([]);
 const detailsOpen = ref(false);
 const selectedItem = ref(null);
+const detailsCard = ref(null);
+const POPUP_GAP = 16;
+const dialogTop = ref(`${POPUP_GAP}px`);
 let detailsOpener = null;
 const selectAll = ref(false);
 const isLoaded = ref(false);
@@ -256,10 +265,24 @@ const lmsLink = item => {
   return /^https?:\/\//i.test(item?.htmlUrl || "") ? item.htmlUrl : null;
 };
 
+// toward the top, level with the item clicked: in the LMS, Terracotta's frame grows to the whole page, so
+// a centered dialog could open far below a long gradebook's visible part. Never above the top of the
+// page, and never running off its bottom
+const placeNearOpener = async () => {
+  await nextTick();
+
+  const openerTop = detailsOpener?.getBoundingClientRect?.().top ?? POPUP_GAP;
+  const height = detailsCard.value?.$el?.offsetHeight || 0;
+  const lowest = window.innerHeight - height - POPUP_GAP;
+
+  dialogTop.value = `${Math.max(POPUP_GAP, Math.min(openerTop - POPUP_GAP, lowest))}px`;
+};
+
 const openDetails = (outcomePotential, event) => {
   detailsOpener = event?.currentTarget || null;
   selectedItem.value = outcomePotential;
   detailsOpen.value = true;
+  void placeNearOpener();
 };
 
 // back to the item that opened it, for keyboard and screen reader users
@@ -405,5 +428,12 @@ defineExpose({
   max-height: 240px;
   overflow-y: auto;
   white-space: pre-line;
+}
+</style>
+
+<style lang="scss">
+/* Unscoped: the dialog is teleported to <body>, outside this component's DOM */
+.v-dialog > .v-overlay__content.gradebook-item-dialog {
+  align-self: flex-start;
 }
 </style>

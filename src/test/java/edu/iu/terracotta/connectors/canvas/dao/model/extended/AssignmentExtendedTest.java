@@ -54,6 +54,19 @@ public class AssignmentExtendedTest {
     }
 
     @Test
+    public void testFromKeepsTheHtmlUrlAndDescription() {
+        // the API client hands on from()'s copy, not the Canvas assignment itself
+        AssignmentExtended assignmentExtended = AssignmentExtended.builder().build();
+        assignmentExtended.getAssignment().setHtmlUrl("https://canvas.example.edu/courses/1/assignments/2");
+        assignmentExtended.getAssignment().setDescription("<p>Read chapter 2</p>");
+
+        LmsAssignment lmsAssignment = assignmentExtended.from();
+
+        assertEquals("https://canvas.example.edu/courses/1/assignments/2", lmsAssignment.getHtmlUrl());
+        assertEquals("<p>Read chapter 2</p>", lmsAssignment.getDescription());
+    }
+
+    @Test
     public void testGetLmsExternalToolFieldsReturnsNullWhenExternalToolTagAttributesIsNull() {
         AssignmentExtended assignmentExtended = AssignmentExtended.builder().build();
 
