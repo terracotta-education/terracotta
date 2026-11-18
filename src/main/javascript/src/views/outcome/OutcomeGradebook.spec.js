@@ -216,4 +216,94 @@ describe("OutcomeGradebook", () => {
       })
     });
   });
+
+  describe("gradebook item details", () => {
+    const canvasQuiz = {
+      assignmentId: "5",
+      name: "Week 3 Reading Quiz",
+      pointsPossible: 15,
+      type: "online_quiz",
+      htmlUrl: "https://canvas.example.edu/courses/1/assignments/5",
+      dueAt: "2026-11-20T23:59:00Z",
+      description: "Read chapter 3.\n\nThen answer the questions."
+    };
+
+    const openFor = async item => {
+      outcomeService.getOutcomePotentials.mockReset().mockResolvedValue({ status: 200, data: [item] });
+      const wrapper = mountView();
+      await flush();
+
+      const opener = wrapper.find(".gradebook-item-name");
+      await opener.trigger("click");
+      await flush();
+
+      return { wrapper, opener };
+    };
+
+    const dialogText = () => document.body.querySelector(".v-overlay__content")?.textContent || "";
+
+    it("shows each item's name as a button that opens a dialog", async () => {
+      outcomeService.getOutcomePotentials.mockReset().mockResolvedValue({ status: 200, data: [canvasQuiz] });
+      const wrapper = mountView();
+      await flush();
+
+      const opener = wrapper.find("button.gradebook-item-name");
+
+      expect(opener.text()).toBe("Week 3 Reading Quiz");
+      expect(opener.attributes("aria-haspopup")).toBe("dialog");
+    });
+
+    it("shows the item's name, type, points, due date and description in the pop-up", async () => {
+      const { wrapper } = await openFor(canvasQuiz);
+
+      expect(wrapper.findComponent({ name: "VDialog" }).props("modelValue")).toBe(true);
+      expect(document.getElementById("gradebook-item-details-title").textContent).toContain("Week 3 Reading Quiz");
+      expect(dialogText()).toContain("Quiz");
+      expect(dialogText()).toContain("15");
+      expect(dialogText()).toContain("November 20, 2026");
+      expect(dialogText()).toContain("Read chapter 3.");
+    });
+
+    it("links to the item in the LMS in a new tab, saying so to screen readers", async () => {
+      await openFor(canvasQuiz);
+
+      const link = [...document.body.querySelectorAll(".v-overlay__content a")]
+        .find(anchor => anchor.textContent.includes("Open in"));
+
+      expect(link.getAttribute("href")).toBe("https://canvas.example.edu/courses/1/assignments/5");
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toContain("noopener");
+      expect(link.querySelector(".d-sr-only").textContent).toBe("(opens in a new tab)");
+      expect(link.querySelector(".mdi-open-in-new")).not.toBeNull();
+    });
+
+    it("leaves out the link when the LMS has no page for the item, or it isn't a web address", async () => {
+      for (const htmlUrl of [null, "javascript:alert(1)"]) {
+        document.body.innerHTML = "";
+        await openFor({ ...canvasQuiz, htmlUrl });
+
+        expect(dialogText()).not.toContain("Open in");
+        expect(dialogText()).toContain("Week 3 Reading Quiz");
+      }
+    });
+
+    it("says when there's no due date or points, and calls an unknown type an assignment", async () => {
+      await openFor({ ...canvasQuiz, type: "online_upload", dueAt: null, pointsPossible: null, description: null });
+
+      expect(dialogText()).toContain("Assignment");
+      expect(dialogText()).toContain("No due date");
+      expect(dialogText()).toContain("None");
+      expect(dialogText()).not.toContain("Description");
+    });
+
+    it("returns focus to the item's name when the pop-up closes", async () => {
+      const { wrapper, opener } = await openFor(canvasQuiz);
+      const focus = vi.spyOn(opener.element, "focus");
+
+      wrapper.findComponent({ name: "VDialog" }).vm.$emit("afterLeave");
+      await flush();
+
+      expect(focus).toHaveBeenCalledTimes(1);
+    });
+  });
 });

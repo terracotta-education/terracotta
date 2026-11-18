@@ -100,6 +100,26 @@ public class AssignmentExtended extends LmsAssignment {
     }
 
     @Override
+    public String getHtmlUrl() {
+        return assignment.getHtmlUrl();
+    }
+
+    @Override
+    public void setHtmlUrl(String htmlUrl) {
+        assignment.setHtmlUrl(htmlUrl);
+    }
+
+    @Override
+    public String getDescription() {
+        return assignment.getDescription();
+    }
+
+    @Override
+    public void setDescription(String description) {
+        assignment.setDescription(description);
+    }
+
+    @Override
     public Date getLockAt() {
         return assignment.getLockAt();
     }

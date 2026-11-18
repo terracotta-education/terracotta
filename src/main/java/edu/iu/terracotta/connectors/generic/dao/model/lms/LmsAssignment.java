@@ -44,6 +44,8 @@ public class LmsAssignment implements BaseLmsAssignment {
     private LmsExternalToolFields lmsExternalToolFields;
     private String gradingType;
     private String metadata; // JSON metadata from the LMS
+    private String htmlUrl; // the item's page in the LMS, where the LMS reports one
+    private String description; // HTML, where the LMS reports one
 
     @Override
     public String addMetadata(String key, Map<String, Object> values) throws TerracottaConnectorException {
