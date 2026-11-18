@@ -21,6 +21,9 @@ public class RichTextUtils {
     // anything else was typed before essays took rich text, as plain text
     private static final Pattern RICH_TEXT = Pattern.compile("^<(p|ul|ol|blockquote|h[1-6]|pre|hr|div)[\\s/>]", Pattern.CASE_INSENSITIVE);
 
+    // an empty paragraph adds a blank line of its own
+    private static final Pattern EXTRA_BLANK_LINES = Pattern.compile("\n{3,}");
+
     public boolean isRichText(String value) {
         return value != null && RICH_TEXT.matcher(value.strip()).find();
     }
@@ -34,10 +37,25 @@ public class RichTextUtils {
             return value;
         }
 
-        StringBuilder text = new StringBuilder();
-        appendBlocks(Jsoup.parseBodyFragment(value).body(), text, "");
+        return htmlToPlainText(value);
+    }
 
-        return text.toString().strip();
+    /**
+     * The text of a value that is always HTML (such as treatment instructions), whatever element it
+     * starts with, in the same form as {@link #toPlainText(String)}.
+     */
+    public String htmlToPlainText(String value) {
+        if (StringUtils.isBlank(value)) {
+            return value;
+        }
+
+        // content that starts with inline text or an element like <span> or <img> is read as a
+        // paragraph, so it stays on one line; a block later in it ends that paragraph
+        String html = isRichText(value) ? value : String.format("<p>%s</p>", value);
+        StringBuilder text = new StringBuilder();
+        appendBlocks(Jsoup.parseBodyFragment(html).body(), text, "");
+
+        return EXTRA_BLANK_LINES.matcher(text.toString().strip()).replaceAll("\n\n");
     }
 
     private void appendBlocks(Element container, StringBuilder text, String indent) {
