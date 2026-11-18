@@ -343,6 +343,8 @@ const COPY_MESSAGES = {
   ERROR: "We couldn't copy all of the experiments and assignments from your previous course. Please contact info@terracotta.education for help."
 };
 const copyStatusPollingId = ref(null);
+// the "recreating experiments" pop-up shows once per visit, not on every check while it runs
+const copyInProgressAlertShown = ref(false);
 // a failed copy is retried once per visit, as whoever is launching now, before its failure is
 // reported - so an instructor who re-approved LMS access after the failure email isn't told it
 // failed again without it being tried again
@@ -360,6 +362,7 @@ const isCopyInProgress = computed(() => copyStatus.value?.status === "IN_PROGRES
 const dataExportRequests = computed(() => dataExportRequestStore.dataExportRequests);
 const importRequests = computed(() => experimentStore.importRequests);
 const configurations = computed(() => configurationStore.get);
+const lmsTitle = computed(() => configurations.value?.lmsTitle || "LMS");
 
 const hasExperiments = computed(() => {
   return experiments.value && experiments.value.length > 0;
@@ -602,6 +605,14 @@ const handleCopyStatus = async () => {
   if (status === "IN_PROGRESS") {
     if (!copyStatusPollingId.value) {
       copyStatusPollingId.value = window.setInterval(handleCopyStatusPolling, 5000);
+    }
+
+    if (!copyInProgressAlertShown.value) {
+      copyInProgressAlertShown.value = true;
+      void Swal.fire({
+        text: `We are currently recreating experiments from your copied course in ${lmsTitle.value}.`,
+        icon: "info"
+      });
     }
 
     return;

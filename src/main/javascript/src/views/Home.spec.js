@@ -153,7 +153,9 @@ describe("Home", () => {
       expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(true);
     });
     expect(experimentCopyCandidateService.retryCopy).toHaveBeenCalledTimes(1);
-    expect(swalFire).not.toHaveBeenCalled();
+    // the retry recreates them, so the only pop-up so far says so
+    expect(swalFire).toHaveBeenCalledTimes(1);
+    expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({ icon: "info" }));
     expect(experimentCopyCandidateService.acknowledgeCopyStatus).not.toHaveBeenCalled();
 
     // the retry succeeds
@@ -197,7 +199,8 @@ describe("Home", () => {
       "Your experiments and assignments are being copied from your previous course."
     );
     expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(true);
-    expect(swalFire).not.toHaveBeenCalled();
+    expect(swalFire).toHaveBeenCalledTimes(1);
+    expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({ icon: "info" }));
 
     const pollCall = setIntervalSpy.mock.calls.find(([, delay]) => delay === 5000);
     expect(pollCall).toBeDefined();
@@ -215,6 +218,46 @@ describe("Home", () => {
     expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(false);
 
     setIntervalSpy.mockRestore();
+  });
+
+  it("says once, naming the LMS, that experiments from the copied course are being recreated", async () => {
+    const setIntervalSpy = vi.spyOn(window, "setInterval");
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({ configurations: { lmsTitle: "Canvas" } });
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "IN_PROGRESS", importIds: [] } });
+    swalFire.mockResolvedValue({});
+
+    mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith({
+        text: "We are currently recreating experiments from your copied course in Canvas.",
+        icon: "info"
+      });
+    });
+
+    // still underway on the next check: no second pop-up
+    const pollCall = setIntervalSpy.mock.calls.find(([, delay]) => delay === 5000);
+    await pollCall[0]();
+    await flushPromises();
+
+    expect(swalFire).toHaveBeenCalledTimes(1);
+
+    setIntervalSpy.mockRestore();
+  });
+
+  it("names the LMS generically when the configuration has no LMS title", async () => {
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "IN_PROGRESS", importIds: [] } });
+    swalFire.mockResolvedValue({});
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({
+        text: "We are currently recreating experiments from your copied course in LMS."
+      }));
+    });
   });
 
   it("leaves imports created by a course copy out of the ordinary import alerts", async () => {
