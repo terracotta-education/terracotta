@@ -260,8 +260,13 @@ const dueLabel = dueAt => {
   return dueAt ? dayjs(dueAt).format("MMMM D, YYYY [at] h:mma") : "No due date";
 };
 
-// only a web address: the link comes from the LMS
+// only for an ordinary LMS assignment or quiz: an LTI item (Terracotta's own, or another tool's)
+// opens that tool instead. And only a web address: the link comes from the LMS
 const lmsLink = item => {
+  if (item?.terracotta) {
+    return null;
+  }
+
   return /^https?:\/\//i.test(item?.htmlUrl || "") ? item.htmlUrl : null;
 };
 

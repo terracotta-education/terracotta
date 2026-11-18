@@ -287,6 +287,14 @@ describe("OutcomeGradebook", () => {
       }
     });
 
+    it("leaves out the link for an LTI item, such as a Terracotta assignment", async () => {
+      await openFor({ ...canvasQuiz, type: "external_tool", terracotta: true });
+
+      expect(dialogText()).not.toContain("Open in");
+      expect(dialogText()).toContain("External tool");
+      expect(dialogText()).toContain("Week 3 Reading Quiz");
+    });
+
     it("says when there's no due date or points, and calls an unknown type an assignment", async () => {
       await openFor({ ...canvasQuiz, type: "online_upload", dueAt: null, pointsPossible: null, description: null });
 
