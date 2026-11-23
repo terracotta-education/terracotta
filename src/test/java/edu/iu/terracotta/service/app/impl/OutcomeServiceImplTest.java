@@ -3,6 +3,7 @@ package edu.iu.terracotta.service.app.impl;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -320,6 +322,38 @@ public class OutcomeServiceImplTest extends BaseTest {
         assertEquals(1, retVal.size());
         assertEquals("1", retVal.get(0).getAssignmentId());
         assertTrue(retVal.get(0).isTerracotta());
+    }
+
+    @Test
+    public void testPotentialOutcomesIncludeWhatThePopUpShows() throws DataServiceException, ApiException, TerracottaConnectorException {
+        Date dueAt = new Date();
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
+        when(consentDocument.getLmsAssignmentId()).thenReturn("999");
+        when(lmsAssignment.getSubmissionTypes()).thenReturn(List.of("online_quiz"));
+        when(lmsAssignment.getHtmlUrl()).thenReturn("https://canvas.example.edu/courses/1/assignments/1");
+        when(lmsAssignment.getDueAt()).thenReturn(dueAt);
+        when(lmsAssignment.getDescription()).thenReturn("<p>Read <strong>chapter 2</strong>.</p><p><img src=\"/courses/1/files/2/preview\"></p>");
+
+        OutcomePotentialDto potential = outcomeService.potentialOutcomes(0, securedInfo).get(0);
+
+        assertEquals("https://canvas.example.edu/courses/1/assignments/1", potential.getHtmlUrl());
+        assertEquals(dueAt, potential.getDueAt());
+        // plain text: an image that needs the LMS's login isn't shown broken
+        assertEquals("Read chapter 2.", potential.getDescription());
+        assertEquals("online_quiz", potential.getType());
+    }
+
+    @Test
+    public void testPotentialOutcomesLeaveOutABlankDescription() throws DataServiceException, ApiException, TerracottaConnectorException {
+        when(assignmentRepository.findByExposure_Experiment_ExperimentId(anyLong())).thenReturn(Collections.emptyList());
+        when(consentDocument.getLmsAssignmentId()).thenReturn("999");
+        when(lmsAssignment.getSubmissionTypes()).thenReturn(List.of("online_upload"));
+        when(lmsAssignment.getDescription()).thenReturn("  ");
+
+        OutcomePotentialDto potential = outcomeService.potentialOutcomes(0, securedInfo).get(0);
+
+        assertNull(potential.getDescription());
+        assertNull(potential.getHtmlUrl());
     }
 
     @Test

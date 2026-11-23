@@ -33,6 +33,7 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.service.app.OutcomeScoreService;
 import edu.iu.terracotta.service.app.OutcomeService;
 import edu.iu.terracotta.service.app.ParticipantService;
+import edu.iu.terracotta.utils.RichTextUtils;
 import edu.iu.terracotta.utils.TextConstants;
 import lombok.RequiredArgsConstructor;
 
@@ -267,6 +268,10 @@ public class OutcomeServiceImpl implements OutcomeService {
         potentialDto.setType(lmsAssignment.getSubmissionTypes().get(0));
         potentialDto.setPointsPossible(lmsAssignment.getPointsPossible());
         potentialDto.setTerracotta(lmsAssignment.getSubmissionTypes().contains("external_tool"));
+        potentialDto.setHtmlUrl(lmsAssignment.getHtmlUrl());
+        potentialDto.setDueAt(lmsAssignment.getDueAt());
+        // plain text: the description's images and embeds need the LMS's own login, so they'd show broken
+        potentialDto.setDescription(StringUtils.isNotBlank(lmsAssignment.getDescription()) ? RichTextUtils.htmlToPlainText(lmsAssignment.getDescription()) : null);
 
         return potentialDto;
     }
