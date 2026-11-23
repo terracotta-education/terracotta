@@ -1,12 +1,14 @@
 package edu.iu.terracotta.service.app.distribute;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import io.jsonwebtoken.Claims;
 
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
 import edu.iu.terracotta.dao.model.dto.distribute.CopyStatusDto;
 
 /**
@@ -28,6 +30,18 @@ public interface ExperimentCopyCandidateService {
      * destination context's ID, or empty if nothing should be recreated for this notice.
      */
     Optional<Long> stageFromNotice(Claims noticeClaims);
+
+    /**
+     * Called on an instructor's launch, for a course copy no notice reported - e.g. Terracotta
+     * installed directly in the source course, where the copy gets a new installation that has no
+     * notice handler yet, so the LMS has nobody to notify. Finds the given course's LMS
+     * assignments that still launch a Terracotta assignment or experiment from another course on
+     * the same platform (the copy keeps the source's launch URLs), and stages a PENDING candidate
+     * for each such source Experiment that doesn't already have one. Must run before the
+     * obsolete-assignment check, which would otherwise mark those copied assignments obsolete.
+     * Returns whether anything new was staged.
+     */
+    boolean stageFromCopiedAssignments(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments);
 
     /**
      * Recreates every PENDING candidate's source Experiment in the given destination context,
