@@ -281,6 +281,7 @@ import {
   addAttributesToElement,
   getAttributeFromElement
 } from "@/helpers/ui-utils.js";
+import { experimentResumeRoute } from "@/helpers/experiment-resume.js";
 
 import Help from "@/components/Help.vue";
 import PageLoading from "@/components/PageLoading.vue";
@@ -505,7 +506,7 @@ const experimentImportRequest = id => {
   return experimentImportRequests.value[id];
 };
 
-const handleNavigate = experimentId => {
+const handleNavigate = async experimentId => {
   const selectedExperiment = experiments.value.find(
     experiment => experiment.experimentId === experimentId
   );
@@ -522,10 +523,22 @@ const handleNavigate = experimentId => {
     distributionType
   ].some(value => value === "NOSET");
 
+  if (!isExperimentIncomplete) {
+    router.push({
+      name: "ExperimentSummary",
+      params: {
+        experimentId: experimentId
+      }
+    });
+
+    return;
+  }
+
+  // pick up where the instructor left off; the list doesn't include the conditions that needs
+  const response = await experimentStore.fetchExperimentById(experimentId);
+
   router.push({
-    name: isExperimentIncomplete
-      ? "ExperimentDesignIntro"
-      : "ExperimentSummary",
+    name: (response?.status === 200 && experimentResumeRoute(response.data)) || "ExperimentDesignIntro",
     params: {
       experimentId: experimentId
     }

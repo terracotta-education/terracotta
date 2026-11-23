@@ -4,6 +4,7 @@ import { nextTick } from "vue";
 vi.mock("@/services", () => ({
   experimentService: {
     getAll: vi.fn(),
+    getById: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
     export: vi.fn(),
@@ -371,10 +372,19 @@ describe("Home", () => {
     });
   });
 
-  it("navigates to ExperimentDesignIntro when the experiment is not fully configured", async () => {
+  it("opens an unfinished experiment on the step the instructor left off at", async () => {
     experimentService.getAll.mockResolvedValue({
       status: 200,
       data: [{ ...experiment, exposureType: "NOSET" }]
+    });
+    experimentService.getById.mockResolvedValue({
+      status: 200,
+      data: {
+        ...experiment,
+        description: "Testing worked examples",
+        exposureType: "NOSET",
+        conditions: [{ name: "" }, { name: "" }]
+      }
     });
 
     const wrapper = mountComponent(Home);
@@ -385,9 +395,35 @@ describe("Home", () => {
 
     await wrapper.find(".v-data-table__link").trigger("click");
 
-    expect(push).toHaveBeenCalledWith({
-      name: "ExperimentDesignIntro",
-      params: { experimentId: 11 }
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith({
+        name: "ExperimentDesignConditions",
+        params: { experimentId: 11 }
+      });
+    });
+    expect(experimentService.getById).toHaveBeenCalledWith(11);
+  });
+
+  it("opens an unfinished experiment at the design intro when it can't be loaded", async () => {
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [{ ...experiment, exposureType: "NOSET" }]
+    });
+    experimentService.getById.mockResolvedValue({ status: 500 });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".v-data-table__link").exists()).toBe(true);
+    });
+
+    await wrapper.find(".v-data-table__link").trigger("click");
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith({
+        name: "ExperimentDesignIntro",
+        params: { experimentId: 11 }
+      });
     });
   });
 
