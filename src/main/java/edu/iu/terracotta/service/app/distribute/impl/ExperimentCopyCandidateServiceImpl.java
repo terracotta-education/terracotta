@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,6 +23,7 @@ import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import io.jsonwebtoken.Claims;
 
@@ -179,6 +181,104 @@ public class ExperimentCopyCandidateServiceImpl implements ExperimentCopyCandida
         log.info("Staged [{}] new copy candidate(s) for destination context ID: [{}]", staged, destination.getContextId());
 
         return Optional.of(destination.getContextId());
+    }
+
+    @Override
+    @Transactional
+    public boolean stageFromCopiedAssignments(SecuredInfo securedInfo, List<LmsAssignment> lmsAssignments) {
+        if (CollectionUtils.isEmpty(lmsAssignments)) {
+            return false;
+        }
+
+        LtiContextEntity destination = ltiContextRepository.findById(securedInfo.getContextId()).orElse(null);
+
+        if (destination == null) {
+            return false;
+        }
+
+        String localUrl = destination.getToolDeployment().getPlatformDeployment().getLocalUrl();
+        // LMS assignments this course's own Terracotta assignments already own, and ones the
+        // obsolete-assignment check has already converted, aren't copies to recover
+        List<String> ownLmsAssignmentIds = assignmentRepository.findAssignmentsToCheckByContext(destination.getContextId()).stream()
+            .map(Assignment::getLmsAssignmentId)
+            .filter(Objects::nonNull)
+            .toList();
+        List<String> convertedLmsAssignmentIds = obsoleteAssignmentRepository.findAllByContext_ContextId(destination.getContextId()).stream()
+            .map(ObsoleteAssignment::getLmsAssignmentId)
+            .toList();
+
+        // one source experiment can have several copied assignments
+        Map<Long, Experiment> sourceExperiments = new LinkedHashMap<>();
+
+        for (LmsAssignment lmsAssignment : lmsAssignments) {
+            if (lmsAssignment.getLmsExternalToolFields() == null
+                || ownLmsAssignmentIds.contains(lmsAssignment.getId())
+                || convertedLmsAssignmentIds.contains(lmsAssignment.getId())
+                || !Strings.CI.contains(lmsAssignment.getLmsExternalToolFields().getUrl(), localUrl)) {
+                continue;
+            }
+
+            resolveLinkedExperiment(lmsAssignment.getLmsExternalToolFields().getUrl())
+                .filter(experiment -> experiment.getLtiContextEntity().getContextId() != destination.getContextId())
+                .filter(experiment -> experiment.getPlatformDeployment().getKeyId() == securedInfo.getPlatformDeploymentId())
+                .ifPresent(experiment -> sourceExperiments.putIfAbsent(experiment.getExperimentId(), experiment));
+        }
+
+        if (sourceExperiments.isEmpty()) {
+            return false;
+        }
+
+        long staged = sourceExperiments.values().stream()
+            .filter(experiment -> !experimentCopyCandidateRepository.existsBySourceExperiment_ExperimentIdAndDestinationContext_ContextId(experiment.getExperimentId(), destination.getContextId()))
+            .map(experiment ->
+                experimentCopyCandidateRepository.save(
+                    ExperimentCopyCandidate.builder()
+                        .sourceExperiment(experiment)
+                        .destinationContext(destination)
+                        .status(ExperimentCopyCandidateStatus.PENDING)
+                        .build()
+                )
+            )
+            .count();
+
+        log.info(
+            "Found LMS assignments copied from [{}] experiment(s) in other courses ({}) in context ID: [{}] - staged [{}] new copy candidate(s)",
+            sourceExperiments.size(),
+            sourceExperiments.keySet().stream().map(String::valueOf).collect(Collectors.joining(", ")),
+            destination.getContextId(),
+            staged
+        );
+
+        return staged > 0;
+    }
+
+    // the experiment an LMS assignment's launch URL points at: through its "assignment" parameter,
+    // or for a consent item (which has none) its "experiment" parameter - by legacy numeric id or
+    // uuid, depending on when the URL was written
+    private Optional<Experiment> resolveLinkedExperiment(String url) {
+        Optional<String> assignmentId = LmsExternalToolUrlUtils.extractQueryParam(url, "assignment");
+
+        if (assignmentId.isPresent()) {
+            return assignmentId
+                .flatMap(this::resolveAssignmentId)
+                .map(assignmentRepository::findByAssignmentId)
+                .map(assignment -> assignment.getExposure().getExperiment());
+        }
+
+        return LmsExternalToolUrlUtils.extractQueryParam(url, "experiment")
+            .map(this::findExperiment);
+    }
+
+    private Experiment findExperiment(String idText) {
+        try {
+            return experimentRepository.findByUuid(UUID.fromString(idText));
+        } catch (IllegalArgumentException _) {
+            try {
+                return experimentRepository.findByExperimentId(Long.parseLong(idText));
+            } catch (NumberFormatException _) {
+                return null;
+            }
+        }
     }
 
     @Override

@@ -1,7 +1,11 @@
 package edu.iu.terracotta.controller.lti;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -9,9 +13,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
@@ -105,12 +111,36 @@ public class LtiConfigurationControllerTest extends BaseTest {
         PlatformDeployment saved = PlatformDeployment.builder().keyId(5L).iss("iss").clientId("client").build();
         when(platformDeploymentRepository.findByIssAndClientId("iss", "client")).thenReturn(Collections.emptyList());
         when(platformDeploymentRepository.save(newDeployment)).thenReturn(saved);
-        when(toolDeploymentRepository.save(toolDeployment)).thenReturn(toolDeployment);
 
         ResponseEntity<String> response = ltiConfigurationController.createDeployment(newDeployment, UriComponentsBuilder.newInstance());
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals(saved, toolDeployment.getPlatformDeployment());
+        ArgumentCaptor<ToolDeployment> savedToolDeployment = ArgumentCaptor.forClass(ToolDeployment.class);
+        verify(toolDeploymentRepository).save(savedToolDeployment.capture());
+        assertEquals("dep1", savedToolDeployment.getValue().getLtiDeploymentId());
+        assertEquals(saved, savedToolDeployment.getValue().getPlatformDeployment());
+    }
+
+    // a request carrying existing records' IDs still creates new ones, instead of overwriting them
+    @Test
+    void createDeploymentIgnoresTheRequestsIdsTest() {
+        UUID requestedUuid = UUID.randomUUID();
+        ToolDeployment toolDeployment = ToolDeployment.builder().deploymentId(7L).ltiDeploymentId("dep1").noticeHandlerRegistered(true).build();
+        PlatformDeployment newDeployment = PlatformDeployment.builder().keyId(3L).iss("iss").clientId("client").toolDeployments(Set.of(toolDeployment)).build();
+        newDeployment.setUuid(requestedUuid);
+        PlatformDeployment saved = PlatformDeployment.builder().keyId(5L).iss("iss").clientId("client").build();
+        when(platformDeploymentRepository.findByIssAndClientId("iss", "client")).thenReturn(Collections.emptyList());
+        when(platformDeploymentRepository.save(newDeployment)).thenReturn(saved);
+
+        ltiConfigurationController.createDeployment(newDeployment, UriComponentsBuilder.newInstance());
+
+        assertEquals(0L, newDeployment.getKeyId());
+        assertNull(newDeployment.getUuid());
+        assertNull(newDeployment.getToolDeployments());
+        ArgumentCaptor<ToolDeployment> savedToolDeployment = ArgumentCaptor.forClass(ToolDeployment.class);
+        verify(toolDeploymentRepository).save(savedToolDeployment.capture());
+        assertEquals(0L, savedToolDeployment.getValue().getDeploymentId());
+        assertFalse(savedToolDeployment.getValue().isNoticeHandlerRegistered());
     }
 
     @Test
@@ -154,13 +184,18 @@ public class LtiConfigurationControllerTest extends BaseTest {
         PlatformDeployment update = PlatformDeployment.builder().iss("iss").clientId("client").toolDeployments(Set.of(newToolDeployment)).build();
 
         when(platformDeploymentRepository.findById(1L)).thenReturn(Optional.of(existing));
-        when(toolDeploymentRepository.save(newToolDeployment)).thenReturn(newToolDeployment);
+        ToolDeployment savedToolDeployment = ToolDeployment.builder().deploymentId(9L).ltiDeploymentId("dep-99").build();
+        when(toolDeploymentRepository.save(any(ToolDeployment.class))).thenReturn(savedToolDeployment);
         when(platformDeploymentRepository.saveAndFlush(existing)).thenReturn(existing);
 
         ResponseEntity<?> response = ltiConfigurationController.updateDeployment(1L, update);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(existingToolDeployments.contains(newToolDeployment));
+        assertTrue(existingToolDeployments.contains(savedToolDeployment));
+        ArgumentCaptor<ToolDeployment> requested = ArgumentCaptor.forClass(ToolDeployment.class);
+        verify(toolDeploymentRepository).save(requested.capture());
+        assertEquals("dep-99", requested.getValue().getLtiDeploymentId());
+        assertEquals(existing, requested.getValue().getPlatformDeployment());
     }
 
     @Test

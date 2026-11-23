@@ -10,6 +10,7 @@ import edu.iu.terracotta.connectors.generic.dao.repository.lti.PlatformDeploymen
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.ConnectionException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
+import edu.iu.terracotta.connectors.generic.service.api.ApiJwtService;
 import edu.iu.terracotta.dao.entity.Condition;
 import edu.iu.terracotta.dao.entity.ConsentDocument;
 import edu.iu.terracotta.dao.entity.Experiment;
@@ -41,7 +42,7 @@ import edu.iu.terracotta.service.app.ExposureService;
 import edu.iu.terracotta.service.app.FeatureService;
 import edu.iu.terracotta.service.app.FileStorageService;
 import edu.iu.terracotta.service.app.ParticipantService;
-import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.async.LmsAssignmentSyncService;
 import edu.iu.terracotta.service.app.async.ParticipantAsyncService;
 import edu.iu.terracotta.utils.TextConstants;
 import jakarta.persistence.EntityManager;
@@ -82,7 +83,8 @@ public class ExperimentServiceImpl implements ExperimentService {
     private final ParticipantRepository participantRepository;
     private final PlatformDeploymentRepository platformDeploymentRepository;
     private final AssignmentService assignmentService;
-    private final AssignmentAsyncService assignmentAsyncService;
+    private final ApiJwtService apiJwtService;
+    private final LmsAssignmentSyncService lmsAssignmentSyncService;
     private final ExperimentCopyCandidateService experimentCopyCandidateService;
     private final ConditionService conditionService;
     private final ExposureService exposureService;
@@ -113,7 +115,14 @@ public class ExperimentServiceImpl implements ExperimentService {
                 // the source course's old IDs until recreation re-points it, so this would mark
                 // it obsolete)
                 if (!experimentCopyCandidateService.hasUnfinishedForContext(securedInfo.getContextId())) {
-                    assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo);
+                    if (experiments.isEmpty() && apiJwtService.isInstructorOrHigher(securedInfo)) {
+                        // an instructor in a course with no experiments yet may be in a course
+                        // copy no notice reported: check now, so a recreation it starts already
+                        // shows in the copy status the page asks for next
+                        lmsAssignmentSyncService.sync(securedInfo);
+                    } else {
+                        lmsAssignmentSyncService.syncInBackground(securedInfo);
+                    }
                 }
 
                 if (CollectionUtils.isNotEmpty(experiments)) {

@@ -42,7 +42,12 @@ public class MessageEmailReplyToServiceImpl implements MessageEmailReplyToServic
 
     @Override
     public void update(MessageContainerConfigurationDto containerConfigurationDto, MessageContainerConfiguration containerConfiguration) {
-       // delete existing reply to addresses
+        if (containerConfigurationDto == null) {
+            // nothing sent to change: keep the addresses it has, as the rest of the configuration is kept
+            return;
+        }
+
+        // delete existing reply to addresses
         containerConfiguration.getReplyTo().clear();
 
         // create new reply to addresses

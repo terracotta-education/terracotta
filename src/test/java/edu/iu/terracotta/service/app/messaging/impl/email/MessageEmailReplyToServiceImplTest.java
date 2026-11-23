@@ -91,6 +91,18 @@ public class MessageEmailReplyToServiceImplTest extends BaseTest {
         assertTrue(containerConfiguration.getReplyTo().stream().allMatch(r -> r.getMessageConfiguration() == null));
     }
 
+    // nothing sent to change: the addresses it has are kept
+    @Test
+    public void testUpdateContainerConfigurationWithoutDtoKeepsExisting() {
+        MessageContainerConfiguration containerConfiguration = MessageContainerConfiguration.builder().build();
+        containerConfiguration.getReplyTo().add(MessageEmailReplyTo.builder().email("old@terracotta.edu").build());
+
+        messageEmailReplyToService.update((MessageContainerConfigurationDto) null, containerConfiguration);
+
+        assertEquals(1, containerConfiguration.getReplyTo().size());
+        assertEquals("old@terracotta.edu", containerConfiguration.getReplyTo().get(0).getEmail());
+    }
+
     @Test
     public void testUpdateContainerConfigurationWithNullDtoListClearsExisting() {
         MessageContainerConfiguration containerConfiguration = MessageContainerConfiguration.builder().build();
