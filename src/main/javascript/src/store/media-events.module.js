@@ -42,6 +42,7 @@ const loadYoutubeIframeAPI = () => {
       return;
     }
 
+    // deepcode ignore CustomJPMCExternalScriptMissingSri: YouTube serves and updates its IFrame Player API script itself, without versions, so no integrity hash could stay valid
     const tag = document.createElement("script");
     tag.id = "iframe-api";
     tag.src = "https://www.youtube.com/iframe_api";
