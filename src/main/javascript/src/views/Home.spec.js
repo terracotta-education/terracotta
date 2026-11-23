@@ -4,6 +4,7 @@ import { nextTick } from "vue";
 vi.mock("@/services", () => ({
   experimentService: {
     getAll: vi.fn(),
+    getById: vi.fn(),
     create: vi.fn(),
     delete: vi.fn(),
     export: vi.fn(),
@@ -153,7 +154,9 @@ describe("Home", () => {
       expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(true);
     });
     expect(experimentCopyCandidateService.retryCopy).toHaveBeenCalledTimes(1);
-    expect(swalFire).not.toHaveBeenCalled();
+    // the retry recreates them, so the only pop-up so far says so
+    expect(swalFire).toHaveBeenCalledTimes(1);
+    expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({ icon: "info" }));
     expect(experimentCopyCandidateService.acknowledgeCopyStatus).not.toHaveBeenCalled();
 
     // the retry succeeds
@@ -197,7 +200,8 @@ describe("Home", () => {
       "Your experiments and assignments are being copied from your previous course."
     );
     expect(wrapper.findComponent({ name: "ZeroState" }).props("disableActions")).toBe(true);
-    expect(swalFire).not.toHaveBeenCalled();
+    expect(swalFire).toHaveBeenCalledTimes(1);
+    expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({ icon: "info" }));
 
     const pollCall = setIntervalSpy.mock.calls.find(([, delay]) => delay === 5000);
     expect(pollCall).toBeDefined();
@@ -215,6 +219,46 @@ describe("Home", () => {
     expect(wrapper.find(".copy-in-progress-alert").exists()).toBe(false);
 
     setIntervalSpy.mockRestore();
+  });
+
+  it("says once, naming the LMS, that experiments from the copied course are being recreated", async () => {
+    const setIntervalSpy = vi.spyOn(window, "setInterval");
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    configurationModule().$patch({ configurations: { lmsTitle: "Canvas" } });
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "IN_PROGRESS", importIds: [] } });
+    swalFire.mockResolvedValue({});
+
+    mountComponent(Home, { pinia });
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith({
+        text: "We are currently recreating experiments from your copied course in Canvas.",
+        icon: "info"
+      });
+    });
+
+    // still underway on the next check: no second pop-up
+    const pollCall = setIntervalSpy.mock.calls.find(([, delay]) => delay === 5000);
+    await pollCall[0]();
+    await flushPromises();
+
+    expect(swalFire).toHaveBeenCalledTimes(1);
+
+    setIntervalSpy.mockRestore();
+  });
+
+  it("names the LMS generically when the configuration has no LMS title", async () => {
+    experimentCopyCandidateService.getCopyStatus.mockResolvedValue({ data: { status: "IN_PROGRESS", importIds: [] } });
+    swalFire.mockResolvedValue({});
+
+    mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(swalFire).toHaveBeenCalledWith(expect.objectContaining({
+        text: "We are currently recreating experiments from your copied course in LMS."
+      }));
+    });
   });
 
   it("leaves imports created by a course copy out of the ordinary import alerts", async () => {
@@ -328,10 +372,19 @@ describe("Home", () => {
     });
   });
 
-  it("navigates to ExperimentDesignIntro when the experiment is not fully configured", async () => {
+  it("opens an unfinished experiment on the step the instructor left off at", async () => {
     experimentService.getAll.mockResolvedValue({
       status: 200,
       data: [{ ...experiment, exposureType: "NOSET" }]
+    });
+    experimentService.getById.mockResolvedValue({
+      status: 200,
+      data: {
+        ...experiment,
+        description: "Testing worked examples",
+        exposureType: "NOSET",
+        conditions: [{ name: "" }, { name: "" }]
+      }
     });
 
     const wrapper = mountComponent(Home);
@@ -342,9 +395,35 @@ describe("Home", () => {
 
     await wrapper.find(".v-data-table__link").trigger("click");
 
-    expect(push).toHaveBeenCalledWith({
-      name: "ExperimentDesignIntro",
-      params: { experimentId: 11 }
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith({
+        name: "ExperimentDesignConditions",
+        params: { experimentId: 11 }
+      });
+    });
+    expect(experimentService.getById).toHaveBeenCalledWith(11);
+  });
+
+  it("opens an unfinished experiment at the design intro when it can't be loaded", async () => {
+    experimentService.getAll.mockResolvedValue({
+      status: 200,
+      data: [{ ...experiment, exposureType: "NOSET" }]
+    });
+    experimentService.getById.mockResolvedValue({ status: 500 });
+
+    const wrapper = mountComponent(Home);
+
+    await vi.waitFor(() => {
+      expect(wrapper.find(".v-data-table__link").exists()).toBe(true);
+    });
+
+    await wrapper.find(".v-data-table__link").trigger("click");
+
+    await vi.waitFor(() => {
+      expect(push).toHaveBeenCalledWith({
+        name: "ExperimentDesignIntro",
+        params: { experimentId: 11 }
+      });
     });
   });
 

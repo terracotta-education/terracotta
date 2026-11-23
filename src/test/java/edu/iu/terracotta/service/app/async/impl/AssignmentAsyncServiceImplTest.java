@@ -107,6 +107,15 @@ public class AssignmentAsyncServiceImplTest extends BaseTest {
         verify(assignmentRepository, times(2)).findAssignmentsToCheckByContext(securedInfo.getContextId());
     }
 
+    // the launch-time sync (LmsAssignmentSyncService) has already listed the LMS assignments
+    @Test
+    void testHandleAssignmentTasksInLmsByContextWithAssignmentsAlreadyListed() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
+        assignmentAsyncService.handleAssignmentTasksInLmsByContext(securedInfo, List.of());
+
+        verify(assignmentService, never()).getAllAssignmentsForLmsCourse(any());
+        verify(assignmentRepository, times(2)).findAssignmentsToCheckByContext(securedInfo.getContextId());
+    }
+
     @Test
     void testHandleAssignmentTasksInLmsByContextPropagatesException() throws DataServiceException, ConnectionException, IOException, ApiException, TerracottaConnectorException {
         when(assignmentService.getAllAssignmentsForLmsCourse(any())).thenThrow(new ApiException("lms error"));
