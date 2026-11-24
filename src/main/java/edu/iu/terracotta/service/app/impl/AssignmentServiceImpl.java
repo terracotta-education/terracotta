@@ -6,6 +6,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields;
 import edu.iu.terracotta.connectors.generic.dao.repository.api.ApiTokenRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiContextRepository;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
@@ -684,12 +685,15 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public void restoreRepointedAssignmentUrlInLms(LtiUserEntity instructorUser, LmsAssignment lmsAssignment, String originalUrl, String lmsCourseId) {
-        if (lmsAssignment.getLmsExternalToolFields() == null) {
+        // read once: an LMS's own assignment type may build these fresh on every call
+        LmsExternalToolFields lmsExternalToolFields = lmsAssignment.getLmsExternalToolFields();
+
+        if (lmsExternalToolFields == null) {
             return;
         }
 
         try {
-            lmsAssignment.getLmsExternalToolFields().setUrl(originalUrl);
+            lmsExternalToolFields.setUrl(originalUrl);
             apiClient.editAssignment(instructorUser, lmsAssignment, lmsCourseId);
         } catch (ApiException | TerracottaConnectorException _) {
             log.warn("Error occurred while restoring repointed LMS assignment ID: [{}] in LMS Course ID: [{}]", lmsAssignment.getId(), lmsCourseId);
@@ -698,12 +702,15 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     @Override
     public Assignment repointAssignmentInLms(LtiUserEntity instructorUser, Assignment assignment, String lmsCourseId, LmsAssignment existingLmsAssignment) throws AssignmentNotCreatedException, TerracottaConnectorException {
-        if (existingLmsAssignment.getLmsExternalToolFields() == null) {
+        // read once: an LMS's own assignment type may build these fresh on every call
+        LmsExternalToolFields lmsExternalToolFields = existingLmsAssignment.getLmsExternalToolFields();
+
+        if (lmsExternalToolFields == null) {
             throw new AssignmentNotCreatedException("Error: The assignment was not repointed in the LMS. It has no external tool settings.");
         }
 
         try {
-            existingLmsAssignment.getLmsExternalToolFields().setUrl(
+            lmsExternalToolFields.setUrl(
                 String.format(
                     "%s/lti3?experiment=%s&assignment=%s",
                     instructorUser.getPlatformDeployment().getLocalUrl(),

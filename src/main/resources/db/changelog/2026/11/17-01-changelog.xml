@@ -1,0 +1,87 @@
+<?xml
+    version="1.1"
+    encoding="UTF-8"
+    standalone="no"
+?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+>
+    <!--
+        An experiment's exposure, participation and distribution types were stored as the enum's
+        position (0, 1, 2...), the only enum columns left that weren't stored by name. A number can't
+        be read without the enum's source, and inserting a value anywhere but the end of an enum
+        would silently change what every existing row means. These store the name instead, like
+        every other enum column.
+
+        Each column becomes VARCHAR (MySQL keeps the digits as text), and each digit is replaced by
+        its name, in the enum's current order. NULL stays NULL.
+    -->
+    <changeSet author="rlong" id="1794873600000-01">
+        <modifyDataType tableName="terr_experiment" columnName="exposure_type" newDataType="VARCHAR(255)"/>
+        <modifyDataType tableName="terr_experiment" columnName="participation_type" newDataType="VARCHAR(255)"/>
+        <modifyDataType tableName="terr_experiment" columnName="distribution_type" newDataType="VARCHAR(255)"/>
+
+        <sql>
+            UPDATE
+                terr_experiment
+            SET
+                exposure_type = CASE exposure_type
+                    WHEN '0' THEN 'BETWEEN'
+                    WHEN '1' THEN 'WITHIN'
+                    WHEN '2' THEN 'NOSET'
+                    ELSE exposure_type
+                END,
+                participation_type = CASE participation_type
+                    WHEN '0' THEN 'CONSENT'
+                    WHEN '1' THEN 'MANUAL'
+                    WHEN '2' THEN 'AUTO'
+                    WHEN '3' THEN 'NOSET'
+                    WHEN '4' THEN 'CONSENTED_BUT_NOT_ASSIGNED'
+                    WHEN '5' THEN 'REVOKED'
+                    ELSE participation_type
+                END,
+                distribution_type = CASE distribution_type
+                    WHEN '0' THEN 'EVEN'
+                    WHEN '1' THEN 'CUSTOM'
+                    WHEN '2' THEN 'MANUAL'
+                    WHEN '3' THEN 'NOSET'
+                    ELSE distribution_type
+                END;
+        </sql>
+
+        <rollback>
+            <sql>
+                UPDATE
+                    terr_experiment
+                SET
+                    exposure_type = CASE exposure_type
+                        WHEN 'BETWEEN' THEN '0'
+                        WHEN 'WITHIN' THEN '1'
+                        WHEN 'NOSET' THEN '2'
+                        ELSE exposure_type
+                    END,
+                    participation_type = CASE participation_type
+                        WHEN 'CONSENT' THEN '0'
+                        WHEN 'MANUAL' THEN '1'
+                        WHEN 'AUTO' THEN '2'
+                        WHEN 'NOSET' THEN '3'
+                        WHEN 'CONSENTED_BUT_NOT_ASSIGNED' THEN '4'
+                        WHEN 'REVOKED' THEN '5'
+                        ELSE participation_type
+                    END,
+                    distribution_type = CASE distribution_type
+                        WHEN 'EVEN' THEN '0'
+                        WHEN 'CUSTOM' THEN '1'
+                        WHEN 'MANUAL' THEN '2'
+                        WHEN 'NOSET' THEN '3'
+                        ELSE distribution_type
+                    END;
+            </sql>
+            <modifyDataType tableName="terr_experiment" columnName="exposure_type" newDataType="INT"/>
+            <modifyDataType tableName="terr_experiment" columnName="participation_type" newDataType="INT"/>
+            <modifyDataType tableName="terr_experiment" columnName="distribution_type" newDataType="INT"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

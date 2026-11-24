@@ -24,6 +24,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * This controller is protected by basic authentication
@@ -76,12 +77,22 @@ public class LtiConfigurationController {
             return new ResponseEntity<String>("Unable to create. A platformDeployment with same key already exist.", HttpStatus.CONFLICT);
         }
 
+        // always a new record: the request's own ID, UUID and relations are dropped, so a request
+        // carrying another record's ID can't overwrite it. The rest is the platform's configuration,
+        // which is what this admin-only endpoint is for.
+        Set<ToolDeployment> requestedToolDeployments = platformDeployment.getToolDeployments();
+        platformDeployment.setKeyId(0);
+        platformDeployment.setUuid(null);
+        platformDeployment.setToolDeployments(null);
+        platformDeployment.setFeatures(null);
+
+        // deepcode ignore MassAssignment: an admin-only (HTTP Basic) endpoint that sets a platform's whole configuration; its ID and relations are cleared above
         PlatformDeployment platformDeploymentSaved = platformDeploymentRepository.save(platformDeployment);
 
-        if (platformDeployment.getToolDeployments() != null) {
-            for (ToolDeployment toolDeployment : platformDeployment.getToolDeployments()) {
-                toolDeployment.setPlatformDeployment(platformDeploymentSaved);
-                toolDeploymentRepository.save(toolDeployment);
+        if (requestedToolDeployments != null) {
+            for (ToolDeployment toolDeployment : requestedToolDeployments) {
+                // deepcode ignore MassAssignment: only the LTI deployment ID is taken from the request (see newToolDeployment)
+                toolDeploymentRepository.save(newToolDeployment(toolDeployment, platformDeploymentSaved));
             }
         }
 
@@ -115,8 +126,8 @@ public class LtiConfigurationController {
             for (ToolDeployment toolDeployment : platformDeployment.getToolDeployments()) {
                 if (platformDeploymentToChange.getToolDeployments().stream()
                         .noneMatch(td -> td.getLtiDeploymentId().equals(toolDeployment.getLtiDeploymentId()))) {
-                    toolDeployment.setPlatformDeployment(platformDeploymentToChange);
-                    ToolDeployment savedToolDeployment = toolDeploymentRepository.save(toolDeployment);
+                    // deepcode ignore MassAssignment: only the LTI deployment ID is taken from the request (see newToolDeployment)
+                    ToolDeployment savedToolDeployment = toolDeploymentRepository.save(newToolDeployment(toolDeployment, platformDeploymentToChange));
                     platformDeploymentToChange.getToolDeployments().add(savedToolDeployment);
                 }
             }
@@ -126,6 +137,14 @@ public class LtiConfigurationController {
         log.info("Updated platform deployment ID: [{}]", id);
 
         return new ResponseEntity<>(platformDeploymentToChange, HttpStatus.OK);
+    }
+
+    // only the LTI deployment ID comes from the request: the rest is a new tool deployment's own state
+    private static ToolDeployment newToolDeployment(ToolDeployment requested, PlatformDeployment platformDeployment) {
+        return ToolDeployment.builder()
+            .ltiDeploymentId(requested.getLtiDeploymentId())
+            .platformDeployment(platformDeployment)
+            .build();
     }
 
 }

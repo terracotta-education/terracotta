@@ -1,5 +1,7 @@
 package edu.iu.terracotta.dao.model.dto;
 
+import java.util.Date;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.AllArgsConstructor;
@@ -21,5 +23,9 @@ public class OutcomePotentialDto {
     public String assignmentId;
     public Float pointsPossible;
     public boolean terracotta;
+    // shown when the instructor opens a gradebook item to check it's the right one
+    public String htmlUrl;
+    public Date dueAt;
+    public String description;
 
 }

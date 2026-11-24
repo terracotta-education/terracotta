@@ -48,6 +48,10 @@ import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorExcept
 import edu.iu.terracotta.connectors.generic.service.lms.LmsOAuthServiceManager;
 import edu.iu.terracotta.connectors.generic.service.lti.LtiNoticeService;
 import edu.iu.terracotta.dao.entity.Experiment;
+import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
+import edu.iu.terracotta.dao.entity.ObsoleteAssignment;
+import edu.iu.terracotta.dao.entity.Exposure;
+import edu.iu.terracotta.dao.entity.Assignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCandidate;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentCopyCreatedAssignment;
 import edu.iu.terracotta.dao.entity.distribute.ExperimentImport;
@@ -994,6 +998,149 @@ class ExperimentCopyCandidateServiceImplTest extends BaseTest {
         when(securedInfo.getContextId()).thenReturn(1L);
         when(experimentCopyCandidateRepository.findAllByDestinationContext_ContextIdAndStatusInAndAcknowledgedAtIsNull(eq(1L), anyList()))
             .thenReturn(List.of(candidates));
+    }
+
+    // --- stageFromCopiedAssignments: a course copy no notice reported, found on launch ---
+
+    private Experiment sourceExperiment(long experimentId, long contextId, long platformKeyId) {
+        LtiContextEntity sourceContext = mock(LtiContextEntity.class);
+        when(sourceContext.getContextId()).thenReturn(contextId);
+        PlatformDeployment sourcePlatform = mock(PlatformDeployment.class);
+        when(sourcePlatform.getKeyId()).thenReturn(platformKeyId);
+        Experiment source = mock(Experiment.class);
+        when(source.getExperimentId()).thenReturn(experimentId);
+        when(source.getLtiContextEntity()).thenReturn(sourceContext);
+        when(source.getPlatformDeployment()).thenReturn(sourcePlatform);
+
+        return source;
+    }
+
+    private Assignment sourceAssignment(Experiment source) {
+        Exposure sourceExposure = mock(Exposure.class);
+        when(sourceExposure.getExperiment()).thenReturn(source);
+        Assignment sourceAssignment = mock(Assignment.class);
+        when(sourceAssignment.getExposure()).thenReturn(sourceExposure);
+
+        return sourceAssignment;
+    }
+
+    private static LmsAssignment copiedLmsAssignment(String id, String query) {
+        return LmsAssignment.builder()
+            .id(id)
+            .lmsExternalToolFields(LmsExternalToolFields.builder().url(LTI_URL + "/lti3?" + query).build())
+            .build();
+    }
+
+    private void noOwnOrConvertedAssignments() {
+        when(assignmentRepository.findAssignmentsToCheckByContext(1L)).thenReturn(List.of());
+        when(obsoleteAssignmentRepository.findAllByContext_ContextId(1L)).thenReturn(List.of());
+    }
+
+    @Test
+    void testStageFromCopiedAssignmentsStagesTheSourceExperimentOfACopiedAssignment() {
+        noOwnOrConvertedAssignments();
+        UUID assignmentUuid = UUID.randomUUID();
+        Experiment source = sourceExperiment(70L, 2L, 1L);
+        Assignment copiedFrom = sourceAssignment(source);
+        when(assignmentRepository.findIdByUuid(assignmentUuid)).thenReturn(Optional.of(50L));
+        when(assignmentRepository.findByAssignmentId(50L)).thenReturn(copiedFrom);
+
+        boolean staged = experimentCopyCandidateService.stageFromCopiedAssignments(securedInfo,
+            List.of(copiedLmsAssignment("900", "experiment=" + UUID.randomUUID() + "&assignment=" + assignmentUuid)));
+
+        assertTrue(staged);
+        ArgumentCaptor<ExperimentCopyCandidate> saved = ArgumentCaptor.forClass(ExperimentCopyCandidate.class);
+        verify(experimentCopyCandidateRepository).save(saved.capture());
+        assertEquals(source, saved.getValue().getSourceExperiment());
+        assertEquals(ltiContextEntity, saved.getValue().getDestinationContext());
+        assertEquals(ExperimentCopyCandidateStatus.PENDING, saved.getValue().getStatus());
+    }
+
+    // a consent item has no assignment of its own; its legacy numeric experiment id finds the source
+    @Test
+    void testStageFromCopiedAssignmentsFindsTheExperimentOfAConsentItem() {
+        noOwnOrConvertedAssignments();
+        Experiment source = sourceExperiment(70L, 2L, 1L);
+        when(experimentRepository.findByExperimentId(70L)).thenReturn(source);
+
+        assertTrue(experimentCopyCandidateService.stageFromCopiedAssignments(securedInfo, List.of(copiedLmsAssignment("901", "consent=true&experiment=70"))));
+
+        verify(experimentCopyCandidateRepository).save(any(ExperimentCopyCandidate.class));
+    }
+
+    @Test
+    void testStageFromCopiedAssignmentsStagesEachSourceExperimentOnce() {
+        noOwnOrConvertedAssignments();
+        UUID experimentUuid = UUID.randomUUID();
+        Experiment source = sourceExperiment(70L, 2L, 1L);
+        when(experimentRepository.findByUuid(experimentUuid)).thenReturn(source);
+        Assignment copiedFrom = sourceAssignment(source);
+        when(assignmentRepository.findByAssignmentId(51L)).thenReturn(copiedFrom);
+
+        assertTrue(experimentCopyCandidateService.stageFromCopiedAssignments(securedInfo, List.of(
+            copiedLmsAssignment("901", "consent=true&experiment=" + experimentUuid),
+            copiedLmsAssignment("902", "experiment=70&assignment=51")
+        )));
+
+        verify(experimentCopyCandidateRepository, times(1)).save(any(ExperimentCopyCandidate.class));
+    }
+
+    // what the obsolete-assignment check should still handle: this course's own assignments, ones
+    // already converted, other tools' links, links to this course's own (deleted) experiments,
+    // another platform's experiments, and ids nothing matches
+    @Test
+    void testStageFromCopiedAssignmentsIgnoresWhatIsNotACopy() {
+        Assignment own = mock(Assignment.class);
+        when(own.getLmsAssignmentId()).thenReturn("own");
+        ObsoleteAssignment converted = mock(ObsoleteAssignment.class);
+        when(converted.getLmsAssignmentId()).thenReturn("converted");
+        when(assignmentRepository.findAssignmentsToCheckByContext(1L)).thenReturn(List.of(own));
+        when(obsoleteAssignmentRepository.findAllByContext_ContextId(1L)).thenReturn(List.of(converted));
+        Experiment sameCourse = sourceExperiment(71L, 1L, 1L);
+        Experiment otherPlatform = sourceExperiment(72L, 2L, 9L);
+        Experiment otherCourse = sourceExperiment(70L, 2L, 1L);
+        when(experimentRepository.findByExperimentId(70L)).thenReturn(otherCourse);
+        when(experimentRepository.findByExperimentId(71L)).thenReturn(sameCourse);
+        when(experimentRepository.findByExperimentId(72L)).thenReturn(otherPlatform);
+
+        boolean staged = experimentCopyCandidateService.stageFromCopiedAssignments(securedInfo, List.of(
+            copiedLmsAssignment("own", "consent=true&experiment=70"),
+            copiedLmsAssignment("converted", "consent=true&experiment=70"),
+            LmsAssignment.builder().id("other-tool").lmsExternalToolFields(LmsExternalToolFields.builder().url("https://other.tool/launch?experiment=70").build()).build(),
+            LmsAssignment.builder().id("not-a-tool").build(),
+            copiedLmsAssignment("same-course", "consent=true&experiment=71"),
+            copiedLmsAssignment("other-platform", "consent=true&experiment=72"),
+            copiedLmsAssignment("unknown-assignment", "experiment=70&assignment=" + UUID.randomUUID()),
+            copiedLmsAssignment("unknown-experiment", "consent=true&experiment=" + UUID.randomUUID()),
+            copiedLmsAssignment("bad-id", "consent=true&experiment=not-an-id"),
+            copiedLmsAssignment("no-ids", "consent=true")
+        ));
+
+        assertFalse(staged);
+        verify(experimentCopyCandidateRepository, never()).save(any());
+    }
+
+    @Test
+    void testStageFromCopiedAssignmentsDoesNotStageTwice() {
+        noOwnOrConvertedAssignments();
+        Experiment source = sourceExperiment(70L, 2L, 1L);
+        when(experimentRepository.findByExperimentId(70L)).thenReturn(source);
+        when(experimentCopyCandidateRepository.existsBySourceExperiment_ExperimentIdAndDestinationContext_ContextId(70L, 1L)).thenReturn(true);
+
+        assertFalse(experimentCopyCandidateService.stageFromCopiedAssignments(securedInfo, List.of(copiedLmsAssignment("901", "consent=true&experiment=70"))));
+
+        verify(experimentCopyCandidateRepository, never()).save(any());
+    }
+
+    @Test
+    void testStageFromCopiedAssignmentsWithNothingToCheck() {
+        assertFalse(experimentCopyCandidateService.stageFromCopiedAssignments(securedInfo, List.of()));
+        assertFalse(experimentCopyCandidateService.stageFromCopiedAssignments(securedInfo, null));
+
+        when(ltiContextRepository.findById(1L)).thenReturn(Optional.empty());
+        assertFalse(experimentCopyCandidateService.stageFromCopiedAssignments(securedInfo, List.of(copiedLmsAssignment("901", "consent=true&experiment=70"))));
+
+        verify(experimentCopyCandidateRepository, never()).save(any());
     }
 
 }
