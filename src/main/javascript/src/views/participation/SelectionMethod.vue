@@ -31,13 +31,27 @@
           'panel-not-selected':
             panel.type !== initialParticipationType,
           'panel-selected':
-            panel.type === initialParticipationType
+            panel.type === initialParticipationType,
+          'panel-locked': isLocked(panel.type)
         }"
         :disabled="
           hasParticipantTypeSelected &&
           panel.type !== initialParticipationType
         "
+        :tabindex="isLocked(panel.type) ? 0 : undefined"
       >
+        <!-- on the whole panel: its disabled button doesn't get pointer or keyboard events -->
+        <v-tooltip
+          v-if="isLocked(panel.type)"
+          activator="parent"
+          location="top"
+          content-class="tool-tip-content"
+        >
+          <div class="tool-tip-content-body">
+            {{ LOCKED_CONSENT_HELP }}
+          </div>
+        </v-tooltip>
+
         <v-expansion-panel-title
           hide-actions
         >
@@ -55,7 +69,7 @@
           <v-btn
             color="primary"
             :loading="loading"
-            :disabled="loading"
+            :disabled="loading || isLocked(panel.type)"
             @click="setParticipationType(panel.type)"
           >
             Select
@@ -187,6 +201,16 @@ const displayConsentFileMissingAlert = computed(() => {
   );
 });
 
+// once a student has done an assignment, switching to consent would leave them unable to consent
+// and lose the data already collected (the server refuses it too). Already consent: nothing to lock
+const consentLocked = computed(() => {
+  return Boolean(props.experiment.started) && !isConsentType.value;
+});
+
+const isLocked = type => type === "CONSENT" && consentLocked.value;
+
+const LOCKED_CONSENT_HELP = "Students have already started an assignment associated with this experiment and are already participating in it.";
+
 const POLL_INTERVAL_MS = 5000;
 
 let statusPollTimer = null;
@@ -301,6 +325,10 @@ const pollPrepareParticipationStatus = (experimentId, batchId, selectedParticipa
 };
 
 const setParticipationType = async type => {
+  if (isLocked(type)) {
+    return;
+  }
+
   initialParticipationType.value = type;
 
   const experiment = {
@@ -430,6 +458,13 @@ defineExpose({
 
 .panel-not-selected {
   border-color: map.get($grey, "lighter") !important;
+}
+
+.panel-locked {
+  :deep(.v-expansion-panel-title),
+  :deep(.v-expansion-panel-text p) {
+    opacity: 0.5;
+  }
 }
 
 .participation-expansion-panel:focus-within {
