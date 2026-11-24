@@ -569,7 +569,7 @@ describe("SelectionMethod", () => {
       await flushPromisesAndTicks(wrapper);
 
       expect(document.body.querySelector(".tool-tip-content .tool-tip-content-body").textContent)
-        .toContain("can no longer be asked to consent");
+        .toContain("are already participating in it");
       expect(panels[2].classes()).not.toContain("panel-locked");
       expect(panels[2].findComponent({ name: "VBtn" }).props("disabled")).toBe(false);
     });

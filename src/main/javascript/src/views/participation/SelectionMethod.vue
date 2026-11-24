@@ -209,7 +209,7 @@ const consentLocked = computed(() => {
 
 const isLocked = type => type === "CONSENT" && consentLocked.value;
 
-const LOCKED_CONSENT_HELP = "Students have already started an assignment in this experiment, so they can no longer be asked to consent. Switching to consent now would lose the data already collected.";
+const LOCKED_CONSENT_HELP = "Students have already started an assignment associated with this experiment and are already participating in it.";
 
 const POLL_INTERVAL_MS = 5000;
 
