@@ -19,6 +19,7 @@ import org.hibernate.annotations.OnDeleteAction;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -57,13 +58,13 @@ public class Experiment extends UuidAwareEntity {
     @Lob
     private String description;
 
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     private ExposureTypes exposureType;
 
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     private ParticipationTypes participationType;
 
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     private DistributionTypes distributionType;
 
     @ManyToOne(optional = false)
