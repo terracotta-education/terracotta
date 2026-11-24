@@ -45,6 +45,7 @@ import edu.iu.terracotta.dao.model.enums.export.ParticipantTreatmentCsv;
 import edu.iu.terracotta.dao.model.enums.export.ParticipantsCsv;
 import edu.iu.terracotta.dao.model.enums.export.ResponseOptionsCsv;
 import edu.iu.terracotta.dao.model.enums.export.SubmissionsCsv;
+import edu.iu.terracotta.dao.model.enums.export.TreatmentCsv;
 import edu.iu.terracotta.dao.repository.AnswerEssaySubmissionRepository;
 import edu.iu.terracotta.dao.repository.AnswerMcRepository;
 import edu.iu.terracotta.dao.repository.AnswerMcSubmissionRepository;
@@ -206,6 +207,9 @@ public class ExportServiceImpl implements ExportService {
             page++;
             participants = participantRepository.findByExperiment_ExperimentId(experimentId, PageRequest.of(page, exportBatchSize));
         }
+
+        // treatment.csv
+        handleTreatmentCsv(files);
 
         // experiment.csv
         handleExperimentCsv(experimentId, participantCount, consentedParticipantsCount, files);
@@ -404,6 +408,45 @@ public class ExportServiceImpl implements ExportService {
                             )
                     )
             );
+        }
+    }
+
+    // one row per treatment of each active assignment, so researchers can see what each condition was asked to do
+    private void handleTreatmentCsv(Map<String, String> files) throws IOException {
+        Path path = createTempFile();
+        files.put(TreatmentCsv.FILENAME, path.toString());
+
+        try (CSVWriter writer = createCsvFileWriter(path)) {
+            writer.writeNext(TreatmentCsv.getHeaderRow());
+
+            CollectionUtils.emptyIfNull(treatments).stream()
+                .filter(treatment -> BooleanUtils.isNotTrue(treatment.getAssignment().getSoftDeleted()))
+                .sorted(
+                    Comparator.comparing((Treatment treatment) -> treatment.getAssignment().getExposure().getExposureId())
+                        .thenComparing(treatment -> treatment.getAssignment().getAssignmentId())
+                        .thenComparing(treatment -> treatment.getCondition().getConditionId())
+                )
+                .forEach(treatment -> {
+                    Assignment assignment = treatment.getAssignment();
+                    Assessment assessment = treatment.getAssessment();
+
+                    writer.writeNext(
+                        new String[] {
+                            assignment.getTitle(),
+                            assignment.getDueDate() != null ? simpleDateFormatter.format(assignment.getDueDate()) : NA,
+                            assignment.getLmsAssignmentId() != null ? assignment.getLmsAssignmentId() : NA,
+                            assignment.getAssignmentId().toString(),
+                            treatment.getTreatmentId().toString(),
+                            // plain text, like essay responses in item_responses.csv; instructions are always HTML
+                            assessment != null && StringUtils.isNotBlank(assessment.getHtml()) ? RichTextUtils.htmlToPlainText(assessment.getHtml()) : NA,
+                            assignment.getExposure().getExposureId().toString(),
+                            treatment.getCondition().getConditionId().toString(),
+                            StringUtils.isNotBlank(treatment.getCondition().getName()) ? treatment.getCondition().getName() : NA,
+                            assessment != null ? assessment.getMultipleSubmissionScoringScheme().toString() : NA,
+                            assessment != null ? calculateAttemptsAllowed(assessment.getNumOfSubmissions()) : NA,
+                            calculateTimeRequiredBetweenAttempts(assignment.getHoursBetweenSubmissions())
+                        });
+                });
         }
     }
 

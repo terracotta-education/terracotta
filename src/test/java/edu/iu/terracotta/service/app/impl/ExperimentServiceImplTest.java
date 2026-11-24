@@ -14,6 +14,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
@@ -47,12 +48,12 @@ import edu.iu.terracotta.exceptions.TitleValidationException;
 import edu.iu.terracotta.exceptions.WrongValueException;
 import edu.iu.terracotta.service.app.ConditionService;
 import edu.iu.terracotta.service.app.FeatureService;
-import edu.iu.terracotta.service.app.async.AssignmentAsyncService;
+import edu.iu.terracotta.service.app.async.LmsAssignmentSyncService;
 import edu.iu.terracotta.service.app.distribute.ExperimentCopyCandidateService;
 
 public class ExperimentServiceImplTest extends BaseTest {
 
-    @Mock private AssignmentAsyncService assignmentAsyncService;
+    @Mock private LmsAssignmentSyncService lmsAssignmentSyncService;
     @Mock private ConditionService conditionService;
     @Mock private FeatureService featureService;
     @Mock private ExperimentCopyCandidateService experimentCopyCandidateService;
@@ -66,6 +67,9 @@ public class ExperimentServiceImplTest extends BaseTest {
         setup();
 
         ReflectionTestUtils.setField(experimentService, "batchSize", 500);
+        // set explicitly: canvasApiJwtService is also an ApiJwtService, so @InjectMocks could pick
+        // either (see BaseServiceTest)
+        ReflectionTestUtils.setField(experimentService, "apiJwtService", apiJwtService);
     }
 
     @Test
@@ -75,7 +79,7 @@ public class ExperimentServiceImplTest extends BaseTest {
         List<ExperimentDto> retVal = experimentService.getExperiments(securedInfo, false);
 
         assertEquals(1, retVal.size());
-        verify(assignmentAsyncService, never()).handleAssignmentTasksInLmsByContext(any());
+        verifyNoInteractions(lmsAssignmentSyncService);
         verify(participantAsyncService, never()).updateParticipantData(any());
     }
 
@@ -86,8 +90,24 @@ public class ExperimentServiceImplTest extends BaseTest {
         List<ExperimentDto> retVal = experimentService.getExperiments(securedInfo, true);
 
         assertEquals(1, retVal.size());
-        verify(assignmentAsyncService).handleAssignmentTasksInLmsByContext(securedInfo);
+        verify(lmsAssignmentSyncService).syncInBackground(securedInfo);
+        verify(lmsAssignmentSyncService, never()).sync(any());
         verify(participantAsyncService).updateParticipantData(securedInfo);
+    }
+
+    // an instructor in a course with no experiments yet may be in a copied course no notice
+    // reported, so the copy check runs before the response: the copy status the page asks for
+    // next then already shows a recreation it started
+    @Test
+    public void testGetExperimentsSyncsNowForAnInstructorInACourseWithoutExperiments() throws Exception {
+        when(experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(anyLong(), anyLong())).thenReturn(Collections.emptyList());
+        when(apiJwtService.isInstructorOrHigher(securedInfo)).thenReturn(true);
+
+        List<ExperimentDto> retVal = experimentService.getExperiments(securedInfo, true);
+
+        assertEquals(0, retVal.size());
+        verify(lmsAssignmentSyncService).sync(securedInfo);
+        verify(lmsAssignmentSyncService, never()).syncInBackground(any());
     }
 
     @Test
@@ -97,14 +117,15 @@ public class ExperimentServiceImplTest extends BaseTest {
         List<ExperimentDto> retVal = experimentService.getExperiments(securedInfo, true);
 
         assertEquals(0, retVal.size());
-        verify(assignmentAsyncService).handleAssignmentTasksInLmsByContext(securedInfo);
+        // not an instructor, so nothing to wait for
+        verify(lmsAssignmentSyncService).syncInBackground(securedInfo);
         verify(participantAsyncService, never()).updateParticipantData(any());
     }
 
     @Test
     public void testGetExperimentsSyncExceptionSwallowed() throws Exception {
         when(experimentRepository.findByPlatformDeployment_KeyIdAndLtiContextEntity_ContextId(anyLong(), anyLong())).thenReturn(List.of(experiment));
-        doThrow(new ApiException("fail")).when(assignmentAsyncService).handleAssignmentTasksInLmsByContext(any());
+        doThrow(new ApiException("fail")).when(participantAsyncService).updateParticipantData(any());
 
         List<ExperimentDto> retVal = assertDoesNotThrow(() -> experimentService.getExperiments(securedInfo, true));
 
@@ -123,7 +144,7 @@ public class ExperimentServiceImplTest extends BaseTest {
         List<ExperimentDto> retVal = experimentService.getExperiments(securedInfo, true);
 
         assertEquals(1, retVal.size());
-        verify(assignmentAsyncService, never()).handleAssignmentTasksInLmsByContext(any());
+        verifyNoInteractions(lmsAssignmentSyncService);
     }
 
     @Test

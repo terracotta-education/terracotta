@@ -1,5 +1,6 @@
 package edu.iu.terracotta.service.app.impl;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,16 +21,19 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.opencsv.CSVReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -46,7 +50,10 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.dao.entity.Assessment;
 import edu.iu.terracotta.dao.entity.Assignment;
+import edu.iu.terracotta.dao.entity.Condition;
+import edu.iu.terracotta.dao.entity.Exposure;
 import edu.iu.terracotta.dao.entity.Participant;
+import edu.iu.terracotta.dao.entity.Treatment;
 import edu.iu.terracotta.dao.entity.events.Event;
 import edu.iu.terracotta.dao.entity.messaging.content.MessageContent;
 import edu.iu.terracotta.dao.entity.messaging.log.MessageLog;
@@ -69,6 +76,7 @@ import edu.iu.terracotta.dao.model.enums.export.ParticipantTreatmentCsv;
 import edu.iu.terracotta.dao.model.enums.export.ParticipantsCsv;
 import edu.iu.terracotta.dao.model.enums.export.ResponseOptionsCsv;
 import edu.iu.terracotta.dao.model.enums.export.SubmissionsCsv;
+import edu.iu.terracotta.dao.model.enums.export.TreatmentCsv;
 import edu.iu.terracotta.dao.model.enums.messaging.MessageRecipientMatchType;
 import edu.iu.terracotta.dao.model.enums.messaging.MessageType;
 import edu.iu.terracotta.dao.model.enums.messaging.rule.MessageRuleComparison;
@@ -348,6 +356,160 @@ public class ExportServiceImplTest extends BaseTest {
 
         String content = Files.readString(Path.of(files.get(ParticipantTreatmentCsv.FILENAME)));
         assertEquals(1, content.lines().count());
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // handleTreatmentCsv
+    // ---------------------------------------------------------------------------------------------
+
+    private List<String[]> readTreatmentCsv(Map<String, String> files) throws Exception {
+        try (CSVReader reader = new CSVReader(new FileReader(files.get(TreatmentCsv.FILENAME)))) {
+            return reader.readAll();
+        }
+    }
+
+    @Test
+    public void testHandleTreatmentCsvWritesTheRequestedColumnsAndEachTreatmentsInstructions() throws Exception {
+        String instructions = "<p>Read <a href=\"https://example.com/ch1\">the chapter</a>, then answer:</p>\n<ul><li><p>one, \"quoted\"</p></li></ul>";
+        when(assessment.getHtml()).thenReturn(instructions);
+        when(assessment.getNumOfSubmissions()).thenReturn(3);
+        when(assignment.getHoursBetweenSubmissions()).thenReturn(2F);
+        ReflectionTestUtils.setField(exportService, "treatments", List.of(treatment));
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleTreatmentCsv", files);
+        List<String[]> rows = readTreatmentCsv(files);
+
+        assertArrayEquals(
+            new String[] {
+                "assignment_name", "assignment_due_date", "lms_assignment_id", "assignment_id", "treatment_id",
+                "treatment_instructions", "exposure_id", "condition_id", "condition_name", "grade_type",
+                "attempts_allowed", "time_required_between_attempts"
+            },
+            rows.get(0)
+        );
+        assertEquals(2, rows.size());
+        assertArrayEquals(
+            new String[] {
+                ASSIGNMENT_TITLE, "N/A", "1", "1", "1",
+                // plain text, like essay responses in item_responses.csv
+                "Read the chapter (https://example.com/ch1), then answer:\n\n- one, \"quoted\"",
+                "1", "1", CONDITION_TITLE,
+                "MOST_RECENT", "3", "2.0 hours"
+            },
+            rows.get(1)
+        );
+    }
+
+    @Test
+    public void testHandleTreatmentCsvUsesNaForBlankInstructions() throws Exception {
+        when(assessment.getHtml()).thenReturn("  ");
+        ReflectionTestUtils.setField(exportService, "treatments", List.of(treatment));
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleTreatmentCsv", files);
+
+        assertEquals("N/A", readTreatmentCsv(files).get(1)[TreatmentCsv.TREATMENT_INSTRUCTIONS.ordinal()]);
+    }
+
+    @Test
+    public void testHandleTreatmentCsvLeavesOutDeletedAssignments() throws Exception {
+        when(assignment.getSoftDeleted()).thenReturn(true);
+        ReflectionTestUtils.setField(exportService, "treatments", List.of(treatment));
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleTreatmentCsv", files);
+
+        assertEquals(1, readTreatmentCsv(files).size());
+    }
+
+    private Treatment mockTreatment(long treatmentId, long exposureId, long assignmentId, long conditionId) {
+        Exposure treatmentExposure = mock(Exposure.class);
+        when(treatmentExposure.getExposureId()).thenReturn(exposureId);
+
+        Assignment treatmentAssignment = mock(Assignment.class);
+        when(treatmentAssignment.getAssignmentId()).thenReturn(assignmentId);
+        when(treatmentAssignment.getExposure()).thenReturn(treatmentExposure);
+        when(treatmentAssignment.getTitle()).thenReturn("Assignment " + assignmentId);
+
+        Condition treatmentCondition = mock(Condition.class);
+        when(treatmentCondition.getConditionId()).thenReturn(conditionId);
+
+        Treatment mockedTreatment = mock(Treatment.class);
+        when(mockedTreatment.getTreatmentId()).thenReturn(treatmentId);
+        when(mockedTreatment.getAssignment()).thenReturn(treatmentAssignment);
+        when(mockedTreatment.getCondition()).thenReturn(treatmentCondition);
+
+        return mockedTreatment;
+    }
+
+    @Test
+    public void testHandleTreatmentCsvSortsByExposureThenAssignmentThenCondition() throws Exception {
+        ReflectionTestUtils.setField(
+            exportService,
+            "treatments",
+            List.of(
+                mockTreatment(1L, 2L, 10L, 1L),
+                mockTreatment(2L, 1L, 20L, 2L),
+                mockTreatment(3L, 1L, 20L, 1L),
+                mockTreatment(4L, 1L, 10L, 2L)
+            )
+        );
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleTreatmentCsv", files);
+
+        List<String> treatmentIds = readTreatmentCsv(files).stream()
+            .skip(1)
+            .map(row -> row[TreatmentCsv.TREATMENT_ID.ordinal()])
+            .toList();
+
+        assertEquals(List.of("4", "3", "2", "1"), treatmentIds);
+    }
+
+    @Test
+    public void testHandleTreatmentCsvUsesNaForMissingValues() throws Exception {
+        // a treatment without an assessment, on an assignment not yet in the LMS, in an unnamed condition
+        Treatment bareTreatment = mockTreatment(5L, 1L, 1L, 1L);
+        Timestamp dueDate = Timestamp.valueOf("2026-11-20 23:59:00");
+        when(bareTreatment.getAssignment().getDueDate()).thenReturn(dueDate);
+        when(bareTreatment.getCondition().getName()).thenReturn(" ");
+        ReflectionTestUtils.setField(exportService, "treatments", List.of(bareTreatment));
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleTreatmentCsv", files);
+        String[] row = readTreatmentCsv(files).get(1);
+
+        assertEquals(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(dueDate), row[TreatmentCsv.ASSIGNMENT_DUE_DATE.ordinal()]);
+        assertEquals("N/A", row[TreatmentCsv.LMS_ASSIGNMENT_ID.ordinal()]);
+        assertEquals("N/A", row[TreatmentCsv.TREATMENT_INSTRUCTIONS.ordinal()]);
+        assertEquals("N/A", row[TreatmentCsv.CONDITION_NAME.ordinal()]);
+        assertEquals("N/A", row[TreatmentCsv.GRADE_TYPE.ordinal()]);
+        assertEquals("N/A", row[TreatmentCsv.ATTEMPTS_ALLOWED.ordinal()]);
+        assertEquals("N/A", row[TreatmentCsv.TIME_REQUIRED_BETWEEN_ATTEMPTS.ordinal()]);
+    }
+
+    @Test
+    public void testHandleTreatmentCsvShowsUnlimitedAttempts() throws Exception {
+        when(assessment.getNumOfSubmissions()).thenReturn(0);
+        ReflectionTestUtils.setField(exportService, "treatments", List.of(treatment));
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleTreatmentCsv", files);
+
+        assertEquals("unlimited", readTreatmentCsv(files).get(1)[TreatmentCsv.ATTEMPTS_ALLOWED.ordinal()]);
+    }
+
+    @Test
+    public void testHandleTreatmentCsvWritesOnlyTheHeaderWithoutTreatments() throws Exception {
+        ReflectionTestUtils.setField(exportService, "treatments", null);
+
+        Map<String, String> files = new HashMap<>();
+        ReflectionTestUtils.invokeMethod(exportService, "handleTreatmentCsv", files);
+        List<String[]> rows = readTreatmentCsv(files);
+
+        assertEquals(1, rows.size());
+        assertArrayEquals(TreatmentCsv.getHeaderRow(), rows.get(0));
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -782,6 +944,7 @@ public class ExportServiceImplTest extends BaseTest {
 
         assertTrue(files.containsKey(ExperimentCsv.FILENAME));
         assertTrue(files.containsKey(ParticipantTreatmentCsv.FILENAME));
+        assertTrue(files.containsKey(TreatmentCsv.FILENAME));
         assertTrue(files.containsKey(ParticipantsCsv.FILENAME));
         assertTrue(files.containsKey(OutcomesCsv.FILENAME));
         assertTrue(files.containsKey(SubmissionsCsv.FILENAME));

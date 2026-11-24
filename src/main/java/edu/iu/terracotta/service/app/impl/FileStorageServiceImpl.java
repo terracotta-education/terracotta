@@ -4,6 +4,7 @@ import edu.iu.terracotta.connectors.generic.dao.entity.lti.LtiUserEntity;
 import edu.iu.terracotta.connectors.generic.dao.entity.lti.PlatformDeployment;
 import edu.iu.terracotta.connectors.generic.dao.model.SecuredInfo;
 import edu.iu.terracotta.connectors.generic.dao.model.lms.LmsAssignment;
+import edu.iu.terracotta.connectors.generic.dao.model.lms.base.LmsExternalToolFields;
 import edu.iu.terracotta.connectors.generic.dao.repository.lti.LtiUserRepository;
 import edu.iu.terracotta.connectors.generic.exceptions.ApiException;
 import edu.iu.terracotta.connectors.generic.exceptions.TerracottaConnectorException;
@@ -358,12 +359,15 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void repointConsentFileInLms(ConsentDocument consentDocument, Experiment experiment, LtiUserEntity instructorUser, LmsAssignment existingLmsAssignment, String lmsCourseId) throws AssignmentNotCreatedException, TerracottaConnectorException {
-        if (existingLmsAssignment.getLmsExternalToolFields() == null) {
+        // read once: an LMS's own assignment type may build these fresh on every call
+        LmsExternalToolFields lmsExternalToolFields = existingLmsAssignment.getLmsExternalToolFields();
+
+        if (lmsExternalToolFields == null) {
             throw new AssignmentNotCreatedException("Error 137: The consent document assignment was not re-pointed. It has no external tool settings.");
         }
 
         try {
-            existingLmsAssignment.getLmsExternalToolFields().setUrl(
+            lmsExternalToolFields.setUrl(
                 String.format(
                     "%s/lti3?consent=true&experiment=%s",
                     instructorUser.getPlatformDeployment().getLocalUrl(),
